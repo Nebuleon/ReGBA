@@ -1,0 +1,22 @@
+Readme for ucos release packet
+
+This packet include following source:
+	1.ucos core code,just for test,not buissness use.
+	2.most driver of JZ4740,for free
+	3.some muti-media software
+
+The ucos core code and driver code are build together.
+To build ucos,you need a compiler called 'mipseltools-nopic'
+To do:
+	1.modify the makefile in /jz4740 to select the function you want
+	2.modify main.c in /jz4740 to enable the test code related to the function
+	3.just make in /jz4740
+	
+
+There are Mplayer and madplay source in the packet.
+To build Mplayer,you need a special file: mxu_as
+To do:
+	1.Put the file 'mxu_as' into your compiler path,
+	  for exsample: mipseltools-nopic/bin/
+	2.in /Mplayer,just make
+

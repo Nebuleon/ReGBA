@@ -1,0 +1,176 @@
+UnOfficial gpSP kai
+-- gameplaySP Gameboy Advance emulator for Playstation Portable --
+
+gpSPのconfig fileの技術資料
+すべてuo gpSP kai 3.2 test 06での仕様です
+現在は一部変更あります
+
+dir.cfg
+	各種のフォルダを指定する
+	行頭が!以外は全てコメントとして無視される
+	全てEBOOT.PBPからの相対表記になっている
+	ms0:\~とすれば、絶対表記も可能
+	!が行頭の行について
+		1行目 ROM file フォルダ
+		2行目 SAVE file フォルダ
+		3行目 GAME config fle フォルダ
+		4行目 screen shot フォルダ
+		5行目 cheat file フォルダ
+	となっている
+	指定したフォルダが存在しない場合、エラーもしくはEBOOT.PBPと同じフォルダが使用される
+
+*.fntと*.msgはgpSP起動時に、本体の言語設定により、
+	japanese/english/french/spanish/german/italian
+	dutch/portuguese/russian/korean/chinese_traditional/chinese_simplified
+をそれぞれ読込む
+
+*.fnt
+	フォントファイルを指定する
+	フォントファイルはfbm形式をしようする
+	行頭が!以外は全てコメントとして無視される
+	全てEBOOT.PBPからの相対表記になっている
+	!が行頭の行について
+		1行目 メインのフォントファイル
+		2行目 サブのフォントファイル
+	となっている
+	メインのフォントファイルが存在しない/フォーマットが違う場合はエラーにて終了する
+	サブフォントのグリフを優先的に使用する
+
+*.msg
+	各種メッセージのファイル
+	行頭が!以外は全てコメントとして無視される
+	各種メッセージの順番は決まっているので、順番を入替えると正常に動作しない
+	コメントの英文を参考に変更すること
+	printf文の1番目の引数の実態なので、%d等の順番/数を変更すると不具合が発生する
+	メッセージの順番はmesseage.hで指示される
+	16kb以上には対応していないが、message.hを変更することで対応できる
+	UTF-8Nコードを使用する
+	読込み時出来ない場合、エラーにて終了する
+
+gpsp.cfg
+	gpSP本体の設定ファイル
+	存在しない場合、自動で作成される
+	内容は以下
+		1word		ヘッダ
+		2word		バージョン番号
+		3word		screen_scale
+		4word		screen_filter
+		5word		video_interlace
+		6word		video_ratio
+		7word		enable_audio
+		8word		enable_analog
+		9word		analog_sensitivity_level
+		10~25word	gamepad_config_map[16]
+
+	ヘッダ
+		'gpSP'をASCIIコードで格納
+		0x67705250
+
+	バージョン番号
+		バージョン番号を0x10000倍して格納
+		V1.0では0x00010000
+
+	screen_scale
+		画面の拡大モードの設定値
+		enum値 video_scale_typeを格納
+		unscaled			拡大無し 3:2 モード
+		scaled_aspect	拡大有り 3:2 モード
+		fullscreen			フル画面 モード
+
+	screen_filter
+		フィルターの設定値
+		enum値 video_filter_typeを格納
+		filter_nearest		フィルター無し
+		filter_bilinear		リニアフィルター
+
+	video_interlace
+		TV出力時のインタレースの設定値
+		enum値 VIDEO_INTERLACE_TYPEを格納
+		PROGRESSIVE		プログレッシブ モード
+		INTERLACE			インタレース モード
+
+	video_ratio
+		TV出力時の比率の設定値
+		enum値 VIDEO_RATIO_TYPEを格納
+		R4_3			4:3 モード
+		R16_9		16:9 モード
+
+	enable_audio
+		サウンドのon/off設定
+		0		サウンド 無し
+		1		サウンド 有り
+
+	enable_analog
+		アナログパッドの有効/無効の切替
+
+	analog_sensitivity_level
+		アナログパッドの感度の調整
+
+	gamepad_config_map[16]
+		キーコンフィグの設定
+
+
+ROMファイル名.cfg
+	ROMファイルごとの設定ファイル
+	存在しない場合、自動で作成される
+	内容は以下
+		1word		ヘッダ
+		2word		バージョン番号
+		3word		frameskip_type
+		4word		frameskip_value
+		5word		random_skip
+		6word		clock_speed
+		7word		audio_buffer_size_number
+		8word		update_backup_flag
+		9~38word	cheat_flag[30]
+		39~54word	gamepad_config_map[16]
+
+	ヘッダ
+		'gcfg'をASCIIコードで格納
+		0x
+
+	バージョン番号
+		バージョン番号を0x10000倍して格納
+		V1.0では0x00010000
+
+	frameskip_type
+		フレームスキップの種類
+
+	frameskip_value
+		フレームスキップの値
+
+	random_skip
+		ランダムスキップの設定値
+
+	clock_speed
+		CPUのクロック値
+
+	audio_buffer_size_number
+		オーディオバッファのサイズ設定値
+		0(最小)～10(最大)
+		※実際は音の遅れをどこまで許容するかの設定値
+
+	update_backup_flag
+		メモリースティックへのバックアップファイルの更新設定値
+		0		終了時/新規ROMロード時に更新
+		1		常に更新かつ終了時/新規ROMロード時に更新
+		※常に更新の場合、頻繁にバックアップを更新するROMにて速度低下/ノイズの増加等の不具合を引き起こす
+		※強制電源断/フリーズ以外では問題ないので、終了時更新がお勧め
+
+	cheat_flag[30]
+		チートのON/OFFフラグ
+
+	gamepad_config_map[16]
+		キーコンフィグの設定
+
+
+video.cfg
+
+pspDveMgrSetVideoOut() parameter
+Filter parameter
+Texture size
+Texture size bit
+Frame buffer size
+screen size
+Splite data 1
+Splite data 2 (for interlace)

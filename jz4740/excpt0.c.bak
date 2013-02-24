@@ -1,0 +1,118 @@
+/*
+ * excpt.c
+ *
+ * Handle exceptions, dump all generic registers for debug.
+ *
+ * Author: Seeger Chin
+ * e-mail: seeger.chin@gmail.com
+ *
+ * Copyright (C) 2006 Ingenic Semiconductor Inc.
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ *
+ */
+
+#include <mipsregs.h>
+
+const static char *regstr[] = {
+	"zero", "at", "v0", "v1", "a0", "a1", "a2", "a3",
+	"t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7",
+	"s0", "s1", "s2", "s3", "s4", "s5", "s6", "s7",
+	"t8", "t9", "k0", "k1", "gp", "sp", "fp", "ra"
+};
+unsigned int Process_RA = 0;
+unsigned int Process_SP = 0;
+
+typedef void (*PFun_Exception_Modal_Handler)(void);
+typedef struct
+{
+	unsigned int sp;
+	unsigned int ra;
+ 	PFun_Exception_Modal_Handler except_handle;
+}Except_Struct,*PExcept_Struct;
+static PFun_Exception_Modal_Handler main_except_handle = 0;
+#define malloc(x) alloc(x)
+#define free(x) deAlloc(x)
+static PExcept_Struct g_pExcept = 0;
+static unsigned int g_MaxExceptNum = 0;
+static unsigned int g_CurExcept = 0;
+void setmainexcpt(void *p)
+{
+    main_except_handle = p;
+}
+int InitExcept(unsigned int x)
+{
+	g_pExcept = (PExcept_Struct)malloc(x * sizeof(Except_Struct));
+	if(g_pExcept == 0)
+		return 0;
+	memset(g_pExcept,0,x * sizeof(Except_Struct));	
+	g_MaxExceptNum = x;
+  g_CurExcept = 0;
+	return 1;	
+}
+void DeinitExcept()
+{
+	if(g_pExcept)
+		free(g_pExcept);
+}
+int AddExcept(PFun_Exception_Modal_Handler pFun)
+{
+	
+	if(g_CurExcept >= g_MaxExceptNum)
+	{
+		g_CurExcept++;
+		return 0;
+	}
+	g_pExcept->sp = Process_SP;
+	g_pExcept->ra = Process_RA;
+	g_pExcept->except_handle = pFun;
+	g_CurExcept++;
+	return 1; 
+}
+void DecExcept(void)
+{
+    if(g_CurExcept <= 0) return;
+    g_CurExcept--;
+    g_pExcept[g_CurExcept].except_handle = 0;
+    g_pExcept[g_CurExcept].sp            = 0;
+    g_pExcept[g_CurExcept].ra            = 0;
+}
+void c_except_handler(unsigned int *sp)
+{
+	unsigned int i;
+	printf("CAUSE=%08x EPC=%08x\n", read_c0_cause(), read_c0_epc());
+/*	for (i=0;i<32;i++) {
+		if (i % 4 == 0)
+			printf("\n");
+		printf("%4s %08x ", regstr[i], sp[i]);
+	}*/
+	printf("SP= %08x\n", sp);
+	printf("AT= %08x  ra= %08x  fp= %08x  gp= %08x\n",sp[27],sp[0],sp[1],sp[2]);
+    printf("t9= %08x  t8= %08x  s7= %08x  S6= %08x\n",sp[3],sp[4],sp[5],sp[6]);
+    printf("s5= %08x  s4= %08x  s3= %08x  s2= %08x\n",sp[7],sp[8],sp[9],sp[10]);
+    printf("s1= %08x  s0= %08x  t7= %08x  t6= %08x\n",sp[11],sp[12],sp[13],sp[14]);
+    printf("t5= %08x  t4= %08x  t3= %08x  t2= %08x\n",sp[15],sp[16],sp[17],sp[18]);
+    printf("t1= %08x  t0= %08x  a3= %08x  a2= %08x\n",sp[19],sp[20],sp[21],sp[22]);
+    printf("a1= %08x  a0= %08x  v1= %08x  v0= %08x\n",sp[23],sp[24],sp[25], sp[26]);
+	printf("\n");
+	g_CurExcept--;
+	if(g_CurExcept < g_MaxExceptNum)
+	{
+		i = (unsigned int)g_pExcept[g_CurExcept].except_handle;
+		if(i)
+		{
+			Process_SP = g_pExcept[g_CurExcept].sp;
+			Process_RA = g_pExcept[g_CurExcept].ra;
+	  }
+    }else if(main_except_handle){
+		i = main_except_handle;	
+    }else{
+        printf("c_except_handler: while(1)");
+		while(1);
+    }
+	write_32bit_cp0_register(CP0_EPC,i);
+	__asm__ __volatile__("eret\n\t");	
+}
+

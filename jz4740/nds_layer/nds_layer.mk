@@ -1,0 +1,4 @@
+SOURCES	+= $(wildcard $(NDSDIR)/*.c)
+CFLAGS  += -DNDS_LAYER
+CFLAGS	+= -I$(NDSDIR)
+VPATH   += $(NDSDIR)

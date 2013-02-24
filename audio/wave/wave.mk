@@ -1,0 +1,4 @@
+SOURCES	+= vplay.c
+CFLAGS += -I$(WAVDIR)
+CFLAGS +=
+VPATH  += $(WAVDIR)

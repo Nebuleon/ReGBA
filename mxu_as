@@ -1,0 +1,594 @@
+#! /bin/bash
+
+#expand $1 | sed  's/^ \+//g' | \
+awk '
+BEGIN { FS="[, \t]+"
+############################################################################################
+#Common variables definition begins from here
+############################################################################################
+	MXINSN_OK=0; SPECIAL2="011100";
+	MINOR0="MINOR0"; EXTEND="EXTEND";
+	WW="WW"; LW="LW"; HW="HW"; XW="XW"; AA="AA"; AS="AS"; SA="SA"; SS="SS";
+	PTN0="PTN0"; PTN1="PTN1"; PTN2="PTN2"; PTN3="PTN3";
+#<------MNEMONIC SYMBOLs
+	D16MUL="D16MUL"; D16MULF="D16MULF"; D16MAC="D16MAC"; D16MACF="D16MACF"; S16MAD="S16MAD";
+	D16MADL="D16MADL"; Q16ADD="Q16ADD"; Q8MUL="Q8MUL"; Q8MAC="Q8MAC"; Q8MADL="Q8MADL";
+	S32SFL="S32SFL"; Q8SAD="Q8SAD"; D32ADD="D32ADD"; D32ACC="D32ACC"; Q16ACC="Q16ACC";
+	Q8ADDE="Q8ADDE"; Q8ACCE="Q8ACCE"; S32CPS="S32CPS"; D16CPS="D16CPS"; Q8ABD="Q8ABD";
+	Q16SAT="Q16SAT"; D16AVG="D16AVG"; D16AVGR="D16AVGR"; Q8AVG="Q8AVG"; Q8AVGR="Q8AVGR";
+	Q8ADD="Q8ADD"; S32MAX="S32MAX"; S32MIN="S32MIN"; D16MAX="D16MAX"; D16MIN="D16MIN";
+	Q8MAX="Q8MAX"; Q8MIN="Q8MIN"; Q8SLT="Q8SLT"; D32SLL="D32SLL"; D32SLR="D32SLR";
+	D32SARL="D32SARL"; D32SAR="D32SAR"; Q16SLL="Q16SLL"; Q16SLR="Q16SLR"; Q16SAR="Q16SAR";
+	D32SLLV="D32SLLV"; D32SLRV="D32SLRV"; D32SARV="D32SARV"; Q16SLLV="Q16SLLV"; 
+	Q16SLRV="Q16SLRV"; Q16SARV="Q16SARV"; D32SARW="D32SARW"; S32ALN="S32ALN"; S32M2I="S32M2I"; 
+	S32I2M="S32I2M"; S32LDD="S32LDD"; S32STD="S32STD"; S32LDI="S32LDI"; S32SDI="S32SDI";
+	S32LDDV="S32LDDV"; S32STDV="S32STDV"; S32LDIV="S32LDIV"; S32SDIV="S32SDIV"; 
+
+#<------XRF SYMBOL
+	XR0="XR0"; XR1="XR1"; XR2="XR2"; XR3="XR3"; XR4="XR4"; XR5="XR5"; XR6="XR6"; XR7="XR7";
+	XR8="XR8"; XR9="XR9"; XR10="XR10"; XR11="XR11"; XR12="XR12"; XR13="XR13"; XR14="XR14"; 
+	XR15="XR15"; XR16="XR16";
+
+#<------GRF alias
+	ZERO="ZERO"; AT="AT"; V0="V0"; V1="V1"; A0="A0"; A1="A1"; A2="A2"; A3="A3";
+	T0="T0"; T1="T1"; T2="T2"; T3="T3"; T4="T4"; T5="T5"; T6="T6"; T7="T7";
+	S0="S0"; S1="S1"; S2="S2"; S3="S3"; S4="S4"; S5="S5"; S6="S6"; S7="S7";
+	T8="T8"; T9="T9"; K0="K0"; K1="K1"; GP="GP"; SP="SP"; S8="S8"; RA="RA";
+	FP="FP";
+
+#<------Dual MUL/MAC/ADD16 pattern
+	MUL_PTN[WW]="00"; MUL_PTN[LW]="01"; MUL_PTN[HW]="10"; MUL_PTN[XW]="11"; 
+	MUL_PTN[0]="00"; MUL_PTN[1]="01"; MUL_PTN[2]="10"; MUL_PTN[3]="11"; 
+
+#<------MAC add/sub combinations
+	MAC_AS[AA]="00"; MAC_AS[AS]="01"; MAC_AS[SA]="10"; MAC_AS[SS]="11";
+	MAC_AS[0]="00";  MAC_AS[1]="01"; MAC_AS[2]="10"; MAC_AS[3]="11";
+
+#<------XRF encoding
+	xrf[XR0]="0000"; xrf[XR1]="0001"; xrf[XR2]="0010"; xrf[XR3]="0011"; 
+	xrf[XR4]="0100"; xrf[XR5]="0101"; xrf[XR6]="0110"; xrf[XR7]="0111";
+	xrf[XR8]="1000"; xrf[XR9]="1001"; xrf[XR10]="1010"; xrf[XR11]="1011"; 
+	xrf[XR12]="1100"; xrf[XR13]="1101"; xrf[XR14]="1110"; xrf[XR15]="1111";
+
+#<------GRF encoding
+	grf[ZERO]="0"; grf[AT]="1"; grf[V0]="2"; grf[V1]="3"; grf[A0]="4"; grf[A1]="5"; 
+	grf[A2]="6"; grf[A3]="7"; grf[T0]="8"; grf[T1]="9"; grf[T2]="10"; grf[T3]="11"; 
+	grf[T4]="12"; grf[T5]="13"; grf[T6]="14"; grf[T7]="15"; grf[S0]="16"; grf[S1]="17"; 
+	grf[S2]="18"; grf[S3]="19"; grf[S4]="20"; grf[S5]="21"; grf[S6]="22"; grf[S7]="23"; 
+	grf[T8]="24"; grf[T9]="25"; grf[K0]="26"; grf[K1]="27"; grf[GP]="28"; grf[SP]="29"; 
+	grf[S8]="30"; grf[RA]="31"; grf[FP]="30";	
+	
+#<------MINOR and EXTEND field
+	insn[D16MUL,MINOR0] =""; insn[D16MUL,EXTEND] ="001000";
+	insn[D16MULF,MINOR0] =""; insn[D16MULF,EXTEND] ="001001";
+	insn[D16MAC,MINOR0] =""; insn[D16MAC,EXTEND] ="001010";
+	insn[D16MACF,MINOR0] =""; insn[D16MACF,EXTEND] ="001011";
+	insn[D16MADL,MINOR0] =""; insn[D16MADL,EXTEND] ="001100";
+	insn[S16MAD,MINOR0] =""; insn[S16MAD,EXTEND] ="001101";
+	insn[Q16ADD,MINOR0] =""; insn[Q16ADD,EXTEND] ="001110";
+	insn[Q8MUL,MINOR0] =""; insn[Q8MUL,EXTEND] ="111000";
+	insn[Q8MAC,MINOR0] =""; insn[Q8MAC,EXTEND] ="111010";
+	insn[Q8MADL,MINOR0] =""; insn[Q8MADL,EXTEND] ="111100";
+	insn[Q8SAD,MINOR0] =""; insn[Q8SAD,EXTEND] ="111110";
+	insn[D32ADD,MINOR0] =""; insn[D32ADD,EXTEND] ="011000";
+	insn[D32ACC,MINOR0] =""; insn[D32ACC,EXTEND] ="011001";
+	insn[Q16ACC,MINOR0] =""; insn[Q16ACC,EXTEND] ="011011";
+	insn[Q8ADDE,MINOR0] =""; insn[Q8ADDE,EXTEND] ="011100";
+	insn[Q8ACCE,MINOR0] =""; insn[Q8ACCE,EXTEND] ="011101";
+	insn[D16CPS,MINOR0] ="010"; insn[D16CPS,EXTEND] ="000111";
+	insn[Q8ABD,MINOR0] ="100"; insn[Q8ABD,EXTEND] ="000111";
+	insn[Q16SAT,MINOR0] ="110"; insn[Q16SAT,EXTEND] ="000111";
+	insn[D16AVG,MINOR0] ="010"; insn[D16AVG,EXTEND] ="000110";
+	insn[D16AVGR,MINOR0] ="011"; insn[D16AVGR,EXTEND] ="000110";
+	insn[Q8AVG,MINOR0] ="100"; insn[Q8AVG,EXTEND] ="000110";
+	insn[Q8AVGR,MINOR0] ="101"; insn[Q8AVGR,EXTEND] ="000110";
+	insn[Q8ADD,MINOR0] ="111"; insn[Q8ADD,EXTEND] ="000110";
+	insn[D16MAX,MINOR0] ="010"; insn[D16MAX,EXTEND] ="000011";
+	insn[D16MIN,MINOR0] ="011"; insn[D16MIN,EXTEND] ="000011";
+	insn[Q8MAX,MINOR0] ="100"; insn[Q8MAX,EXTEND] ="000011";
+	insn[Q8MIN,MINOR0] ="101"; insn[Q8MIN,EXTEND] ="000011";
+	insn[Q8SLT,MINOR0] ="110"; insn[Q8SLT,EXTEND] ="000011";
+	insn[D32SLL,MINOR0] =""; insn[D32SLL,EXTEND] ="110000";
+	insn[D32SLR,MINOR0] =""; insn[D32SLR,EXTEND] ="110001";
+	insn[D32SARL,MINOR0] =""; insn[D32SARL,EXTEND] ="110010";
+	insn[D32SAR,MINOR0] =""; insn[D32SAR,EXTEND] ="110011";
+	insn[Q16SLL,MINOR0] =""; insn[Q16SLL,EXTEND] ="110100";
+	insn[Q16SLR,MINOR0] =""; insn[Q16SLR,EXTEND] ="110101";
+	insn[Q16SAR,MINOR0] =""; insn[Q16SAR,EXTEND] ="110111";
+	insn[D32SLLV,MINOR0] ="000"; insn[D32SLLV,EXTEND] ="110110";
+	insn[D32SLRV,MINOR0] ="001"; insn[D32SLRV,EXTEND] ="110110";
+	insn[D32SARV,MINOR0] ="011"; insn[D32SARV,EXTEND] ="110110";
+	insn[Q16SLLV,MINOR0] ="100"; insn[Q16SLLV,EXTEND] ="110110";
+	insn[Q16SLRV,MINOR0] ="101"; insn[Q16SLRV,EXTEND] ="110110";
+	insn[Q16SARV,MINOR0] ="111"; insn[Q16SARV,EXTEND] ="110110";
+	insn[D32SARW,MINOR0] ="000"; insn[D32SARW,EXTEND] ="100111";
+
+	insn[S32SFL,MINOR0] =""; insn[S32SFL,EXTEND] ="111101";
+	insn[S32CPS,MINOR0] ="000"; insn[S32CPS,EXTEND] ="000111";
+	insn[S32MAX,MINOR0] ="000"; insn[S32MAX,EXTEND] ="000011";
+	insn[S32MIN,MINOR0] ="001"; insn[S32MIN,EXTEND] ="000011";
+	insn[S32ALN,MINOR0] ="001"; insn[S32ALN,EXTEND] ="100111";
+	insn[S32M2I,MINOR0] =""; insn[S32M2I,EXTEND] ="101110";
+	insn[S32I2M,MINOR0] =""; insn[S32I2M,EXTEND] ="101111";
+	insn[S32LDD,MINOR0] =""; insn[S32LDD,EXTEND] ="010000";
+	insn[S32STD,MINOR0] =""; insn[S32STD,EXTEND] ="010001";
+	insn[S32LDI,MINOR0] =""; insn[S32LDI,EXTEND] ="010100";
+	insn[S32SDI,MINOR0] =""; insn[S32SDI,EXTEND] ="010101";
+	insn[S32LDDV,MINOR0] =""; insn[S32LDDV,EXTEND] ="010010";
+	insn[S32STDV,MINOR0] =""; insn[S32STDV,EXTEND] ="010011";
+	insn[S32LDIV,MINOR0] =""; insn[S32LDIV,EXTEND] ="010110";
+	insn[S32SDIV,MINOR0] =""; insn[S32SDIV,EXTEND] ="010111";
+
+#<------Specific binary code of S32SFL
+	SFL_PTN[PTN0]="00"; SFL_PTN[PTN1]="01";	SFL_PTN[PTN2]="10"; SFL_PTN[PTN3]="11";
+	SFL_PTN[0]="00"; SFL_PTN[1]="01"; SFL_PTN[2]="10"; SFL_PTN[3]="11";
+ }
+
+############################################################################################
+#Real assemble process begins from here
+############################################################################################
+# Preprocess each record
+	(NF != 0) {sub(/^[ \t]+/, "", $0); MXINSN_OK=0; cur_line=$0;}
+	( match(toupper($0), "^[A-Z_][0-9A-Z_]*[ \t]*:[ \t]*[0-9A-Z_]+") == 1) { \
+	as_label=substr($0, 1, RLENGTH); print as_label; $0=substr($0,RLENGTH+1) }
+
+#<---------------------------------------------------------------------------Q8
+	( match(toupper($1),"Q8") == 1 ) { sub(/\#.*$/, "", $0); sub(/[ \t]+$/, "", $0);
+	$0 = toupper($0); tmp=$0; gsub(/[ \t]+/, "", tmp);
+
+	q8_eptn2="00"; q8_optn2="00";
+
+	if (match($1, "Q8MUL")==1) {
+	assert(match(tmp, "Q8MULXR([0-9]|1[0-5]),XR([0-9]|1[0-5]),XR([0-9]|1[0-5]),\
+XR([0-9]|1[0-5])$")==1, "syntax err");
+	MXINSN_OK=1;
+	Q8_XRD=xrf[$5];
+	printf ".word\t0b%s%s%s%s%s%s%s%s%s\t\#%s\n", SPECIAL2, q8_eptn2, q8_optn2, \
+	insn[$1,MINOR0], Q8_XRD, xrf[$4], xrf[$3], xrf[$2], insn[$1,EXTEND], $0;
+	next
+	}
+	if (match($1, "Q8MAC")==1) {
+	assert(match(tmp, "Q8MACXR([0-9]|1[0-5]),XR([0-9]|1[0-5]),XR([0-9]|1[0-5]),\
+XR([0-9]|1[0-5]),([AS][AS]|[0-3])$")==1, "syntax err");
+	MXINSN_OK=1;
+	q8_eptn2 = MAC_AS[$NF];
+	Q8_XRD=xrf[$5];
+	printf ".word\t0b%s%s%s%s%s%s%s%s%s\t\#%s\n", SPECIAL2, q8_eptn2, q8_optn2, \
+	insn[$1,MINOR0], Q8_XRD, xrf[$4], xrf[$3], xrf[$2], insn[$1,EXTEND], $0; 
+	next
+	}
+	if (match($1, "Q8MADL")==1) {
+	assert(match(tmp, "Q8MADLXR([0-9]|1[0-5]),XR([0-9]|1[0-5]),XR([0-9]|1[0-5]),\
+XR([0-9]|1[0-5]),([AS][AS]|[0-3])$")==1, "syntax err");
+	MXINSN_OK=1;
+	q8_eptn2 = MAC_AS[$NF];
+	Q8_XRD=xrf[$5];
+	printf ".word\t0b%s%s%s%s%s%s%s%s%s\t\#%s\n", SPECIAL2, q8_eptn2, q8_optn2, \
+	insn[$1,MINOR0], Q8_XRD, xrf[$4], xrf[$3], xrf[$2], insn[$1,EXTEND], $0; 
+	next
+	}
+	if (match($1, "Q8SAD")==1) {
+	assert(match(tmp, "Q8SADXR([0-9]|1[0-5]),XR([0-9]|1[0-5]),XR([0-9]|1[0-5]),\
+XR([0-9]|1[0-5])$")==1, "syntax err");
+	MXINSN_OK=1;
+	Q8_XRD=xrf[$5];
+	printf ".word\t0b%s%s%s%s%s%s%s%s%s\t\#%s\n", SPECIAL2, q8_eptn2, q8_optn2, \
+	insn[$1,MINOR0], Q8_XRD, xrf[$4], xrf[$3], xrf[$2], insn[$1,EXTEND], $0; 
+	next
+	}
+	if (match($1, "Q8A(DD|CC)E")==1) {
+	assert(match(tmp, "Q8A(DD|CC)EXR([0-9]|1[0-5]),XR([0-9]|1[0-5]),XR([0-9]|1[0-5]),\
+XR([0-9]|1[0-5]),([AS][AS]|[0-3])$")==1, "syntax err");
+	MXINSN_OK=1;
+	q8_eptn2 = MAC_AS[$NF];
+	Q8_XRD=xrf[$5];
+	printf ".word\t0b%s%s%s%s%s%s%s%s%s\t\#%s\n", SPECIAL2, q8_eptn2, q8_optn2, \
+	insn[$1,MINOR0], Q8_XRD, xrf[$4], xrf[$3], xrf[$2], insn[$1,EXTEND], $0; 
+	next
+	}
+	if (match($1, "Q8ABD")==1) {
+	assert(match(tmp, "Q8ABDXR([0-9]|1[0-5]),XR([0-9]|1[0-5]),XR([0-9]|1[0-5])$"\
+)==1, "syntax err");
+	MXINSN_OK=1;
+	q8_optn2="000";
+	Q8_XRD="";
+	printf ".word\t0b%s%s%s%s%s%s%s%s%s\t\#%s\n", SPECIAL2, q8_eptn2, q8_optn2, \
+	insn[$1,MINOR0], Q8_XRD, xrf[$4], xrf[$3], xrf[$2], insn[$1,EXTEND], $0; 
+	next
+	}
+	if (match($1, "Q8AVG[R]?")==1) {
+	assert(match(tmp, "Q8AVG[R]?XR([0-9]|1[0-5]),XR([0-9]|1[0-5]),XR([0-9]|1[0-5])$"\
+)==1, "syntax err");
+	MXINSN_OK=1;
+	q8_optn2="000";
+	Q8_XRD="";
+	printf ".word\t0b%s%s%s%s%s%s%s%s%s\t\#%s\n", SPECIAL2, q8_eptn2, q8_optn2, \
+	insn[$1,MINOR0], Q8_XRD, xrf[$4], xrf[$3], xrf[$2], insn[$1,EXTEND], $0; 
+	next
+	}
+	if (match($1, "Q8ADD")==1) {
+	assert(match(tmp, "Q8ADDXR([0-9]|1[0-5]),XR([0-9]|1[0-5]),XR([0-9]|1[0-5]),\
+([AS][AS]|[0-3])$")==1, "syntax err");
+	MXINSN_OK=1;
+	q8_eptn2 = MAC_AS[$NF];
+	q8_optn2="000";
+	Q8_XRD="";
+	printf ".word\t0b%s%s%s%s%s%s%s%s%s\t\#%s\n", SPECIAL2, q8_eptn2, q8_optn2, \
+	insn[$1,MINOR0], Q8_XRD, xrf[$4], xrf[$3], xrf[$2], insn[$1,EXTEND], $0; 
+	next
+	}
+	if (match($1, "Q8M(AX|IN)")==1) {
+	assert(match(tmp, "Q8M(AX|IN)XR([0-9]|1[0-5]),XR([0-9]|1[0-5]),XR([0-9]|1[0-5])$"\
+)==1, "syntax err");
+	MXINSN_OK=1;
+	q8_optn2="000";
+	Q8_XRD="";
+	printf ".word\t0b%s%s%s%s%s%s%s%s%s\t\#%s\n", SPECIAL2, q8_eptn2, q8_optn2, \
+	insn[$1,MINOR0], Q8_XRD, xrf[$4], xrf[$3], xrf[$2], insn[$1,EXTEND], $0; 
+	next
+	}
+	if (match($1, "Q8SLT")==1) {
+	assert(match(tmp, "Q8SLTXR([0-9]|1[0-5]),XR([0-9]|1[0-5]),XR([0-9]|1[0-5])$"\
+)==1, "syntax err");
+	MXINSN_OK=1;
+	q8_optn2="000";
+	Q8_XRD="";
+	printf ".word\t0b%s%s%s%s%s%s%s%s%s\t\#%s\n", SPECIAL2, q8_eptn2, q8_optn2, \
+	insn[$1,MINOR0], Q8_XRD, xrf[$4], xrf[$3], xrf[$2], insn[$1,EXTEND], $0; 
+	next
+	}
+$0 = cur_line;
+}
+
+#<---------------------------------------------------------------------------Q16/D16/S16
+	( match(toupper($1),"[QDS]16") == 1 ) { sub(/\#.*$/, "", $0); sub(/[ \t]+$/, "", $0);
+	$0 = toupper($0); tmp=$0; gsub(/[ \t]+/, "", tmp);
+
+	q16_eptn2="00"; q16_optn2="00"; 
+
+	if (match($1, "D16MUL[F]?")==1) {
+	if ($1 ~/F/) {
+	assert(match(tmp, "D16MULFXR([0-9]|1[0-5]),XR([0-9]|1[0-5]),XR([0-9]|1[0-5]),\
+([WLHX]W|[0-3])$")==1, "syntax err");
+	MXINSN_OK=1;
+	q16_optn2 = MUL_PTN[$NF];
+	Q16_XRD="0000";
+	printf ".word\t0b%s%s%s%s%s%s%s%s%s\t\#%s\n", SPECIAL2, q16_eptn2, q16_optn2, \
+	insn[$1,MINOR0], Q16_XRD, xrf[$4], xrf[$3], xrf[$2], insn[$1,EXTEND], $0; 
+	next
+	} else {
+	assert(match(tmp, "D16MULXR([0-9]|1[0-5]),XR([0-9]|1[0-5]),XR([0-9]|1[0-5]),\
+XR([0-9]|1[0-5]),([WLHX]W|[0-3])$")==1, "syntax err");
+	MXINSN_OK=1;
+	q16_optn2 = MUL_PTN[$NF];
+	Q16_XRD=xrf[$5];
+	printf ".word\t0b%s%s%s%s%s%s%s%s%s\t\#%s\n", SPECIAL2, q16_eptn2, q16_optn2, \
+	insn[$1,MINOR0], Q16_XRD, xrf[$4], xrf[$3], xrf[$2], insn[$1,EXTEND], $0; 
+	next
+	}
+	}
+	if (match($1, "D16MAC[F]?")==1) {
+	assert(match(tmp, "D16MAC[F]?XR([0-9]|1[0-5]),XR([0-9]|1[0-5]),XR([0-9]|1[0-5]),\
+XR([0-9]|1[0-5]),([AS][AS]|[0-3]),([WLHX]W|[0-3])$")==1, "syntax err");
+	MXINSN_OK=1;
+	q16_eptn2 = MAC_AS[$(NF-1)];
+	q16_optn2 = MUL_PTN[$NF];
+	Q16_XRD=xrf[$5];
+	printf ".word\t0b%s%s%s%s%s%s%s%s%s\t\#%s\n", SPECIAL2, q16_eptn2, q16_optn2, \
+	insn[$1,MINOR0], Q16_XRD, xrf[$4], xrf[$3], xrf[$2], insn[$1,EXTEND], $0; 
+	next
+	}
+	if (match($1, "D16MADL")==1) {
+	assert(match(tmp, "D16MADLXR([0-9]|1[0-5]),XR([0-9]|1[0-5]),XR([0-9]|1[0-5]),\
+XR([0-9]|1[0-5]),([AS][AS]|[0-3]),([WLHX]W|[0-3])$")==1, "syntax err");
+	MXINSN_OK=1;
+	q16_eptn2 = MAC_AS[$(NF-1)];
+	q16_optn2 = MUL_PTN[$NF];
+	Q16_XRD=xrf[$5];
+	printf ".word\t0b%s%s%s%s%s%s%s%s%s\t\#%s\n", SPECIAL2, q16_eptn2, q16_optn2, \
+	insn[$1,MINOR0], Q16_XRD, xrf[$4], xrf[$3], xrf[$2], insn[$1,EXTEND], $0; 
+	next
+	}
+	if (match($1, "S16MAD")==1) {
+	assert(match(tmp, "S16MADXR([0-9]|1[0-5]),XR([0-9]|1[0-5]),XR([0-9]|1[0-5]),\
+XR([0-9]|1[0-5]),[AS01],(PTN[0-3]|[0-3])$")==1, "syntax err");
+	MXINSN_OK=1;
+	if ($(NF-1) ~/[0A]/) q16_eptn2 = "00";
+	else q16_eptn2 = "01";
+	q16_optn2 = SFL_PTN[$NF];
+	Q16_XRD=xrf[$5];
+	printf ".word\t0b%s%s%s%s%s%s%s%s%s\t\#%s\n", SPECIAL2, q16_eptn2, q16_optn2, \
+	insn[$1,MINOR0], Q16_XRD, xrf[$4], xrf[$3], xrf[$2], insn[$1,EXTEND], $0; 
+	next
+	}
+	if (match($1, "Q16ADD")==1) {
+	assert(match(tmp, "Q16ADDXR([0-9]|1[0-5]),XR([0-9]|1[0-5]),XR([0-9]|1[0-5]),\
+XR([0-9]|1[0-5]),([AS][AS]|[0-3]),([WLHX]W|[0-3])$")==1, "syntax err");
+	MXINSN_OK=1;
+	q16_eptn2 = MAC_AS[$(NF-1)];
+	q16_optn2 = MUL_PTN[$NF];
+	Q16_XRD=xrf[$5];
+	printf ".word\t0b%s%s%s%s%s%s%s%s%s\t\#%s\n", SPECIAL2, q16_eptn2, q16_optn2, \
+	insn[$1,MINOR0], Q16_XRD, xrf[$4], xrf[$3], xrf[$2], insn[$1,EXTEND], $0; 
+	next
+	}
+	if (match($1, "Q16ACC")==1) {
+	assert(match(tmp, "Q16ACCXR([0-9]|1[0-5]),XR([0-9]|1[0-5]),XR([0-9]|1[0-5]),\
+XR([0-9]|1[0-5]),([AS][AS]|[0-3])$")==1, "syntax err");
+	MXINSN_OK=1;
+	q16_eptn2 = MAC_AS[$NF];
+	Q16_XRD=xrf[$5];
+	printf ".word\t0b%s%s%s%s%s%s%s%s%s\t\#%s\n", SPECIAL2, q16_eptn2, q16_optn2, \
+	insn[$1,MINOR0], Q16_XRD, xrf[$4], xrf[$3], xrf[$2], insn[$1,EXTEND], $0; 
+	next
+	}
+	if (match($1, "D16CPS")==1) {
+	assert(match(tmp, "D16CPSXR([0-9]|1[0-5]),XR([0-9]|1[0-5]),XR([0-9]|1[0-5])$")\
+==1, "syntax err");
+	MXINSN_OK=1;
+	q16_optn2 = "000";
+	Q16_XRD="";
+	printf ".word\t0b%s%s%s%s%s%s%s%s%s\t\#%s\n", SPECIAL2, q16_eptn2, q16_optn2, \
+	insn[$1,MINOR0], Q16_XRD, xrf[$4], xrf[$3], xrf[$2], insn[$1,EXTEND], $0; 
+	next
+	}
+	if (match($1, "Q16SAT")==1) {
+	assert(match(tmp, "Q16SATXR([0-9]|1[0-5]),XR([0-9]|1[0-5]),XR([0-9]|1[0-5])$")\
+==1, "syntax err");
+	MXINSN_OK=1;
+	q16_optn2 = "000";
+	Q16_XRD="";
+	printf ".word\t0b%s%s%s%s%s%s%s%s%s\t\#%s\n", SPECIAL2, q16_eptn2, q16_optn2, \
+	insn[$1,MINOR0], Q16_XRD, xrf[$4], xrf[$3], xrf[$2], insn[$1,EXTEND], $0; 
+	next
+	}
+	if (match($1, "D16AVG[R]?")==1) {
+	assert(match(tmp, "D16AVG[R]?XR([0-9]|1[0-5]),XR([0-9]|1[0-5]),XR([0-9]|1[0-5])$"\
+)==1, "syntax err");
+	MXINSN_OK=1;
+	q16_optn2 = "000";
+	Q16_XRD="";
+	printf ".word\t0b%s%s%s%s%s%s%s%s%s\t\#%s\n", SPECIAL2, q16_eptn2, q16_optn2, \
+	insn[$1,MINOR0], Q16_XRD, xrf[$4], xrf[$3], xrf[$2], insn[$1,EXTEND], $0; 
+	next
+	}
+	if (match($1, "D16M(AX|IN)")==1) {
+	assert(match(tmp, "D16M(AX|IN)XR([0-9]|1[0-5]),XR([0-9]|1[0-5]),XR([0-9]|1[0-5])$"\
+)==1, "syntax err");
+	MXINSN_OK=1;
+	q16_optn2 = "000";
+	Q16_XRD="";
+	printf ".word\t0b%s%s%s%s%s%s%s%s%s\t\#%s\n", SPECIAL2, q16_eptn2, q16_optn2, \
+	insn[$1,MINOR0], Q16_XRD, xrf[$4], xrf[$3], xrf[$2], insn[$1,EXTEND], $0; 
+	next
+	}
+	if (match($1, "Q16S(LL|(LR|AR))[V]?")==1) {
+	if ($1 ~/V/) {
+	if ($NF ~/[A-Z]/) {sub("[\$]","", $NF); $NF="$"grf[$NF]; x_num=split(tmp,x_a); tmp=""; 
+	for(i=1;i<x_num;i=i+1) {tmp=tmp""x_a[i]","}; tmp=tmp""$NF;};
+	assert(match(tmp, "Q16S(LL|(LR|AR))VXR([0-9]|1[0-5]),XR([0-9]|1[0-5]),\
+[\$]([12]?[0-9]|3[01])$")==1, "syntax err");
+	MXINSN_OK=1;
+	rb=substr($(NF),2); grf_num = bits2str(strtonum(rb), 5);
+	printf ".word\t0b%s%s%s%s%s%s%s\t\#%s\n", SPECIAL2, grf_num, insn[$1,MINOR0], \
+xrf[$3], xrf[$2], "0000", insn[$1,EXTEND], $0; 
+	next
+	} else {
+	assert(match(tmp, "Q16S(LL|(LR|AR))XR([0-9]|1[0-5]),XR([0-9]|1[0-5]),\
+XR([0-9]|1[0-5]),XR([0-9]|1[0-5]),(([0-9]|1[0-5])|0X[0-9A-F])$")==1, "syntax err");
+	MXINSN_OK=1;
+	sft_num = bits2str(strtonum($NF), 4);
+	Q16_XRD=xrf[$5];
+	printf ".word\t0b%s%s%s%s%s%s%s%s\t\#%s\n", SPECIAL2, sft_num, insn[$1,MINOR0], \
+Q16_XRD, xrf[$4], xrf[$3], xrf[$2], insn[$1,EXTEND], $0; 
+	next
+	}
+	}
+$0 = cur_line;
+}
+
+#<---------------------------------------------------------------------------D32/S32
+	( match(toupper($1),"[DS]32") == 1 ) { sub(/\#.*$/, "", $0); sub(/[ \t]+$/, "", $0);
+	$0 = toupper($0); tmp=$0; gsub(/[ \t]+/, "", tmp);
+
+	q32_eptn2="00"; q32_optn2="00"; 
+
+	if (match($1, "S32SFL")==1) {
+	assert(match(tmp, "S32SFLXR([0-9]|1[0-5]),XR([0-9]|1[0-5]),XR([0-9]|1[0-5]),\
+XR([0-9]|1[0-5]),(PTN[0-3]|[01][01])$")==1, "syntax err");
+	MXINSN_OK=1;
+	if ($NF ~/PTN/) q32_eptn2 = SFL_PTN[$NF];
+	else q32_eptn2 = $NF;
+	Q32_XRD=xrf[$5];
+	printf ".word\t0b%s%s%s%s%s%s%s%s%s\t\#%s\n", SPECIAL2, q32_eptn2, q32_optn2, \
+	insn[$1,MINOR0], Q32_XRD, xrf[$4], xrf[$3], xrf[$2], insn[$1,EXTEND], $0; 
+	next
+	}
+	if (match($1, "D32A(DD|CC)")==1) {
+	assert(match(tmp, "D32A(DD|CC)XR([0-9]|1[0-5]),XR([0-9]|1[0-5]),XR([0-9]|1[0-5]),\
+XR([0-9]|1[0-5]),([AS][AS]|[0-3])$")==1, "syntax err");
+	MXINSN_OK=1;
+	q32_eptn2 = MAC_AS[$NF];
+	Q32_XRD=xrf[$5];
+	printf ".word\t0b%s%s%s%s%s%s%s%s%s\t\#%s\n", SPECIAL2, q32_eptn2, q32_optn2, \
+	insn[$1,MINOR0], Q32_XRD, xrf[$4], xrf[$3], xrf[$2], insn[$1,EXTEND], $0; 
+	next
+	}
+	if (match($1, "S32CPS")==1) {
+	assert(match(tmp, "S32CPSXR([0-9]|1[0-5]),XR([0-9]|1[0-5]),XR([0-9]|1[0-5])$")\
+==1, "syntax err");
+	MXINSN_OK=1;
+	q32_optn2 = "000";
+	Q32_XRD="";
+	printf ".word\t0b%s%s%s%s%s%s%s%s%s\t\#%s\n", SPECIAL2, q32_eptn2, q32_optn2, \
+	insn[$1,MINOR0], Q32_XRD, xrf[$4], xrf[$3], xrf[$2], insn[$1,EXTEND], $0; 
+	next
+	}
+	if (match($1, "S32M(AX|IN)")==1) {
+	assert(match(tmp, "S32M(AX|IN)XR([0-9]|1[0-5]),XR([0-9]|1[0-5]),XR([0-9]|1[0-5])$"\
+)==1, "syntax err");
+	MXINSN_OK=1;
+	q32_optn2 = "000";
+	Q32_XRD="";
+	printf ".word\t0b%s%s%s%s%s%s%s%s%s\t\#%s\n", SPECIAL2, q32_eptn2, q32_optn2, \
+	insn[$1,MINOR0], Q32_XRD, xrf[$4], xrf[$3], xrf[$2], insn[$1,EXTEND], $0; 
+	next
+	}
+	if (match($1, "D32SL[LR][V]?")==1) {
+	if ($1 ~/V/) {
+	if ($NF ~/[A-Z]/) {sub("[\$]","", $NF); $NF="$"grf[$NF]; x_num=split(tmp,x_a); tmp=""; 
+	for(i=1;i<x_num;i=i+1) {tmp=tmp""x_a[i]","}; tmp=tmp""$NF;};
+	assert(match(tmp, "D32SL[LR]VXR([0-9]|1[0-5]),XR([0-9]|1[0-5]),\
+[\$]([12]?[0-9]|3[01])$")==1, "syntax err");
+	MXINSN_OK=1;
+	rb=substr($(NF),2); grf_num = bits2str(strtonum(rb), 5);
+	printf ".word\t0b%s%s%s%s%s%s%s\t\#%s\n", SPECIAL2, grf_num, insn[$1,MINOR0], \
+xrf[$3], xrf[$2], "0000", insn[$1,EXTEND], $0; 
+	next
+	} else {
+	assert(match(tmp, "D32SL[LR]XR([0-9]|1[0-5]),XR([0-9]|1[0-5]),XR([0-9]|1[0-5]),\
+XR([0-9]|1[0-5]),(([0-9]|1[0-5])|0X[0-9A-F])$")==1, "syntax err");
+	MXINSN_OK=1;
+	sft_num = bits2str(strtonum($NF), 4);
+	Q32_XRD=xrf[$5];
+	printf ".word\t0b%s%s%s%s%s%s%s%s\t\#%s\n", SPECIAL2, sft_num, insn[$1,MINOR0]\
+, Q32_XRD, xrf[$4], xrf[$3], xrf[$2], insn[$1,EXTEND], $0; 
+	next
+	}
+	}
+	if (match($1, "D32SAR[LWV]?")==1) {
+	sc=split($1, a, ""); 
+	if (a[sc]=="V") {
+	if ($NF ~/[A-Z]/) {sub("[\$]","", $NF); $NF="$"grf[$NF]; x_num=split(tmp,x_a); tmp=""; 
+	for(i=1;i<x_num;i=i+1) {tmp=tmp""x_a[i]","}; tmp=tmp""$NF;};
+	assert(match(tmp, "D32SARVXR([0-9]|1[0-5]),XR([0-9]|1[0-5]),\
+[\$]([12]?[0-9]|3[01])$")==1, "syntax err");
+	MXINSN_OK=1;
+	rb=substr($(NF),2); grf_num = bits2str(strtonum(rb), 5);
+	printf ".word\t0b%s%s%s%s%s%s%s\t\#%s\n", SPECIAL2, grf_num, insn[$1,MINOR0], \
+xrf[$3], xrf[$2], "0000", insn[$1,EXTEND], $0; 
+	next
+	} else {
+	if (a[sc]=="W") {
+	if ($NF ~/[A-Z]/) {sub("[\$]","", $NF); $NF="$"grf[$NF]; x_num=split(tmp,x_a); tmp=""; 
+	for(i=1;i<x_num;i=i+1) {tmp=tmp""x_a[i]","}; tmp=tmp""$NF;};
+	assert(match(tmp, "D32SARWXR([0-9]|1[0-5]),XR([0-9]|1[0-5]),XR([0-9]|1[0-5]),\
+[\$]([12]?[0-9]|3[01])$")==1, "syntax err");
+	MXINSN_OK=1;
+	rb=substr($(NF),2); grf_num = bits2str(strtonum(rb), 5);
+	printf ".word\t0b%s%s%s%s%s%s%s\t\#%s\n", SPECIAL2, grf_num, insn[$1,MINOR0], \
+xrf[$4], xrf[$3], xrf[$2], insn[$1,EXTEND], $0; 
+	next
+	} else {
+	if (a[sc]=="L") {
+	assert(match(tmp, "D32SARLXR([0-9]|1[0-5]),XR([0-9]|1[0-5]),XR([0-9]|1[0-5]),\
+(([0-9]|1[0-5])|0X[0-9A-F])$")==1, "syntax err");
+	MXINSN_OK=1;
+	sft_num = bits2str(strtonum($NF), 4);
+	Q32_XRD="0000";
+	printf ".word\t0b%s%s%s%s%s%s%s%s\t\#%s\n", SPECIAL2, sft_num, insn[$1,MINOR0], \
+Q32_XRD, xrf[$4], xrf[$3], xrf[$2], insn[$1,EXTEND], $0; 
+	next
+	} else {
+	assert(match(tmp, "D32SARXR([0-9]|1[0-5]),XR([0-9]|1[0-5]),XR([0-9]|1[0-5]),\
+XR([0-9]|1[0-5]),(([0-9]|1[0-5])|0X[0-9A-F])$")==1, "syntax err");
+	MXINSN_OK=1;
+	sft_num = bits2str(strtonum($NF), 4);
+	Q32_XRD=xrf[$5];
+	printf ".word\t0b%s%s%s%s%s%s%s%s\t\#%s\n", SPECIAL2, sft_num, insn[$1,MINOR0], \
+Q32_XRD, xrf[$4], xrf[$3], xrf[$2], insn[$1,EXTEND], $0; 
+	next
+	}
+	}
+	}
+	}
+	if (match($1, "S32ALN")==1) {
+	if ($NF ~/[A-Z]/) {sub("[\$]","", $NF); $NF="$"grf[$NF]; x_num=split(tmp,x_a); tmp=""; 
+	for(i=1;i<x_num;i=i+1) {tmp=tmp""x_a[i]","}; tmp=tmp""$NF;};
+	assert(match(tmp, "S32ALNXR([0-9]|1[0-5]),XR([0-9]|1[0-5]),XR([0-9]|1[0-5]),\
+[\$]([12]?[0-9]|3[01])$")==1, "syntax err");
+	MXINSN_OK=1;
+	rb=substr($(NF),2); grf_num = bits2str(strtonum(rb), 5);
+	printf ".word\t0b%s%s%s%s%s%s%s\t\#%s\n", SPECIAL2, grf_num, insn[$1,MINOR0], \
+xrf[$4], xrf[$3], xrf[$2], insn[$1,EXTEND], $0; 
+	next
+	}
+	if (match($1, "S32(M2I|I2M)")==1) {
+	if ($NF ~/[A-Z]/) {sub("[\$]","", $NF); $NF="$"grf[$NF]; x_num=split(tmp,x_a); tmp=""; 
+	for(i=1;i<x_num;i=i+1) {tmp=tmp""x_a[i]","}; tmp=tmp""$NF;};
+	assert(match(tmp, "S32(M2I|I2M)XR([0-9]|1[0-6]),[\$]([12]?[0-9]|3[01])$")==1,\
+ "syntax err");
+	MXINSN_OK=1;
+	rb=substr($(NF),2); grf_num = bits2str(strtonum(rb), 5);
+	if (match($2, "XR16")==1) Q32_XRA="10000";
+	else Q32_XRA="0"xrf[$2];
+	printf ".word\t0b%s%s%s%s%s%s\t\#%s\n", SPECIAL2, "00000", grf_num, "00000", \
+Q32_XRA, insn[$1,EXTEND], $0; 
+	next
+	}
+	if (match($1, "S32(LD[DI]|S(TD|DI))[V]?")==1) {
+	if ($1 ~/V/) {
+	if ($(NF-2) ~/[A-Z]/ ) {sub("[\$]","", $(NF-2)); $(NF-2)="$"grf[$(NF-2)]; x_num=split(tmp,x_a); 
+	tmp=""; for(i=1;i<x_num-2;i=i+1) {tmp=tmp""x_a[i]","}; 
+	tmp=tmp""$(NF-2)","x_a[x_num-1]","x_a[x_num];};
+	if ($(NF-1) ~/[A-Z]/ ) {sub("[\$]","", $(NF-1)); $(NF-1)="$"grf[$(NF-1)]; x_num=split(tmp,x_a); 
+	tmp=""; for(i=1;i<x_num-1;i=i+1) {tmp=tmp""x_a[i]","}; tmp=tmp""$(NF-1)","x_a[x_num];};
+	assert(match(tmp, "S32(LD[DI]|S(TD|DI))VXR([0-9]|1[0-5]),[\$]([12]?[0-9]|3[01]),\
+[\$]([12]?[0-9]|3[01]),([0-2]|0X[0-2])$")==1, "syntax err");
+	MXINSN_OK=1;
+	rb=substr($(NF-2),2); grfb_num = bits2str(strtonum(rb), 5);
+	rc=substr($(NF-1),2); grfc_num = bits2str(strtonum(rc), 5);
+	strd_num = bits2str(strtonum($NF), 2);
+	printf ".word\t0b%s%s%s%s%s%s%s\t\#%s\n", SPECIAL2, grfb_num, grfc_num, strd_num, \
+"0000", xrf[$2], insn[$1,EXTEND], $0; 
+	next
+	} else {
+	if ($(NF-1) ~/[A-Z]/ ) {sub("[\$]","", $(NF-1)); $(NF-1)="$"grf[$(NF-1)]; x_num=split(tmp,x_a); 
+	tmp=""; for(i=1;i<x_num-1;i=i+1) {tmp=tmp""x_a[i]","}; tmp=tmp""$(NF-1)","x_a[x_num];};
+	assert(match(tmp, "S32(LD[DI]|S(TD|DI))XR([0-9]|1[0-5]),[\$]([12]?[0-9]|3[01]),\
+[\-]?([0-9]+|0X[0-9A-F]+)$")==1, "syntax err");
+	MXINSN_OK=1;
+	rb=substr($(NF-1),2); grfb_num = bits2str(strtonum(rb), 5);
+	if ($NF ~/-/) {s10_pos=substr($NF, 2); num_s10 = 0 - strtonum(s10_pos); }
+	else num_s10 = strtonum($NF);
+	S12 = bits2str(num_s10, 12); addr_off=substr(S12,1,10);
+	printf ".word\t0b%s%s%s%s%s%s\t\#%s\n", SPECIAL2, grfb_num, "0", addr_off, \
+xrf[$2], insn[$1,EXTEND], $0; 
+	next
+	}
+	}
+$0 = cur_line;
+}
+#<---------------------------------------------------------------------------Others
+	(MXINSN_OK == 0 || NF == 0) {print}
+
+     function assert(condition, string)
+     {
+         if (!condition) {
+             printf("%s: __line__%d: assertion failed: %s\n", FILENAME, FNR, string) 
+             _assert_exit = 1
+             exit 1
+         }
+     }
+
+     function bits2str(bits, tail_len, zero, data, mask)
+     {
+         zero="0000000000000000";
+         if (bits == 0) {
+             zero=substr(zero, length(zero) - tail_len + 1, tail_len);
+             return zero;
+         }
+         mask = 1;
+         for (; bits != 0; bits = rshift(bits, 1))
+             data = (and(bits, mask) ? "1" : "0") data;
+
+         data=zero""data;         
+         data=substr(data, length(data) - tail_len + 1, tail_len);         
+         return data;
+     }
+     
+     END {
+         if (_assert_exit)
+             exit 1
+     }
+' $1  2>/dev/null

@@ -1,0 +1,6 @@
+
+SOURCES	+= $(wildcard $(KEYDIR)/*.c)
+CFLAGS	+= -DKEYTYPE=$(KEYTYPE)
+CFLAGS	+= -I$(KEYDIR)
+VPATH   += $(KEYDIR)
+
