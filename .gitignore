@@ -4,6 +4,7 @@
 *.dat
 *.zip
 *~
+*.bak
 depend
 [Tt]humbs.db
 log
