@@ -31,6 +31,7 @@
 /******************************************************************************
  * 
  ******************************************************************************/
+#include "ds2_typedefs.h"
 #include <stdio.h>
 #include <sys/stat.h>
 #include <ctype.h>
@@ -42,7 +43,6 @@
 //#include <fastmath.h>
 
 //#include <zlib.h>
-#include <jz4740.h>
 
 #if 0
 #include <pspctrl.h>
@@ -73,40 +73,9 @@
 /******************************************************************************
  * 宏定义
  ******************************************************************************/
-#include "ucos_ii.h"
 #include "fs_api.h"
-#include "types.h"
-#include "pcm.h"
-
-#define FILE    FS_FILE
-#define fopen   FS_FOpen
-#define fclose  FS_FClose
-#define fread   FS_FRead
-#define fwrite  FS_FWrite
-#define fseek   FS_FSeek
-#define ftell   FS_FTell
-#define unlink  FS_Remove
-#define fioctl  FS_IoCtl
-//#define SEEK_SET    FS_SEEK_SET
-//#define SEEK_CUR    FS_SEEK_CUR
-//#define SEEK_END    FS_SEEK_END
 
 #define GET_DISK_FREE_SPACE FS_CMD_GET_DISKFREE
-
-#define fgets	FS_FGets
-
-#define dirent      FS_DIRENT
-#define DIR         FS_DIR
-#define opendir		FS_OpenDir
-#define closedir    FS_CloseDir
-#define readdir		FS_ReadDir
-#define mkdir       FS_MkDir
-#define rmdir       FS_RmDir
-
-#define FS_FAT_ATTR_DIRECTORY   0x10
-#define ISDIR(current_file) ((current_file -> FAT_DirAttr) & FS_FAT_ATTR_DIRECTORY)
-
-//#define FILE_ID SceUID
 #define FILE_ID FILE*
 
 //typedef SceUID FILE_TAG_TYPE;
@@ -269,7 +238,7 @@ u64 dbg_time_2;
 #include "message.h"
 #include "bios.h"
 #include "draw.h"
-#include "bitmap.h"
+// #include "bitmap.h"
 #include "bdf_font.h"
 
 #if 0
@@ -281,14 +250,10 @@ u64 dbg_time_2;
 #include "gu.h"
 #include "unicode.h"
 
-#include "test.h"
-#include "plug.h"
 #if 0
 #ifdef USE_ADHOC
 #include "adhoc.h"
 #endif
 #endif
-
-#include "DrvMemMgr.h"
 
 #endif /* COMMON_H */

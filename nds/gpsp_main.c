@@ -64,7 +64,7 @@ char main_path[MAX_PATH];
 
 char rom_path[MAX_PATH];
 
-//typedef volatile unsigned int vu32;
+typedef volatile u32 vu32;
 
 //vu32 quit_flag;
 vu32 power_flag;
@@ -301,7 +301,7 @@ printf("arrive here\n");
 //    flip_screen();
 //    clear_gba_screen(0);
 //    flip_gba_screen();
-    OSTimeDly(OS_TICKS_PER_SEC/10);
+    //OSTimeDly(OS_TICKS_PER_SEC/10);
 
     //reset 
     run_plugin();
@@ -494,7 +494,7 @@ int error;
 #endif
 
 //  show_progress(msg[MSG_INIT_END]);
-    OSTimeDly(OS_TICKS_PER_SEC*2);
+    //OSTimeDly(OS_TICKS_PER_SEC*2);
 
 dgprintf("Global cmd: %s\n", get_gba_file());
     char *ppt;

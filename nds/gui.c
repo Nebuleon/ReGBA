@@ -27,6 +27,7 @@
  * 头文件
  ******************************************************************************/
 #include "common.h"
+#include "gui.h"
 
 /******************************************************************************
  * 宏定义
@@ -1030,7 +1031,7 @@ u32 play_screen_snapshot()
                     break;
             }
 
-            OSTimeDly(OS_TICKS_PER_SEC/10);
+            OSTimeDly(200/10);
             if(!pause)
                 ticks ++;
         }
@@ -1469,7 +1470,7 @@ u32 menu(u16 *original_screen)
             }
 
             flip_screen();
-            OSTimeDly(OS_TICKS_PER_SEC/2);
+            OSTimeDly(200/2);
         }
     }
   }
@@ -1509,11 +1510,11 @@ u32 menu(u16 *original_screen)
                     while(gui_action == CURSOR_NONE)
                     {
                         gui_action = get_gui_input();
-                        OSTimeDly(OS_TICKS_PER_SEC/10);
+                        OSTimeDly(200/10);
                     }
                 }
                 else
-                    OSTimeDly(OS_TICKS_PER_SEC/2);
+                    OSTimeDly(200/2);
                 return;
             }
 
@@ -1794,7 +1795,7 @@ u32 menu(u16 *original_screen)
                 draw_message(screen_address, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
                 draw_string_vcenter(screen_address, 29, 90, 198, COLOR_WHITE, msg[MSG_DELETTE_SAVESTATE_NOTHING]);
                 flip_screen();
-                OSTimeDly(OS_TICKS_PER_SEC/2);
+                OSTimeDly(200/2);
             }
         }
         else if(current_option_num == 2)    //delette single
@@ -1813,7 +1814,7 @@ u32 menu(u16 *original_screen)
             {
                 draw_string_vcenter(screen_address, 29, 90, 198, COLOR_WHITE, msg[MSG_DELETTE_SAVESTATE_NOTHING]);
                 flip_screen();
-                OSTimeDly(OS_TICKS_PER_SEC/2);
+                OSTimeDly(200/2);
             }
         }
     }
@@ -1841,13 +1842,13 @@ u32 menu(u16 *original_screen)
                 else
                     draw_string_vcenter(screen_address, 29, 90, 198, COLOR_WHITE, msg[MSG_SAVE_SNAPSHOT_FAILURE]);
                 flip_screen();
-                OSTimeDly(OS_TICKS_PER_SEC/2);
+                OSTimeDly(200/2);
             }
             else
             {
                 draw_string_vcenter(screen_address, 29, 90, 198, COLOR_WHITE, msg[MSG_SAVESTATE_SLOT_EMPTY]);
                 flip_screen();
-                OSTimeDly(OS_TICKS_PER_SEC/2);
+                OSTimeDly(200/2);
             }
         }
     }
@@ -1976,7 +1977,7 @@ u32 menu(u16 *original_screen)
             draw_string_vcenter(gba_screen_address, 0, 80, 256, COLOR_WHITE, msg[MSG_NON_LOAD_GAME]);
             flip_gba_screen();
 
-            OSTimeDly(OS_TICKS_PER_SEC/2);
+            OSTimeDly(200/2);
         }
     }
 
@@ -2000,7 +2001,7 @@ u32 menu(u16 *original_screen)
         while(gui_action == CURSOR_NONE)
         {
             gui_action = get_gui_input();
-            OSTimeDly(OS_TICKS_PER_SEC/10);
+            OSTimeDly(200/10);
         }
     }
 
@@ -2133,7 +2134,7 @@ u32 menu(u16 *original_screen)
                 flip_gba_screen();
             }
 
-            OSTimeDly(OS_TICKS_PER_SEC/2);
+            OSTimeDly(200/2);
         }
     }
 
@@ -2940,7 +2941,7 @@ u32 menu(u16 *original_screen)
   flip_screen();
   clear_gba_screen(0);
   flip_gba_screen();  
-  OSTimeDly(OS_TICKS_PER_SEC/10);
+  OSTimeDly(200/10);
   clear_screen(0);
   flip_screen();
   clear_gba_screen(0);

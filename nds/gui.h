@@ -25,6 +25,12 @@
 #ifndef GUI_H
 #define GUI_H
 
+#include "ds2io.h"
+#include "bitmap.h"
+
+#define UP_SCREEN_UPDATE_METHOD   0
+#define DOWN_SCREEN_UPDATE_METHOD 2
+
 #define MAX_GAMEPAD_CONFIG_MAP 16
 
 
@@ -77,7 +83,8 @@ struct  FILE_LIST_INFO
 
 /******************************************************************************
  * グローバル変数の宣言
- ******************************************************************************/extern char g_default_rom_dir[MAX_PATH];
+ ******************************************************************************/
+extern char g_default_rom_dir[MAX_PATH];
 extern char DEFAULT_SAVE_DIR[MAX_PATH];
 extern char DEFAULT_CFG_DIR[MAX_PATH];
 extern char DEFAULT_SS_DIR[MAX_PATH];

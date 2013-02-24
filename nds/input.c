@@ -21,10 +21,6 @@
 
 #include "common.h"
 
-#ifdef NDS_LAYER
-#include "test.h"
-#endif
-
 TOUCH_SCREEN touch;
 
 enum PspCtrlButtons
@@ -222,7 +218,8 @@ static u32 button_cross;
 
 //#define BUTTON_REPEAT_START    200000
 //#define BUTTON_REPEAT_CONTINUE 50000
-#define BUTTON_REPEAT_START    (OS_TICKS_PER_SEC)         //首次重复间隔 1s
+#define BUTTON_REPEAT_START    (200)    // Not sure what this 200 is
+				// Just avoiding a compiler error [Neb]
 #define BUTTON_REPEAT_CONTINUE (0)                        //之后重复间隔 0
 
 // GUI输入处理

@@ -30,13 +30,9 @@
 #include "common.h"
 
 #define TASK_SOUND_STK_SIZE 1024		//1024words= 4KB
-OS_STK TaskSoundStk[TASK_SOUND_STK_SIZE];
 
-extern OS_EVENT *tx_sem;
 //extern u32 SKIP_RATE;
 #ifdef NDS_LAYER
-OS_EVENT *sound_sem;
-
 #define AUDIO_LEN   1024
 #endif
 

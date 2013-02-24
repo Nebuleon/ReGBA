@@ -20,10 +20,8 @@
  */
 
 #include "common.h"
+#include "gui.h"
 
-#ifdef NDS_LAYER
-#include "test.h"
-#endif
 /******************************************************************************
  *
  ******************************************************************************/
@@ -119,71 +117,13 @@ void init_video()
 
 void init_video()
 {  
-  memset((u8*)screen_buffer, 0x00, sizeof(screen_buffer));
-
-#ifndef NDS_LAYER
-  jzlcd_init();
-  display_addr= (u32*)jzfb.frame;
-
-  if(BMP_OK != BMP_read(background_name, (char*)background, &background_w, &background_h))
-  {
-    printf("Load backgroundpicture error\n");
-    quit(0);
-  }
-  
-  u32 x, y;
-  u32 *dst, *src;
-  dst= display_addr;  
-  src= background + 480*272 -1;
-  for(y= 0; y < background_h; y++)
-  {
-    for(x= 0; x < background_w; x++)
-    {
-      *dst++= *src--;
-    }
-  }
-  
-#else
-    u8 *ptr;
-    unsigned int err;
-
-    test_main(3, arg);
-    dgprintf("NDS Layer initial over\n");
-
-    buf_handle= get_video_up_buf();
-    ptr = (u8*)get_buf_form_bufnum(buf_handle);
-    memset(ptr, 0, 256*192*2);
-    buf_handle= get_video_up_buf();
-    ptr = (u8*)get_buf_form_bufnum(buf_handle);
-    memset(ptr, 0, 256*192*2);
-    gba_screen_address= (u16*)ptr + 16*256 + 8;
-
-    flip_screen();
-    flip_gba_screen();
-#endif
+	// Need to show the loading screen here.
 }
 
 #ifdef NDS_LAYER
 void flip_screen(void)
 {
-  u32 *dst_ptr;
-  u32 *src_ptr;
-  u32 i;
-  int buf_handle;
-  
-//  flush cache
-//  dma_cache_wback_inv(screen_address, PSP_SCREEN_HEIGHT * PSP_SCREEN_WIDTH *2);
-
-  buf_handle= get_video_down_buf();
-  if(buf_handle >= 0)
-  {
-    dst_ptr = get_buf_form_bufnum(buf_handle);
-    src_ptr= (u32*)screen_buffer;
-    for(i= 0; i< 128*192; i++)
-        *dst_ptr++ = *src_ptr++;
-
-    update_buf(buf_handle);
-  }
+	ds2_flipScreen(UP_SCREEN, UP_SCREEN_UPDATE_METHOD);
 }
 #else
 void flip_screen(void)
