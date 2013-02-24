@@ -1,0 +1,8 @@
+This is a modified source release of zlib. 
+
+Changes:
+	zconf.h removes a reference to sys/types.h, which creates type conflicts on the DS2 SDK. 
+	gzguts.h removes standard c library includes for DS2 SDK equivalents
+	
+
+For a pristine source release of zlib, please visit <http://zlib.net>.

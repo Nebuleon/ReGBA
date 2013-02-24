@@ -1,0 +1,13 @@
+//io_ds2_mmcf.c
+#include "io_ds2_mmcf.h"
+
+const IO_INTERFACE _io_ds2_mmcf = {
+	DEVICE_TYPE_DS2_MMCF,
+	FEATURE_MEDIUM_CANREAD | FEATURE_MEDIUM_CANWRITE,
+	(FN_MEDIUM_STARTUP)&_MMC_StartUp,
+	(FN_MEDIUM_ISINSERTED)&_MMC_IsInserted,
+	(FN_MEDIUM_READSECTORS)&_MMC_ReadSectors,
+	(FN_MEDIUM_WRITESECTORS)&_MMC_WriteSectors,
+	(FN_MEDIUM_CLEARSTATUS)&_MMC_ClearStatus,
+	(FN_MEDIUM_SHUTDOWN)&_MMC_ShutDown
+};
