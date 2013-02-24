@@ -1,4 +1,0 @@
-SOURCES	+= $(wildcard $(NANDDIR)/*.c)
-CFLAGS += -I$(NANDDIR)
-CFLAGS += -DNAND=$(NAND)
-VPATH  += $(NANDDIR)

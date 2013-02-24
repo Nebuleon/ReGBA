@@ -1,4 +1,0 @@
-SOURCES	+= $(wildcard $(TPANELDIR)/tpanel.c)
-CFLAGS	+= -DTPANEL=$(TPANELTYPE)
-CFLAGS	+= -I$(TPANELDIR)
-VPATH   += $(TPANELDIR)

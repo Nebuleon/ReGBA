@@ -1,5 +1,0 @@
-
-SOURCES	+= $(UCFSDIR)/ucfs.c
-CFLAGS	+= -I$(UCFSDIR)
-VPATH   +=  $(UCFSDIR)
-
