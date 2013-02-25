@@ -36,7 +36,6 @@ OBJDUMP      = $(CROSS)objdump
 C_SOURCES    = nds/gpsp_main.c    \
                nds/cpu_common.c   \
                nds/cpu_asm.c      \
-               nds/cpu_c.c       \
                nds/video.c       \
                nds/gu.c          \
                nds/memory.c      \
@@ -50,12 +49,13 @@ C_SOURCES    = nds/gpsp_main.c    \
                nds/unicode.c     \
                nds/zip.c         \
                nds/bitmap.c
+# nds/cpu_c.c
 CPP_SOURCES  = 
 ASM_SOURCES  = nds/mips_stub.S
 SOURCES      = $(C_SOURCES) $(CPP_SOURCES) $(ASM_SOURCES)
 C_OBJECTS    = $(C_SOURCES:.c=.o)
 CPP_OBJECTS  = $(CPP_SOURCES:.cpp=.o)
-ASM_OBJECTS  = $(CPP_SOURCES:.S=.o)
+ASM_OBJECTS  = $(ASM_SOURCES:.S=.o)
 OBJECTS      = $(C_OBJECTS) $(CPP_OBJECTS) $(ASM_OBJECTS)
 
 # - - - Compilation flags - - -
