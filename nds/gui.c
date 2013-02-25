@@ -1420,8 +1420,11 @@ void init_game_config()
     game_config.update_backup_flag = 0;
     for(i = 0; i < MAX_CHEATS; i++)
     {
+	// Cheats are temporarily disabled [Neb]
+#if 0
         game_config.cheats_flag[i].cheat_active = NO;
         game_config.cheats_flag[i].cheat_name[0] = '\0';
+#endif
     }
     memcpy(game_config.gamepad_config_map, gamepad_config_map_init, sizeof(gamepad_config_map_init));
     game_config.use_default_gamepad_map = 1;
@@ -1970,6 +1973,8 @@ u32 menu(u16 *original_screen)
 
     void menu_load_cheat_file()
     {
+	// Cheats are temporarily disabled [Neb]
+#if 0
         char *file_ext[] = { ".cht", NULL };
         char load_filename[MAX_FILE];
         u32 i;
@@ -1995,6 +2000,7 @@ u32 menu(u16 *original_screen)
         {
             choose_menu(current_menu);
         }
+#endif
     }
 
   void menu_fix_gamepad_help()
@@ -2537,6 +2543,7 @@ u32 menu(u16 *original_screen)
   {
     /* 00 */ SUBMENU_OPTION(NULL, &msg[MSG_SUB_MENU_24], NULL,0),
 
+#if 0
     /* 01 */ CHEAT_OPTION(((CHEATS_PER_PAGE * menu_cheat_page) + 0), 1),
     /* 02 */ CHEAT_OPTION(((CHEATS_PER_PAGE * menu_cheat_page) + 1), 2),
     /* 03 */ CHEAT_OPTION(((CHEATS_PER_PAGE * menu_cheat_page) + 2), 3),
@@ -2546,6 +2553,7 @@ u32 menu(u16 *original_screen)
 
     /* 05 */ ACTION_OPTION(menu_load_cheat_file, NULL, &msg[MSG_SUB_MENU_21],
         NULL, 5)
+#endif
   };
 
   MAKE_MENU(cheats, submenu_cheats, NULL);
@@ -2777,11 +2785,14 @@ u32 menu(u16 *original_screen)
 
   void reload_cheats_page()
   {
+	// Cheats are temporarily disabled [Neb]
+#if 0
     for(i = 0; i < CHEATS_PER_PAGE; i++)
     {
       cheats_options[i+1].display_string = &cheat_format_ptr[(CHEATS_PER_PAGE * menu_cheat_page) + i];
       cheats_options[i+1].current_option = &(game_config.cheats_flag[(CHEATS_PER_PAGE * menu_cheat_page) + i].cheat_active);
     }
+#endif
   }
 
 /*
@@ -2942,6 +2953,8 @@ u32 menu(u16 *original_screen)
         }
     }
 
+	// Cheats are temporarily disabled [Neb]
+#if 0
     for(i = 0; i < MAX_CHEATS; i++)
     {
         if(i >= g_num_cheats)
@@ -2955,6 +2968,7 @@ u32 menu(u16 *original_screen)
         cheat_format_ptr[i]= cheat_format_str[i];
     }
     reload_cheats_page();
+#endif
 
     if(gamepak_filename[0] == 0)
     {

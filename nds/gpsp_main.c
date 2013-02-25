@@ -64,8 +64,6 @@ char main_path[MAX_PATH];
 
 char rom_path[MAX_PATH];
 
-typedef volatile u32 vu32;
-
 //vu32 quit_flag;
 vu32 power_flag;
 
@@ -74,24 +72,6 @@ u32 virtual_frame_count = 0;
 vu32 vblank_count = 0;
 u32 num_skipped_frames = 0;
 u32 frames;
-
-char *lang[12] =
-  { 
-    "English",                 // 0
-    "简体中文",                 // 1
-    "chinese_traditional",     // 2
-    "japanese",                // 3
-    "french",                  // 4
-    "spanish",                 // 5
-    "german",                  // 6
-    "italian",                 // 7
-    "dutch",                   // 8
-    "portuguese",              // 9
-    "russian",                 // 10
-    "korean",                  // 11
-  };
-
-#define MAX_LANG_NUM 11
 
 int date_format= 2;
 
@@ -402,7 +382,7 @@ while(1);
     }
 
     //Display startup log
-    show_log();
+    show_log(down_screen_addr);
     flip_screen();
 
  // 读取gpSP配置文件

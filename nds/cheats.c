@@ -63,6 +63,8 @@ static void decrypt_gsa_code(int *address_ptr, int *value_ptr, CHEAT_VARIANT_ENU
 
 void add_cheats(char *cheats_filename)
 {
+	// Cheats are temporarily disabled [Neb]
+#if 0
   FILE *cheats_file;
   char current_line[256];
   char *name_ptr;
@@ -180,6 +182,7 @@ void add_cheats(char *cheats_filename)
 
     fclose(cheats_file);
   }
+#endif
 }
 
 static void process_cheat_gs1(CHEAT_TYPE *cheat)
@@ -397,6 +400,8 @@ static void process_cheat_gs3(CHEAT_TYPE *cheat)
 
 void process_cheats()
 {
+	// Cheats are temporarily disabled [Neb]
+#if 0
   u32 i;
 
   for(i = 0; i < g_num_cheats; i++)
@@ -420,4 +425,5 @@ void process_cheats()
       }
     }
   }
+#endif
 }

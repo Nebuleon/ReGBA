@@ -2569,7 +2569,7 @@ dgprintf("file_name %s\n", name);
   {
     // 如果是 ZIP 文件时
 //    set_cpu_clock(2);
-    init_progress(4, "Load ZIP ROM.");  // TODO 显示进度
+    init_progress(DOWN_SCREEN, 4, "Load ZIP ROM.");  // TODO 显示进度
     file_size = load_file_zip(file_path);
     if(file_size == -2)
     {
@@ -2579,7 +2579,7 @@ dgprintf("file_name %s\n", name);
   }
   else
   {  // 查看进度条
-    init_progress(4, "Load ROM.");  // TODO
+    init_progress(DOWN_SCREEN, 4, "Load ROM.");  // TODO
     file_size = load_gamepak_raw(file_path);
   }
   update_progress();
@@ -3754,7 +3754,7 @@ u32 load_state(char *savestate_filename, FILE *fp)
 
     current_gamepak_filename[0]= '\0';
 //    pause_sound(1);
-    init_progress(9, msg[MSG_LOAD_STATE]);
+    init_progress(DOWN_SCREEN, 9, msg[MSG_LOAD_STATE]);
 
     if(fp != NULL)
     {
@@ -3886,7 +3886,7 @@ u32 save_state(char *savestate_filename, u16 *screen_capture)
 
   g_state_buffer_ptr = savestate_write_buffer;
 
-  init_progress(9, msg[MSG_SAVE_STATE]);
+  init_progress(DOWN_SCREEN, 9, msg[MSG_SAVE_STATE]);
 
   get_nds_time(&current_time);
   FILE_WRITE_MEM_VARIABLE(g_state_buffer_ptr, current_time);
