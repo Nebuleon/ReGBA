@@ -25,6 +25,8 @@
 #ifndef MAIN_H
 #define MAIN_H
 
+#include "message.h"
+
 #define LANGUAGE_PACK   "SYSTEM\\language.msg"
 
 /******************************************************************************
@@ -177,7 +179,6 @@ extern volatile u32 real_frame_count;
 extern u32 virtual_frame_count;
 extern int date_format;
 extern const MODEL_TYPE psp_model;
-extern char *lang[12];
 
 //used for other sofware call the GBA emulator
 extern int plug_valid;

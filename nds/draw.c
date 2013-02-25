@@ -1,7 +1,6 @@
-/* unofficial gameplaySP kai
+/* draw.c
  *
- * Copyright (C) 2007 NJ
- * Copyright (C) 2007 takka <takka@tfact.net>
+ * Copyright (C) 2010 dking <dking024@gmail.com>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public Licens e as
@@ -17,230 +16,184 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
+//v1.1
 
 /******************************************************************************
- * draw.c
- * 基本的绘图处理
+ * draw.cpp
+ * basic program to draw some graphic
  ******************************************************************************/
+#include <string.h>
+#include <stdio.h>
+#include "ds2_malloc.h"
+#include "ds2_cpu.h"
+#include "bdf_font.h"
+#include "gui.h"
+#include "bitmap.h"
+#include "draw.h"
+#include "input.h"
 
 /******************************************************************************
- * 
+ * macro definition
  ******************************************************************************/
-#include "common.h"
-#include <stdarg.h>
-#include "errinfo.h"
-
-/******************************************************************************
- * 宏定义
- ******************************************************************************/
-#define progress_sx (screen_width2 - screen_width / 3)  // 从中心 -160/-80
-#define progress_ex (screen_width2 + screen_width / 3)  // 从中心 +160/+80
-#define progress_sy (screen_height2 + 3)                // 从中心 +3
-#define progress_ey (screen_height2 + 13)               // 从中心 +13
-#define yesno_sx    (screen_width2 - screen_width / 3)  // 从中心 -160/-80
-#define yesno_ex    (screen_width2 + screen_width / 3)  // 从中心 +160/+80
-#define yesno_sy    (screen_height2 + 3)                // 从中心 +3
-#define yesno_ey    (screen_height2 + 13)               // 从中心 +13
+#define progress_sx (screen_width2 - SCREEN_WIDTH / 3)  // Center -160/-80
+#define progress_ex (screen_width2 + SCREEN_WIDTH / 3)  // Center +160/+80
+#define progress_sy (screen_height2 + 3)                // Center +3
+#define progress_ey (screen_height2 + 13)               // Center +13
+#define yesno_sx    (screen_width2 - SCREEN_WIDTH / 3)  // Center -160/-80
+#define yesno_ex    (screen_width2 + SCREEN_WIDTH / 3)  // Center +160/+80
+#define yesno_sy    (screen_height2 + 3)                // Center +3
+#define yesno_ey    (screen_height2 + 13)               // Center +13
 #define progress_color COLOR16(15,15,15)
+
 //#define progress_wait (0.5 * 1000 * 1000)
 #define progress_wait (OS_TICKS_PER_SEC/2)				//0.5S
 
 #define FONTS_HEIGHT    14
 
-#define VRAM_POS(x, y)  (screen_address + (x + (y) * screen_pitch));
+#define SCREEN_PITCH	256
 
-#define BOOTLOGO "SYSTEM\\GUI\\boot.bmp"
-#define GUI_SOURCE_PATH "SYSTEM\\GUI"
-#define GUI_PIC_BUFSIZE 1024*1024
+#define VRAM_POS(screen, x, y)  ((unsigned short*)screen + (x + (y) * SCREEN_PITCH))
 
-struct background back_ground = {{0}, {0}};
+#define BOOTLOGO "SYSTEM/GUI/boot.bmp"
+#define GUI_SOURCE_PATH "SYSTEM/GUI"
+#define GUI_PIC_BUFSIZE 1024*512
+
+u32 screen_height = 272;//160;
+u32 screen_width2 = 256/2;
+u32 screen_height2 = 160 / 2;
+
 char gui_picture[GUI_PIC_BUFSIZE];
+
 struct gui_iconlist gui_icon_list[]= {
     //file system
-    /* 00 */ {"filesys", 10, 10, NULL},
-    /* 01 */ {"gbafile", 16, 16, NULL},
-    /* 02 */ {"zipfile", 16, 16, NULL},
-    /* 03 */ {"directory", 16, 16, NULL},
-    /* 04 */ {"vscrollslider", 2, 103, NULL},
-    /* 05 */ {"vscrollbar", 8, 13, NULL},
-    /* 06 */ {"vscrolluparrow", 9, 9, NULL},
-    /* 07 */ {"vscrolldwarrow", 9, 9, NULL},
-    /* 08 */ {"visolator", 213, 3, NULL},
-    /* 09 */ {"fileselected", 201, 21, NULL},
-    //main menu
-    /* 10 */ {"newgame", 70, 37, NULL},
-    /* 11 */ {"resetgame", 98, 37, NULL},
-    /* 12 */ {"returngame", 88, 37, NULL},
-    /* 13 */ {"newgameselect", 70, 37, NULL},
-    /* 14 */ {"resetgameselect", 98, 37, NULL},
-    /* 15 */ {"returngameselect", 88, 37, NULL},
-    /* 16 */ {"menuindex", 5, 7, NULL},
-    /* 17 */ {"menuisolator", 98, 3, NULL},
-    //sub-menu
-    /* 18 */ {"subisolator", 221, 5, NULL},
-    //post added
-    /* 19 */ {"binfile", 16, 16, NULL},
+    /* 00 */ {"zipfile", 16, 16, NULL},
+    /* 01 */ {"directory", 16, 16, NULL},
+    /* 02 */ {"gbafile", 16, 16, NULL},
+
+	//title
+	/* 03 */ {"stitle", 256, 33, NULL},
+	//main menu
+	/* 04 */ {"savo", 52, 52, NULL},
+	/* 05 */ {"ssaveo", 52, 52, NULL},
+	/* 06 */ {"stoolo", 52, 52, NULL},
+	/* 07 */ {"scheato", 52, 52, NULL},
+	/* 08 */ {"sother", 52, 52, NULL},
+	/* 09 */ {"sexito", 52, 52, NULL},
+	/* 10 */ {"smsel", 79, 15, NULL},
+	/* 11 */ {"smnsel", 79, 15, NULL},
+
+	/* 12 */ {"snavo", 52, 52, NULL},
+	/* 13 */ {"snsaveo", 52, 52, NULL},
+	/* 14 */ {"sntoolo", 52, 52, NULL},
+	/* 15 */ {"sncheato", 52, 52, NULL},
+	/* 16 */ {"snother", 52, 52, NULL},
+	/* 17 */ {"snexito", 52, 52, NULL},
+
+	/* 18 */ {"sunnof", 16, 16, NULL},
+	/* 19 */ {"smaini", 85, 38, NULL},
+	/* 20 */ {"snmaini", 85, 38, NULL},
+	/* 21 */ {"smaybgo", 256, 192, NULL},
+
+	/* 22 */ {"sticon", 29, 13, NULL},
+	/* 23 */ {"ssubbg", 256, 192, NULL},
+
+	/* 24 */ {"subsela", 245, 22, NULL},
+	/* 25 */ {"sfullo", 12, 12, NULL},
+	/* 26 */ {"snfullo", 12, 12, NULL},
+	/* 27 */ {"semptyo", 12, 12, NULL},
+	/* 28 */ {"snemptyo", 12, 12, NULL},
+	/* 29 */ {"fdoto", 16, 16, NULL},
+	/* 30 */ {"backo", 19, 13, NULL},
+	/* 31 */ {"nbacko", 19, 13, NULL},
+	/* 32 */ {"chtfile", 16, 15, NULL},
+	/* 33 */ {"smsgfr", 193, 111, NULL},
+	/* 34 */ {"sbutto", 76, 16, NULL}
                         };
 
-/******************************************************************************
- * 全局函数声明
- ******************************************************************************/
-u32 yesno_dialog(char *text);
 
-/******************************************************************************
- * 局部变量定义
- ******************************************************************************/
-static int progress_total;
-static int progress_current;
-static char progress_message[256];
-//static u32 __attribute__((aligned(32))) display_list[2048];
-
-/******************************************************************************
- * 本地函数声明
- ******************************************************************************/
-void draw_dialog(u32 sx, u32 sy, u32 ex, u32 ey);
-
-/*------------------------------------------------------
-  字符串描绘 / 围绕中心
-------------------------------------------------------*/
-void print_string_center(u32 sy, u32 color, u32 bg_color, char *str)
+/*
+*	Drawing string aroud center
+*/
+void print_string_center(void* screen_addr, u32 sy, u32 color, u32 bg_color, char *str)
 {
-  int width = 0;//fbm_getwidth(str);
-  u32 sx = (screen_width - width) / 2;
+	int width = 0;//fbm_getwidth(str);
+	u32 sx = (SCREEN_WIDTH - width) / 2;
 
-  PRINT_STRING_BG(str, color, bg_color, sx, sy);
+	PRINT_STRING_BG(screen_addr, str, color, bg_color, sx, sy);
 }
 
-/*------------------------------------------------------
-  字符串描绘 / 阴影 / 围绕中心
-------------------------------------------------------*/
-void print_string_shadow_center(u32 sy, u32 color, char *str)
+/*
+*	Drawing string with shadow around center
+*/
+void print_string_shadow_center(void* screen_addr, u32 sy, u32 color, char *str)
 {
-  int width = 0;//fbm_getwidth(str);
-  u32 sx = (screen_width - width) / 2;
+	int width = 0;//fbm_getwidth(str);
+	u32 sx = (SCREEN_WIDTH - width) / 2;
 
-  PRINT_STRING_SHADOW(str, color, sx, sy);
+	PRINT_STRING_SHADOW(screen_addr, str, color, sx, sy);
 }
 
-/*------------------------------------------------------
-  水平线描绘
-------------------------------------------------------*/
-void hline(u32 sx, u32 ex, u32 y, u32 color)
+/*
+*	Drawing horizontal line
+*/
+void drawhline(void* screen_addr, u32 sx, u32 ex, u32 y, u32 color)
 {
-  u32 x;
-  u32 width  = (ex - sx) + 1;
-  volatile u16 *dst = VRAM_POS(sx, y);
+	u32 x;
+	u32 width  = (ex - sx) + 1;
+	u16 *dst = VRAM_POS(screen_addr, sx, y);
 
-  for (x = 0; x < width; x++)
-    *dst++ = (u16)color;
+	for (x = 0; x < width; x++)
+		*dst++ = (u16)color;
 }
 
-/*------------------------------------------------------
-  垂直线描绘
-------------------------------------------------------*/
-void vline(u32 x, u32 sy, u32 ey, u32 color)
+/*
+*	Drawing vertical line
+*/
+void drawvline(void* screen_addr, u32 x, u32 sy, u32 ey, u32 color)
 {
-  int y;
-  int height = (ey - sy) + 1;
-  volatile u16 *dst = VRAM_POS(x, sy);
+	int y;
+	int height = (ey - sy) + 1;
+	u16 *dst = VRAM_POS(screen_addr, x, sy);
 
-  for (y = 0; y < height; y++)
-  {
-    *dst = (u16)color;
-    dst += screen_pitch;
-  }
+	for (y = 0; y < height; y++)
+	{
+		*dst = (u16)color;
+		dst += SCREEN_PITCH;
+	}
 }
 
-/*------------------------------------------------------
-  矩形描绘 (16bit)
-------------------------------------------------------*/
-void box(u32 sx, u32 sy, u32 ex, u32 ey, u32 color)
+/*
+*	Drawing rectangle
+*/
+void drawbox(void* screen_addr, u32 sx, u32 sy, u32 ex, u32 ey, u32 color)
 {
-  hline(sx, ex - 1, sy, color);
-  vline(ex, sy, ey - 1, color);
-  hline(sx + 1, ex, ey, color);
-  vline(sx, sy + 1, ey, color);
+	drawhline(screen_addr, sx, ex - 1, sy, color);
+	drawvline(screen_addr, ex, sy, ey - 1, color);
+	drawhline(screen_addr, sx + 1, ex, ey, color);
+	drawvline(screen_addr, sx, sy + 1, ey, color);
 }
 
-/*------------------------------------------------------
-  填充矩形
-------------------------------------------------------*/
-void boxfill(u32 sx, u32 sy, u32 ex, u32 ey, u32 color)
+/*
+*	Filling a rectangle
+*/
+void drawboxfill(void* screen_addr, u32 sx, u32 sy, u32 ex, u32 ey, u32 color)
 {
-  u32 x, y;
-  u32 width  = (ex - sx) + 1;
-  u32 height = (ey - sy) + 1;
-  volatile u16 *dst = (u16 *)(screen_address + (sx + sy * screen_pitch));
+	u32 x, y;
+	u32 width  = (ex - sx) + 1;
+	u32 height = (ey - sy) + 1;
+	u16 *dst = VRAM_POS(screen_addr, sx, sy);
 
-  for (y = 0; y < height; y++)
-  {
-    for (x = 0; x < width; x++)
-    {
-      dst[x + y * screen_pitch] = (u16)color;
-    }
-  }
+	for (y = 0; y < height; y++)
+	{
+		for (x = 0; x < width; x++)
+		{
+			dst[x + y * SCREEN_PITCH] = (u16)color;
+		}
+	}
 }
 
-/*------------------------------------------------------
-  画水平线
-------------------------------------------------------*/
-void drawhline(u16 *screen_address, u32 sx, u32 ex, u32 y, u32 color)
-{
-  u32 x;
-  u32 width  = (ex - sx) + 1;
-  volatile u16 *dst = VRAM_POS(sx, y);
-
-  for (x = 0; x < width; x++)
-    *dst++ = (u16)color;
-}
-
-/*------------------------------------------------------
-  画垂直线
-------------------------------------------------------*/
-void drawvline(u16 *screen_address, u32 x, u32 sy, u32 ey, u32 color)
-{
-  int y;
-  int height = (ey - sy) + 1;
-  volatile u16 *dst = VRAM_POS(x, sy);
-
-  for (y = 0; y < height; y++)
-  {
-    *dst = (u16)color;
-    dst += screen_pitch;
-  }
-}
-
-/*------------------------------------------------------
-  画矩形 (16bit)
-------------------------------------------------------*/
-void drawbox(u16 *screen_address, u32 sx, u32 sy, u32 ex, u32 ey, u32 color)
-{
-  drawhline(screen_address, sx, ex - 1, sy, color);
-  drawvline(screen_address, ex, sy, ey - 1, color);
-  drawhline(screen_address, sx + 1, ex, ey, color);
-  drawvline(screen_address, sx, sy + 1, ey, color);
-}
-
-/*------------------------------------------------------
-  填充矩形
-------------------------------------------------------*/
-void drawboxfill(u16 *screen_address, u32 sx, u32 sy, u32 ex, u32 ey, u32 color)
-{
-  u32 x, y;
-  u32 width  = (ex - sx) + 1;
-  u32 height = (ey - sy) + 1;
-  volatile u16 *dst;
-
-  for (y = 0; y < height; y++)
-  {
-    dst = VRAM_POS(sx, sy+y);
-    for (x = 0; x < width; x++)
-      *dst++ = (u16)color;
-  }
-}
-
-/*------------------------------------------------------
--  画选择项: 口
+/*
+*	Drawing a selection item
 - active    0 not fill
 -           1 fill with gray
 -           2 fill with color
@@ -249,7 +202,7 @@ void drawboxfill(u16 *screen_address, u32 sx, u32 sy, u32 ex, u32 ey, u32 color)
 -           1 Green
 -           2 Blue
 ------------------------------------------------------*/
-void draw_selitem(u16 *screen_address, u32 x, u32 y, u32 color, u32 active)
+void draw_selitem(void* screen_addr, u32 x, u32 y, u32 color, u32 active)
 {
     u32 size;
     u32 color0, color1, color2, color3;
@@ -328,26 +281,28 @@ void draw_selitem(u16 *screen_address, u32 x, u32 y, u32 color, u32 active)
           break;
     }
 
-    drawbox(screen_address, x, y, x+size-1, y+size-1, color0);
+    drawbox(screen_addr, x, y, x+size-1, y+size-1, color0);
 
     if(active >0)
     {
-        drawbox(screen_address, x+1, y+1, x+size-2, y+size-2, color1);
-        drawbox(screen_address, x+2, y+2, x+size-3, y+size-3, color2);
-        drawboxfill(screen_address, x+3, y+3, x+size-4, y+size-4, color3);
+        drawbox(screen_addr, x+1, y+1, x+size-2, y+size-2, color1);
+        drawbox(screen_addr, x+2, y+2, x+size-3, y+size-3, color2);
+        drawboxfill(screen_addr, x+3, y+3, x+size-4, y+size-4, color3);
     }
 }
-/*------------------------------------------------------
-  画消息框
-- 如果 color_fg = COLOR_TRANS, 需要 screen_bg
-------------------------------------------------------*/
-void draw_message(u16 *screen_address, u16 *screen_bg, u32 sx, u32 sy, u32 ex, u32 ey,
+
+/*
+*	Drawing message box
+*	Note if color_fg is transparent, screen_bg can't be transparent
+*/
+void draw_message(void* screen_addr, u16 *screen_bg, u32 sx, u32 sy, u32 ex, u32 ey,
         u32 color_fg)
 {
     if(!(color_fg & 0x8000))
     {
-        drawbox(screen_address, sx, sy, ex, ey, COLOR16(12, 12, 12));
-        drawboxfill(screen_address, sx+1, sy+1, ex-1, ey-1, color_fg);
+//        drawbox(screen_addr, sx, sy, ex, ey, COLOR16(12, 12, 12));
+//        drawboxfill(screen_addr, sx+1, sy+1, ex-1, ey-1, color_fg);
+		show_icon(screen_addr, &ICON_MSG, 34, 48);
     }
     else
     {
@@ -363,8 +318,8 @@ void draw_message(u16 *screen_address, u16 *screen_bg, u32 sx, u32 sy, u32 ex, u
         b= (color_fg & 0x1F) * 6/7;
         for(k= 0; k < height; k++)
         {
-            screenp = VRAM_POS(sx, sy+k);
-            screenp1 = screen_bg + sx + (sy + k) * screen_pitch;
+            screenp = VRAM_POS(screen_addr, sx, sy+k);
+            screenp1 = screen_bg + sx + (sy + k) * SCREEN_PITCH;
             for(i= 0; i < width; i++)
             {
                 tmp = *screenp1++;
@@ -380,10 +335,10 @@ void draw_message(u16 *screen_address, u16 *screen_bg, u32 sx, u32 sy, u32 ex, u
     }
 }
 
-/*------------------------------------------------------
-  画水平居中对齐的字符串
-------------------------------------------------------*/
-void draw_string_vcenter(u16* screen_address, u32 sx, u32 sy, u32 width, u32 color_fg, char *string)
+/*
+*	Drawing string horizontal center aligned
+*/
+void draw_string_vcenter(void* screen_addr, u32 sx, u32 sy, u32 width, u32 color_fg, char *string)
 {
     u32 x, num, i, m;
     u16 *screenp;
@@ -405,7 +360,7 @@ void draw_string_vcenter(u16* screen_address, u32 sx, u32 sy, u32 width, u32 col
         sx += (width - x)/2;
     }
 
-    screenp = screen_address + sx + sy*SCREEN_WIDTH;
+    screenp = (unsigned short*)screen_addr + sx + sy*SCREEN_WIDTH;
     i= 0;
     while(i < num)
     {
@@ -421,9 +376,12 @@ void draw_string_vcenter(u16* screen_address, u32 sx, u32 sy, u32 width, u32 col
 }
 
 /*------------------------------------------------------
-  描绘滚动字符串
+	Drawing a scroll string
 ------------------------------------------------------*/
-#define MAX_SCROLL_STRING   6
+//limited
+// < 256 Unicodes
+// width < 256+128
+//#define MAX_SCROLL_STRING   8
 
 /*------------------------------------------------------
 - scroll_val    < 0     scroll toward left
@@ -450,7 +408,7 @@ struct scroll_string_info{
 static struct scroll_string_info    scroll_strinfo[MAX_SCROLL_STRING];
 static u32  scroll_string_num= 0;
 
-u32 draw_hscroll_init(u16 *screen_address, u16 *buff_bg, u32 sx, u32 sy, u32 width, 
+u32 draw_hscroll_init(void* screen_addr, u32 sx, u32 sy, u32 width, 
         u32 color_bg, u32 color_fg, char *string)
 {
     u32 index, x, num, len, i;
@@ -477,16 +435,15 @@ u32 draw_hscroll_init(u16 *screen_address, u16 *buff_bg, u32 sx, u32 sy, u32 wid
     if(unicode == NULL)
     {
         scroll_strinfo[index].str_len = 0;
-        free((int)screenp);
+        free((void*)screenp);
         return -3;
     }
-
 
     if(color_bg == COLOR_TRANS)
         memset(screenp, 0, (256+128)*FONTS_HEIGHT*2);
 
     scroll_string_num += 1;
-    scroll_strinfo[index].screenp = screen_address;
+    scroll_strinfo[index].screenp = (unsigned short*)screen_addr;
     scroll_strinfo[index].sx= sx;
     scroll_strinfo[index].sy= sy;
     scroll_strinfo[index].color_bg= color_bg;
@@ -495,7 +452,7 @@ u32 draw_hscroll_init(u16 *screen_address, u16 *buff_bg, u32 sx, u32 sy, u32 wid
     scroll_strinfo[index].height= FONTS_HEIGHT;
     scroll_strinfo[index].unicode= unicode;
     scroll_strinfo[index].buff_fonts= screenp;
-    scroll_strinfo[index].buff_bg= buff_bg;
+    scroll_strinfo[index].buff_bg= 0;
 
     num= 0;
     while(*string)
@@ -526,27 +483,25 @@ u32 draw_hscroll_init(u16 *screen_address, u16 *buff_bg, u32 sx, u32 sy, u32 wid
 
     u16 *screenp1;
 
-    if(color_bg == COLOR_TRANS && buff_bg != NULL)
+    if(color_bg == COLOR_TRANS)
     {
-        u16 *screenp2;
         u16 pixel;
 
         for(i= 0; i < num; i++)
         {
-            screenp= screen_address + sx + (sy + i) * SCREEN_WIDTH;
+            screenp= (unsigned short*)screen_addr + sx + (sy + i) * SCREEN_WIDTH;
             screenp1= scroll_strinfo[index].buff_fonts + i*(256+128);
-            screenp2= buff_bg + sx + (sy + i) * SCREEN_WIDTH;
             for(x= 0; x < len; x++)
             {
                 pixel= *screenp1++;
-                *screenp++ = (pixel > 0) ? pixel : *screenp2;
-                screenp2++;
+				if(pixel) *screenp = pixel;
+				screenp ++;
             }
         }
     }
     else
     {
-        screenp= screen_address + sx + sy * SCREEN_WIDTH;
+        screenp= (unsigned short*)screen_addr + sx + sy * SCREEN_WIDTH;
         screenp1= scroll_strinfo[index].buff_fonts;
 
         for(i= 0; i < num; i++)
@@ -644,40 +599,8 @@ u32 draw_hscroll(u32 index, s32 scroll_val)
         }
         else
             scroll_strinfo[index].pos_pixel= xoff;
-/*
-if(index== 3)
-{
-u16 *sp0, *sp1;
-u32 m, n;
-
-flag= 1;
-
-printf("xoff %d %d %d\n", scroll_strinfo[index].pos_pixel, xoff, scroll_strinfo[index].buff_width);
-
-for(m= 0; m< height; m++)
-{
-    sp0= scroll_strinfo[index].screenp + m * SCREEN_WIDTH;
-    sp1= scroll_strinfo[index].buff_fonts + m*(256+128);
-    for(n= 0; n< 256; n++)
-        *sp0++ = *sp1++;
-
-}
-
-for(m= 0; m< height; m++)
-{
-    sp0= scroll_strinfo[index].screenp + (height + m) * SCREEN_WIDTH;
-    sp1= scroll_strinfo[index].buff_fonts + 256 + m*(256+128);
-    for(n= 0; n< 128; n++)
-        *sp0++ = *sp1++;
-}
-
-flip_screen();
-printf("dis 1\n");
-OSTimeDly(1000);
-}
-*/
     }
-    else if(xoff < scroll_strinfo[index].buff_width)   //shift left
+    else if(xoff < (s32)scroll_strinfo[index].buff_width)   //shift left
     {
         if((scroll_strinfo[index].buff_width + width) > (256+128))
         if((xoff + width) > scroll_strinfo[index].buff_width)
@@ -695,7 +618,7 @@ OSTimeDly(1000);
             unicode= scroll_strinfo[index].unicode + scroll_strinfo[index].str_start;
             len= scroll_strinfo[index].str_len - scroll_strinfo[index].str_start;
             x= (scroll_val > SCREEN_WIDTH/4) ? scroll_val : SCREEN_WIDTH/4;
-            x= (x < xoff) ? x : xoff;
+            x= ((s32)x < xoff) ? x : xoff;
             y= BDF_cut_unicode(unicode, len, x, 1);
 
             scroll_strinfo[index].str_start += y;
@@ -724,36 +647,6 @@ OSTimeDly(1000);
         }
 
         scroll_strinfo[index].pos_pixel= xoff;
-/*
-if(flag== 1 && index== 3)
-{
-u16 *sp0, *sp1;
-u32 m, n;
-
-printf("xoff %d %d\n", scroll_strinfo[index].pos_pixel, scroll_strinfo[index].buff_width);
-
-for(m= 0; m< height; m++)
-{
-    sp0= scroll_strinfo[index].screenp + m * SCREEN_WIDTH;
-    sp1= scroll_strinfo[index].buff_fonts + m*(256+128);
-    for(n= 0; n< 256; n++)
-        *sp0++ = *sp1++;
-
-}
-
-for(m= 0; m< height; m++)
-{
-    sp0= scroll_strinfo[index].screenp + (height + m) * SCREEN_WIDTH;
-    sp1= scroll_strinfo[index].buff_fonts + 256 + m*(256+128);
-    for(n= 0; n< 128; n++)
-        *sp0++ = *sp1++;
-}
-
-flip_screen();
-printf("dis 2\n");
-OSTimeDly(1000);
-}
-*/
     }
     else
         return 0;
@@ -765,20 +658,17 @@ OSTimeDly(1000);
     sx= scroll_strinfo[index].sx;
     sy= scroll_strinfo[index].sy;
 
-    if(color_bg == COLOR_TRANS && scroll_strinfo[index].buff_bg != NULL)
+    if(color_bg == COLOR_TRANS)
     {
-        u16 *screenp2;
-
         for(i= 0; i < height; i++)
         {
             screenp= scroll_strinfo[index].screenp + sx + (sy + i) * SCREEN_WIDTH;
             screenp1= scroll_strinfo[index].buff_fonts + xoff + i*(256+128);
-            screenp2= scroll_strinfo[index].buff_bg + sx + (sy + i) * SCREEN_WIDTH;
             for(x= 0; x < width; x++)
             {
                 pixel= *screenp1++;
-                *screenp++ = (pixel > 0) ? pixel : *screenp2;
-                screenp2++;
+				if(pixel) *screenp = pixel;
+				screenp ++;
             }
         }
     }
@@ -791,18 +681,8 @@ OSTimeDly(1000);
             for(x= 0; x < width; x++)
                 *screenp++ = *screenp1++;
         }
-    }      
+    }
 
-/*
-if(index== 3 && flag== 1)
-{
-printf("dis 3\n");
-printf("xoff %d\n", xoff);
-flip_screen();
-flag= 0;
-OSTimeDly(1000);
-}
-*/
     u32 ret;
     if(scroll_val > 0)
         ret= scroll_strinfo[index].pos_pixel;
@@ -819,15 +699,14 @@ void draw_hscroll_over(u32 index)
 
     if(index < MAX_SCROLL_STRING && scroll_string_num > 0)
     {
-//printf("f %d %08x %08x\n", index, scroll_strinfo[index].buff_fonts, scroll_strinfo[index].unicode);
         if(scroll_strinfo[index].unicode)
         {
-            free((int)scroll_strinfo[index].unicode);
+            free((void*)scroll_strinfo[index].unicode);
             scroll_strinfo[index].unicode= NULL;
         }
         if(scroll_strinfo[index].buff_fonts)
         {
-            free((int)scroll_strinfo[index].buff_fonts);
+            free((void*)scroll_strinfo[index].buff_fonts);
             scroll_strinfo[index].buff_fonts= NULL;
         }
         scroll_strinfo[index].screenp= NULL;
@@ -837,74 +716,45 @@ void draw_hscroll_over(u32 index)
     }
 }
 
-/*------------------------------------------------------
-  显示对话框
-------------------------------------------------------*/
-void draw_dialog(u32 sx, u32 sy, u32 ex, u32 ey)
+/*
+*	Drawing dialog
+*/
+void draw_dialog(void* screen_addr, u32 sx, u32 sy, u32 ex, u32 ey)
 {
-// 阴影显示
-  boxfill(sx + 5, sy + 5, ex + 5, ey + 5, COLOR_DIALOG_SHADOW);
+	drawboxfill(screen_addr, sx + 5, sy + 5, ex + 5, ey + 5, COLOR_DIALOG_SHADOW);
 
-  hline(sx, ex - 1, sy, COLOR_FRAME);
-  vline(ex, sy, ey - 1, COLOR_FRAME);
-  hline(sx + 1, ex, ey, COLOR_FRAME);
-  vline(sx, sy + 1, ey, COLOR_FRAME);
+	drawhline(screen_addr, sx, ex - 1, sy, COLOR_FRAME);
+	drawvline(screen_addr, ex, sy, ey - 1, COLOR_FRAME);
+	drawhline(screen_addr, sx + 1, ex, ey, COLOR_FRAME);
+	drawvline(screen_addr, sx, sy + 1, ey, COLOR_FRAME);
 
-  sx++;
-  ex--;
-  sy++;
-  ey--;
+	sx++;
+	ex--;
+	sy++;
+	ey--;
 
-  hline(sx, ex - 1, sy, COLOR_FRAME);
-  vline(ex, sy, ey - 1, COLOR_FRAME);
-  hline(sx + 1, ex, ey, COLOR_FRAME);
-  vline(sx, sy + 1, ey, COLOR_FRAME);
+	drawhline(screen_addr, sx, ex - 1, sy, COLOR_FRAME);
+	drawvline(screen_addr, ex, sy, ey - 1, COLOR_FRAME);
+	drawhline(screen_addr, sx + 1, ex, ey, COLOR_FRAME);
+	drawvline(screen_addr, sx, sy + 1, ey, COLOR_FRAME);
 
-  sx++;
-  ex--;
-  sy++;
-  ey--;
+	sx++;
+	ex--;
+	sy++;
+	ey--;
 
-  boxfill(sx, sy, ex, ey, COLOR_DIALOG);
+	drawboxfill(screen_addr, sx, sy, ex, ey, COLOR_DIALOG);
 }
 
-/*--------------------------------------------------------
-  yes/no ダイヤログボックス
-  input
-    char *text 表示テキスト
-  return
-    0 YES
-    1 NO
---------------------------------------------------------*/
-u32 yesno_dialog(char *text)
-{
-  gui_action_type gui_action = CURSOR_NONE;
-
-  draw_dialog(yesno_sx - 8, yesno_sy -29, yesno_ex + 8, yesno_ey + 13);
-  print_string_center(yesno_sy - 16, COLOR_YESNO_TEXT, COLOR_DIALOG, text);
-  print_string_center(yesno_sy + 5 , COLOR_YESNO_TEXT, COLOR_DIALOG, "Yes - A / No - B");
-
-  flip_screen();
-
-  while((gui_action != CURSOR_SELECT)  && (gui_action != CURSOR_BACK))
-  {
-    gui_action = get_gui_input();
-//    sceKernelDelayThread(15000); /* 0.0015s */
-	OSTimeDly(10);					//Delay 10 ticks
-  }
-  if (gui_action == CURSOR_SELECT)
-    return 0;
-  else
-    return 1;
-}
-
-/*--------------------------------------------------------
---------------------------------------------------------*/
-u32 draw_yesno_dialog(u16 *screen_address, u32 sy, char *yes, char *no)
+/*
+*	Draw yes or no dialog
+*/
+u32 draw_yesno_dialog(enum SCREEN_ID screen, u32 sy, char *yes, char *no)
 {
     u16 unicode[8];
     u32 len, width, box_width, i;
     char *string;
+	void* screen_addr;
 
     len= 0;
     string= yes;
@@ -936,23 +786,39 @@ u32 draw_yesno_dialog(u16 *screen_address, u32 sy, char *yes, char *no)
     box_width= 64;
     if(box_width < (width +6)) box_width = width +6;
 
+	if(screen & UP_MASK)
+		screen_addr = up_screen_addr;
+	else
+		screen_addr = down_screen_addr;
+
     i= SCREEN_WIDTH/2 - box_width - 2;
-    drawbox(screen_address, i, sy-1, i+box_width-1, sy+FONTS_HEIGHT, COLOR16(8, 8, 8));
-    drawboxfill(screen_address, i+1, sy, i+box_width-2, sy+FONTS_HEIGHT-1, COLOR16(15, 15, 15));
-    draw_string_vcenter(screen_address, i+1, sy+1, box_width, COLOR_WHITE, yes);
+	show_icon((unsigned short*)screen_addr, &ICON_BUTTON, 49, 128);
+    draw_string_vcenter((unsigned short*)screen_addr, 51, 130, 73, COLOR_WHITE, yes);
 
     i= SCREEN_WIDTH/2 + 3;
-    drawbox(screen_address, i, sy-1, i+box_width-1, sy+FONTS_HEIGHT, COLOR16(8, 8, 8));
-    drawboxfill(screen_address, i+1, sy, i+box_width-2, sy+FONTS_HEIGHT-1, COLOR16(15, 15, 15));
-    draw_string_vcenter(screen_address, i+1, sy+1, box_width, COLOR_WHITE, no);
+	show_icon((unsigned short*)screen_addr, &ICON_BUTTON, 136, 128);
+    draw_string_vcenter((unsigned short*)screen_addr, 138, 130, 73, COLOR_WHITE, no);
 
-    flip_screen();
+	ds2_flipScreen(screen, 2);
 
     gui_action_type gui_action = CURSOR_NONE;
     while((gui_action != CURSOR_SELECT)  && (gui_action != CURSOR_BACK))
     {
         gui_action = get_gui_input();
-        OSTimeDly(OS_TICKS_PER_SEC/10);
+	if (gui_action == CURSOR_TOUCH)
+	{
+		struct key_buf inputdata;
+		ds2_getrawInput(&inputdata);
+		// Turn it into a SELECT (A) or BACK (B) if the button is touched.
+		if (inputdata.y >= 128 && inputdata.y < 128 + ICON_BUTTON.y)
+		{
+			if (inputdata.x >= 49 && inputdata.x < 49 + ICON_BUTTON.x)
+				gui_action = CURSOR_SELECT;
+			else if (inputdata.x >= 136 && inputdata.x < 136 + ICON_BUTTON.x)
+				gui_action = CURSOR_BACK;
+		}
+	}
+	mdelay(16);
     }
 
     if (gui_action == CURSOR_SELECT)
@@ -961,16 +827,122 @@ u32 draw_yesno_dialog(u16 *screen_address, u32 sy, char *yes, char *no)
         return 0;
 }
 
-/*--------------------------------------------------------
-  进度条
---------------------------------------------------------*/
-/*--------------------------------------------------------
-  初始化进度条
---------------------------------------------------------*/
-void init_progress(u32 total, char *text)
+/*
+*	Draw hotkey dialog
+*	Returns DS keys pressed, as in ds2io.h.
+*/
+u32 draw_hotkey_dialog(enum SCREEN_ID screen, u32 sy, char *clear, char *cancel)
 {
-  progress_current = 0;
-  progress_total   = total;
+    u16 unicode[8];
+    u32 len, width, box_width, i;
+    char *string;
+	void* screen_addr;
+
+    len= 0;
+    string= clear;
+    while(*string)
+    {
+        string= utf8decode(string, &unicode[len]);
+        if(unicode[len] != 0x0D && unicode[len] != 0x0A)
+        {
+            if(len < 8) len++;
+            else break;
+        }
+    }
+    width= BDF_cut_unicode(unicode, len, 0, 3);
+    
+    len= 0;
+    string= cancel;
+    while(*string)
+    {
+        string= utf8decode(string, &unicode[len]);
+        if(unicode[len] != 0x0D && unicode[len] != 0x0A)
+        {
+            if(len < 8) len++;
+            else    break;
+        }
+    }
+    i= BDF_cut_unicode(unicode, len, 0, 3);
+
+    if(width < i)   width= i;
+    box_width= 64;
+    if(box_width < (width +6)) box_width = width +6;
+
+	if(screen & UP_MASK)
+		screen_addr = up_screen_addr;
+	else
+		screen_addr = down_screen_addr;
+
+    i= SCREEN_WIDTH/2 - box_width - 2;
+	show_icon((unsigned short*)screen_addr, &ICON_BUTTON, 49, 128);
+    draw_string_vcenter((unsigned short*)screen_addr, 51, 130, 73, COLOR_WHITE, clear);
+
+    i= SCREEN_WIDTH/2 + 3;
+	show_icon((unsigned short*)screen_addr, &ICON_BUTTON, 136, 128);
+    draw_string_vcenter((unsigned short*)screen_addr, 138, 130, 73, COLOR_WHITE, cancel);
+
+	ds2_flipScreen(screen, 2);
+
+	// This function has been started by a key press. Wait for it to end.
+	struct key_buf inputdata;
+	do {
+		mdelay(1);
+		ds2_getrawInput(&inputdata);
+	} while (inputdata.key != 0);
+
+	// While there are no keys pressed, wait for keys.
+	do {
+		mdelay(1);
+		ds2_getrawInput(&inputdata);
+	} while (inputdata.key == 0);
+
+	// Now, while there are keys pressed, keep a tally of keys that have
+	// been pressed. (IGNORE TOUCH AND LID! Otherwise, closing the lid or
+	// touching to get to the menu will do stuff the user doesn't expect.)
+	u32 TotalKeys = 0;
+
+	do {
+		TotalKeys |= inputdata.key & ~(KEY_TOUCH | KEY_LID);
+		// If there's a touch on either button, turn it into a
+		// clear (A) or cancel (B) request.
+		if (inputdata.key & KEY_TOUCH)
+		{
+			if (inputdata.y >= 128 && inputdata.y < 128 + ICON_BUTTON.y)
+			{
+				if (inputdata.x >= 49 && inputdata.x < 49 + ICON_BUTTON.x)
+					return KEY_A;
+				else if (inputdata.x >= 136 && inputdata.x < 136 + ICON_BUTTON.x)
+					return KEY_B;
+			}
+		}
+		mdelay(1);
+		ds2_getrawInput(&inputdata);
+	} while (inputdata.key != 0 || TotalKeys == 0);
+
+	return TotalKeys;
+}
+
+/*
+*	Drawing progress bar
+*/
+static enum SCREEN_ID _progress_screen_id;
+static int progress_total;
+static int progress_current;
+static char progress_message[256];
+
+//	progress bar initialize
+void init_progress(enum SCREEN_ID screen, u32 total, char *text)
+{
+	void* screen_addr;
+
+	_progress_screen_id = screen;
+	if(_progress_screen_id & UP_MASK)
+		screen_addr = up_screen_addr;
+	else
+		screen_addr = down_screen_addr;
+
+	progress_current = 0;
+	progress_total   = total;
 //  strcpy(progress_message, text);
 
 //  draw_dialog(progress_sx - 8, progress_sy -29, progress_ex + 8, progress_ey + 13);
@@ -980,231 +952,95 @@ void init_progress(u32 total, char *text)
 //  if (text[0] != '\0')
 //    print_string_center(progress_sy - 21, COLOR_PROGRESS_TEXT, COLOR_DIALOG, text);
 
-//    drawbox(screen_address, progress_sx, progress_sy, progress_ex, progress_ey, COLOR16(0, 0, 0));
-    boxfill(progress_sx, progress_sy, progress_ex, progress_ey, COLOR16(15, 15, 15));
+    drawboxfill((unsigned short*)screen_addr, progress_sx, progress_sy, progress_ex, 
+		progress_ey, COLOR16(15, 15, 15));
 
-  flip_screen();
+	ds2_flipScreen(_progress_screen_id, 2);
 }
 
-/*--------------------------------------------------------
-  更新进度条
---------------------------------------------------------*/
+//	update progress bar
 void update_progress(void)
 {
-  int width = (int)( ((float)++progress_current / (float)progress_total) * ((float)screen_width / 3.0 * 2.0) );
+	void* screen_addr;
+
+	if(_progress_screen_id & UP_MASK)
+		screen_addr = up_screen_addr;
+	else
+		screen_addr = down_screen_addr;
+
+  int width = (int)( ((float)++progress_current / (float)progress_total) * ((float)SCREEN_WIDTH / 3.0 * 2.0) );
 
 //  draw_dialog(progress_sx - 8, progress_sy -29, progress_ex + 8, progress_ey + 13);
 
 //  boxfill(progress_sx - 1, progress_sy - 1, progress_ex + 1, progress_ey + 1, COLOR_BLACK);
 //  if (progress_message[0] != '\0')
 //    print_string_center(progress_sy - 21, COLOR_PROGRESS_TEXT, COLOR_DIALOG, progress_message);
-//  boxfill(progress_sx, progress_sy, progress_sx+width, progress_ey, COLOR_PROGRESS_BAR);
-  boxfill(progress_sx, progress_sy, progress_sx+width, progress_ey, COLOR16(13, 20, 18));
 
-  flip_screen();
+	drawboxfill(screen_addr, progress_sx, progress_sy, progress_sx+width, progress_ey, COLOR16(30, 19, 7));
+
+	ds2_flipScreen(_progress_screen_id, 2);
 }
 
-/*--------------------------------------------------------
-  プログレスバー結果表示
---------------------------------------------------------*/
+//	display progress string
 void show_progress(char *text)
 {
-//  draw_dialog(progress_sx - 8, progress_sy -29, progress_ex + 8, progress_ey + 13);
+	void* screen_addr;
 
+	if(_progress_screen_id & UP_MASK)
+		screen_addr = up_screen_addr;
+	else
+		screen_addr = down_screen_addr;
+
+//  draw_dialog(progress_sx - 8, progress_sy -29, progress_ex + 8, progress_ey + 13);
 //  boxfill(progress_sx - 1, progress_sy - 1, progress_ex + 1, progress_ey + 1, COLOR_BLACK);
-    
-  if (progress_current)
-  {
-    int width = (int)( (float)(++progress_current / progress_total) * (float)(screen_width / 3.0 * 2.0) );
-//    boxfill(progress_sx, progress_sy, progress_sx+width, progress_ey, COLOR_PROGRESS_BAR);
-    boxfill(progress_sx, progress_sy, progress_sx+width, progress_ey, COLOR16(13, 20, 18));
-  }
+
+	if (progress_current)
+	{
+		int width = (int)( (float)(++progress_current / progress_total) * (float)(SCREEN_WIDTH / 3.0 * 2.0) );
+		drawboxfill(screen_addr, progress_sx, progress_sy, progress_sx+width, progress_ey, COLOR16(30, 19, 7));
+	}
 
 //  if (text[0] != '\0')
 //    print_string_center(progress_sy - 21, COLOR_PROGRESS_TEXT, COLOR_DIALOG, text);
 
-  flip_screen();
-//  sceKernelDelayThread(progress_wait);
-  OSTimeDly(progress_wait);
+	ds2_flipScreen(_progress_screen_id, 2);
+
+//  OSTimeDly(progress_wait);
+	mdelay(500);
 }
 
-/*--------------------------------------------------------
-  显示滚动条（只菜单）
---------------------------------------------------------*/
+/*
+*	Drawing scroll bar
+*/
 #define SCROLLBAR_COLOR1 COLOR16( 0, 2, 8)
 #define SCROLLBAR_COLOR2 COLOR16(15,15,15)
 
-void scrollbar(u32 sx, u32 sy, u32 ex, u32 ey, u32 all,u32 view,u32 now)
+void scrollbar(void* screen_addr, u32 sx, u32 sy, u32 ex, u32 ey, u32 all, u32 view, u32 now)
 {
-  u32 scrollbar_sy;
-  u32 scrollbar_ey;
-  u32 len;
+	u32 scrollbar_sy;
+	u32 scrollbar_ey;
+	u32 len;
 
-  len = ey - sy - 2;
+	len = ey - sy - 2;
 
-  if ((all != 0) && (all > now))
-    scrollbar_sy = (u32)((float)len * (float)now / (float)all) +sy + 1;
-  else
-    scrollbar_sy = sy + 1;
+	if ((all != 0) && (all > now))
+		scrollbar_sy = (u32)((float)len * (float)now / (float)all) +sy + 1;
+	else
+		scrollbar_sy = sy + 1;
 
-  if ((all > (now + view)) && (all != 0))
-    scrollbar_ey = (u32)((float)len * (float)(now + view) / (float)all ) + sy + 1;
-  else
-    scrollbar_ey = len + sy + 1;
+	if ((all > (now + view)) && (all != 0))
+		scrollbar_ey = (u32)((float)len * (float)(now + view) / (float)all ) + sy + 1;
+	else
+		scrollbar_ey = len + sy + 1;
 
-    box(sx, sy, ex, ey, COLOR_BLACK);
-    boxfill(sx + 1, sy + 1, ex - 1, ey - 1, SCROLLBAR_COLOR1);
-    boxfill(sx + 1, scrollbar_sy, ex - 1, scrollbar_ey, SCROLLBAR_COLOR2);
+	drawbox(screen_addr, sx, sy, ex, ey, COLOR_BLACK);
+	drawboxfill(screen_addr, sx + 1, sy + 1, ex - 1, ey - 1, SCROLLBAR_COLOR1);
+	drawboxfill(screen_addr, sx + 1, scrollbar_sy, ex - 1, scrollbar_ey, SCROLLBAR_COLOR2);
 }
 
-/*------------------------------------------------------
-  VRAMへのテクスチャ転送(拡大縮小つき)
-------------------------------------------------------*/
 #if 0
-void bitblt(u32 vram_adr,u32 pitch, u32 sx, u32 sy, u32 ex, u32 ey, u32 x_size, u32 y_size, u32 *data)
-{
-   SPRITE *vertices = (SPRITE *)temp_vertex;
+static struct background back_ground = {{0}, {0}};
 
-  sceGuStart(GU_DIRECT, display_list);
-  sceGuDrawBufferList(GU_PSM_5551, (void *) vram_adr, pitch);
-  sceGuScissor(0, 0, PSP_SCREEN_WIDTH, PSP_SCREEN_HEIGHT);
-  sceGuEnable(GU_BLEND);
-  sceGuTexMode(GU_PSM_5551, 0, 0, GU_FALSE);
-  sceGuTexImage(0, 512, 512, x_size, data);
-  sceGuTexFilter(GU_LINEAR, GU_LINEAR);
-
-  vertices[0].u1 = (float)0;
-  vertices[0].v1 = (float)0;
-  vertices[0].x1 = (float)sx;
-  vertices[0].y1 = (float)sy;
-
-  vertices[0].u2 = (float)x_size;
-  vertices[0].v2 = (float)y_size;
-  vertices[0].x2 = (float)ex;
-  vertices[0].y2 = (float)ey;
-
-  sceGuDrawArray(GU_SPRITES, GU_TEXTURE_16BIT|GU_VERTEX_32BITF, 2, NULL, vertices);
-
-  sceGuDisable(GU_BLEND);
-  sceGuFinish();
-  sceGuSync(0, GU_SYNC_FINISH);
-}
-#endif
-
-/******************************************************************************
-  显示文字用的简单格式（只菜单）
-******************************************************************************/
-
-#define MAX_LINES 21
-#define MIN_X   24
-#define MIN_Y   45
-#define INC_Y   10
-
-static int cy;
-static int linefeed;
-static int text_color = COLOR16(0, 0, 0);
-static char msg_lines[MAX_LINES][128];
-static char msg_title[256];
-static int msg_color[MAX_LINES];
-
-#define COLOR_MSG_TITLE COLOR16(0, 0, 0)
-
-/*--------------------------------------------------------
-  信息显示
---------------------------------------------------------*/
-void msg_screen_draw()
-{
-  draw_dialog(14, 15, 465, 38);
-  draw_dialog(14, 37, 465, 259);
-  print_string_center(22, COLOR_MSG_TITLE, COLOR_DIALOG, msg_title);
-}
-
-/*--------------------------------------------------------
-  信息屏幕初始化
---------------------------------------------------------*/
-void msg_screen_init(const char *title)
-{
-  cy = 0;
-  linefeed = 1;
-  memset(msg_lines, 0, sizeof(msg_lines));
-  strcpy(msg_title, title);
-
-  msg_screen_draw();
-}
-
-/*--------------------------------------------------------
-  删除信息
---------------------------------------------------------*/
-void msg_screen_clear(void)
-{
-  cy = 0;
-  linefeed = 1;
-}
-
-/*--------------------------------------------------------
-  设置文字颜色
---------------------------------------------------------*/
-void msg_set_text_color(u32 color)
-{
-  text_color = color;
-}
-
-/*--------------------------------------------------------
-  打印信息 
---------------------------------------------------------*/
-void msg_printf(const char *text, ...)
-{
-  int y;
-  char buf[128];
-  va_list arg;
-
-  va_start(arg, text);
-  vsprintf(buf, text, arg);
-  va_end(arg);
-
-  if (linefeed)
-  {
-    if (cy == MAX_LINES)
-    {
-      for (y = 1; y < MAX_LINES; y++)
-      {
-        strcpy(msg_lines[y - 1], msg_lines[y]);
-        msg_color[y - 1] = msg_color[y];
-      }
-      cy = MAX_LINES - 1;
-    }
-    strcpy(msg_lines[cy], buf);
-  }
-  else
-  {
-    strcat(msg_lines[cy], buf);
-  }
-
-  msg_color[cy] = text_color;
-
-  msg_screen_draw();
-
-  for (y = 0; y <= cy; y++)
-
-    PRINT_STRING(msg_lines[y], msg_color[y], MIN_X, MIN_Y + y * 10);
-
-  if (buf[strlen(buf) - 1] == '\n')
-  {
-    linefeed = 1;
-    cy++;
-  }
-  else
-  {
-    if (buf[strlen(buf) - 1] == '\r')
-      msg_lines[cy][0] = '\0';
-    linefeed = 0;
-  }
-  flip_screen();
-}
-
-/************************************************************
-*
-*************************************************************/
 int show_background(void *screen, char *bgname)
 {
     int ret;
@@ -1214,10 +1050,11 @@ int show_background(void *screen, char *bgname)
         char *buff, *src;
         int x, y;        
         unsigned short *dst;
+		unsigned int type;
 
         buff= (char*)malloc(256*192*4);
-            
-        ret= BMP_read(bgname, buff, 256, 192);
+
+        ret= BMP_read(bgname, buff, 256, 192, &type);
         if(ret != BMP_OK)
         {
             free((int)buff);
@@ -1225,15 +1062,39 @@ int show_background(void *screen, char *bgname)
         }
 
         src = buff;
-        for(y= 191; y>= 0; y--)
-        {
-            dst=(unsigned short*) (back_ground.bgbuffer + y*256*2);
-            for(x= 0; x< 256; x++)
-            {
-                *dst++= RGB24_15(buff);
-                buff += 4;
-            }   
-        }
+
+		if(type ==2)		//2 bytes per pixel
+		{
+			unsigned short *pt;
+			pt = (unsigned short*)buff;
+//			memcpy((char*)back_ground.bgbuffer, buff, 256*192*2);
+			dst=(unsigned short*)back_ground.bgbuffer;
+	        for(y= 0; y< 192; y++)
+	        {
+    	        for(x= 0; x< 256; x++)
+    	        {
+    	            *dst++= RGB16_15(pt);
+    	            pt += 1;
+    	        }
+    	    }
+		}
+		else if(type ==3)	//3 bytes per pixel
+		{
+			dst=(unsigned short*)back_ground.bgbuffer;
+	        for(y= 0; y< 192; y++)
+	        {
+    	        for(x= 0; x< 256; x++)
+    	        {
+    	            *dst++= RGB24_15(buff);
+    	            buff += 3;
+    	        }
+    	    }
+		}
+		else
+		{
+            free((int)buff);
+            return(-1);
+		}
 
         free((int)src);
         strcpy(back_ground.bgname, bgname);
@@ -1243,8 +1104,11 @@ int show_background(void *screen, char *bgname)
 
     return 0;    
 }
+#endif
 
-/*************************************************************/
+/*
+*	change GUI icon
+*/
 int gui_change_icon(u32 language_id)
 {
     char path[128];
@@ -1254,48 +1118,75 @@ int gui_change_icon(u32 language_id)
     char *buff, *src;
     u32 x, y;
     char *icondst;
+	unsigned int type;
 
     item= sizeof(gui_icon_list)/16;
     buff= (char*)malloc(256*192*4);
     if(buff == NULL)
         return -1;
 
-    src= buff; 
     ret= 0;
     icondst= gui_picture;
 
     sprintf(fpath, "%d.bmp", language_id);
     for(i= 0; i< item; i++)
     {
-        sprintf(path, "%s\\%s\\%s%s", main_path, GUI_SOURCE_PATH, gui_icon_list[i].iconname, fpath);
+        sprintf(path, "%s/%s/%s%s", main_path, GUI_SOURCE_PATH, gui_icon_list[i].iconname, fpath);
 
-        err= BMP_read(path, buff, gui_icon_list[i].x, gui_icon_list[i].y);
+	    src= buff; 
+        err= BMP_read(path, src, gui_icon_list[i].x, gui_icon_list[i].y, &type);
         if(err != BMP_OK)
         {
-            sprintf(path, "%s\\%s\\%s%s", main_path, GUI_SOURCE_PATH, gui_icon_list[i].iconname, ".bmp");
-            err= BMP_read(path, buff, gui_icon_list[i].x, gui_icon_list[i].y);
+            sprintf(path, "%s/%s/%s%s", main_path, GUI_SOURCE_PATH, gui_icon_list[i].iconname, ".bmp");
+            err= BMP_read(path, src, gui_icon_list[i].x, gui_icon_list[i].y, &type);
         }
+
+		if(type < 2)	//< 1 byte per pixels, not surpport now
+		{
+            if(!ret) ret = -(i+1);
+            gui_icon_list[i].iconbuff= NULL;
+			continue;
+		}
 
         if(err == BMP_OK)
         {
             unsigned short *dst;
-            
+
             if(icondst >= gui_picture + GUI_PIC_BUFSIZE -1)
             {
                 ret = 1;
                 break;
             }
 
-            for(y= 0; y< gui_icon_list[i].y; y++)
-            {
-                dst= (unsigned short*)(icondst + (gui_icon_list[i].y - y -1)*gui_icon_list[i].x*2);
-                for(x= 0; x < gui_icon_list[i].x; x++)
-                {
-                    *dst++ = RGB24_15(buff);
-                    buff += 4;
-                }
-            }                
-            
+			if(type == 2)
+			{
+				unsigned short *pt;
+				pt = (unsigned short*)src;
+//				memcpy((char*)icondst, src, 256*192*2);
+				dst = (unsigned short*)icondst;
+    	        for(y= 0; y< gui_icon_list[i].y; y++)
+    	        {
+    	            for(x= 0; x < gui_icon_list[i].x; x++)
+    	            {
+    	                *dst++ = RGB16_15(pt);
+    	                pt += 1;
+    	            }
+	            }
+			}
+
+			if(type == 3)
+			{
+				dst = (unsigned short*)icondst;
+    	        for(y= 0; y< gui_icon_list[i].y; y++)
+    	        {
+    	            for(x= 0; x < gui_icon_list[i].x; x++)
+    	            {
+    	                *dst++ = RGB24_15(src);
+    	                src += 3;
+    	            }
+	            }
+            }
+
             gui_icon_list[i].iconbuff= icondst;
             icondst += gui_icon_list[i].x*gui_icon_list[i].y*2;
         }
@@ -1306,12 +1197,13 @@ int gui_change_icon(u32 language_id)
         }
     }
 
-    free((int)src);
+    free((void*)buff);
+//printf("icon_buf: %08x\n", icondst - gui_picture );
     return ret;
 }
 
 /*************************************************************/
-int gui_init(u32 language_id)
+int icon_init(u32 language_id)
 {
     u32  i;
     int ret;
@@ -1389,44 +1281,144 @@ int gui_init(u32 language_id)
 }
 
 /*************************************************************/
-void show_icon(u16 *screen, struct gui_iconlist icon, u32 x, u32 y)
+void show_icon(void* screen, struct gui_iconlist* icon, u32 x, u32 y)
 {
-    u32 i;
-    char *src, *dst;    
+    u32 i, k;
+    unsigned short *src, *dst;
 
-    src= icon.iconbuff;
-    dst = (char*)screen + (y*NDS_SCREEN_WIDTH + x) *2;
-    for(i= 0; i < icon.y; i++)
+    src= (unsigned short*)icon->iconbuff;
+    dst = (unsigned short*)screen + y*NDS_SCREEN_WIDTH + x;
+	if(NULL == src) return;	//The icon may initialized failure
+
+    for(i= 0; i < icon->y; i++)
     {
-        memcpy(dst, src, icon.x*2);
-        src += (icon.x)*2;
-        dst += NDS_SCREEN_WIDTH*2;
+		for(k= 0; k < icon->x; k++)
+		{
+			if(0x03E0 != *src) dst[k]= *src;
+			src++;
+		}
+
+        dst += NDS_SCREEN_WIDTH;
     }
 }
 
 /*************************************************************/
 void show_Vscrollbar(char *screen, u32 x, u32 y, u32 part, u32 total)
 {
-    show_icon((u16*)screen, ICON_VSCROL_UPAROW, x+235, y+55);
-    show_icon((u16*)screen, ICON_VSCROL_DWAROW, x+235, y+167);
-    show_icon((u16*)screen, ICON_VSCROL_SLIDER, x+239, y+64);
-    if(total <= 1)
-        show_icon((u16*)screen, ICON_VSCROL_BAR, x+236, y+64);
-    else
-        show_icon((u16*)screen, ICON_VSCROL_BAR, x+236, y+64+(part*90)/(total-1));
+//    show_icon((u16*)screen, ICON_VSCROL_UPAROW, x+235, y+55);
+//    show_icon((u16*)screen, ICON_VSCROL_DWAROW, x+235, y+167);
+//    show_icon((u16*)screen, ICON_VSCROL_SLIDER, x+239, y+64);
+//    if(total <= 1)
+//        show_icon((u16*)screen, ICON_VSCROL_BAR, x+236, y+64);
+//    else
+//        show_icon((u16*)screen, ICON_VSCROL_BAR, x+236, y+64+(part*90)/(total-1));
 }
 
-/*************************************************************/
-void show_log()
+/*
+*	display a log
+*/
+void show_log(void* screen_addr)
 {
     char tmp_path[MAX_PATH];
-    sprintf(tmp_path, "%s\\%s", main_path, BOOTLOGO);
-    show_background(screen_address, tmp_path);
+	char *buff;
+	int x, y;        
+	unsigned short *dst;
+	unsigned int type;
+	int ret;
+
+    sprintf(tmp_path, "%s/%s", main_path, BOOTLOGO);
+	buff= (char*)malloc(256*192*4);
+
+	ret= BMP_read(tmp_path, buff, 256, 192, &type);
+	if(ret != BMP_OK)
+	{
+		free((void*)buff);
+		return;
+	}
+
+	if(type ==2)		//2 bytes per pixel
+	{
+		unsigned short *pt;
+		pt = (unsigned short*)buff;
+		dst=(unsigned short*)screen_addr;
+		for(y= 0; y< 192; y++)
+		{
+			for(x= 0; x< 256; x++)
+			{
+				*dst++= RGB16_15(pt);
+				pt += 1;
+			}
+		}
+	}
+	else if(type ==3)	//3 bytes per pixel
+	{
+		unsigned char *pt;
+		pt = (unsigned char*)buff;
+		dst=(unsigned short*)screen_addr;
+		for(y= 0; y< 192; y++)
+		{
+			for(x= 0; x< 256; x++)
+			{
+				*dst++= RGB24_15(pt);
+				pt += 3;
+			}
+		}
+	}
+
+	free((void*)buff);
 }
 
 /*************************************************************/
-void show_err()
+void err_msg(enum SCREEN_ID screen, char *msg)
 {
-    memcpy((char*)screen_address, (char*)err_info, 256*192*2);
+	// A wild console appeared!
+	ConsoleInit(RGB15(31, 31, 31), RGB15(0, 0, 0), UP_SCREEN, 512);
+	printf(msg);
 }
 
+/*
+*	Copy screen
+*/
+void gui_copy_screen(void* to, void *from, u32 x, u32 y, u32 w, u32 h)
+{
+	u32 yy;
+	unsigned short *src, *dst;
+
+	//not check argument
+	src = (unsigned short*)from;
+	dst = (unsigned short*)to;
+
+	src += y*256+x;
+	dst += y*256+x;
+    for(yy= 0; yy < h; yy++)
+    {
+		memcpy((void*)dst, (void*)src, w*2);
+		src += 256;
+		dst += 256;
+    }
+}
+
+/*
+*
+*/
+void gui_blit_to_screen(void* screen_addr, u16 *src, u32 w, u32 h, u32 dest_x, u32 dest_y)
+{
+    u32 x, y;
+    u16 *dst;
+    u16 *screenp;
+
+    if(w > NDS_SCREEN_WIDTH) w= NDS_SCREEN_WIDTH;
+    if(h > NDS_SCREEN_HEIGHT) h= NDS_SCREEN_HEIGHT;
+    if(dest_x == -1)    //align center
+        dest_x= (NDS_SCREEN_WIDTH - w)/2;
+    if(dest_y == -1)
+        dest_y= (NDS_SCREEN_HEIGHT - h)/2;
+
+    screenp= (unsigned short*)screen_addr -16*256 -8;
+    for(y= 0; y < h; y++)
+    {
+        dst= screenp + (y+dest_y)*256 + dest_x;
+        for(x= 0; x < w; x++)
+            *dst++ = *src++;
+    }
+}

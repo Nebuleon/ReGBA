@@ -31,6 +31,21 @@
 #define UP_SCREEN_UPDATE_METHOD   0
 #define DOWN_SCREEN_UPDATE_METHOD 2
 
+// For general option text
+#define OPTION_TEXT_X             10
+#define OPTION_TEXT_SX            236
+
+// For cheats [ NUM. DESC . . . . . +/- ]
+#define CHEAT_NUMBER_X            10
+#define CHEAT_DESC_X              34
+#define CHEAT_DESC_SX             197
+#define CHEAT_ACTIVE_X            241
+
+// For the file selector
+#define FILE_SELECTOR_ICON_X      10
+#define FILE_SELECTOR_NAME_X      32
+#define FILE_SELECTOR_NAME_SX     214
+
 #define MAX_GAMEPAD_CONFIG_MAP 16
 
 
@@ -61,7 +76,8 @@ typedef struct
   u32 clock_speed_number;
   u32 audio_buffer_size_number;
   u32 update_backup_flag;
-  CHEAT_TYPE cheats_flag[MAX_CHEATS];
+	// Disabled [Neb]
+  //CHEAT_TYPE cheats_flag[MAX_CHEATS];
   u32 gamepad_config_map[MAX_GAMEPAD_CONFIG_MAP];
   u32 gamepad_config_home;
   u32 use_default_gamepad_map;
@@ -71,8 +87,11 @@ struct  FILE_LIST_INFO
 {
     char current_path[MAX_PATH];
     char **wildcards;
-    u32 file_num;
-    u32 dir_num;
+    unsigned int file_num;
+    unsigned int dir_num;
+	unsigned int mem_size;
+	unsigned int file_size;
+	unsigned int dir_size;
     char **file_list;
     char **dir_list;
     char *filename_mem;
@@ -89,6 +108,8 @@ extern char DEFAULT_SAVE_DIR[MAX_PATH];
 extern char DEFAULT_CFG_DIR[MAX_PATH];
 extern char DEFAULT_SS_DIR[MAX_PATH];
 extern char DEFAULT_CHEAT_DIR[MAX_PATH];
+
+extern char main_path[MAX_PATH];
 
 extern GPSP_CONFIG gpsp_config;
 extern GAME_CONFIG game_config;

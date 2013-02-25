@@ -157,16 +157,21 @@ enum MSG
 
     MSG_BACK,
 
+	/****** DUMMY ITEMS START ******/
+	MSG_GENERAL_CONFIRM_WITH_A,
+	MSG_GENERAL_CANCEL_WITH_B,
+	/****** DUMMY ITEMS  END  ******/
+
     MSG_END
 };
 
 enum LANGUAGE{
     ENGLISH,
-    CHINESE_SIMPLIFIED,
-    CHINESE_TRADITIONAL
 };
 
+extern char* lang[1]; // Allocated in gui.c, needs to match the languages ^
+
 char *msg[MSG_END+1];
-char msg_data[16 * 1024]; // メッセージ用のデータ 16kb
+char msg_data[32 * 1024]; // メッセージ用のデータ 16kb
 
 #endif

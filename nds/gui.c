@@ -29,6 +29,15 @@
 #include "common.h"
 #include "gui.h"
 
+// If adding a language, make sure you update the size of the array in
+// message.h too.
+char *lang[1] =
+	{
+		"English",					// 0
+	};
+
+char *language_options[] = { (char *) &lang[0], (char *) &lang[1] };
+
 /******************************************************************************
  * 宏定义
  ******************************************************************************/
@@ -316,7 +325,9 @@ static int sort_function(const void *dest_str_ptr, const void *src_str_ptr);
 static u32 parse_line(char *current_line, char *current_str);
 static void print_status(u32 mode);
 static void get_timestamp_string(char *buffer, u16 msg_id, u16 year, u16 mon, u16 day, u16 wday, u16 hour, u16 min, u16 sec, u32 msec);
+#if 0
 static void get_time_string(char *buff, struct rtc *rtcp);
+#endif
 static u32 save_ss_bmp(u16 *image);
 void _flush_cache();
 void button_up_wait();
@@ -393,33 +404,144 @@ static void strupr(char *str)
  * 全局函数定义
  ******************************************************************************/
 //#define FS_FAT_ATTR_DIRECTORY   0x10
-#define FILE_LIST_MAX  1024
-#define DIR_LIST_MAX   256
-#define NAME_MEM_SIZE  256*256
-/*--------------------------------------------------------
-  读取文件列表
---------------------------------------------------------*/
-static s32 load_file_list(struct FILE_LIST_INFO *filelist_infop)
+#define FILE_LIST_MAX  512
+#define DIR_LIST_MAX   64
+#define NAME_MEM_SIZE  (320*64)
+
+/*
+*	Function: internal function to manage FILE_LIST_INFO structure
+*	filelist_infop: a pointer to a predefined FILE_LIST_INFO structure
+*	flag: 0	initialize the structure
+*			1 increase filename memory size
+*			2 increase file name buffer size
+*			4 increase directory name buffer size
+*			-1 free all allocated memroy
+*			other value are invalide
+*	return: -1 on failure
+*/
+static int manage_filelist_info(struct FILE_LIST_INFO *filelist_infop, int flag)
 {
-    DIR *current_dir;
+	//Initialize
+	if(0 == flag)
+	{
+		filelist_infop->file_list = (char**)malloc(FILE_LIST_MAX*4);
+		if(NULL == filelist_infop->file_list)
+			return -1;
+
+		filelist_infop->dir_list = (char**)malloc(DIR_LIST_MAX*4);
+		if(NULL == filelist_infop->dir_list)
+		{
+			free((void*)filelist_infop->file_list);
+			return -1;
+		}
+
+		filelist_infop->filename_mem = (char*)malloc(NAME_MEM_SIZE);
+		if(NULL == filelist_infop->filename_mem)
+		{
+			free((void*)filelist_infop->file_list);
+			free((void*)filelist_infop->dir_list);
+			return -1;
+		}
+
+		filelist_infop->mem_size = NAME_MEM_SIZE;
+		filelist_infop->file_size = FILE_LIST_MAX;
+		filelist_infop->dir_size = DIR_LIST_MAX;
+		return 0;
+	}
+	//free all memroy
+	if(-1 == flag)
+	{
+		free((void*)filelist_infop->file_list);
+		free((void*)filelist_infop->dir_list);
+		free((void*)filelist_infop->filename_mem);
+		return 0;
+	}
+
+	int i;
+	void *pt;
+
+	//Increase all
+	if(flag & 0x1)
+	{
+		i = NAME_MEM_SIZE;
+
+		do
+		{
+			pt = (void*)realloc(filelist_infop->filename_mem, filelist_infop->mem_size+i);
+			if(NULL == pt) i /= 2;
+		} while(i > 256);
+
+		if(NULL == pt) return -1;
+
+		filelist_infop->mem_size += i;
+		filelist_infop->filename_mem = (char*)pt;
+		i = (int)pt - (int)filelist_infop->file_list;
+
+		int k;
+		char **m;
+
+		k = 0;
+		m = filelist_infop->file_list;
+		for(k= 0; k < filelist_infop->file_num; k++)
+			m[k] += i;
+
+		k = 0;
+		m = filelist_infop->dir_list;
+		for(k = 0; k < filelist_infop->dir_num; k++)
+			m[k] += i;
+	}
+	//Increase file name buffer
+	if(flag & 0x2)
+	{
+		i = filelist_infop->file_size + FILE_LIST_MAX;
+
+		pt = (void*)realloc(filelist_infop->file_list, i*4);
+		if(NULL == pt) return -1;
+
+		filelist_infop->file_list = (char**)pt;
+		filelist_infop->file_size = i;
+	}
+	//Increase directory name buffer
+	if(flag & 0x4)
+	{
+		i = filelist_infop->dir_size + DIR_LIST_MAX;
+
+		pt = (void*)realloc(filelist_infop->dir_list, i*4);
+		if(NULL == pt) return -1;
+
+		filelist_infop->dir_list = (char**)pt;
+		filelist_infop->dir_size = i;
+	}
+
+	return 0;
+}
+
+static int load_file_list(struct FILE_LIST_INFO *filelist_infop)
+{
+    DIR* current_dir;
     char    current_dir_name[MAX_PATH];
-    struct dirent *current_file;
+    dirent *current_file;
+	struct stat st;
     char *file_name;
-    u32 file_name_length;
-    char* name_mem_top;
+	unsigned int len;
+    unsigned int file_name_length;
     char* name_mem_base;
     char **file_list;
     char **dir_list;
-    u32 num_files;                      // 当前目录的文件数量
-    u32 num_dirs;                       // 当前目录的文件夹数量
+	unsigned int mem_size;
+	unsigned int file_size;
+	unsigned int dir_size;
+    unsigned int num_files;
+    unsigned int num_dirs;
     char **wildcards;
-    s32 ret;
 
     if(filelist_infop -> current_path == NULL)
         return -1;
 
     name_mem_base = &(filelist_infop -> filename_mem[0]);
-    name_mem_top = &(filelist_infop -> filename_mem[NAME_MEM_SIZE-1]);
+    mem_size = filelist_infop -> mem_size;
+	file_size = filelist_infop -> file_size;
+	dir_size = filelist_infop -> dir_size;
     file_list = filelist_infop -> file_list;
     dir_list = filelist_infop -> dir_list;
     num_files = 0;
@@ -427,461 +549,564 @@ static s32 load_file_list(struct FILE_LIST_INFO *filelist_infop)
     wildcards = filelist_infop -> wildcards;
 
     strcpy(current_dir_name, filelist_infop -> current_path);
+
+	//	path formate should be: "fat:/" or "fat:/dir0" or "fat:", not "fat:/dir0/"
     current_dir = opendir(current_dir_name);
-    ret = 0;
-    do
+	//Open directory faiure
+	if(current_dir == NULL) {
+		return -1;
+	}
+
+	file_name_length = 0;
+	//while((current_file = readdir(current_dir)) != NULL)
+	while((current_file = readdir_ex(current_dir, &st)) != NULL)
     {
-        if(current_dir)
-            current_file = readdir(current_dir);
-        else
-        {
-            ret = -1;
-            break;
-        }
+		//lstat(current_file->d_name, &st);
+		file_name = current_file->d_name;
 
-        if(current_file)
-        {
-            file_name = current_file->d_name;
-            file_name_length = strlen(file_name);
-        
-            if((name_mem_base + file_name_length) >= name_mem_top)       //no enough memory
-            {
-                ret = 1;
-                break;
-            }
+		len = strlen(file_name) +1;
+		if((file_name_length+len) > mem_size)
+		{
+			//get more memory
+			if(manage_filelist_info(filelist_infop, 1) == -1)
+				break;
 
-            if(ISDIR(current_file))                                     //Is directory
-            {
-                if(file_name[0] != '.')
-                {
-                    dir_list[num_dirs] = name_mem_base;
-                    strcpy(dir_list[num_dirs], file_name);
-                    num_dirs++;
-                    name_mem_base += file_name_length + 1;
-                }
-            }
-            else
-            {
-                char *ext_pos;
-                u32 i;
+			name_mem_base = &(filelist_infop -> filename_mem[0]);
+		    mem_size = filelist_infop -> mem_size;
+		}
+		//Increase file_list
+		if(num_files >= file_size) {
+			if(manage_filelist_info(filelist_infop, 2) == -1)
+				break;
+			file_size = filelist_infop -> file_size;
+		}
+		//Increase dir_list
+		if(num_dirs >= dir_size) {
+			if(manage_filelist_info(filelist_infop, 4) == -1)
+				break;
+			dir_size = filelist_infop -> dir_size;
+		}
 
-                ext_pos = strrchr(file_name, '.');
-                for(i = 0; wildcards[i] != NULL; i++)
-                {
-                    if(!strcasecmp(ext_pos, wildcards[i]))
-                    {
-                        file_list[num_files] = name_mem_base;
-                        strcpy(file_list[num_files], file_name);
-                        num_files++;
-                        name_mem_base += file_name_length + 1;
-                        break;
-                    }
-                }
-            }
+		//If dirctory
+		if(S_ISDIR(st.st_mode))
+		{
+			if(file_name[0] != '.')
+			{
+				dir_list[num_dirs] = name_mem_base + file_name_length;
+				strcpy(dir_list[num_dirs], file_name);
+				num_dirs++;
+				file_name_length += len;
+			}
+			//take ".." directory as file
+			else if(file_name[1] == '.')
+			{
+				file_list[num_files] = name_mem_base + file_name_length;
+				strcpy(file_list[num_files], file_name);
+				num_files++;
+				file_name_length += len;
+			}
+		}
+		else
+		{
+			char *ext_pos;
+			unsigned int i;
 
-            if((num_dirs >= DIR_LIST_MAX) || (num_files >= FILE_LIST_MAX))
-            {
-                ret = 1;
-                break;
-            }
-
-        }
-    } while(current_file);
-
-    if(ret >= 0)
-    {
-        filelist_infop -> file_num = num_files;
-        filelist_infop -> dir_num = num_dirs;
+			ext_pos = (char*)strrchr((const char*)file_name, '.');
+			if(NULL != ext_pos)
+			for(i = 0; wildcards[i] != NULL; i++)
+			{
+				if(!strcasecmp(ext_pos, wildcards[i]))
+				{
+					file_list[num_files] = name_mem_base + file_name_length;
+					strcpy(file_list[num_files], file_name);
+					num_files++;
+					file_name_length += len;
+					break;
+				}
+			}
+		}
     }
 
-//printf("num_files: %d; num_dirs %d\n", num_files, num_dirs);
-//    qsort((void *)file_list, num_files, sizeof(u8 *), sort_function);
-    my_qsort((void *)file_list, 0, num_files-1);
-//printf("pass 1\n");
-//    qsort((void *)dir_list, num_dirs, sizeof(u8 *), sort_function);
-    my_qsort((void *)dir_list, 0, num_dirs-1);
-//printf("pass 2\n");
     closedir(current_dir);
 
-    return ret;
-}
-
-s32 contsruct_filelist_info(struct FILE_LIST_INFO *filelist_infop, char **wildcards, char *dir_name)
-{
-    if(dir_name != NULL)
-        strcpy(filelist_infop -> current_path, dir_name);
-    else
-        strcpy(filelist_infop -> current_path, main_path);
-
-    filelist_infop -> wildcards = wildcards;
-    filelist_infop -> file_num = 0;
-    filelist_infop -> dir_num = 0;
-
-    filelist_infop -> file_list= (char**)malloc(FILE_LIST_MAX * sizeof(char*));
-    if(filelist_infop -> file_list == NULL)
-        return -1;
-
-    filelist_infop -> dir_list= (char**)malloc(DIR_LIST_MAX * sizeof(char*));
-    if(filelist_infop -> dir_list == NULL)
-        return -1;
-
-    filelist_infop -> filename_mem= (char*)malloc(NAME_MEM_SIZE * sizeof(char));
-    if(filelist_infop -> filename_mem == NULL)
-        return -1;
+	filelist_infop -> file_num = num_files;
+	filelist_infop -> dir_num = num_dirs;
+	//printf("%s: num_files %d; num_dirs %d\n", filelist_infop ->current_path, num_files, num_dirs);
+#if 0
+    my_qsort((void *)file_list, 0, num_files-1);
+#else	//to support ".." directory, but take it as file
+    my_qsort((void **)file_list, 1, num_files-1);
+#endif
+    my_qsort((void **)dir_list, 0, num_dirs-1);
 
     return 0;
-}
-
-void release_filelist_info(struct FILE_LIST_INFO *filelist_infop)
-{
-    if(filelist_infop -> file_list != NULL)
-        free((int)filelist_infop -> file_list);
-
-    if(filelist_infop -> dir_list != NULL)
-        free((int)filelist_infop -> dir_list);
-
-    if(filelist_infop -> filename_mem != NULL)
-        free((int)filelist_infop -> filename_mem);
 }
 
 /*--------------------------------------------------------
   读取文件
 --------------------------------------------------------*/
+
 s32 load_file(char **wildcards, char *result, char *default_dir_name)
 {
-    struct FILE_LIST_INFO filelist_info;
-    u32 repeat;
-    s32 return_value;
-    gui_action_type gui_action;
-    u32 current_selection_item;
-    u32 current_in_scroll_value;
-    u32 last_in_scroll_value;
-    u32 last_selection_item;
-    u32 directory_changed;
-    u32 shift_flag[FILE_LIST_ROWS +1];
+	struct FILE_LIST_INFO filelist_info;
+	u32 repeat;
+	int return_value;
+	gui_action_type gui_action;
+	u32 selected_item_on_list;
+	u32 selected_item_on_screen;
+	u32 to_update_filelist;
+	u32 total_items_num;
+	int redraw;
     u32 path_scroll;
-    char utf8[1024];
-    u32 num_files;                      // 当前目录的文件数量
-    u32 num_dirs;                       // 当前目录的文件夹数量
+    u32 num_files;						//File numbers on the directory
+    u32 num_dirs;                       //Directory numbers on the dirctory
     char **file_list;
     char **dir_list;
-    s32 flag;
-    u32 to_update_filelist;
-    u16 *screenp;
-    u32 i, j, k;
+    int flag;
 
-    result[0] = '\0';
-    if(default_dir_name != NULL)
-        strcpy(filelist_info.current_path, default_dir_name);
-    else
-        strcpy(filelist_info.current_path, main_path);
+	//Have no path
+	if(NULL == default_dir_name)
+		return -1;
 
-    filelist_info.wildcards = wildcards;
-    filelist_info.file_num = 0;
-    filelist_info.dir_num = 0;
+	//construct filelist_info struct
+	if(-1 == manage_filelist_info(&filelist_info, 0))
+		return -1;
 
-    filelist_info.file_list= (char**)malloc(FILE_LIST_MAX * sizeof(char*));
-    if(filelist_info.file_list == NULL)
-        return -1;
+	result[0] = '\0';
+	strcpy(filelist_info.current_path, default_dir_name);
 
-    filelist_info.dir_list= (char**)malloc(DIR_LIST_MAX * sizeof(char*));
-    if(filelist_info.dir_list == NULL)
-        return -1;
+	filelist_info.wildcards = wildcards;
+	filelist_info.file_num = 0;
+	filelist_info.dir_num = 0;
 
-    filelist_info.filename_mem= (char*)malloc(NAME_MEM_SIZE * sizeof(char));
-    if(filelist_info.filename_mem == NULL)
-        return -1;
+	flag = load_file_list(&filelist_info);
+	if(-1 == flag)
+	{
+		//deconstruct filelist_info struct
+		manage_filelist_info(&filelist_info, -1);
+		return -1;
+	}
 
-    screenp= (u16*)malloc(256*192*2);
-    if(screenp == NULL)
-        screenp = screen_address;
+	num_files = filelist_info.file_num;
+	num_dirs = filelist_info.dir_num;
+	file_list = filelist_info.file_list;
+	dir_list = filelist_info.dir_list;
 
-    flag = load_file_list(&filelist_info);
-    num_files = filelist_info.file_num;
-    num_dirs = filelist_info.dir_num;
+	selected_item_on_list = 0;			//Selected item on list
+	selected_item_on_screen = 0;		//Selected item on screen's position
+	redraw = -1;						//redraw all
+	total_items_num = num_files + num_dirs;
+	to_update_filelist = 0;             //to load new file list
+	path_scroll = 0x8000;				//path scroll method, first scroll left
 
-    file_list = filelist_info.file_list;
-    dir_list = filelist_info.dir_list;
+	repeat= 1;
+	return_value = -1;
+	while(repeat)
+	{
+		struct key_buf inputdata;
+		gui_action = get_gui_input();
+		int mod;
 
-    current_selection_item = 0;
-    current_in_scroll_value = 0;
-    last_in_scroll_value= -1;
-    last_selection_item = -1;
-    directory_changed = 1;
-    path_scroll = 0;
-    to_update_filelist = 0;             //to_load new file list
+		// Get KEY_RIGHT and KEY_LEFT separately to allow scrolling
+		// the selected file name faster.
+		ds2_getrawInput(&inputdata);
+		if (inputdata.key & KEY_RIGHT)
+			redraw = -3;
+		else if (inputdata.key & KEY_LEFT)
+			redraw = 3;
 
-    repeat= 1;
-    return_value = -1;
-    while(repeat)
-    {
-        gui_action = get_gui_input();
-        switch(gui_action)
-        {
-            case CURSOR_UP:
-                if(current_in_scroll_value > 0)
-                {
-                    i= current_in_scroll_value + FILE_LIST_ROWS_CENTER;
-                    if(i == current_selection_item)
-                    {
-                        current_in_scroll_value--;
-                        current_selection_item--;
-                    }
-                    else if(i < current_selection_item)
-                    {
-                        current_selection_item--;
-                    }
-                    else
-                    {
-                        current_in_scroll_value--;
-                    }
-                }
-                else if(current_selection_item > 0)
-                    current_selection_item--;
-                break;
+		switch(gui_action)
+		{
+			case CURSOR_TOUCH:
+				ds2_getrawInput(&inputdata);
+				wait_Allkey_release(0);
+				// ___ 33        This screen has 6 possible rows. Touches
+				// ___ 60        above or below these are ignored.
+				// . . . (+27)
+				// ___ 192
+				if(inputdata.y <= 33 || inputdata.y > 192)
+					break;
+				else
+					mod = (inputdata.y - 33) / 27;
 
-            case CURSOR_DOWN:
-                if(current_selection_item + 1 < num_files + num_dirs)
-                {
-                    current_selection_item++;
-                }
-                else
-                {
-                    if(current_in_scroll_value < current_selection_item)
-                        current_in_scroll_value++;
-                }
+				if(selected_item_on_list - selected_item_on_screen + mod >= total_items_num)
+					break;
 
-                if((current_in_scroll_value + FILE_LIST_ROWS +1) <= num_files + num_dirs)
-                {
-                    if((current_in_scroll_value + FILE_LIST_ROWS_CENTER) < current_selection_item)
-                        current_in_scroll_value++;
-                }
-                break;
-            //scroll page
-            case CURSOR_RTRIGGER:
-                if((current_in_scroll_value + FILE_LIST_ROWS) < (num_files + num_dirs))
-                {
-                    current_in_scroll_value += FILE_LIST_ROWS - 1;
-                    current_selection_item += FILE_LIST_ROWS - 1;
-                    if(current_selection_item > (num_files + num_dirs -1))
-                        current_selection_item = (num_files + num_dirs -1);
-                }
-                break;
-            //scroll page
-            case CURSOR_LTRIGGER:
-                if(current_in_scroll_value >= (FILE_LIST_ROWS - 1))
-                {
-                    current_selection_item -= FILE_LIST_ROWS - 1;
-                    current_in_scroll_value -= FILE_LIST_ROWS - 1;
-                }
-                else
-                {   
-                    current_selection_item -= current_in_scroll_value;
-                    current_in_scroll_value = 0;
-                }
-                break;
-            //scroll string
-            case CURSOR_RIGHT:
-                draw_hscroll(current_selection_item - current_in_scroll_value +1, -5);
-                break;
-            //scroll string
-            case CURSOR_LEFT:
-                draw_hscroll(current_selection_item - current_in_scroll_value +1, 5);
-                break;
+				selected_item_on_list = selected_item_on_list - selected_item_on_screen + mod;
 
-            case CURSOR_SELECT:
-                //file selected
-                if(current_selection_item + 1 <= num_files)
-                {
-                    if(num_files != 0)
-                    {
-                        repeat = 0;
-                        return_value = 0;
-                        strcpy(result, file_list[current_selection_item]);
-                        strcpy(rom_path, filelist_info.current_path);
-                        strcpy(default_dir_name, filelist_info.current_path);
-                    }
-                }
-                //dir selected
-                else if(num_dirs > 0)
-                {
-                    u32 current_dir_selection;
+				if(selected_item_on_list + 1 <= num_files)
+				{
+					//The ".." directory is the parent
+					if(!strcasecmp(file_list[selected_item_on_list], ".."))
+					{
+						char *ext_pos;
 
-                    current_dir_selection= current_selection_item -num_files;
-                    if(flag >= 0)//Only last open dir not failure
-                    {
-                        strcat(filelist_info.current_path, "\\");
-                        strupr(dir_list[current_dir_selection]);
-                        strcat(filelist_info.current_path, dir_list[current_dir_selection]);
+						strcpy(filelist_info.current_path, default_dir_name);
+						ext_pos = strrchr(filelist_info.current_path, '/');
+						if(NULL != ext_pos)	//Not root directory
+						{
+							*ext_pos = '\0';
+							to_update_filelist= 1;
+						}
+					}
+					else
+					{
+						repeat = 0;
+						return_value = 0;
+						strcpy(default_dir_name, filelist_info.current_path);
+						strcpy(result, file_list[selected_item_on_list]);
+					}
+				}
+				//directory selected
+				else if(num_dirs > 0)
+				{
+					unsigned int m;
 
-                        to_update_filelist= 1;
-                    }
-                }
-                break;
+					m = selected_item_on_list - num_files;
+					strcpy(filelist_info.current_path, default_dir_name);
+					strcat(filelist_info.current_path, "/");
+					strcat(filelist_info.current_path, dir_list[m]);
+					to_update_filelist= 1;
+				}
+				break;
+			case CURSOR_UP:
+				redraw = 1;
+				if(selected_item_on_screen > 0)
+				{
+					//Not the first item on list
+					selected_item_on_list -= 1;
+					//Selected item on screen center
+					if(FILE_LIST_ROWS_CENTER == selected_item_on_screen) {
+						if(selected_item_on_screen > selected_item_on_list)
+							selected_item_on_screen -= 1;
+					}
+					//Selected item on down half screen
+					else if(FILE_LIST_ROWS_CENTER < selected_item_on_screen) {
+						selected_item_on_screen -= 1;
+					}
+					//Selected item on up half screen
+					else {
+						if(selected_item_on_screen < selected_item_on_list)
+							selected_item_on_screen += 1;
+						else if(selected_item_on_screen > selected_item_on_list)
+							selected_item_on_screen -= 1;
+					}
+				}
+				else if(selected_item_on_screen > selected_item_on_list) {
+					selected_item_on_screen -= 1;
+				}
+				else
+					redraw = 0;
 
-            case CURSOR_BACK:
-                if(strcmp(filelist_info.current_path, "mmc:"))
-                {
-                    char *ext_pos;
+				break;
 
-                    ext_pos = strrchr(filelist_info.current_path, '\\');
-                    *ext_pos = '\0';
+			case CURSOR_DOWN:
+			{
+				unsigned int m, n;
+				m = total_items_num - (selected_item_on_list + 1);
+				n = FILE_LIST_ROWS - (FILE_LIST_ROWS_CENTER + 1);
+				//Selected item on screen center
+				if(FILE_LIST_ROWS_CENTER == selected_item_on_screen) {
+					if(m > 0 && m < n)
+						selected_item_on_screen += 1;
+					redraw = 1;
+				}
+				//Selected item on down half screen
+				else if(FILE_LIST_ROWS_CENTER < selected_item_on_screen) {
+					if(m > 0) {
+						redraw = 1;
+						if(m <= n) selected_item_on_screen += 1;
+						else if(m > n) selected_item_on_screen -= 1;
+						else redraw = 0;	//cancel
+					}
+				}
+				//Selected item on up half screen
+				else {
+					if(m > 0) {
+						selected_item_on_screen += 1;
+						redraw = 1;
+					}
+				}
 
-                    to_update_filelist= 1;
-                }
-                break;
+				//Not reach the last item
+				if((selected_item_on_list + 1) < total_items_num)
+					selected_item_on_list += 1;
 
-            case CURSOR_EXIT:
-                return_value = -1;
-                repeat = 0;
-                break;
+				break;
+			}
+			//scroll page down
+			case CURSOR_RTRIGGER:
+			{
+				unsigned int m, n;
+				//first item on screen in item list's position
+				m = selected_item_on_list - selected_item_on_screen;
+				n = total_items_num - (m+1);
+				//there are more than 1 page after the m item
+				if(n >= FILE_LIST_ROWS) {
+					m += FILE_LIST_ROWS -1;
+					selected_item_on_list = m;
 
-            default:
-                break;
-        }//end switch
+					m = total_items_num - (selected_item_on_list +1);
+					if(m >= (FILE_LIST_ROWS_CENTER +1))
+						selected_item_on_screen = FILE_LIST_ROWS_CENTER;
+					else
+						selected_item_on_screen = 0;
 
-        if(to_update_filelist)
-        {
-            flag = load_file_list(&filelist_info);
-            num_files = filelist_info.file_num;
-            num_dirs = filelist_info.dir_num;
+					selected_item_on_list += selected_item_on_screen;
+					redraw = 1;
+				}
 
-            current_selection_item = 0;
-            current_in_scroll_value = 0;
-            last_in_scroll_value= -1;
-            last_selection_item = -1;
-            directory_changed = 1;
-            path_scroll = 0;
+				break;
+			}
+			//scroll page up
+			case CURSOR_LTRIGGER:
+			{
+				unsigned int m;
+				//first item on screen in item list's position
+				m = selected_item_on_list - selected_item_on_screen;
+				//there are more than 1 page befroe the m item
+				if((m+1) >= FILE_LIST_ROWS)
+				{
+					m -= FILE_LIST_ROWS -1;
+					selected_item_on_list = m;
 
-            to_update_filelist = 0;
-        }
+					selected_item_on_screen = FILE_LIST_ROWS_CENTER;
+					selected_item_on_list += selected_item_on_screen;
+					redraw = 1;
+				}
 
-        if(current_in_scroll_value != last_in_scroll_value || current_selection_item != last_selection_item)
-        {
-            for(i= 1; i < (FILE_LIST_ROWS +1); i++)
-            {
-                draw_hscroll_over(i);
-                shift_flag[i]= 0;
-            }
+				break;
+			}
+			//scroll string (see above the switch)
+			case CURSOR_RIGHT:
+				/* fall through */
+			//scroll string (see above the switch)
+			case CURSOR_LEFT:
+				break;
 
-            char tmp_path[MAX_PATH];
-            sprintf(tmp_path, "%s\\%s", main_path, FILE_BACKGROUND);
-            show_background(screenp, tmp_path);
-            memcpy(screen_address, screenp, 256*192*2);
+			case CURSOR_SELECT:
+				wait_Allkey_release(0);
+				//file selected
+				if(selected_item_on_list + 1 <= num_files)
+				{
+					//The ".." directory
+					if(!strcasecmp(file_list[selected_item_on_list], ".."))
+					{
+						char *ext_pos;
 
-            //file path
-            show_icon(screen_address, ICON_FILEPATH, 14, 34);
-            if(directory_changed)
-            {
-                draw_hscroll_over(0);
-                draw_hscroll_init(screen_address, screenp, 26, 32, 160, COLOR_TRANS, 
-                    COLOR_ACTIVE_ITEM, filelist_info.current_path);
-                shift_flag[0]= 1;
-                path_scroll= 20;
-                directory_changed= 0;
-            }
-            else
-                draw_hscroll(0, 0);
+						strcpy(filelist_info.current_path, default_dir_name);
+						ext_pos = strrchr(filelist_info.current_path, '/');
+						if(NULL != ext_pos)	//Not root directory
+						{
+							*ext_pos = '\0';
+							to_update_filelist= 1;
+						}
+					}
+					else
+					{
+						repeat = 0;
+						return_value = 0;
+						strcpy(default_dir_name, filelist_info.current_path);
+						strcpy(result, file_list[selected_item_on_list]);
+					}
+				}
+				//directory selected
+				else if(num_dirs > 0)
+				{
+					unsigned int m;
 
-            //items
-            sprintf(utf8, "%d/%d", current_selection_item +(num_files+num_dirs ? 1:0), num_files+num_dirs);
-            j= BDF_cut_string(utf8, 0, 2);
-            PRINT_STRING_BG(utf8, COLOR_ACTIVE_ITEM, COLOR_TRANS, (246-j), 37);
+					m = selected_item_on_list - num_files;
+					strcpy(filelist_info.current_path, default_dir_name);
+					strcat(filelist_info.current_path, "/");
+					strcat(filelist_info.current_path, dir_list[m]);
+					to_update_filelist= 1;
+				}
+				break;
 
-            //slider
-            show_Vscrollbar((char*)screen_address, 0, 0, current_selection_item, num_files+num_dirs);
+			case CURSOR_BACK:
+			{
+				wait_Allkey_release(0);
+				char *ext_pos;
 
-            //slected item
-            if((num_files + num_dirs) > 0)
-            {
-                j= current_selection_item - current_in_scroll_value;
-                show_icon(screenp, ICON_FILE_SELECT_BG, 29, 51 + j*24);
-                show_icon(screen_address, ICON_FILE_SELECT_BG, 29, 51 + j*24);
-                show_icon(screen_address, ICON_MENUINDEX, 17, 57 + j*24);
-            }
+				strcpy(filelist_info.current_path, default_dir_name);
+				ext_pos = strrchr(filelist_info.current_path, '/');
+				if(NULL != ext_pos)	//Not root directory
+				{
+					*ext_pos = '\0';
+					to_update_filelist= 1;
+				}
+				else { //is root directory
+					return_value = -1;
+					repeat = 0;
+				}
+				break;
+			}
 
-            j= 0;
-            k= current_in_scroll_value;
-            i = num_files + num_dirs - k;
-            if(i > FILE_LIST_ROWS) i= FILE_LIST_ROWS;
+			case CURSOR_EXIT:
+				wait_Allkey_release(0);
+				return_value = -1;
+				repeat = 0;
+				break;
 
-            for( ; i> 0; i--)
-            {
-                u16 color;
+			default:
+				break;
+		} //end switch
 
-                if(k == current_selection_item)
-                    color= COLOR_ACTIVE_ITEM;
-                else
-                    color= COLOR_INACTIVE_ITEM;
+		if(to_update_filelist)
+		{
+			flag = load_file_list(&filelist_info);
+			if(-1 != flag) {
+				strcpy(default_dir_name, filelist_info.current_path);
+				num_files = filelist_info.file_num;
+				num_dirs = filelist_info.dir_num;
+				total_items_num = num_files + num_dirs;;
 
-                if(k < num_files)
-                {
-                    char *ext_pos;
+				selected_item_on_list = 0;			//Selected item on list
+				selected_item_on_screen = 0;		//Selected item on screen's position
 
-                    draw_hscroll_init(screen_address, screenp, FILE_LIST_POSITION, 56 + j*24, 180, 
-                        COLOR_TRANS, color, file_list[k]);
+				redraw = -1;						//redraw all
+			}
+			to_update_filelist = 0;
+		}
 
-                    ext_pos= strrchr(file_list[k], '.');
-                    if(!strcasecmp(ext_pos, ".gba"))
-                        show_icon(screen_address, ICON_GBAFILE, 29, 53 + j*24);
-                    if(!strcasecmp(ext_pos, ".zip"))
-                        show_icon(screen_address, ICON_ZIPFILE, 29, 53 + j*24);
-                    if(!strcasecmp(ext_pos, ".bin"))
-                        show_icon(screen_address, ICON_BINFILE, 29, 53 + j*24);
-                }
-                else
-                {
-                    draw_hscroll_init(screen_address, screenp, FILE_LIST_POSITION, 56 + j*24, 180, 
-                        COLOR_TRANS, color, dir_list[k-num_files]);
+		//redraw, code reuse
+		if(-1 == redraw || 1 == redraw)
+		{
+			unsigned int m, n, k;
+			char *pt;
+			unsigned short color;
 
-                    show_icon(screen_address, ICON_DIRECTORY, 29, 53 + j*24);
-                }
+			//draw background
+			show_icon(down_screen_addr, &ICON_SUBBG, 0, 0);
+			show_icon(down_screen_addr, &ICON_TITLE, 0, 0);
+			show_icon(down_screen_addr, &ICON_TITLEICON, 12, 9);
 
-                show_icon(screen_address, ICON_FILE_ISOLATOR, 17, 72 + j*24);
-                k++, j++;
-                shift_flag[j]= 1;
-            }
+			//release data struct to draw scrolling string
+			//Path
+			if(-1 == redraw) {
+				draw_hscroll_over(0);
+				draw_hscroll_init(down_screen_addr, 49, 10, 199, COLOR_TRANS,
+					COLOR_WHITE, default_dir_name);
+				path_scroll = 0x8000;		//first scroll left
+			}
 
-            last_in_scroll_value = current_in_scroll_value;
-            last_selection_item = current_selection_item;
-        }
+			for(m = 0; m < MAX_SCROLL_STRING; m++)
+				draw_hscroll_over(m+1);
 
-        if(shift_flag[0])
-        {
-            if(path_scroll > 0) path_scroll -= 1;
-            else if(draw_hscroll(0, -1) <= 0)
-            {shift_flag[0]= 0,  path_scroll= 20;}
-        }
-        else
-        {
-            if(path_scroll > 0) path_scroll -= 1;
-            else if(draw_hscroll(0, 1) <= 0)
-            {shift_flag[0]= 1,  path_scroll= 20;}
-        }
+			//file and directory list
+			//the first displayed item
+			m = selected_item_on_list - selected_item_on_screen;
+			//nubers of item to displayed
+			n = total_items_num - m;
+			if(n > FILE_LIST_ROWS) n = FILE_LIST_ROWS;
 
-        flip_screen();
-        OSTimeDly(5);     //about 50ms
-    }
+			for(k= 0; k < n; k++, m++)
+			{
+				if(k == selected_item_on_screen) {
+					color = COLOR_ACTIVE_ITEM;
+					show_icon(down_screen_addr, &ICON_SUBSELA, 6, 35 + k*27);
+				}
+				else
+					color = COLOR_INACTIVE_ITEM;
 
-    for(i= 0; i < (FILE_LIST_ROWS +1); i++)
-    {
-        draw_hscroll_over(i);
-    }
+				//directorys
+				if((m+1) > num_files) {
+					show_icon(down_screen_addr, &ICON_DIRECTORY, FILE_SELECTOR_ICON_X, 37 + k*27);
+					pt = dir_list[m - num_files];
+				}
+				//files
+				else {
+					pt= strrchr(file_list[m], '.');
 
-    free((int)filelist_info.file_list);
-    free((int)filelist_info.dir_list);
-    free((int)filelist_info.filename_mem);
-    if(screenp) free((int)screenp);
+					if(!strcasecmp(pt, ".gba"))
+						show_icon(down_screen_addr, &ICON_GBAFILE, FILE_SELECTOR_ICON_X, 37 + k*27);
+					else if(!strcasecmp(pt, ".zip"))
+						show_icon(down_screen_addr, &ICON_ZIPFILE, FILE_SELECTOR_ICON_X, 37 + k*27);
+					else if(!strcasecmp(pt, ".cht"))
+						show_icon(down_screen_addr, &ICON_CHTFILE, FILE_SELECTOR_ICON_X, 37 + k*27);
+					else if(!strcasecmp(file_list[m], ".."))
+						show_icon(down_screen_addr, &ICON_DOTDIR, FILE_SELECTOR_ICON_X, 37 + k*27);
+					else //Not recoganized file
+						show_icon(down_screen_addr, &ICON_UNKNOW, FILE_SELECTOR_ICON_X, 37 + k*27);
 
-    clear_screen(COLOR_BLACK);
-    flip_screen();
-    return return_value;
+					pt = file_list[m];
+				}
+
+				draw_hscroll_init(down_screen_addr, FILE_SELECTOR_NAME_X, 40 + k*27, FILE_SELECTOR_NAME_SX,
+					COLOR_TRANS, color, pt);
+			}
+
+			redraw = 0;
+		} //end if(0 != redraw)
+		else if(0 != redraw) {
+			unsigned int m, n;
+			char *pt;
+
+			m = selected_item_on_screen;
+			show_icon(down_screen_addr, &ICON_SUBSELA, 6, 35 + m*27);
+
+			n = selected_item_on_list;
+			if((n+1) > num_files)
+				show_icon(down_screen_addr, &ICON_DIRECTORY, FILE_SELECTOR_ICON_X, 37 + m*27);
+			else {
+				pt= strrchr(file_list[n], '.');
+
+				if(!strcasecmp(pt, ".gba"))
+					show_icon(down_screen_addr, &ICON_GBAFILE, FILE_SELECTOR_ICON_X, 37 + m*27);
+				else if(!strcasecmp(pt, ".zip"))
+					show_icon(down_screen_addr, &ICON_ZIPFILE, FILE_SELECTOR_ICON_X, 37 + m*27);
+				else if(!strcasecmp(pt, ".cht"))
+					show_icon(down_screen_addr, &ICON_CHTFILE, FILE_SELECTOR_ICON_X, 37 + m*27);
+				else if(!strcasecmp(file_list[m], ".."))
+					show_icon(down_screen_addr, &ICON_DOTDIR, FILE_SELECTOR_ICON_X, 37 + m*27);
+				else //Not recoganized file
+					show_icon(down_screen_addr, &ICON_UNKNOW, FILE_SELECTOR_ICON_X, 37 + m*27);
+			}
+
+			draw_hscroll(m+1, redraw);
+			redraw = 0;
+		}
+
+		//Path auto scroll
+		unsigned int m = path_scroll & 0xFF;
+		if(m < 20) //pause 0.5sec
+			path_scroll += 1;
+		else {
+			show_icon(down_screen_addr, &ICON_TITLE, 0, 0);
+			show_icon(down_screen_addr, &ICON_TITLEICON, 12, 9);
+
+			if(path_scroll & 0x8000)	//scroll left
+			{
+				if(draw_hscroll(0, -1) <= 1) path_scroll = 0;	 //scroll right
+			}
+			else
+			{
+				if(draw_hscroll(0, 1) <= 1) path_scroll = 0x8000; //scroll left
+			}
+		}
+
+		ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
+
+		mdelay(20);			//about 50ms
+	} //end while(repeat)
+
+	unsigned int i;
+	for(i= 0; i < (FILE_LIST_ROWS +1); i++)
+		draw_hscroll_over(i);
+
+	//deconstruct filelist_info struct
+	manage_filelist_info(&filelist_info, -1);
+
+	// ds2_clearScreen(DOWN_SCREEN, COLOR_BLACK);
+	// ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
+
+	return return_value;
 }
 
 /*--------------------------------------------------------
   放映幻灯片
 --------------------------------------------------------*/
-u32 play_screen_snapshot()
+u32 play_screen_snapshot(void)
 {
     struct FILE_LIST_INFO filelist_info;
     char *file_ext[] = { ".bmp", NULL };
@@ -895,17 +1120,32 @@ u32 play_screen_snapshot()
     screenp= (u16*)malloc(256*192*2);
     if(screenp == NULL)
     {
-        screenp = screen_address;
+        screenp = (u16*)down_screen_addr;
         color_bg = COLOR_BG;
     }
     else
     {
-        memcpy(screenp, screen_address, 256*192*2);
+        memcpy(screenp, down_screen_addr, 256*192*2);
         color_bg = COLOR16(43, 11, 11);
     }
 
-    if(contsruct_filelist_info(&filelist_info, file_ext, DEFAULT_SS_DIR) < 0)
-        return 0;
+	//construct filelist_info struct
+	if(-1 == manage_filelist_info(&filelist_info, 0))
+		return -1;
+
+	strcpy(filelist_info.current_path, DEFAULT_SS_DIR);
+
+	filelist_info.wildcards = file_ext;
+	filelist_info.file_num = 0;
+	filelist_info.dir_num = 0;
+
+	flag = load_file_list(&filelist_info);
+	if(-1 == flag)
+	{
+		//construct filelist_info struct
+		manage_filelist_info(&filelist_info, -1);
+		return -1;
+	}
 
     flag = load_file_list(&filelist_info);
     file_num = filelist_info.file_num;
@@ -913,60 +1153,99 @@ u32 play_screen_snapshot()
 
     if(flag < 0 || file_num== 0)
     {
-        draw_message(screen_address, screenp, 28, 31, 227, 165, color_bg);
-        draw_string_vcenter(screen_address, 29, 55, 198, COLOR_WHITE, msg[MSG_NO_SLIDE]);
-        flip_screen();
+        draw_message(down_screen_addr, screenp, 28, 31, 227, 165, color_bg);
+        draw_string_vcenter(down_screen_addr, 36, 55, 190, COLOR_MSSG, msg[MSG_NO_SLIDE]);
+        ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
 
-        if(screenp) free((int)screenp);
-        release_filelist_info(&filelist_info);
-        if(draw_yesno_dialog(screen_address, 115, "Yes", "No"))
+        if(screenp) free((void*)screenp);
+        //construct filelist_info struct
+		manage_filelist_info(&filelist_info, -1);
+
+        if(draw_yesno_dialog(DOWN_SCREEN, 115, msg[MSG_GENERAL_CONFIRM_WITH_A], msg[MSG_GENERAL_CANCEL_WITH_B]))
             return 1;
-        else 
+        else
             return 0;
     }
 
     char bmp_path[MAX_PATH];
-    u32 w, h, x, y;
+	BMPINFO SbmpInfo;
+
     u32 buff[256*192];
-    u16 screen_buff[256*192];
-    char *src;
-    u16 *dst;
     u32 time0= 10;
     u32 pause= 0;
+	unsigned int type;
 
-    draw_message(screen_address, screenp, 28, 31, 227, 165, color_bg);
-    draw_string_vcenter(screen_address, 29, 55, 198, COLOR_WHITE, msg[MSG_PLAY_SLIDE1]);
-    draw_string_vcenter(screen_address, 29, 70, 198, COLOR_WHITE, msg[MSG_PLAY_SLIDE2]);
-    draw_string_vcenter(screen_address, 29, 85, 198, COLOR_WHITE, msg[MSG_PLAY_SLIDE3]);
-    draw_string_vcenter(screen_address, 29, 100, 198, COLOR_WHITE, msg[MSG_PLAY_SLIDE4]);
-    draw_string_vcenter(screen_address, 29, 115, 198, COLOR_WHITE, msg[MSG_PLAY_SLIDE5]);
-    draw_string_vcenter(screen_address, 29, 130, 198, COLOR_WHITE, msg[MSG_PLAY_SLIDE6]);
-    flip_screen();
+    draw_message(down_screen_addr, screenp, 28, 31, 227, 165, color_bg);
+    draw_string_vcenter(down_screen_addr, 36, 70, 190, COLOR_MSSG, msg[MSG_PLAY_SLIDE1]);
+    draw_string_vcenter(down_screen_addr, 36, 85, 190, COLOR_MSSG, msg[MSG_PLAY_SLIDE2]);
+    draw_string_vcenter(down_screen_addr, 36, 100, 190, COLOR_MSSG, msg[MSG_PLAY_SLIDE3]);
+    draw_string_vcenter(down_screen_addr, 36, 115, 190, COLOR_MSSG, msg[MSG_PLAY_SLIDE4]);
+    draw_string_vcenter(down_screen_addr, 36, 130, 190, COLOR_MSSG, msg[MSG_PLAY_SLIDE5]);
+    draw_string_vcenter(down_screen_addr, 36, 145, 190, COLOR_MSSG, msg[MSG_PLAY_SLIDE6]);
+    ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
 
     repeat= 1;
     i= 0;
     while(repeat)
     {
-        sprintf(bmp_path, "%s\\%s", filelist_info.current_path, file_list[i]);
+        sprintf(bmp_path, "%s/%s", filelist_info.current_path, file_list[i]);
 
-        w= 240, h= 160;
-        dst= screen_buff;
-        flag= BMP_read(bmp_path, (char*)buff, w, h);
-        if(flag == BMP_OK)
-        {
-            for(y= 0; y< h; y++)
-            {
-                src= (char*)buff + (h-y-1)*w*4;
-                for(x= 0; x < w; x++)
-                {
-                    *dst++ = RGB24_15(src);
-                    src += 4;
-                }
-            }
+		flag = openBMP(&SbmpInfo, (const char*)bmp_path);
+		if(flag == BMP_OK)
+		{
+			type = SbmpInfo.bmpHead.bfImghead.imBitpixel >>3;
+			if(2 == type || 3 == type)	//2 bytes per pixel
+			{
+			    u16 *dst, *dst0;
+			    u32 w, h, x, y;
 
-            blit_to_screen(screen_buff, w, h, -1, -1);
-            flip_gba_screen();
-        }
+				w= SbmpInfo.bmpHead.bfImghead.imBitmapW;
+				h= SbmpInfo.bmpHead.bfImghead.imBitmapH;
+				if(w > 256) w = 256;
+				if(h > 192) h = 192;
+
+				flag = readBMP(&SbmpInfo, 0, 0, w, h, (void*)buff);
+				if(0 == flag)
+				{
+					ds2_clearScreen(UP_SCREEN, 0);
+
+					dst= (unsigned short*)up_screen_addr + (192-h)/2*256 +(256-w)/2;
+					dst0 = dst;
+					if(2 == type) {
+						unsigned short* pt;
+
+						pt = (unsigned short*) buff;
+						for(y= 0; y<h; y++) {
+	    	            	for(x= 0; x < w; x++) {
+		    	                *dst++ = RGB16_15(pt);
+		    	                pt += 1;
+		    	            }
+							dst0 += 256;
+							dst = dst0;
+						}
+					}
+					else {
+						unsigned char* pt;
+
+						pt= (char*)buff;
+	    		        for(y= 0; y< h; y++) {
+    			            for(x= 0; x < w; x++) {
+    			                *dst++ = RGB24_15(pt);
+    			                pt += 3;
+    			            }
+							dst0 += 256;
+							dst = dst0;
+    			        }
+					}
+
+					ds2_flipScreen(UP_SCREEN, 1);
+				}
+
+				closeBMP(&SbmpInfo);
+			}
+			else
+				closeBMP(&SbmpInfo);
+		}
 
         if(i+1 < file_num) i++;
         else i= 0;
@@ -989,7 +1268,7 @@ u32 play_screen_snapshot()
                         time1= time0;
                     }
                     break;
-                    
+
                 case CURSOR_DOWN:
                     if(!pause)
                     {
@@ -997,21 +1276,21 @@ u32 play_screen_snapshot()
                         time1= time0;
                     }
                     break;
-                    
+
                 case CURSOR_LEFT:
                     time1 = ticks;
                     if(i > 1) i -= 2;
                     else if(i == 1) i= file_num -1;
                     else i= file_num -2;
                     break;
-                
+
                 case CURSOR_RIGHT:
                     time1 = ticks;
                     break;
-                
+
                 case CURSOR_SELECT:
                     if(!pause)
-                    { 
+                    {
                         time1 = -1;
                         pause= 1;
                     }
@@ -1019,68 +1298,80 @@ u32 play_screen_snapshot()
                     {
                         time1 = ticks;
                         pause= 0;
-                    } 
+                    }
                     break;
-                    
-                case CURSOR_BACK: 
-                    if(screenp) free((int)screenp);
-                    release_filelist_info(&filelist_info);
-                    return 0;
-                    
+
+                case CURSOR_BACK:
+                    if(screenp) free((void*)screenp);
+                    //deconstruct filelist_info struct
+					manage_filelist_info(&filelist_info, -1);
+					repeat = 0;
+					break;
+
                 default: gui_action= CURSOR_NONE;
                     break;
             }
 
-            OSTimeDly(200/10);
+			if(gui_action != CURSOR_BACK)
+				mdelay(100);
             if(!pause)
                 ticks ++;
         }
     }
+
+	return 0;
 }
 
 /*--------------------------------------------------------
   搜索指定名称的目录
 --------------------------------------------------------*/
+
+
+/*
+*	Function: search directory on directory_path
+*	directory: directory name will be searched
+*	directory_path: path, note that the buffer which hold directory_path should
+*		be large enough for nested
+*	return: 0= found, directory lay on directory_path
+*/
 int search_dir(char *directory, char* directory_path)
 {
     DIR *current_dir;
-    struct dirent *current_file;
-    char *file_name;
+    dirent *current_file;
+	struct stat st;
     int directory_path_len;
 
     current_dir= opendir(directory_path);
     if(current_dir == NULL)
         return -1;
 
-    directory_path_len= strlen(directory_path);
-    while(1) {
-        current_file = readdir(current_dir);
-        if (current_file)
-        {
-            file_name = current_file->d_name;
-            //Is directory 
-            if (ISDIR(current_file))
-            if (file_name[0] != '.')
-            {
-                sprintf(directory_path + directory_path_len, "\\%s", file_name);
-                if(!strcasecmp(file_name, directory))
-                {//dirctory find
-                    closedir(current_dir);
-                    return 0;
-                }
+	directory_path_len = strlen(directory_path);
 
-                //dirctory find
-                if(search_dir(directory, directory_path) == 0)
-                {
-                    closedir(current_dir);
-                    return 0;
-                }
+	//while((current_file = readdir(current_dir)) != NULL)
+	while((current_file = readdir_ex(current_dir, &st)) != NULL)
+	{
+		//Is directory
+		if(S_ISDIR(st.st_mode))
+		{
+			if(strcmp(".", current_file->d_name) || strcmp("..", current_file->d_name))
+				continue;
 
-                *(directory_path + directory_path_len)= '\0';
-            }
-        }
-        else
-            break;
+			strcpy(directory_path+directory_path_len, current_file->d_name);
+
+			if(!strcasecmp(current_file->d_name, directory))
+			{//dirctory find
+				closedir(current_dir);
+				return 0;
+			}
+
+			if(search_dir(directory, directory_path) == 0)
+			{//dirctory find
+				closedir(current_dir);
+				return 0;
+			}
+
+			directory_path[directory_path_len] = '\0';
+		}
     }
 
     closedir(current_dir);
@@ -1429,7 +1720,7 @@ u32 menu(u16 *original_screen)
             if(bg_screenp != NULL)
             {
                 bg_screenp_color = COLOR16(43, 11, 11);
-                memcpy(bg_screenp, screen_address, 256*192*2);
+                memcpy(bg_screenp, down_screen_addr, 256*192*2);
             }
             else
                 bg_screenp_color = COLOR_BG;
@@ -1438,9 +1729,9 @@ u32 menu(u16 *original_screen)
             //the slot already have a savestate file
             if(slot_index >= 31)
             {
-                draw_message(screen_address, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
-                draw_string_vcenter(screen_address, 29, 55, 198, COLOR_WHITE, msg[MSG_SAVESTATE_FULL]);
-                if(draw_yesno_dialog(screen_address, 115, "Yes", "No") == 0)
+                draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
+                draw_string_vcenter(down_screen_addr, 29, 55, 198, COLOR_WHITE, msg[MSG_SAVESTATE_FULL]);
+                if(draw_yesno_dialog(DOWN_SCREEN, 115, "Yes", "No") == 0)
                     return;
 
                 clear_savestate_slot(0);
@@ -1452,20 +1743,20 @@ u32 menu(u16 *original_screen)
             savestate_map[slot_index]= -savestate_map[slot_index];
             get_savestate_filename(slot_index, current_savestate_filename);
 
-            draw_message(screen_address, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
-            draw_string_vcenter(screen_address, 29, 75, 198, COLOR_WHITE, msg[MSG_SAVESTATE_DOING]);
+            draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
+            draw_string_vcenter(down_screen_addr, 29, 75, 198, COLOR_WHITE, msg[MSG_SAVESTATE_DOING]);
 
             key= save_state(current_savestate_filename, original_screen);
             //clear message
-            draw_message(screen_address, bg_screenp, 28, 31, 227, 96, bg_screenp_color);
+            draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 96, bg_screenp_color);
             if(key < 1)
             {
-                draw_string_vcenter(screen_address, 29, 65, 198, COLOR_WHITE, msg[MSG_SAVESTATE_FAILUER]);
+                draw_string_vcenter(down_screen_addr, 29, 65, 198, COLOR_WHITE, msg[MSG_SAVESTATE_FAILUER]);
                 savestate_map[slot_index]= -savestate_map[slot_index];
             }
             else
             {
-                draw_string_vcenter(screen_address, 29, 75, 198, COLOR_WHITE, msg[MSG_SAVESTATE_SUCCESS]);
+                draw_string_vcenter(down_screen_addr, 29, 75, 198, COLOR_WHITE, msg[MSG_SAVESTATE_SUCCESS]);
                 savestate_index = slot_index;
             }
 
@@ -1485,7 +1776,7 @@ u32 menu(u16 *original_screen)
         if(bg_screenp != NULL)
         {
             bg_screenp_color = COLOR16(43, 11, 11);
-            memcpy(bg_screenp, screen_address, 256*192*2);
+            memcpy(bg_screenp, down_screen_addr, 256*192*2);
         }
         else
             bg_screenp_color = COLOR_BG;
@@ -1499,8 +1790,8 @@ u32 menu(u16 *original_screen)
             //file error
             if(fp == NULL)
             {
-                draw_message(screen_address, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
-                draw_string_vcenter(screen_address, 29, 80, 198, COLOR_WHITE, msg[MSG_SAVESTATE_FILE_BAD]);
+                draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
+                draw_string_vcenter(down_screen_addr, 29, 80, 198, COLOR_WHITE, msg[MSG_SAVESTATE_FILE_BAD]);
                 flip_screen();
 
                 button_up_wait();
@@ -1521,18 +1812,18 @@ u32 menu(u16 *original_screen)
             //right
             if(gui_action == CURSOR_SELECT)
             {
-                draw_message(screen_address, bg_screenp, 28, 31, 227, 165, bg_screenp_color); 
-                draw_string_vcenter(gba_screen_address, 29, 75, 198, COLOR_WHITE, msg[MSG_LOADSTATE_DOING]);
+                draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color); 
+                draw_string_vcenter(up_screen_addr, 29, 75, 198, COLOR_WHITE, msg[MSG_LOADSTATE_DOING]);
 
                 len= load_state(current_savestate_filename, fp);
                 if(len != 0)
                 {
                     return_value = 1;
                     repeat = 0;
-                    draw_string_vcenter(screen_address, 29, 75, 198, COLOR_WHITE, msg[MSG_LOADSTATE_SUCCESS]);
+                    draw_string_vcenter(down_screen_addr, 29, 75, 198, COLOR_WHITE, msg[MSG_LOADSTATE_SUCCESS]);
                 }
                 else
-                    draw_string_vcenter(screen_address, 29, 75, 198, COLOR_WHITE, msg[MSG_LOADSTATE_FAILURE]);
+                    draw_string_vcenter(down_screen_addr, 29, 75, 198, COLOR_WHITE, msg[MSG_LOADSTATE_FAILURE]);
             }
 
             fclose(fp);
@@ -1540,7 +1831,7 @@ u32 menu(u16 *original_screen)
         else
         {
             clear_gba_screen(COLOR_BLACK);
-            draw_string_vcenter(gba_screen_address, 29, 75, 198, COLOR_WHITE, msg[MSG_SAVESTATE_SLOT_EMPTY]);
+            draw_string_vcenter(up_screen_addr, 29, 75, 198, COLOR_WHITE, msg[MSG_SAVESTATE_SLOT_EMPTY]);
             flip_gba_screen();
         }
     }
@@ -1587,10 +1878,10 @@ u32 menu(u16 *original_screen)
 
             if(selected == k && active0 >0)
             {
-                drawbox(screen_address, x+j*14-1, y-1, x+j*14+10, y+10, COLOR16(31, 31, 31));
+                drawbox(down_screen_addr, x+j*14-1, y-1, x+j*14+10, y+10, COLOR16(31, 31, 31));
                 if(active== 2) active = 3;
             }
-            draw_selitem(screen_address, x + j*14, y, 1, active);
+            draw_selitem(down_screen_addr, x + j*14, y, 1, active);
 
             j++;
         }
@@ -1615,9 +1906,11 @@ u32 menu(u16 *original_screen)
         
         if(display_option == current_option)
         {
-            show_icon(screen_address, ICON_SUBM_ISOLATOR, 7, 33 + line_num*20);
-            show_icon(screen_address, ICON_MENUINDEX, 12, 42 + line_num*20);
-            show_icon(screen_address, ICON_SUBM_ISOLATOR, 7, 53 + line_num*20);
+			// Not sure what that is, so disabled [Neb]
+            //show_icon(down_screen_addr, &ICON_SUBM_ISOLATOR, 7, 33 + line_num*20);
+            show_icon(down_screen_addr, &ICON_SUBSELA, 12, 42 + line_num*20);
+			// Not sure what that is, so disabled [Neb]
+            //show_icon(down_screen_addr, &ICON_SUBM_ISOLATOR, 7, 53 + line_num*20);
             savestate_selitem(slot_index+1);
         }
     }
@@ -1637,9 +1930,11 @@ u32 menu(u16 *original_screen)
 
         if(display_option == current_option)
         {
-            show_icon(screen_address, ICON_SUBM_ISOLATOR, 7, 33 + line_num*20);
-            show_icon(screen_address, ICON_MENUINDEX, 12, 42 + line_num*20);
-            show_icon(screen_address, ICON_SUBM_ISOLATOR, 7, 53 + line_num*20);
+			// Not sure what that is, so disabled [Neb]
+            //show_icon(down_screen_addr, &ICON_SUBM_ISOLATOR, 7, 33 + line_num*20);
+            show_icon(down_screen_addr, &ICON_SUBSELA, 12, 42 + line_num*20);
+			// Not sure what that is, so disabled [Neb]
+            //show_icon(down_screen_addr, &ICON_SUBM_ISOLATOR, 7, 53 + line_num*20);
             savestate_selitem(savestate_index);
         }
         else if(current_option_num != 1)
@@ -1662,9 +1957,11 @@ u32 menu(u16 *original_screen)
 
         if(display_option == current_option)
         {
-            show_icon(screen_address, ICON_SUBM_ISOLATOR, 7, 33 + line_num*20);
-            show_icon(screen_address, ICON_MENUINDEX, 12, 42 + line_num*20);
-            show_icon(screen_address, ICON_SUBM_ISOLATOR, 7, 53 + line_num*20);
+			// Not sure what that is, so disabled [Neb]
+            //show_icon(down_screen_addr, &ICON_SUBM_ISOLATOR, 7, 33 + line_num*20);
+            show_icon(down_screen_addr, &ICON_SUBSELA, 12, 42 + line_num*20);
+			// Not sure what that is, so disabled [Neb]
+            //show_icon(down_screen_addr, &ICON_SUBM_ISOLATOR, 7, 53 + line_num*20);
             savestate_selitem(delette_savestate_num);
         }
         else
@@ -1756,7 +2053,7 @@ u32 menu(u16 *original_screen)
         if(bg_screenp != NULL)
         {
             bg_screenp_color = COLOR16(43, 11, 11);
-            memcpy(bg_screenp, screen_address, 256*192*2);
+            memcpy(bg_screenp, down_screen_addr, 256*192*2);
         }
         else
             bg_screenp_color = COLOR_BG;
@@ -1767,8 +2064,8 @@ u32 menu(u16 *original_screen)
         {
             u32 i, flag;
 
-            draw_message(screen_address, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
-            draw_string_vcenter(screen_address, 29, 75, 198, COLOR_WHITE, msg[MSG_DELETTE_ALL_SAVESTATE_WARING]);
+            draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
+            draw_string_vcenter(down_screen_addr, 29, 75, 198, COLOR_WHITE, msg[MSG_DELETTE_ALL_SAVESTATE_WARING]);
 
             flag= 0;
             for(i= 0; i < 32; i++)
@@ -1777,7 +2074,7 @@ u32 menu(u16 *original_screen)
 
             if(flag)
             {
-                if(draw_yesno_dialog(screen_address, 115, "Yes", "No"))
+                if(draw_yesno_dialog(DOWN_SCREEN, 115, "Yes", "No"))
                 {
                     for(i= 0; i < 32; i++)
                     {
@@ -1792,27 +2089,27 @@ u32 menu(u16 *original_screen)
             }
             else
             {
-                draw_message(screen_address, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
-                draw_string_vcenter(screen_address, 29, 90, 198, COLOR_WHITE, msg[MSG_DELETTE_SAVESTATE_NOTHING]);
+                draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
+                draw_string_vcenter(down_screen_addr, 29, 90, 198, COLOR_WHITE, msg[MSG_DELETTE_SAVESTATE_NOTHING]);
                 flip_screen();
                 OSTimeDly(200/2);
             }
         }
         else if(current_option_num == 2)    //delette single
         {
-            draw_message(screen_address, bg_screenp, 28, 31, 227, 165, bg_screenp_color); 
+            draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color); 
 
             if(savestate_map[delette_savestate_num] > 0)
             {
                 sprintf(line_buffer, msg[MSG_DELETTE_SINGLE_SAVESTATE_WARING], delette_savestate_num);
-                draw_string_vcenter(screen_address, 29, 70, 198, COLOR_WHITE, line_buffer);
+                draw_string_vcenter(down_screen_addr, 29, 70, 198, COLOR_WHITE, line_buffer);
 
-                if(draw_yesno_dialog(screen_address, 115, "Yes", "No"))
+                if(draw_yesno_dialog(DOWN_SCREEN, 115, "Yes", "No"))
                     clear_savestate_slot(delette_savestate_num);
             }
             else
             {
-                draw_string_vcenter(screen_address, 29, 90, 198, COLOR_WHITE, msg[MSG_DELETTE_SAVESTATE_NOTHING]);
+                draw_string_vcenter(down_screen_addr, 29, 90, 198, COLOR_WHITE, msg[MSG_DELETTE_SAVESTATE_NOTHING]);
                 flip_screen();
                 OSTimeDly(200/2);
             }
@@ -1827,26 +2124,26 @@ u32 menu(u16 *original_screen)
             if(bg_screenp != NULL)
             {
                 bg_screenp_color = COLOR16(43, 11, 11);
-                memcpy(bg_screenp, screen_address, 256*192*2);
+                memcpy(bg_screenp, down_screen_addr, 256*192*2);
             }
             else
                 bg_screenp_color = COLOR_BG;
 
-            draw_message(screen_address, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
+            draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
             if(!first_load)
             {
-                draw_string_vcenter(screen_address, 29, 70, 198, COLOR_WHITE, msg[MSG_SAVE_SNAPSHOT]);
+                draw_string_vcenter(down_screen_addr, 29, 70, 198, COLOR_WHITE, msg[MSG_SAVE_SNAPSHOT]);
                 flip_screen();
                 if(save_ss_bmp(original_screen))
-                    draw_string_vcenter(screen_address, 29, 90, 198, COLOR_WHITE, msg[MSG_SAVE_SNAPSHOT_COMPLETE]);
+                    draw_string_vcenter(down_screen_addr, 29, 90, 198, COLOR_WHITE, msg[MSG_SAVE_SNAPSHOT_COMPLETE]);
                 else
-                    draw_string_vcenter(screen_address, 29, 90, 198, COLOR_WHITE, msg[MSG_SAVE_SNAPSHOT_FAILURE]);
+                    draw_string_vcenter(down_screen_addr, 29, 90, 198, COLOR_WHITE, msg[MSG_SAVE_SNAPSHOT_FAILURE]);
                 flip_screen();
                 OSTimeDly(200/2);
             }
             else
             {
-                draw_string_vcenter(screen_address, 29, 90, 198, COLOR_WHITE, msg[MSG_SAVESTATE_SLOT_EMPTY]);
+                draw_string_vcenter(down_screen_addr, 29, 90, 198, COLOR_WHITE, msg[MSG_SAVESTATE_SLOT_EMPTY]);
                 flip_screen();
                 OSTimeDly(200/2);
             }
@@ -1952,18 +2249,18 @@ u32 menu(u16 *original_screen)
         if(bg_screenp != NULL)
         {
             bg_screenp_color = COLOR16(43, 11, 11);
-            memcpy(bg_screenp, screen_address, 256*192*2);
+            memcpy(bg_screenp, down_screen_addr, 256*192*2);
         }
         else
             bg_screenp_color = COLOR_BG;
 
-        draw_message(screen_address, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
-        draw_string_vcenter(screen_address, 35, 70, 186, COLOR_WHITE, msg[MSG_LOAD_DEFAULT_WARING]);
+        draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
+        draw_string_vcenter(down_screen_addr, 35, 70, 186, COLOR_WHITE, msg[MSG_LOAD_DEFAULT_WARING]);
 
-        if(draw_yesno_dialog(screen_address, 115, "Yes", "No"))
+        if(draw_yesno_dialog(DOWN_SCREEN, 115, "Yes", "No"))
         {
-            draw_message(screen_address, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
-            draw_string_vcenter(screen_address, 29, 80, 198, COLOR_WHITE, msg[MSG_DEFAULT_LOADING]);
+            draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
+            draw_string_vcenter(down_screen_addr, 29, 80, 198, COLOR_WHITE, msg[MSG_DEFAULT_LOADING]);
             flip_screen();
 
             sprintf(line_buffer, "%s\\%s", main_path, GPSP_CONFIG_FILENAME);
@@ -1974,7 +2271,7 @@ u32 menu(u16 *original_screen)
             init_game_config();
 
             clear_gba_screen(0);
-            draw_string_vcenter(gba_screen_address, 0, 80, 256, COLOR_WHITE, msg[MSG_NON_LOAD_GAME]);
+            draw_string_vcenter(up_screen_addr, 0, 80, 256, COLOR_WHITE, msg[MSG_NON_LOAD_GAME]);
             flip_gba_screen();
 
             OSTimeDly(200/2);
@@ -1986,15 +2283,15 @@ u32 menu(u16 *original_screen)
         if(bg_screenp != NULL)
         {
             bg_screenp_color = COLOR16(43, 11, 11);
-            memcpy(bg_screenp, screen_address, 256*192*2);
+            memcpy(bg_screenp, down_screen_addr, 256*192*2);
         }
         else
             bg_screenp_color = COLOR_BG;
 
-        draw_message(screen_address, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
-        draw_string_vcenter(screen_address, 29, 80, 198, COLOR_WHITE, msg[MSG_GBA_VERSION0]);
+        draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
+        draw_string_vcenter(down_screen_addr, 29, 80, 198, COLOR_WHITE, msg[MSG_GBA_VERSION0]);
         sprintf(line_buffer, "%s  %s", msg[MSG_GBA_VERSION1], NDSGBA_VERSION);
-        draw_string_vcenter(screen_address, 29, 95, 198, COLOR_WHITE, line_buffer);
+        draw_string_vcenter(down_screen_addr, 29, 95, 198, COLOR_WHITE, line_buffer);
         flip_screen();
 
         gui_action_type gui_action = CURSOR_NONE;
@@ -2030,13 +2327,13 @@ u32 menu(u16 *original_screen)
             if(bg_screenp != NULL)
             {
                 bg_screenp_color = COLOR16(43, 11, 11);
-                memcpy(bg_screenp, screen_address, 256*192*2);
+                memcpy(bg_screenp, down_screen_addr, 256*192*2);
             }
             else
                 bg_screenp_color = COLOR_BG;
 
-            draw_message(screen_address, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
-            draw_string_vcenter(screen_address, 30, 75, 196, COLOR_WHITE, msg[MSG_LOADING_GAME]);
+            draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
+            draw_string_vcenter(down_screen_addr, 30, 75, 196, COLOR_WHITE, msg[MSG_LOADING_GAME]);
 
             ext_pos= strrchr(gpsp_config.latest_file[current_option_num -1], '\\');
             *ext_pos= '\0';
@@ -2101,9 +2398,11 @@ u32 menu(u16 *original_screen)
         k= display_option-> line_number;
         if(display_option == current_option)
         {
-            show_icon(screen_address, ICON_SUBM_ISOLATOR, 7, 33 + k*20);
-            show_icon(screen_address, ICON_MENUINDEX, 12, 42 + k*20);
-            show_icon(screen_address, ICON_SUBM_ISOLATOR, 7, 53 + k*20);
+			// Not sure what that is, so disabled [Neb]
+            //show_icon(down_screen_addr, &ICON_SUBM_ISOLATOR, 7, 33 + k*20);
+            show_icon(down_screen_addr, &ICON_SUBSELA, 12, 42 + k*20);
+			// Not sure what that is, so disabled [Neb]
+            //show_icon(down_screen_addr, &ICON_SUBM_ISOLATOR, 7, 53 + k*20);
         }
     }
 
@@ -2114,14 +2413,14 @@ u32 menu(u16 *original_screen)
             if(bg_screenp != NULL)
             {
                 bg_screenp_color = COLOR16(43, 11, 11);
-                memcpy(bg_screenp, screen_address, 256*192*2);
+                memcpy(bg_screenp, down_screen_addr, 256*192*2);
             }
             else
                 bg_screenp_color = COLOR_BG;
 
-            draw_message(screen_address, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
-            draw_string_vcenter(screen_address, 30, 75, 196, COLOR_WHITE, msg[MSG_CHANGE_LANGUAGE]);
-            draw_string_vcenter(screen_address, 30, 95, 196, COLOR_WHITE, msg[MSG_CHANGE_LANGUAGE_WAITING]);
+            draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
+            draw_string_vcenter(down_screen_addr, 30, 75, 196, COLOR_WHITE, msg[MSG_CHANGE_LANGUAGE]);
+            draw_string_vcenter(down_screen_addr, 30, 95, 196, COLOR_WHITE, msg[MSG_CHANGE_LANGUAGE_WAITING]);
             flip_screen();
 
             load_language_msg(LANGUAGE_PACK, gpsp_config.language);    
@@ -2130,7 +2429,7 @@ u32 menu(u16 *original_screen)
             if(first_load)
             {
                 clear_gba_screen(0);
-                draw_string_vcenter(gba_screen_address, 0, 80, 256, COLOR_WHITE, msg[MSG_NON_LOAD_GAME]);
+                draw_string_vcenter(up_screen_addr, 0, 80, 256, COLOR_WHITE, msg[MSG_NON_LOAD_GAME]);
                 flip_gba_screen();
             }
 
@@ -2143,80 +2442,33 @@ u32 menu(u16 *original_screen)
         sound_on = gpsp_config.enable_audio & 0x1;
     }
 
-    //typedef struct {
-    //  FS_u32 total_clusters;
-    //  FS_u32 avail_clusters;
-    //  FS_u16 sectors_per_cluster;
-    //  FS_u16 bytes_per_sector;
-    //} FS_DISKFREE_T;
-
-    FS_DISKFREE_T disk_info;
     void check_card_space()
     {
-        fioctl("mmc:", GET_DISK_FREE_SPACE, 0, &disk_info);
+        // Disabled [Neb]
     }
 
     void show_card_space ()
     {
-        u32 line_num;
-        u32 num_byte;
-
-        strcpy(line_buffer, *(display_option->display_string));
-        line_num= display_option-> line_number;        
-        PRINT_STRING_BG_UTF8(line_buffer, COLOR_INACTIVE_ITEM, COLOR_TRANS, 27,
-            38 + line_num*20);
-
-        num_byte = disk_info.avail_clusters * disk_info.sectors_per_cluster;
-        if(num_byte <= 9999*2)
-        { /* < 9999KB */
-            sprintf(line_buffer, "%d", num_byte/2);
-            if(num_byte & 1)
-                strcat(line_buffer, ".5 KB");
-            else
-                strcat(line_buffer, ".0 KB");
-        }
-        else if(num_byte <= 9999*1024*2)
-        { /* < 9999MB */
-            num_byte /= 1024;
-            sprintf(line_buffer, "%d", num_byte/2);
-            if(num_byte & 1)
-                strcat(line_buffer, ".5 MB");
-            else
-                strcat(line_buffer, ".0 MB");
-        }
-        else
-        {
-            num_byte /= 1024*1024;
-            sprintf(line_buffer, "%d", num_byte/2);
-            if(num_byte & 1)
-                strcat(line_buffer, ".5 GB");
-            else
-                strcat(line_buffer, ".0 GB");
-        }
-
-        PRINT_STRING_BG_UTF8(line_buffer, COLOR_INACTIVE_ITEM, COLOR_TRANS, 147,
-            38 + line_num*20);
+        // Disabled [Neb]
     }
 
-    char *screen_ratio_options[] = { &msg[MSG_SCREEN_RATIO_0], &msg[MSG_SCREEN_RATIO_1] };
+    char *screen_ratio_options[] = { (char*) &msg[MSG_SCREEN_RATIO_0], (char*) &msg[MSG_SCREEN_RATIO_1] };
     
-    char *frameskip_options[] = { &msg[MSG_FRAMESKIP_0], &msg[MSG_FRAMESKIP_1] };
+    char *frameskip_options[] = { (char*) &msg[MSG_FRAMESKIP_0], (char*) &msg[MSG_FRAMESKIP_1] };
 
-    char *on_off_options[] = { &msg[MSG_ON_OFF_0], &msg[MSG_ON_OFF_1] };
+    char *on_off_options[] = { (char*) &msg[MSG_ON_OFF_0], (char*) &msg[MSG_ON_OFF_1] };
 
-    char *sound_seletion[] = { &msg[MSG_SOUND_SWITCH_0], &msg[MSG_SOUND_SWITCH_1] };
+    char *sound_seletion[] = { (char*) &msg[MSG_SOUND_SWITCH_0], (char*) &msg[MSG_SOUND_SWITCH_1] };
 
-    char *snap_frame_options[] = { &msg[MSG_SNAP_FRAME_0], &msg[MSG_SNAP_FRAME_1] };
+    char *snap_frame_options[] = { (char*) &msg[MSG_SNAP_FRAME_0], (char*) &msg[MSG_SNAP_FRAME_1] };
 
-    char *enable_disable_options[] = { &msg[MSG_EN_DIS_ABLE_0], &msg[MSG_EN_DIS_ABLE_1] };
+    char *enable_disable_options[] = { (char*) &msg[MSG_EN_DIS_ABLE_0], (char*) &msg[MSG_EN_DIS_ABLE_1] };
 
-    char *language_options[] = { &lang[1], &lang[0] };
-
-    char *keyremap_options[] = {&msg[MSG_KEY_MAP_NONE], &msg[MSG_KEY_MAP_A], &msg[MSG_KEY_MAP_B], 
-                                &msg[MSG_KEY_MAP_SL], &msg[MSG_KEY_MAP_ST], &msg[MSG_KEY_MAP_RT], 
-                                &msg[MSG_KEY_MAP_LF], &msg[MSG_KEY_MAP_UP], &msg[MSG_KEY_MAP_DW], 
-                                &msg[MSG_KEY_MAP_R], &msg[MSG_KEY_MAP_L], &msg[MSG_KEY_MAP_X], 
-                                &msg[MSG_KEY_MAP_Y], &msg[MSG_KEY_MAP_TOUCH]
+    char *keyremap_options[] = {(char*) &msg[MSG_KEY_MAP_NONE], (char*) &msg[MSG_KEY_MAP_A], (char*) &msg[MSG_KEY_MAP_B], 
+                                (char*) &msg[MSG_KEY_MAP_SL], (char*) &msg[MSG_KEY_MAP_ST], (char*) &msg[MSG_KEY_MAP_RT], 
+                                (char*) &msg[MSG_KEY_MAP_LF], (char*) &msg[MSG_KEY_MAP_UP], (char*) &msg[MSG_KEY_MAP_DW], 
+                                (char*) &msg[MSG_KEY_MAP_R], (char*) &msg[MSG_KEY_MAP_L], (char*) &msg[MSG_KEY_MAP_X], 
+                                (char*) &msg[MSG_KEY_MAP_Y], (char*) &msg[MSG_KEY_MAP_TOUCH]
                                 };
 
   /*--------------------------------------------------------
@@ -2584,9 +2836,11 @@ u32 menu(u16 *original_screen)
     
         if(display_option == current_option)
         {
-            show_icon(screen_address, ICON_SUBM_ISOLATOR, 7, 33 + line_num*20);
-            show_icon(screen_address, ICON_MENUINDEX, 12, 42 + line_num*20);
-            show_icon(screen_address, ICON_SUBM_ISOLATOR, 7, 53 + line_num*20);
+			// Not sure what that is, so disabled [Neb]
+            //show_icon(down_screen_addr, &ICON_SUBM_ISOLATOR, 7, 33 + line_num*20);
+            show_icon(down_screen_addr, &ICON_SUBSELA, 12, 42 + line_num*20);
+			// Not sure what that is, so disabled [Neb]
+            //show_icon(down_screen_addr, &ICON_SUBM_ISOLATOR, 7, 53 + line_num*20);
         }
     }
 
@@ -2610,32 +2864,37 @@ u32 menu(u16 *original_screen)
         }
     }
 
+	int lastest_game_menu_scroll_value;
     void submenu_latest_game()
     {
         u32 k;
         char *ext_pos;
-        char tmp_path[MAX_PATH];
-
-        sprintf(tmp_path, "%s\\%s", main_path, SUBM_BACKGROUND);
-        show_background(screen_address, tmp_path);
-        if(bg_screenp != NULL)
-            memcpy(bg_screenp, screen_address, 256*192*2);
-        print_status(0);
 
         for(k= 0; k < 5; k++)
         {
-            ext_pos= strrchr(gpsp_config.latest_file[k], '\\');
+            ext_pos= strrchr(gpsp_config.latest_file[k], '/');
             if(ext_pos != NULL)
-                draw_hscroll_init(screen_address, bg_screenp, 27, 38 + (k+1)*20, 200, 
+                draw_hscroll_init(down_screen_addr, OPTION_TEXT_X, 40 + k*27, OPTION_TEXT_SX,
                     COLOR_TRANS, COLOR_INACTIVE_ITEM, ext_pos+1);
-            else
-                break;
+			else
+				break;
         }
+
+		if(k < 5)
+		{
+			latest_game_menu.num_options = k+1;
+		}
+		else
+			latest_game_menu.num_options = 6;
+
+		latest_game_menu.num_options = k+1;
 
         for(; k < 5; k++)
         {
             latest_game_options[k+1].option_type |= HIDEN_TYPE;
         }
+
+		lastest_game_menu_scroll_value = 0;
     }
 
     int plug_mode_load()
@@ -2675,7 +2934,7 @@ u32 menu(u16 *original_screen)
         plug_valid= 0;
         if(plug_mode_load() == 0)
         {
-            if(bg_screenp != NULL) free((int)bg_screenp);
+            if(bg_screenp != NULL) free(bg_screenp);
 
             clear_screen(0);
             flip_screen();
@@ -2701,7 +2960,7 @@ u32 menu(u16 *original_screen)
     {
         first_load = 1;
         memset(original_screen, 0x00, 240 * 160 * 2);
-        draw_string_vcenter(gba_screen_address, 0, 80, 256, COLOR_WHITE, msg[MSG_NON_LOAD_GAME]);
+        draw_string_vcenter(up_screen_addr, 0, 80, 256, COLOR_WHITE, msg[MSG_NON_LOAD_GAME]);
         flip_gba_screen();
 //    PRINT_STRING_EXT_BG(msg[MSG_NON_LOAD_GAME], 0xFFFF, 0x0000, 60, 75, original_screen, 240);
     }
@@ -2720,12 +2979,12 @@ u32 menu(u16 *original_screen)
     if(current_menu == &main_menu)
     {
         sprintf(tmp_path, "%s\\%s", main_path, MENU_BACKGROUND);
-        show_background(screen_address, tmp_path);
+        show_background(down_screen_addr, tmp_path);
     }
     else
     {
         sprintf(tmp_path, "%s\\%s", main_path, SUBM_BACKGROUND);
-        show_background(screen_address, tmp_path);
+        show_background(down_screen_addr, tmp_path);
     }
     print_status(0);
 
@@ -2750,26 +3009,28 @@ u32 menu(u16 *original_screen)
 
           if(display_option == current_option)
           {
-            show_icon(screen_address, ICON_MENU_ISOLATOR, 143, 33 + line_num*16);
-            show_icon(screen_address, ICON_MENUINDEX, 150, 39 + line_num*16);
-            show_icon(screen_address, ICON_MENU_ISOLATOR, 143, 49 + line_num*16);
+			// Not sure what that is, so disabled [Neb]
+            //show_icon(down_screen_addr, &ICON_MENU_ISOLATOR, 143, 33 + line_num*16);
+            show_icon(down_screen_addr, &ICON_SUBSELA, 150, 39 + line_num*16);
+			// Not sure what that is, so disabled [Neb]
+            //show_icon(down_screen_addr, &ICON_MENU_ISOLATOR, 143, 49 + line_num*16);
           }
         }
 
         if(display_option++ == current_option)
-          show_icon(screen_address, ICON_NEWGAME_SLT, 0, 132);
+          show_icon(down_screen_addr, &ICON_MAINITEM, 0, 132);
         else
-          show_icon(screen_address, ICON_NEWGAME, 0, 132);
+          show_icon(down_screen_addr, &ICON_NMAINITEM, 0, 132);
 
         if(display_option++ == current_option)
-          show_icon(screen_address, ICON_RESTGAME_SLT, 70, 132);
+          show_icon(down_screen_addr, &ICON_MAINITEM, 70, 132);
         else
-          show_icon(screen_address, ICON_RESTGAME, 70, 132);
+          show_icon(down_screen_addr, &ICON_NMAINITEM, 70, 132);
 
         if(display_option++ == current_option)
-          show_icon(screen_address, ICON_RETGAME_SLT, 168, 132);
+          show_icon(down_screen_addr, &ICON_MAINITEM, 168, 132);
         else
-          show_icon(screen_address, ICON_RETGAME, 168, 132);
+          show_icon(down_screen_addr, &ICON_NMAINITEM, 168, 132);
     }
     else
     {
@@ -2808,9 +3069,11 @@ u32 menu(u16 *original_screen)
         
                 if(display_option == current_option)
                 {
-                    show_icon(screen_address, ICON_SUBM_ISOLATOR, 7, 33 + line_num*20);
-                    show_icon(screen_address, ICON_MENUINDEX, 12, 42 + line_num*20);
-                    show_icon(screen_address, ICON_SUBM_ISOLATOR, 7, 53 + line_num*20);
+			// Not sure what that is, so disabled [Neb]
+                    //show_icon(down_screen_addr, &ICON_SUBM_ISOLATOR, 7, 33 + line_num*20);
+                    show_icon(down_screen_addr, &ICON_SUBSELA, 12, 42 + line_num*20);
+			// Not sure what that is, so disabled [Neb]
+                    //show_icon(down_screen_addr, &ICON_SUBM_ISOLATOR, 7, 53 + line_num*20);
                 }
             }
         }
@@ -2947,7 +3210,7 @@ u32 menu(u16 *original_screen)
   clear_gba_screen(0);
   flip_gba_screen();  
   
-  if(bg_screenp != NULL) free((int)bg_screenp);
+  if(bg_screenp != NULL) free(bg_screenp);
 
 // menu終了時の処理
   button_up_wait();
@@ -3129,11 +3392,6 @@ int load_language_msg(char *filename, u32 language)
         strcpy(start, "STARTENGLISH");
         strcpy(end, "ENDENGLISH");
         cmplen= 12;
-        break;
-    case CHINESE_SIMPLIFIED:
-        strcpy(start, "STARTCHINESESIM");
-        strcpy(end, "ENDCHINESESIM");
-        cmplen= 15;
         break;
     default:
         strcpy(start, "STARTENGLISH");
@@ -3504,7 +3762,7 @@ printf("Open %s failure\n", savestate_path);
 
 get_savestate_snapshot_error:
     if(fp != NULL)  fclose(fp);
-    draw_string_vcenter(gba_screen_address, 29, 75, 198, COLOR_WHITE, msg[MSG_SAVESTATE_SLOT_EMPTY]);
+    draw_string_vcenter(up_screen_addr, 29, 75, 198, COLOR_WHITE, msg[MSG_SAVESTATE_SLOT_EMPTY]);
     flip_gba_screen();
 printf("Read %s failure\n", savestate_path);
     return NULL;
@@ -3622,8 +3880,9 @@ static void print_status(u32 mode)
 //        current_time.minutes, current_time.seconds, 0);
 //    sprintf(print_buffer_2,"%s%s", msg[MSG_MENU_DATE], print_buffer_1);
     get_time_string(print_buffer_1, &current_time);
-    PRINT_STRING_BG(print_buffer_1, COLOR_BLACK, COLOR_TRANS, 44, 176);
-    PRINT_STRING_BG(print_buffer_1, COLOR_HELP_TEXT, COLOR_TRANS, 43, 175);
+	// Disabled [Neb]
+    //PRINT_STRING_BG(print_buffer_1, COLOR_BLACK, COLOR_TRANS, 44, 176);
+    //PRINT_STRING_BG(print_buffer_1, COLOR_HELP_TEXT, COLOR_TRANS, 43, 175);
 
 //    sprintf(print_buffer_1, "nGBA Ver:%d.%d", VERSION_MAJOR, VERSION_MINOR);
 //    PRINT_STRING_BG(print_buffer_1, COLOR_HELP_TEXT, COLOR_BG, 0, 0);
@@ -3646,6 +3905,7 @@ static void print_status(u32 mode)
 //  }
 }
 
+#if 0
 #define PSP_SYSTEMPARAM_DATE_FORMAT_YYYYMMDD	0
 #define PSP_SYSTEMPARAM_DATE_FORMAT_MMDDYYYY	1
 #define PSP_SYSTEMPARAM_DATE_FORMAT_DDMMYYYY	2
@@ -3694,6 +3954,7 @@ static void get_time_string(char *buff, struct rtc *rtcp)
                             rtcp -> seconds,
                             0);
 }
+#endif
 
 static u32 save_ss_bmp(u16 *image)
 {

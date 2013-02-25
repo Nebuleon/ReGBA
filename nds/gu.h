@@ -38,8 +38,9 @@
 #define FRAME_GAME 0
 #define FRAME_MENU 1
 
-#define SCREEN_WIDTH    NDS_SCREEN_WIDTH
-#define SCREEN_HEIGHT   NDS_SCREEN_HEIGHT
+// Already provided by ds2io.h on the Supercard DSTwo port.
+// #define SCREEN_WIDTH    NDS_SCREEN_WIDTH
+// #define SCREEN_HEIGHT   NDS_SCREEN_HEIGHT
 
 typedef enum
 {
