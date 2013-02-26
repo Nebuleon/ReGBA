@@ -33,26 +33,26 @@ NM           = $(CROSS)nm
 OBJDUMP      = $(CROSS)objdump
 
 # - - - Sources and objects - - -
-C_SOURCES    = nds/gpsp_main.c    \
-               nds/cpu_common.c   \
-               nds/cpu_asm.c      \
-               nds/video.c       \
-               nds/gu.c          \
-               nds/memory.c      \
-               nds/sound.c       \
-               nds/input.c       \
-               nds/gui.c         \
-               nds/cheats.c      \
-               nds/bios.c        \
-               nds/draw.c        \
-               nds/bdf_font.c    \
-               nds/unicode.c     \
-               nds/zip.c         \
-               nds/bitmap.c      \
-               nds/ds2_main.c
-# nds/cpu_c.c
+C_SOURCES    = source/nds/gpsp_main.c    \
+               source/nds/cpu_common.c   \
+               source/nds/cpu_asm.c      \
+               source/nds/video.c       \
+               source/nds/gu.c          \
+               source/nds/memory.c      \
+               source/nds/sound.c       \
+               source/nds/input.c       \
+               source/nds/gui.c         \
+               source/nds/cheats.c      \
+               source/nds/bios.c        \
+               source/nds/draw.c        \
+               source/nds/bdf_font.c    \
+               source/nds/unicode.c     \
+               source/nds/zip.c         \
+               source/nds/bitmap.c      \
+               source/nds/ds2_main.c
+# source/nds/cpu_c.c
 CPP_SOURCES  = 
-ASM_SOURCES  = nds/mips_stub.S
+ASM_SOURCES  = source/nds/mips_stub.S
 SOURCES      = $(C_SOURCES) $(CPP_SOURCES) $(ASM_SOURCES)
 C_OBJECTS    = $(C_SOURCES:.c=.o)
 CPP_OBJECTS  = $(CPP_SOURCES:.cpp=.o)
