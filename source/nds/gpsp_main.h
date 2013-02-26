@@ -27,7 +27,7 @@
 
 #include "message.h"
 
-#define LANGUAGE_PACK   "SYSTEM\\language.msg"
+#define LANGUAGE_PACK   "SYSTEM/language.msg"
 
 /******************************************************************************
  * マクロ等の定義

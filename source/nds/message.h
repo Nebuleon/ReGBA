@@ -171,6 +171,7 @@ enum MSG
 
 enum LANGUAGE{
     ENGLISH,
+	CHINESE_SIMPLIFIED
 };
 
 extern char* lang[1]; // Allocated in gui.c, needs to match the languages ^
