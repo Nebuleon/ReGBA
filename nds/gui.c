@@ -28,6 +28,8 @@
  ******************************************************************************/
 #include "common.h"
 #include "gui.h"
+#include "input.h"
+#include "draw.h"
 
 // If adding a language, make sure you update the size of the array in
 // message.h too.
@@ -36,7 +38,7 @@ char *lang[1] =
 		"English",					// 0
 	};
 
-char *language_options[] = { (char *) &lang[0], (char *) &lang[1] };
+char *language_options[] = { (char *) &lang[0] };
 
 /******************************************************************************
  * 宏定义
@@ -53,11 +55,7 @@ char *language_options[] = { (char *) &lang[0], (char *) &lang[1] };
 
 #define NDSGBA_VERSION "1.0"
 
-#define FILE_BACKGROUND "SYSTEM\\GUI\\filebg.bmp"
-#define MENU_BACKGROUND "SYSTEM\\GUI\\menubg.bmp"
-#define SUBM_BACKGROUND "SYSTEM\\GUI\\submbg.bmp"
-
-#define GPSP_CONFIG_FILENAME "SYSTEM\\ndsgba.cfg"
+#define GPSP_CONFIG_FILENAME "SYSTEM/ndsgba.cfg"
 
 // dsGBA的一套头文件
 // 标题 4字节
@@ -330,7 +328,6 @@ static void get_time_string(char *buff, struct rtc *rtcp);
 #endif
 static u32 save_ss_bmp(u16 *image);
 void _flush_cache();
-void button_up_wait();
 static void init_default_gpsp_config();
 
 static int sort_function(const void *dest_str_ptr, const void *src_str_ptr)
@@ -1482,7 +1479,7 @@ void load_game_config_file(void)
     // 设置初始值
     init_game_config();
 
-    sprintf(game_config_filename, "%s\\%s", DEFAULT_CFG_DIR, gamepak_filename);
+    sprintf(game_config_filename, "%s/%s", DEFAULT_CFG_DIR, gamepak_filename);
     pt= strrchr(game_config_filename, '.');
     *pt= 0;
     strcat(game_config_filename, "_0.rts");
@@ -1513,7 +1510,7 @@ s32 load_config_file()
     FILE_ID gpsp_config_file;
     char *pt;
 
-    sprintf(gpsp_config_path, "%s\\%s", main_path, GPSP_CONFIG_FILENAME);
+    sprintf(gpsp_config_path, "%s/%s", main_path, GPSP_CONFIG_FILENAME);
     FILE_OPEN(gpsp_config_file, gpsp_config_path, READ);
 
     if(FILE_CHECK_VALID(gpsp_config_file))
@@ -1539,11 +1536,11 @@ s32 load_config_file()
 void initial_gpsp_config()
 {
     //Initial directory path
-    sprintf(g_default_rom_dir, "%s\\GAMEPAK", main_path);
-    sprintf(DEFAULT_SAVE_DIR, "%s\\GAMERTS", main_path);
-    sprintf(DEFAULT_CFG_DIR, "%s\\GAMERTS", main_path);
-    sprintf(DEFAULT_SS_DIR, "%s\\GAMEPIC", main_path);
-    sprintf(DEFAULT_CHEAT_DIR, "%s\\GAMECHT", main_path);
+    sprintf(g_default_rom_dir, "%s/GAMEPAK", main_path);
+    sprintf(DEFAULT_SAVE_DIR, "%s/GAMERTS", main_path);
+    sprintf(DEFAULT_CFG_DIR, "%s/GAMERTS", main_path);
+    sprintf(DEFAULT_SS_DIR, "%s/GAMEPIC", main_path);
+    sprintf(DEFAULT_CHEAT_DIR, "%s/GAMECHT", main_path);
 }
 
 /*--------------------------------------------------------
@@ -1703,7 +1700,7 @@ u32 menu(u16 *original_screen)
   void clear_savestate_slot(u32 slot_index)
   {
     get_savestate_filename(slot_index, current_savestate_filename);
-    sprintf(line_buffer, "%s\\%s", DEFAULT_SAVE_DIR, current_savestate_filename);
+    sprintf(line_buffer, "%s/%s", DEFAULT_SAVE_DIR, current_savestate_filename);
     unlink(line_buffer);
     if(savestate_map[slot_index] > 0)
         savestate_map[slot_index]= -savestate_map[slot_index];
@@ -1764,7 +1761,6 @@ u32 menu(u16 *original_screen)
             }
 
             flip_screen();
-            OSTimeDly(200/2);
         }
     }
   }
@@ -1797,18 +1793,19 @@ u32 menu(u16 *original_screen)
                 draw_string_vcenter(down_screen_addr, 29, 80, 198, COLOR_WHITE, msg[MSG_SAVESTATE_FILE_BAD]);
                 flip_screen();
 
-                button_up_wait();
+                wait_Allkey_release(0);
                 if(gui_action == CURSOR_SELECT)
                 {
                     gui_action_type gui_action = CURSOR_NONE;
                     while(gui_action == CURSOR_NONE)
                     {
                         gui_action = get_gui_input();
-                        OSTimeDly(200/10);
+                        //OSTimeDly(200/10);
                     }
                 }
                 else
-                    OSTimeDly(200/2);
+                    //OSTimeDly(200/2)
+			;
                 return;
             }
 
@@ -1898,13 +1895,13 @@ u32 menu(u16 *original_screen)
         strcpy(line_buffer, *(display_option->display_string));
         line_num= display_option-> line_number;
         if(display_option == current_option)
-            PRINT_STRING_BG_UTF8(line_buffer, COLOR_ACTIVE_ITEM, COLOR_TRANS, 27, 38 + line_num*20);
+            PRINT_STRING_BG(down_screen_addr, line_buffer, COLOR_ACTIVE_ITEM, COLOR_TRANS, 27, 38 + line_num*20);
         else
-            PRINT_STRING_BG_UTF8(line_buffer, COLOR_INACTIVE_ITEM, COLOR_TRANS, 27, 38 + line_num*20);
+            PRINT_STRING_BG(down_screen_addr, line_buffer, COLOR_INACTIVE_ITEM, COLOR_TRANS, 27, 38 + line_num*20);
 
         slot_index= get_savestate_slot();
         sprintf(line_buffer, "%d", (slot_index+2) > 32 ? 32 : (slot_index+2));
-        PRINT_STRING_BG_UTF8(line_buffer, COLOR_INACTIVE_ITEM, COLOR_TRANS, 151,
+        PRINT_STRING_BG(down_screen_addr, line_buffer, COLOR_INACTIVE_ITEM, COLOR_TRANS, 151,
             38 + 1*20);
         
         if(display_option == current_option)
@@ -1927,9 +1924,9 @@ u32 menu(u16 *original_screen)
 
         line_num= display_option-> line_number;
         if(display_option == current_option)
-            PRINT_STRING_BG_UTF8(line_buffer, COLOR_ACTIVE_ITEM, COLOR_TRANS, 27, 38 + line_num*20);
+            PRINT_STRING_BG(down_screen_addr, line_buffer, COLOR_ACTIVE_ITEM, COLOR_TRANS, 27, 38 + line_num*20);
         else
-            PRINT_STRING_BG_UTF8(line_buffer, COLOR_INACTIVE_ITEM, COLOR_TRANS, 27, 38 + line_num*20);
+            PRINT_STRING_BG(down_screen_addr, line_buffer, COLOR_INACTIVE_ITEM, COLOR_TRANS, 27, 38 + line_num*20);
 
         if(display_option == current_option)
         {
@@ -1954,9 +1951,9 @@ u32 menu(u16 *original_screen)
 
         line_num= display_option-> line_number;
         if(display_option == current_option)
-            PRINT_STRING_BG_UTF8(line_buffer, COLOR_ACTIVE_ITEM, COLOR_TRANS, 27, 38 + line_num*20);
+            PRINT_STRING_BG(down_screen_addr, line_buffer, COLOR_ACTIVE_ITEM, COLOR_TRANS, 27, 38 + line_num*20);
         else
-            PRINT_STRING_BG_UTF8(line_buffer, COLOR_INACTIVE_ITEM, COLOR_TRANS, 27, 38 + line_num*20);
+            PRINT_STRING_BG(down_screen_addr, line_buffer, COLOR_INACTIVE_ITEM, COLOR_TRANS, 27, 38 + line_num*20);
 
         if(display_option == current_option)
         {
@@ -2064,7 +2061,7 @@ u32 menu(u16 *original_screen)
         else
             bg_screenp_color = COLOR_BG;
 
-        button_up_wait();
+        wait_Allkey_release(0);
 
         if(current_option_num == 1)         //delette all
         {
@@ -2085,7 +2082,7 @@ u32 menu(u16 *original_screen)
                     for(i= 0; i < 32; i++)
                     {
                         get_savestate_filename(i, current_savestate_filename);
-                        sprintf(line_buffer, "%s\\%s", DEFAULT_SAVE_DIR, current_savestate_filename);
+                        sprintf(line_buffer, "%s/%s", DEFAULT_SAVE_DIR, current_savestate_filename);
                         unlink(line_buffer);
                         if(savestate_map[i] > 0)
                             savestate_map[i]= -savestate_map[i];
@@ -2098,7 +2095,6 @@ u32 menu(u16 *original_screen)
                 draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
                 draw_string_vcenter(down_screen_addr, 29, 90, 198, COLOR_WHITE, msg[MSG_DELETTE_SAVESTATE_NOTHING]);
                 flip_screen();
-                OSTimeDly(200/2);
             }
         }
         else if(current_option_num == 2)    //delette single
@@ -2117,7 +2113,6 @@ u32 menu(u16 *original_screen)
             {
                 draw_string_vcenter(down_screen_addr, 29, 90, 198, COLOR_WHITE, msg[MSG_DELETTE_SAVESTATE_NOTHING]);
                 flip_screen();
-                OSTimeDly(200/2);
             }
         }
     }
@@ -2125,7 +2120,7 @@ u32 menu(u16 *original_screen)
 
     void save_screen_snapshot()
     {
-        if((gui_action == CURSOR_SELECT))
+        if(gui_action == CURSOR_SELECT)
         {
             if(bg_screenp != NULL)
             {
@@ -2138,20 +2133,20 @@ u32 menu(u16 *original_screen)
             draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
             if(!first_load)
             {
-                draw_string_vcenter(down_screen_addr, 29, 70, 198, COLOR_WHITE, msg[MSG_SAVE_SNAPSHOT]);
-                flip_screen();
-                if(save_ss_bmp(original_screen))
-                    draw_string_vcenter(down_screen_addr, 29, 90, 198, COLOR_WHITE, msg[MSG_SAVE_SNAPSHOT_COMPLETE]);
+                draw_string_vcenter(down_screen_addr, 36, 70, 190, COLOR_MSSG, msg[MSG_PROGRESS_SCREENSHOT_CREATING]);
+                ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
+                if(save_ss_bmp(up_screen_addr)) // TODO preserved screen [Neb]
+                    draw_string_vcenter(down_screen_addr, 36, 90, 190, COLOR_MSSG, msg[MSG_PROGRESS_SCREENSHOT_CREATION_SUCCEEDED]);
                 else
-                    draw_string_vcenter(down_screen_addr, 29, 90, 198, COLOR_WHITE, msg[MSG_SAVE_SNAPSHOT_FAILURE]);
-                flip_screen();
-                OSTimeDly(200/2);
+                    draw_string_vcenter(down_screen_addr, 36, 90, 190, COLOR_MSSG, msg[MSG_PROGRESS_SCREENSHOT_CREATION_FAILED]);
+                ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
+				mdelay(500);
             }
             else
             {
-                draw_string_vcenter(down_screen_addr, 29, 90, 198, COLOR_WHITE, msg[MSG_SAVESTATE_SLOT_EMPTY]);
-                flip_screen();
-                OSTimeDly(200/2);
+                draw_string_vcenter(down_screen_addr, 36, 90, 190, COLOR_MSSG, msg[MSG_TOP_SCREEN_NO_SAVED_STATE_IN_SLOT]);
+                ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
+				mdelay(500);
             }
         }
     }
@@ -2269,7 +2264,7 @@ u32 menu(u16 *original_screen)
             draw_string_vcenter(down_screen_addr, 29, 80, 198, COLOR_WHITE, msg[MSG_DEFAULT_LOADING]);
             flip_screen();
 
-            sprintf(line_buffer, "%s\\%s", main_path, GPSP_CONFIG_FILENAME);
+            sprintf(line_buffer, "%s/%s", main_path, GPSP_CONFIG_FILENAME);
             unlink(line_buffer);
 
             first_load= 1;
@@ -2279,8 +2274,6 @@ u32 menu(u16 *original_screen)
             clear_gba_screen(0);
             draw_string_vcenter(up_screen_addr, 0, 80, 256, COLOR_WHITE, msg[MSG_NON_LOAD_GAME]);
             flip_gba_screen();
-
-            OSTimeDly(200/2);
         }
     }
 
@@ -2304,7 +2297,6 @@ u32 menu(u16 *original_screen)
         while(gui_action == CURSOR_NONE)
         {
             gui_action = get_gui_input();
-            OSTimeDly(200/10);
         }
     }
 
@@ -2341,10 +2333,10 @@ u32 menu(u16 *original_screen)
             draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
             draw_string_vcenter(down_screen_addr, 30, 75, 196, COLOR_WHITE, msg[MSG_LOADING_GAME]);
 
-            ext_pos= strrchr(gpsp_config.latest_file[current_option_num -1], '\\');
+            ext_pos= strrchr(gpsp_config.latest_file[current_option_num -1], '/');
             *ext_pos= '\0';
             strcpy(rom_path, gpsp_config.latest_file[current_option_num -1]);
-            *ext_pos= '\\';
+            *ext_pos= '/';
             if(load_gamepak(ext_pos+1) == -1)
                 return;
             load_game_config_file();
@@ -2438,8 +2430,6 @@ u32 menu(u16 *original_screen)
                 draw_string_vcenter(up_screen_addr, 0, 80, 256, COLOR_WHITE, msg[MSG_NON_LOAD_GAME]);
                 flip_gba_screen();
             }
-
-            OSTimeDly(200/2);
         }
     }
 
@@ -2842,7 +2832,7 @@ u32 menu(u16 *original_screen)
         else
             color= COLOR_INACTIVE_ITEM;
     
-        PRINT_STRING_BG_UTF8(line_buffer, COLOR_INACTIVE_ITEM, COLOR_TRANS, 27,
+        PRINT_STRING_BG(down_screen_addr, line_buffer, COLOR_INACTIVE_ITEM, COLOR_TRANS, 27,
             38 + line_num*20);
     
         if(display_option == current_option)
@@ -2931,7 +2921,7 @@ u32 menu(u16 *original_screen)
   // Menu 处理
 //    set_cpu_clock(1);
 
-    button_up_wait();
+    wait_Allkey_release(0);
 
 //    game_fastforward();
     bg_screenp= (u16*)malloc(256*192*2);
@@ -2992,13 +2982,11 @@ u32 menu(u16 *original_screen)
     char tmp_path[MAX_PATH];
     if(current_menu == &main_menu)
     {
-        sprintf(tmp_path, "%s\\%s", main_path, MENU_BACKGROUND);
-        show_background(down_screen_addr, tmp_path);
+	show_icon(down_screen_addr, &ICON_MAINBG, 0, 0);
     }
     else
     {
-        sprintf(tmp_path, "%s\\%s", main_path, SUBM_BACKGROUND);
-        show_background(down_screen_addr, tmp_path);
+	show_icon(down_screen_addr, &ICON_SUBBG, 0, 0);
     }
     print_status(0);
 
@@ -3019,7 +3007,7 @@ u32 menu(u16 *original_screen)
           else
             color= COLOR_INACTIVE_ITEM;
 
-          PRINT_STRING_BG_UTF8(line_buffer, color, COLOR_TRANS, 160, 35 + line_num*16);
+          PRINT_STRING_BG(down_screen_addr, line_buffer, color, COLOR_TRANS, 160, 35 + line_num*16);
 
           if(display_option == current_option)
           {
@@ -3078,7 +3066,7 @@ u32 menu(u16 *original_screen)
                 else
                     color= COLOR_INACTIVE_ITEM;
         
-                PRINT_STRING_BG_UTF8(line_buffer, color, COLOR_TRANS, 27,
+                PRINT_STRING_BG(down_screen_addr, line_buffer, color, COLOR_TRANS, 27,
                     38 + line_num*20);
         
                 if(display_option == current_option)
@@ -3093,7 +3081,7 @@ u32 menu(u16 *original_screen)
         }
     }
 
-//    PRINT_STRING_BG(current_option->help_string, COLOR_HELP_TEXT, COLOR_BG, 30, 210);
+//    PRINT_STRING_BG(down_screen_addr, current_option->help_string, COLOR_HELP_TEXT, COLOR_BG, 30, 210);
 
     gui_action = get_gui_input();
     if(gui_action == CURSOR_TOUCH)
@@ -3218,7 +3206,7 @@ u32 menu(u16 *original_screen)
   flip_screen();
   clear_gba_screen(0);
   flip_gba_screen();  
-  OSTimeDly(200/10);
+  mdelay(100);
   clear_screen(0);
   flip_screen();
   clear_gba_screen(0);
@@ -3227,7 +3215,7 @@ u32 menu(u16 *original_screen)
   if(bg_screenp != NULL) free(bg_screenp);
 
 // menu終了時の処理
-  button_up_wait();
+  wait_Allkey_release(0);
 //  set_cpu_clock(2);
 
   return return_value;
@@ -3242,7 +3230,7 @@ u32 load_dircfg(char *file_name)  // TODO: Working directory configure
   FILE *msg_file;
   char msg_path[MAX_PATH];
 
-  sprintf(msg_path, "%s\\%s", main_path, file_name);
+  sprintf(msg_path, "%s/%s", main_path, file_name);
   msg_file = fopen(msg_path, "r");
 
   next_line = 0;
@@ -3254,7 +3242,7 @@ u32 load_dircfg(char *file_name)  // TODO: Working directory configure
 
       if(parse_line(current_line, current_str) != -1)
       {
-        sprintf(current_line, "%s\\%s", main_path, current_str+2);
+        sprintf(current_line, "%s/%s", main_path, current_str+2);
 
         switch(loop)
         {
@@ -3339,7 +3327,7 @@ u32 load_fontcfg(char *file_name)  // TODO:スマートな実装に書き直す
   FILE *msg_file;
   char msg_path[MAX_PATH];
 
-  sprintf(msg_path, "%s\\%s", main_path, file_name);
+  sprintf(msg_path, "%s/%s", main_path, file_name);
 
   m_font[0] = '\0';
   s_font[0] = '\0';
@@ -3354,7 +3342,7 @@ u32 load_fontcfg(char *file_name)  // TODO:スマートな実装に書き直す
     {
       if(parse_line(current_line, current_str) != -1)
       {
-        sprintf(current_line, "%s\\%s", main_path, current_str+2);
+        sprintf(current_line, "%s/%s", main_path, current_str+2);
 printf("main_path %s\n", main_path);
 printf("current_str %s\n", current_str);
         switch(loop)
@@ -3395,7 +3383,7 @@ int load_language_msg(char *filename, u32 language)
     u32 loop, offset, len;
     int ret;
 
-    sprintf(msg_path, "%s\\%s", main_path, filename);
+    sprintf(msg_path, "%s/%s", main_path, filename);
     fp = fopen(msg_path, "rb");
     if(fp == NULL)
         return -1;
@@ -3527,7 +3515,7 @@ s32 save_game_config_file()
     memcpy(game_config.gamepad_config_map, gamepad_config_map, sizeof(game_config.gamepad_config_map));
     game_config.gamepad_config_home = gamepad_config_home;
 
-    sprintf(game_config_filename, "%s\\%s", DEFAULT_CFG_DIR, gamepak_filename);
+    sprintf(game_config_filename, "%s/%s", DEFAULT_CFG_DIR, gamepak_filename);
     pt = strrchr(game_config_filename, '.');
     *pt = '\0';
     strcat(pt, "_0.rts");
@@ -3552,7 +3540,7 @@ s32 save_config_file()
     char gpsp_config_path[MAX_PATH];
     FILE_ID gpsp_config_file;
 
-    sprintf(gpsp_config_path, "%s\\%s", main_path, GPSP_CONFIG_FILENAME);
+    sprintf(gpsp_config_path, "%s/%s", main_path, GPSP_CONFIG_FILENAME);
 
     if(game_config.use_default_gamepad_map == 1)
         memcpy(gpsp_config.gamepad_config_map, gamepad_config_map, sizeof(gpsp_config.gamepad_config_map));
@@ -3583,7 +3571,7 @@ void reorder_latest_file(void)
 
     for(i= 0; i < 5; i++)
     {
-        ext_pos= strrchr(gpsp_config.latest_file[i], '\\');
+        ext_pos= strrchr(gpsp_config.latest_file[i], '/');
         if(ext_pos != NULL)
         {
             ext_pos1= strrchr(ext_pos + 1, '.');
@@ -3617,7 +3605,7 @@ void reorder_latest_file(void)
     {
         if(gpsp_config.latest_file[i][0] == '\0')
         {
-            sprintf(gpsp_config.latest_file[i], "%s\\%s", rom_path, gamepak_filename);
+            sprintf(gpsp_config.latest_file[i], "%s/%s", rom_path, gamepak_filename);
             break;
         }
     }
@@ -3628,7 +3616,7 @@ void reorder_latest_file(void)
     for(i=1; i < 5; i++)
         strcpy(gpsp_config.latest_file[i-1], gpsp_config.latest_file[i]);
         
-    sprintf(gpsp_config.latest_file[i-1], "%s\\%s", rom_path, gamepak_filename);
+    sprintf(gpsp_config.latest_file[i-1], "%s/%s", rom_path, gamepak_filename);
 }
 
 
@@ -3681,7 +3669,7 @@ static void get_savestate_filelist(void)
         printf("%d  %d\n", i, savestate_map[i]);
     }
 */
-    sprintf(savestate_path, "%s\\%s", DEFAULT_SAVE_DIR, gamepak_filename);
+    sprintf(savestate_path, "%s/%s", DEFAULT_SAVE_DIR, gamepak_filename);
     pt= strrchr(savestate_path, '.');
     for(i= 0; i < 32; i++)
     {
@@ -3743,7 +3731,7 @@ static FILE* get_savestate_snapshot(char *savestate_filename)
 
     clear_gba_screen(COLOR_BLACK);
 
-    sprintf(savestate_path, "%s\\%s", DEFAULT_SAVE_DIR, savestate_filename);
+    sprintf(savestate_path, "%s/%s", DEFAULT_SAVE_DIR, savestate_filename);
     fp= fopen(savestate_path, "r");
     if(fp == NULL)
     {
@@ -3767,8 +3755,8 @@ printf("Open %s failure\n", savestate_path);
 
     if(pt[0] != 0x5A || pt[1] != 0x3C) goto get_savestate_snapshot_error;
 
-    get_time_string(pt, &current_time);
-    PRINT_STRING_GBA_UTF8(pt, COLOR_WHITE, COLOR_TRANS, 5, 0);
+    //get_time_string(pt, &current_time);
+    //PRINT_STRING_GBA_UTF8(pt, COLOR_WHITE, COLOR_TRANS, 5, 0);
 
     blit_to_screen(snapshot_buffer, 240, 160, -1, -1);
     flip_gba_screen();
@@ -3885,7 +3873,8 @@ static void print_status(u32 mode)
     struct rtc  current_time;
 //  pspTime current_time;
 
-    get_nds_time(&current_time);
+	// Disabled [Neb]
+    //get_nds_time(&current_time);
 //  sceRtcGetCurrentClockLocalTime(&current_time);
 //  int wday = sceRtcGetDayOfWeek(current_time.year, current_time.month , current_time.day);
 
@@ -3893,21 +3882,22 @@ static void print_status(u32 mode)
 //        current_time.month , current_time.day, current_time.weekday, current_time.hours,
 //        current_time.minutes, current_time.seconds, 0);
 //    sprintf(print_buffer_2,"%s%s", msg[MSG_MENU_DATE], print_buffer_1);
-    get_time_string(print_buffer_1, &current_time);
+
 	// Disabled [Neb]
-    //PRINT_STRING_BG(print_buffer_1, COLOR_BLACK, COLOR_TRANS, 44, 176);
-    //PRINT_STRING_BG(print_buffer_1, COLOR_HELP_TEXT, COLOR_TRANS, 43, 175);
+    // get_time_string(print_buffer_1, &current_time);
+    //PRINT_STRING_BG(down_screen_addr, print_buffer_1, COLOR_BLACK, COLOR_TRANS, 44, 176);
+    //PRINT_STRING_BG(down_screen_addr, print_buffer_1, COLOR_HELP_TEXT, COLOR_TRANS, 43, 175);
 
 //    sprintf(print_buffer_1, "nGBA Ver:%d.%d", VERSION_MAJOR, VERSION_MINOR);
-//    PRINT_STRING_BG(print_buffer_1, COLOR_HELP_TEXT, COLOR_BG, 0, 0);
+//    PRINT_STRING_BG(down_screen_addr, print_buffer_1, COLOR_HELP_TEXT, COLOR_BG, 0, 0);
 
 //  sprintf(print_buffer_1, msg[MSG_MENU_BATTERY], scePowerGetBatteryLifePercent(), scePowerGetBatteryLifeTime());
-//  PRINT_STRING_BG(print_buffer_1, COLOR_HELP_TEXT, COLOR_BG, 240, 0);
+//  PRINT_STRING_BG(down_screen_addr, print_buffer_1, COLOR_HELP_TEXT, COLOR_BG, 240, 0);
 
 //    sprintf(print_buffer_1, "MAX ROM BUF: %02d MB Ver:%d.%d %s %d Build %d",
 //        (int)(gamepak_ram_buffer_size/1024/1024), VERSION_MAJOR, VERSION_MINOR,
 //        VER_RELEASE, VERSION_BUILD, BUILD_COUNT);
-//    PRINT_STRING_BG(print_buffer_1, COLOR_HELP_TEXT, COLOR_BG, 10, 0);
+//    PRINT_STRING_BG(down_screen_addr, print_buffer_1, COLOR_HELP_TEXT, COLOR_BG, 10, 0);
 
 //  if (mode == 0)
 //  {
@@ -3915,7 +3905,7 @@ static void print_status(u32 mode)
 //    PRINT_STRING_BG_SJIS(utf8, print_buffer_1, COLOR_ROM_INFO, COLOR_BG, 10, 10);
 //    sprintf(print_buffer_1, "%s  %s  %s  %0X", gamepak_title, gamepak_code,
 //        gamepak_maker, (unsigned int)gamepak_crc32);
-//    PRINT_STRING_BG(print_buffer_1, COLOR_ROM_INFO, COLOR_BG, 10, 20);
+//    PRINT_STRING_BG(down_screen_addr, print_buffer_1, COLOR_ROM_INFO, COLOR_BG, 10, 20);
 //  }
 }
 
@@ -3974,47 +3964,45 @@ static u32 save_ss_bmp(u16 *image)
 {
     static unsigned char header[] ={ 'B',  'M',  0x00, 0x00, 0x00, 0x00, 0x00,
                                     0x00, 0x00, 0x00, 0x36, 0x00, 0x00, 0x00,
-                                    0x28, 0x00, 0x00, 0x00,  240, 0x00, 0x00,
-                                    0x00,  160, 0x00, 0x00, 0x00, 0x01, 0x00,
+                                    0x28, 0x00, 0x00, 0x00,  0, 0x01, 0x00,
+                                    0x00,  192, 0x00, 0x00, 0x00, 0x01, 0x00,
                                     0x18, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                                     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                                     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                                     0x00, 0x00, 0x00, 0x00, 0x00};
 
     char ss_filename[MAX_FILE];
-    char timestamp[MAX_FILE];
     char save_ss_path[MAX_PATH];
     struct rtc current_time;
-    char rgb_data[240*160*3];
-    u8 x,y;
-    u16 col;
-    u8 r,g,b;
+    char rgb_data[256*192*3];
+    unsigned int x,y;
+    unsigned short col;
+    unsigned char r,g,b;
 
     change_ext(gamepak_filename, ss_filename, "_");
-    get_nds_time(&current_time);
-    sprintf(save_ss_path, "%s\\%s%02d%02d%02d%02d%02d.bmp", DEFAULT_SS_DIR, ss_filename, 
+	ds2_getTime(&current_time);
+    sprintf(save_ss_path, "%s/%s%02d%02d%02d%02d%02d.bmp", DEFAULT_SS_DIR, ss_filename,
     current_time.month, current_time.day, current_time.hours, current_time.minutes, current_time.seconds);
 
-    for(y = 0; y < 160; y++)
+    for(y = 0; y < 192; y++)
     {
-        for(x = 0; x < 240; x++)
+        for(x = 0; x < 256; x++)
         {
-            col = image[x + y * 240];
+            col = image[x + y * 256];
             r = (col >> 10) & 0x1F;
             g = (col >> 5) & 0x1F;
             b = (col) & 0x1F;
 
-            rgb_data[(159-y)*240*3+x*3+2] = b << 3;
-            rgb_data[(159-y)*240*3+x*3+1] = g << 3;
-            rgb_data[(159-y)*240*3+x*3+0] = r << 3;
+            rgb_data[(191-y)*256*3+x*3+2] = b << 3;
+            rgb_data[(191-y)*256*3+x*3+1] = g << 3;
+            rgb_data[(191-y)*256*3+x*3+0] = r << 3;
         }
     }
 
     FILE *ss = fopen( save_ss_path, "wb" );
     if( ss == NULL ) return 0;
-
     fwrite( header, sizeof(header), 1, ss );
-    fwrite( rgb_data, 240*160*3, 1, ss);
+    fwrite( rgb_data, 1, 256*192*3, ss);
     fclose( ss );
 
     return 1;
@@ -4024,4 +4012,81 @@ void _flush_cache()
 {
 //    sceKernelDcacheWritebackAll();
     invalidate_all_cache();
+}
+void gui_init(u32 lang_id)
+{
+	int flag;
+
+	// HighFrequencyCPU(); // Crank it up. When the menu starts, -> 0.
+	// Enable this later [Neb]
+
+    //Find the "TEMPGBA" system directory
+    DIR *current_dir;
+
+    strcpy(main_path, "fat:/TEMPGBA");
+
+    current_dir = opendir(main_path);
+    if(current_dir)
+        closedir(current_dir);
+    else
+    {
+        strcpy(main_path, "fat:/_SYSTEM/PLUGINS/TEMPGBA");
+        current_dir = opendir(main_path);
+        if(current_dir)
+            closedir(current_dir);
+        else
+        {
+            strcpy(main_path, "fat:");
+            if(search_dir("TEMPGBA", main_path) == 0)
+            {
+                printf("Found TEMPGBA directory\r\nDossier TEMPGBA trouve\r\n\r\n%s\r\n", main_path);
+            }
+            else
+            {
+				err_msg(DOWN_SCREEN, "/TEMPGBA: Directory missing\r\nPress any key to return to\r\nthe menu\r\n\r\n/TEMPGBA: Dossier manquant\r\nAppuyer sur une touche pour\r\nretourner au menu");
+                goto gui_init_err;
+            }
+        }
+    }
+
+	show_log(down_screen_addr);
+	ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
+
+	flag = icon_init(lang_id);
+	if(0 != flag)
+	{
+		err_msg(DOWN_SCREEN, "Some icons are missing\r\nLoad them onto your card\r\nPress any key to return to\r\nthe menu\r\n\r\nDes icones sont manquantes\r\nChargez-les sur votre carte\r\nAppuyer sur une touche pour\r\nretourner au menu");
+		goto gui_init_err;
+	}
+
+
+	flag = load_font();
+	if(0 != flag)
+	{
+		char message[512];
+		sprintf(message, "Font library initialisation\r\nerror (%d)\r\nPress any key to return to\r\nthe menu\r\n\r\nErreur d'initalisation de la\r\npolice de caracteres (%d)\r\nAppuyer sur une touche pour\r\nretourner au menu", flag, flag);
+		err_msg(DOWN_SCREEN, message);
+		goto gui_init_err;
+	}
+
+	load_config_file();
+	lang_id = gpsp_config.language;
+
+	flag = load_language_msg(LANGUAGE_PACK, lang_id);
+	if(0 != flag)
+	{
+		char message[512];
+		sprintf(message, "Language pack initialisation\r\nerror (%d)\r\nPress any key to return to\r\nthe menu\r\n\r\nErreur d'initalisation du\r\npack de langue (%d)\r\nAppuyer sur une touche pour\r\nretourner au menu", flag, flag);
+		err_msg(DOWN_SCREEN, message);
+		goto gui_init_err;
+	}
+
+	// initial_path_config(); // Enable this later [Neb]
+
+	return;
+
+gui_init_err:
+	ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
+	wait_Anykey_press(0);
+	quit();
 }

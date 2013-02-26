@@ -48,7 +48,8 @@ C_SOURCES    = nds/gpsp_main.c    \
                nds/bdf_font.c    \
                nds/unicode.c     \
                nds/zip.c         \
-               nds/bitmap.c
+               nds/bitmap.c      \
+               nds/ds2_main.c
 # nds/cpu_c.c
 CPP_SOURCES  = 
 ASM_SOURCES  = nds/mips_stub.S

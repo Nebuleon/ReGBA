@@ -101,64 +101,53 @@ u32 readkey()
 u32 readkey()
 {
     struct key_buf inputdata;
-    u32 ret= 0;
 
-    updateInput(&inputdata);
-#if 0
-    if( inputdata.key & KEY_A )
-        ret |= KEY_ID_0;
-            
-    if( inputdata.key & KEY_B )
-        ret |= KEY_ID_1;
-       
-    if( inputdata.key & KEY_X )
-        ret |= KEY_ID_2;
-        
-    if( inputdata.key & KEY_Y )
-        ret |= KEY_ID_3;
-        
-    if( inputdata.key & KEY_SELECT )
-        ret |= KEY_ID_4;
-        
-    if( inputdata.key & KEY_START )
-        ret |= KEY_ID_5;
-        
-    if( inputdata.key & KEY_RIGHT )
-        ret |= KEY_ID_6;
-        
-    if( inputdata.key & KEY_LEFT )
-        ret |= KEY_ID_7;
-        
-    if( inputdata.key & KEY_UP )
-        ret |= KEY_ID_8;
-        
-    if( inputdata.key & KEY_DOWN )
-        ret |= KEY_ID_9;
-        
-    if( inputdata.key & KEY_R )
-        ret |= KEY_ID_10;
-        
-    if( inputdata.key & KEY_L )
-        ret |= KEY_ID_11;
+    ds2_getrawInput(&inputdata);
 
-    if( inputdata.key & KEY_TOUCH )
-        ret |= KEY_ID_12;
-
-    if( inputdata.key & KEY_LID )
-        ret |= KEY_ID_13;
-#endif
     touch.x = inputdata.x;
     touch.y = inputdata.y;
-	return ret = inputdata.key;
+	return inputdata.key;
 }
 #endif
 
-void button_up_wait()
+/*--------------------------------------------------------
+	Wait any key in [key_list] pressed
+	if key_list == NULL, return at any key pressed
+--------------------------------------------------------*/
+unsigned int wait_Anykey_press(unsigned int key_list)
 {
-    while(readkey())
-    {
-        OSTimeDly(2);
-    }
+	unsigned int key;
+
+	while(1)
+	{
+		key = getKey();
+		if(key) {
+			if(0 == key_list) break;
+			else if(key & key_list) break;
+		}
+	}
+
+	return key;
+}
+
+/*--------------------------------------------------------
+	Wait all key in [key_list] released
+	if key_list == NULL, return at all key released
+--------------------------------------------------------*/
+void wait_Allkey_release(unsigned int key_list)
+{
+	unsigned int key;
+    struct key_buf inputdata;
+
+	while(1)
+	{
+		ds2_getrawInput(&inputdata);
+		key = inputdata.key;
+
+		if(0 == key) break;
+		else if(!key_list) continue;
+		else if(0 == (key_list & key)) break;
+	}
 }
 
 // Special thanks to psp298 for the analog->dpad code!
@@ -223,90 +212,66 @@ static u32 button_cross;
 #define BUTTON_REPEAT_CONTINUE (0)                        //之后重复间隔 0
 
 // GUI输入处理
-gui_action_type get_gui_input()
+gui_action_type get_gui_input(void)
 {
-  gui_action_type new_button = CURSOR_NONE;
-  u32 new_buttons;
-  u32 row_buttons;
+	unsigned int key;
+	gui_action_type	ret;
 
-//  OSTimeDly(OS_TICKS_PER_SEC/50);       //delay 20ms
+	key = getKey();
 
-//  if (quit_flag == 1)
-//    quit(0);
+	if (key & KEY_LID)
+	{
+		ds2_setSupend();
+		struct key_buf inputdata;
+		do {
+			ds2_getrawInput(&inputdata);
+			mdelay(1);
+		} while (inputdata.key & KEY_LID);
+		ds2_wakeup();
+		// In the menu, the lower screen's backlight needs to be on,
+		// and it is on right away after resuming from suspend.
+		// mdelay(100); // needed to avoid ds2_setBacklight crashing
+		// ds2_setBacklight(3);
+	}
 
-  row_buttons = readkey();
+	switch(key)
+	{
+		case KEY_UP:
+			ret = CURSOR_UP;
+			break;
+		case KEY_DOWN:
+			ret = CURSOR_DOWN;
+			break;
+		case KEY_LEFT:
+			ret = CURSOR_LEFT;
+			break;
+		case KEY_RIGHT:
+			ret = CURSOR_RIGHT;
+			break;
+		case KEY_L:
+			ret = CURSOR_LTRIGGER;
+			break;
+		case KEY_R:
+			ret = CURSOR_RTRIGGER;
+			break;
+		case KEY_A:
+			ret = CURSOR_SELECT;
+			break;
+		case KEY_B:
+			ret = CURSOR_BACK;
+			break;
+		case KEY_X:
+			ret = CURSOR_EXIT;
+			break;
+		case KEY_TOUCH:
+			ret = CURSOR_TOUCH;
+			break;
+		default:
+			ret = CURSOR_NONE;
+			break;
+	}
 
-  new_buttons = (last_buttons ^ row_buttons) & row_buttons;
-  last_buttons = row_buttons;
-
-  if(new_buttons & KEY_ID_5)    //KEY_LEFT
-    new_button = CURSOR_LEFT;
-
-  if(new_buttons & KEY_ID_4)    //KEY_RIGHT
-    new_button = CURSOR_RIGHT;
-
-  if(new_buttons & KEY_ID_6)    //KEY_UP
-    new_button = CURSOR_UP;
-
-  if(new_buttons & KEY_ID_7)    //KEY_DOWN
-    new_button = CURSOR_DOWN;
-
-  if(new_buttons & KEY_ID_0)    //A
-    new_button = button_circle;
-
-  if(new_buttons & KEY_ID_1)    //B
-    new_button = CURSOR_BACK;
-
-  if(new_buttons & KEY_ID_11)   //Y
-    new_button = button_cross;
-
-  if(new_buttons & KEY_ID_8)    //R
-    new_button = CURSOR_RTRIGGER;
-
-  if(new_buttons & KEY_ID_9)    //L
-    new_button = CURSOR_LTRIGGER;
-
-  if(new_buttons & KEY_ID_12)   //Touch
-    new_button = CURSOR_TOUCH;
-
-  if(new_button != CURSOR_NONE)
-  {
-    button_repeat_timestamp = OSTimeGet();                  //Get system ticks
-    button_repeat_state = BUTTON_HELD_INITIAL;
-    button_repeat = new_buttons;
-    cursor_repeat = new_button;
-  }
-  else
-  {
-    if(row_buttons & button_repeat)
-    {
-      u32 new_ticks;
-      new_ticks = OSTimeGet();
-
-      if(button_repeat_state == BUTTON_HELD_INITIAL)
-      {
-        if((new_ticks - button_repeat_timestamp) >
-         BUTTON_REPEAT_START)
-        {
-          new_button = cursor_repeat;
-          button_repeat_timestamp = new_ticks;
-          button_repeat_state = BUTTON_HELD_REPEAT;
-        }
-      }
-
-      if(button_repeat_state == BUTTON_HELD_REPEAT)
-      {
-        if((new_ticks - button_repeat_timestamp) >
-         BUTTON_REPEAT_CONTINUE)
-        {
-          new_button = cursor_repeat;
-          button_repeat_timestamp = new_ticks;
-        }
-      }
-    }
-  }
-
-  return new_button;
+	return ret;
 }
 
 u32 button_input_to_gba[] =

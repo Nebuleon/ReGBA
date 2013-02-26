@@ -169,17 +169,7 @@ void flip_gba_screen(void)
     update_buf(buf_handle);
   }
 */
-  int buf_h;
-  u16 *ptr;
-
-  update_buf(buf_handle);
-  buf_h= get_video_up_buf();
-  if(buf_h >= 0)
-  {
-    buf_handle = buf_h;    
-    ptr = (u16*)get_buf_form_bufnum(buf_handle);
-    gba_screen_address= ptr + 16*256 + 8;
-  }
+	ds2_flipScreen(UP_SCREEN, UP_SCREEN_UPDATE_METHOD);
 }
 #endif
 

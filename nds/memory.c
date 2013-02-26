@@ -2511,7 +2511,7 @@ static s32 load_gamepak_raw(char *name_path)
 {
   FILE_ID gamepak_file;
 
-dgprintf("rom file %s\n", name_path);
+//dgprintf("rom file %s\n", name_path);
   FILE_OPEN(gamepak_file, name_path, READ);
 
   if(FILE_CHECK_VALID(gamepak_file))
@@ -2543,7 +2543,8 @@ dgprintf("rom file %s\n", name_path);
     return gamepak_size;
   }
   else
-dgprintf("open rom file failure\n");
+//dgprintf("open rom file failure\n")
+	;
 
   return -1;
 }
@@ -2555,7 +2556,7 @@ s32 load_gamepak(char *name)
   char cheats_filename[MAX_FILE];
   char file_path[MAX_FILE];
 
-dgprintf("file_name %s\n", name);
+//dgprintf("file_name %s\n", name);
 
   // 如果文件是打开的， 先关闭
   if(FILE_CHECK_VALID(gamepak_file_large))
@@ -2584,7 +2585,7 @@ dgprintf("file_name %s\n", name);
   }
   update_progress();
 
-dgprintf("file_size %d\n", file_size);
+//dgprintf("file_size %d\n", file_size);
 
   if(file_size != -1)
   {
@@ -3888,7 +3889,7 @@ u32 save_state(char *savestate_filename, u16 *screen_capture)
 
   init_progress(DOWN_SCREEN, 9, msg[MSG_SAVE_STATE]);
 
-  get_nds_time(&current_time);
+  ds2_getTime(&current_time);
   FILE_WRITE_MEM_VARIABLE(g_state_buffer_ptr, current_time);
   update_progress();
 

@@ -201,10 +201,7 @@ void init_main()
   flush_translation_cache_bios();
 }
 
-// mode = 0 NORMAL
-// mode = 1 INIT ERROR
-// mode = 2 FONT INIT ERROR
-void quit(u32 mode)
+void quit(void)
 {
 /*
   u32 reg_ra;
@@ -212,84 +209,16 @@ void quit(u32 mode)
   __asm__ __volatile__("or %0, $0, $ra"
                         : "=r" (reg_ra)
                         :);
-  
+
   dbg_printf("return address= %08x\n", reg_ra);
 */
 
-    if(mode == 0)
-    {
-        if(gamepak_filename[0] != 0)
-        {
-            reorder_latest_file();
-//    if(!gpsp_config.update_backup_flag) // TODO タイミングを検討
-            update_backup_force();
-
-            save_game_config_file();
-            save_config_file();
-        }
-    }
-
-    //Abnormal quit
-    if(mode >0)
-    {
-#if 0
-        char *buff, *src;
-        int x, y, z;
-        unsigned short dst;
-
-        buff= (char*)malloc(256*192*4);
-        BMP_read("mmc:\\ERR.bmp", buff, 256, 192);
-
-        printf("\n\n");
-        z= 0;
-        for(y= 191; y>= 0; y--)
-        {
-            src= buff+ y*256*4;
-            for(x= 0; x< 256; x++)
-            {
-                dst= RGB24_15(src);
-                src += 4;
-
-                printf("0x%04x, ", dst);
-                z++;
-                if(z >= 8)
-                {
-                    printf("\n");
-                    z= 0;
-                }
-            }
-        }
-
-        printf("\n\n");
-#endif
-printf("arrive here\n");
-        show_err();
-        flip_screen();
-//        BDF_font_release();
-        while(1);
-    }
-
-    sound_exit();
-
 #ifdef USE_DEBUG
-  fclose(g_dbg_file);
+	fclose(g_dbg_file);
 #endif
 
-    FS_Exit();
-
-//    clear_screen(0);
-//    flip_screen();
-//    clear_gba_screen(0);
-//    flip_gba_screen();
-    //OSTimeDly(OS_TICKS_PER_SEC/10);
-
-    //reset 
-    run_plugin();
-
-/*
-  dbg_printf("------------Program Exit!------------\n");
-  while(1);
-*/
+	ds2_plug_exit();
+	while(1);
 }
 
 /*
@@ -351,39 +280,16 @@ while(1);
     
 //    OSTimeDly(OS_TICKS_PER_SEC*3);
 
+  // Initial path information
+  initial_gpsp_config();
+//  init_progress(7, "");
+
+    if(gui_init(gpsp_config.language) < 0)
+        quit();
+  // 初始化进度条
+//  update_progress();
+
     init_video();
-
-    //Find the "NDSGBA" system directory
-    DIR *current_dir;
-
-    strcpy(main_path, "mmc:\\NDSGBA");
-    current_dir = opendir(main_path);
-    if(current_dir)
-        closedir(current_dir);
-    else
-    {
-        strcpy(main_path, "mmc:\\_SYSTEM\\PLUGINS\\NDSGBA");
-        current_dir = opendir(main_path);
-        if(current_dir)
-            closedir(current_dir);
-        else
-        {
-            strcpy(main_path, "mmc:");
-            if(search_dir("NDSGBA", main_path) == 0)
-            {
-                dgprintf("Dirctory find: %s\n", main_path);
-            }
-            else
-            {
-                dgprintf("Search dirctory failure\n");
-                quit(2);
-            }
-        }
-    }
-
-    //Display startup log
-    show_log(down_screen_addr);
-    flip_screen();
 
  // 读取gpSP配置文件
   load_config_file();
@@ -423,33 +329,6 @@ while(1);
   flip_screen();
 */
 
-  // Initial path information
-  initial_gpsp_config();
-//  init_progress(7, "");
-
-    if(gui_init(gpsp_config.language) < 0)
-        quit(2);
-  // 初始化进度条
-//  update_progress();
-
-int error;
-  // 读取消息数据
-    error= load_language_msg(LANGUAGE_PACK, gpsp_config.language);
-  if(error != 0)
-  {
-    printf("load language package error: %d\n", error); 
-    quit(0);
-  }
-
-  // 初始化字体
-  if (load_font() != 0)
-  {
-//    pspDebugScreenInit();
-    error_msg("font init Error!!");
-    quit(2);
-  }
-//  update_progress();
-
   // 分配仿真ROM
   init_gamepak_buffer();
 //  update_progress();
@@ -463,7 +342,7 @@ int error;
   if(bios_ret == -1) // 当读取失败
   {
     error_msg("Load bios failure\n");
-    quit(1);
+    quit();
   }
 //  update_progress();
   if(bios_ret == -2) // MD5校验不符
@@ -476,6 +355,8 @@ int error;
 //  show_progress(msg[MSG_INIT_END]);
     //OSTimeDly(OS_TICKS_PER_SEC*2);
 
+	// Huh? What's all of this for? [Neb]
+#if 0
 dgprintf("Global cmd: %s\n", get_gba_file());
     char *ppt;
     ppt= get_gba_file();
@@ -491,13 +372,14 @@ dgprintf("Global cmd: %s\n", get_gba_file());
             plug_valid= 1;
         }
     }
+#endif
 
 #if 0
   if(argc > 1)
   {
     if(load_gamepak((char *)argv[1]) == -1)
     {
-      quit(1);
+      quit();
     }
 
     clear_screen(0);
@@ -523,7 +405,7 @@ dgprintf("Global cmd: %s\n", get_gba_file());
       if(load_gamepak(load_filename) == -1)
       {
         video_resolution(FRAME_MENU);
-        quit(1);
+        quit();
       }
 
       clear_screen(0);
@@ -1110,7 +992,10 @@ void syscall_fun(int num, u32 *ptr, u32* sp)
         printf("pc= %08x, at= %08x\n", sp[9], ptr);
     }
 }
-#else
+#endif
+
+	// Duplicates syscall_fun from the DS2 SDK [Neb]
+#if 0
 void syscall_fun(int num, u32 *ptr, u32* sp)
 {
     u32 a, b;

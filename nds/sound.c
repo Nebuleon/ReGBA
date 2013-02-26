@@ -870,7 +870,7 @@ static int sound_update()
 {
   u32 i;
   s16 sample;
-  int audio_buf_handle;
+  s16* audio_buff;
   s16 *dst_ptr, *dst_ptr1;
   u32 m, n;
   int ret;
@@ -880,7 +880,7 @@ static int pp= 0;
   while(1)
   {
     ret = -1;
-    n= nds_buf_audio_notfull();
+    n= ds2_checkAudiobuff();
 
 if(AUTO_SKIP)
 {
@@ -899,11 +899,11 @@ if(AUTO_SKIP)
                 pp += 1;
         }
 
-        while(nds_buf_audio_notfull() > 1);
+        while(ds2_checkAudiobuff() > 1);
             //OSTimeDly(1);
     }
 
-    n= nds_buf_audio_notfull();
+    n= ds2_checkAudiobuff();
     if(n<1)
     if(CHECK_BUFFER() < AUDIO_LEN*4)
     {
@@ -917,14 +917,14 @@ if(AUTO_SKIP)
 }
 else
 {
-    while(nds_buf_audio_notfull() > 2)
-            OSTimeDly(1);
+    while(ds2_checkAudiobuff() > 2)
+            mdelay(1);
 }
 
-    audio_buf_handle = get_audio_buf();
-    if(audio_buf_handle > 0)
+    audio_buff = ds2_getAudiobuff();
+    if(audio_buff != NULL)
     {    
-    dst_ptr = (s16*)get_buf_form_bufnum( audio_buf_handle );
+    dst_ptr = audio_buff;
     dst_ptr1 = dst_ptr + AUDIO_LEN;
 
     m= sound_read_offset;
@@ -944,7 +944,7 @@ else
         sound_buffer[sound_read_offset] = 0;
         sound_read_offset = (sound_read_offset +1) & BUFFER_SIZE;
     }
-    update_buf(audio_buf_handle);
+    ds2_updateAudio();
     ret = 0;
     }
 
@@ -1017,7 +1017,7 @@ void synchronize_sound()
 //    OSTimeDlyHMSM (INT8U hours, INT8U minutes, INT8U seconds, INT16U milli)
 //	OSTimeDlyHMSM (0, 0, 0, SAMPLE_COUNT / 44100 * 1000 * 1000 * 0.25);	//注意，OS的ticks的分辨率可能不够
 //  OSTimeDly (OS_TICKS_PER_SEC/10);
-  OSTimeDly (1);
+  mdelay (1);
 #else
 //  while(CHECK_BUFFER() >= AUDIO_LEN*8)
 //    OSTimeDly(1);

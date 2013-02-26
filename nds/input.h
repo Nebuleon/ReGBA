@@ -101,7 +101,7 @@ u32 update_input();
 gui_action_type get_gui_input();
 void input_read_mem_savestate();
 void input_write_mem_savestate();
-void button_up_wait();
+void wait_Allkey_release();
 
 extern u32 tilt_sensor_x;
 extern u32 tilt_sensor_y;

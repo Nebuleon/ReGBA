@@ -189,7 +189,7 @@ void set_cpu_clock(u32 clock);
 u32 update_gba();
 void reset_gba();
 void synchronize();
-void quit(u32 mode);
+void quit();
 void game_name_ext(u8 *src, u8 *buffer, u8 *extension);
 void main_read_mem_savestate();
 void main_write_mem_savestate();

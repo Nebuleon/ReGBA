@@ -3578,16 +3578,27 @@ void flush_translation_cache_bios()
 
 void dump_translation_cache()
 {
-//  FILE_OPEN(FILE *fp, "mmc:\\ram_cache.bin", WRITE);
+#ifndef NDS_LAYER
   FILE *fp = fopen("mmc:\\ram_cache.bin", "wb");
+#else
+  FILE *fp = fopen("fat:/ram_cache.bin", "wb");
+#endif
   fwrite(ram_translation_cache, 1, ram_translation_ptr - ram_translation_cache, fp);
   fclose(fp);
   
+#ifndef NDS_LAYER
   fp = fopen("mmc:\\rom_cache.bin", "wb");
+#else
+  fp = fopen("fat:/rom_cache.bin", "wb");
+#endif
   fwrite(rom_translation_cache, 1, rom_translation_ptr - rom_translation_cache, fp);
   fclose(fp);
   
+#ifndef NDS_LAYER
   fp = fopen("mmc:\\bios_cache.bin", "wb");
+#else
+  fp = fopen("fat:/bios_cache.bin", "wb");
+#endif
   fwrite(bios_translation_cache, bios_translation_ptr - bios_translation_cache, 1, fp);
   fclose(fp);
 /*  char print_buffer[256];
