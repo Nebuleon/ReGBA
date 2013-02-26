@@ -277,7 +277,7 @@ while(1);
   // Copy the directory path of the executable into main_path
 //  getcwd(main_path, MAX_FILE);
 //  chdir(main_path);
-    
+
 //    OSTimeDly(OS_TICKS_PER_SEC*3);
 
   // Initial path information
@@ -292,7 +292,8 @@ while(1);
     init_video();
 
  // 读取gpSP配置文件
-  load_config_file();
+    //config is loaded in gui_init
+  //load_config_file();
 
 //  psp_model = get_model();
 
@@ -439,7 +440,7 @@ dgprintf("Global cmd: %s\n", get_gba_file());
   //
 #ifdef USE_C_CORE
   if(gpsp_config.emulate_core == ASM_CORE)
-  { 
+  {
     execute_arm_translate(execute_cycles);
   }
   else
@@ -960,7 +961,7 @@ char* FS_FGets(char *buffer, int num, FILE *stream)
       return (NULL);
 
 	s = strchr(buffer, '\n');
-	
+
 	if(m < num)						//at the end of file
 	{
 		if(s == NULL)
@@ -1002,7 +1003,7 @@ void syscall_fun(int num, u32 *ptr, u32* sp)
 
     printf("SYSCALL %d  %08x\n", num, ptr);
     if(num <0)
-    {        
+    {
         printf("AT= %08x  ra= %08x  fp= %08x  gp= %08x\n",sp[27],sp[0],sp[1],sp[2]);
         printf("t9= %08x  t8= %08x  s7= %08x  S6= %08x\n",sp[3],sp[4],sp[5],sp[6]);
         printf("s5= %08x  s4= %08x  s3= %08x  s2= %08x\n",sp[7],sp[8],sp[9],sp[10]);
@@ -1073,7 +1074,7 @@ void syscall_fun(int num, u32 *ptr, u32* sp)
         printf("s1= %08x  s0= %08x  t7= %08x  t6= %08x\n",sp[11],sp[12],sp[13],sp[14]);
         printf("t5= %08x  t4= %08x  t3= %08x  t2= %08x\n",sp[15],sp[16],sp[17],sp[18]);
         printf("t1= %08x  t0= %08x  a3= %08x  a2= %08x\n",sp[19],sp[20],sp[21],sp[22]);
-        printf("a1= %08x  a0= %08x  v1= %08x  v0= %08x\n",sp[23],sp[24],sp[25], sp[26]);        
+        printf("a1= %08x  a0= %08x  v1= %08x  v0= %08x\n",sp[23],sp[24],sp[25], sp[26]);
         break;
       case 41:
         printf("POP\n");
@@ -1083,7 +1084,7 @@ void syscall_fun(int num, u32 *ptr, u32* sp)
         printf("s1= %08x  s0= %08x  t7= %08x  t6= %08x\n",sp[11],sp[12],sp[13],sp[14]);
         printf("t5= %08x  t4= %08x  t3= %08x  t2= %08x\n",sp[15],sp[16],sp[17],sp[18]);
         printf("t1= %08x  t0= %08x  a3= %08x  a2= %08x\n",sp[19],sp[20],sp[21],sp[22]);
-        printf("a1= %08x  a0= %08x  v1= %08x  v0= %08x\n",sp[23],sp[24],sp[25], sp[26]);        
+        printf("a1= %08x  a0= %08x  v1= %08x  v0= %08x\n",sp[23],sp[24],sp[25], sp[26]);
         break;
       case 42:
         printf("mips_update_gba GP= %08x\n", sp[2]);
@@ -1110,7 +1111,7 @@ void show_reg(u32 num, u32 *ptr, u32*sp)
     printf("s1= %08x  s0= %08x  t7= %08x  t6= %08x\n",sp[14],sp[15],sp[16],sp[17]);
     printf("t5= %08x  t4= %08x  t3= %08x  t2= %08x\n",sp[18],sp[19],sp[20],sp[21]);
     printf("t1= %08x  t0= %08x  a3= %08x  a2= %08x\n",sp[22],sp[23],sp[24],sp[25]);
-    printf("a1= %08x  a0= %08x  v1= %08x  v0= %08x\n",sp[26],sp[27],sp[28], sp[29]);        
+    printf("a1= %08x  a0= %08x  v1= %08x  v0= %08x\n",sp[26],sp[27],sp[28], sp[29]);
 }
 
 void show_printf_reg(u32 num, u32*sp)

@@ -1561,7 +1561,7 @@ u32 menu(u16 *original_screen)
     MENU_TYPE *current_menu;
     MENU_OPTION_TYPE *current_option;
     MENU_OPTION_TYPE *display_option;
-    
+
     u32 current_option_num;
     u32 parent_option_num;
     u32 string_select;
@@ -1619,7 +1619,7 @@ u32 menu(u16 *original_screen)
   //局部函数定义
     void touch_menu()
     {
-        
+
 
     }
 
@@ -1658,7 +1658,7 @@ u32 menu(u16 *original_screen)
        repeat = 0;
        reg[CHANGED_PC_STATUS] = 1;
 
-       reorder_latest_file(); 
+       reorder_latest_file();
        get_savestate_filelist();
     }
     else
@@ -1724,7 +1724,7 @@ u32 menu(u16 *original_screen)
             }
             else
                 bg_screenp_color = COLOR_BG;
-    
+
             slot_index= get_savestate_slot();
             //the slot already have a savestate file
             if(slot_index >= 31)
@@ -1764,7 +1764,7 @@ u32 menu(u16 *original_screen)
         }
     }
   }
-   
+
   void menu_load_state()
   {
     if(!first_load)
@@ -1812,7 +1812,7 @@ u32 menu(u16 *original_screen)
             //right
             if(gui_action == CURSOR_SELECT)
             {
-                draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color); 
+                draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
                 draw_string_vcenter(up_screen_addr, 29, 75, 198, COLOR_WHITE, msg[MSG_LOADSTATE_DOING]);
 
                 len= load_state(current_savestate_filename, fp);
@@ -1903,7 +1903,7 @@ u32 menu(u16 *original_screen)
         sprintf(line_buffer, "%d", (slot_index+2) > 32 ? 32 : (slot_index+2));
         PRINT_STRING_BG(down_screen_addr, line_buffer, COLOR_INACTIVE_ITEM, COLOR_TRANS, 151,
             38 + 1*20);
-        
+
         if(display_option == current_option)
         {
 			// Not sure what that is, so disabled [Neb]
@@ -1987,7 +1987,7 @@ u32 menu(u16 *original_screen)
                 }
                 else
                 {
-                    sprintf(cheat_format_str[i], msg[MSG_CHEAT_MENU_LOADED], i, 
+                    sprintf(cheat_format_str[i], msg[MSG_CHEAT_MENU_LOADED], i,
                         game_config.cheats_flag[i].cheat_name);
                 }
             }
@@ -2099,7 +2099,7 @@ u32 menu(u16 *original_screen)
         }
         else if(current_option_num == 2)    //delette single
         {
-            draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color); 
+            draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
 
             if(savestate_map[delette_savestate_num] > 0)
             {
@@ -2372,7 +2372,7 @@ u32 menu(u16 *original_screen)
     void release_lastest_played_scroll()
     {
         u32 k;
-        
+
         for(k= 0; k < 5; k++)
         {
             if(gpsp_config.latest_file[k][0] != '\0')
@@ -2421,7 +2421,7 @@ u32 menu(u16 *original_screen)
             draw_string_vcenter(down_screen_addr, 30, 95, 196, COLOR_WHITE, msg[MSG_CHANGE_LANGUAGE_WAITING]);
             flip_screen();
 
-            load_language_msg(LANGUAGE_PACK, gpsp_config.language);    
+            load_language_msg(LANGUAGE_PACK, gpsp_config.language);
             gui_change_icon(gpsp_config.language);
 
             if(first_load)
@@ -2449,7 +2449,7 @@ u32 menu(u16 *original_screen)
     }
 
     char *screen_ratio_options[] = { (char*) &msg[MSG_SCREEN_RATIO_0], (char*) &msg[MSG_SCREEN_RATIO_1] };
-    
+
     char *frameskip_options[] = { (char*) &msg[MSG_FRAMESKIP_0], (char*) &msg[MSG_FRAMESKIP_1] };
 
     char *on_off_options[] = { (char*) &msg[MSG_ON_OFF_0], (char*) &msg[MSG_ON_OFF_1] };
@@ -2460,10 +2460,10 @@ u32 menu(u16 *original_screen)
 
     char *enable_disable_options[] = { (char*) &msg[MSG_EN_DIS_ABLE_0], (char*) &msg[MSG_EN_DIS_ABLE_1] };
 
-    char *keyremap_options[] = {(char*) &msg[MSG_KEY_MAP_NONE], (char*) &msg[MSG_KEY_MAP_A], (char*) &msg[MSG_KEY_MAP_B], 
-                                (char*) &msg[MSG_KEY_MAP_SL], (char*) &msg[MSG_KEY_MAP_ST], (char*) &msg[MSG_KEY_MAP_RT], 
-                                (char*) &msg[MSG_KEY_MAP_LF], (char*) &msg[MSG_KEY_MAP_UP], (char*) &msg[MSG_KEY_MAP_DW], 
-                                (char*) &msg[MSG_KEY_MAP_R], (char*) &msg[MSG_KEY_MAP_L], (char*) &msg[MSG_KEY_MAP_X], 
+    char *keyremap_options[] = {(char*) &msg[MSG_KEY_MAP_NONE], (char*) &msg[MSG_KEY_MAP_A], (char*) &msg[MSG_KEY_MAP_B],
+                                (char*) &msg[MSG_KEY_MAP_SL], (char*) &msg[MSG_KEY_MAP_ST], (char*) &msg[MSG_KEY_MAP_RT],
+                                (char*) &msg[MSG_KEY_MAP_LF], (char*) &msg[MSG_KEY_MAP_UP], (char*) &msg[MSG_KEY_MAP_DW],
+                                (char*) &msg[MSG_KEY_MAP_R], (char*) &msg[MSG_KEY_MAP_L], (char*) &msg[MSG_KEY_MAP_X],
                                 (char*) &msg[MSG_KEY_MAP_Y], (char*) &msg[MSG_KEY_MAP_TOUCH]
                                 };
 
@@ -2474,19 +2474,19 @@ u32 menu(u16 *original_screen)
   {
     /* 00 */ SUBMENU_OPTION(NULL, &msg[MSG_SUB_MENU_05], NULL, 0),
 
-    /* 01 */ STRING_SELECTION_OPTION(NULL, NULL, &msg[MSG_SUB_MENU_00], screen_ratio_options, 
+    /* 01 */ STRING_SELECTION_OPTION(NULL, NULL, &msg[MSG_SUB_MENU_00], screen_ratio_options,
         &gpsp_config.screen_ratio, 2, NULL, PASSIVE_TYPE | HIDEN_TYPE, 1),
 
-    /* 02 */ STRING_SELECTION_OPTION(game_fastforward, NULL, &msg[MSG_SUB_MENU_01], on_off_options, 
+    /* 02 */ STRING_SELECTION_OPTION(game_fastforward, NULL, &msg[MSG_SUB_MENU_01], on_off_options,
         &game_fast_forward, 2, NULL, ACTION_TYPE, 2),
 
     /* 03 */ STRING_SELECTION_OPTION(NULL, NULL, &msg[MSG_SUB_MENU_02], frameskip_options,
         &game_config.frameskip_type, 2, NULL, PASSIVE_TYPE, 3),
 
-    /* 04 */ NUMERIC_SELECTION_OPTION(NULL, &msg[MSG_SUB_MENU_03], 
+    /* 04 */ NUMERIC_SELECTION_OPTION(NULL, &msg[MSG_SUB_MENU_03],
         &game_config.frameskip_value, 10, NULL, 4),
 
-    /* 05 */ STRING_SELECTION_OPTION(sound_switch, NULL, &msg[MSG_SUB_MENU_04], on_off_options, 
+    /* 05 */ STRING_SELECTION_OPTION(sound_switch, NULL, &msg[MSG_SUB_MENU_04], on_off_options,
         &gpsp_config.enable_audio, 2, NULL, ACTION_TYPE ,5)
   };
 
@@ -2567,23 +2567,23 @@ u32 menu(u16 *original_screen)
   /*--------------------------------------------------------
      Tools-keyremap
   --------------------------------------------------------*/
-    MENU_OPTION_TYPE tools_keyremap_options[] = 
+    MENU_OPTION_TYPE tools_keyremap_options[] =
     {
         /* 00 */ SUBMENU_OPTION(&tools_menu, &msg[MSG_SUB_MENU_315], NULL, 0),
-        
-        /* 01 */ STRING_SELECTION_OPTION(keyremap, keyremap_show, &msg[MSG_SUB_MENU_310], 
+
+        /* 01 */ STRING_SELECTION_OPTION(keyremap, keyremap_show, &msg[MSG_SUB_MENU_310],
             NULL, &string_select, 2, NULL, ACTION_TYPE, 1),
-        
-        /* 02 */ STRING_SELECTION_OPTION(keyremap, keyremap_show, &msg[MSG_SUB_MENU_311], 
+
+        /* 02 */ STRING_SELECTION_OPTION(keyremap, keyremap_show, &msg[MSG_SUB_MENU_311],
             NULL, &string_select, 1, NULL, ACTION_TYPE, 2),
-        
-        /* 03 */ STRING_SELECTION_OPTION(keyremap, keyremap_show, &msg[MSG_SUB_MENU_312], 
+
+        /* 03 */ STRING_SELECTION_OPTION(keyremap, keyremap_show, &msg[MSG_SUB_MENU_312],
             NULL, &string_select, 2, NULL, ACTION_TYPE, 3),
-        
-        /* 04 */ STRING_SELECTION_OPTION(keyremap, keyremap_show, &msg[MSG_SUB_MENU_313], 
+
+        /* 04 */ STRING_SELECTION_OPTION(keyremap, keyremap_show, &msg[MSG_SUB_MENU_313],
             NULL, &string_select, 3, NULL, ACTION_TYPE, 4),
-        
-        /* 05 */ STRING_SELECTION_OPTION(keyremap, keyremap_show, &msg[MSG_SUB_MENU_314], 
+
+        /* 05 */ STRING_SELECTION_OPTION(keyremap, keyremap_show, &msg[MSG_SUB_MENU_314],
             NULL, &string_select, 3, NULL, ACTION_TYPE, 5)
     };
 
@@ -2591,7 +2591,7 @@ u32 menu(u16 *original_screen)
   /*--------------------------------------------------------
      Tools
   --------------------------------------------------------*/
-    MENU_OPTION_TYPE tools_options[] = 
+    MENU_OPTION_TYPE tools_options[] =
     {
         /* 00 */ SUBMENU_OPTION(NULL, &msg[MSG_SUB_MENU_32], NULL, 0),
 
@@ -2610,20 +2610,20 @@ u32 menu(u16 *original_screen)
      Others
   --------------------------------------------------------*/
     u32 desert= 0;
-  MENU_OPTION_TYPE others_options[] = 
+  MENU_OPTION_TYPE others_options[] =
   {
     /* 00 */ SUBMENU_OPTION(NULL, &msg[MSG_BACK], NULL, 0),
 
-    /* 01 */ STRING_SELECTION_OPTION(NULL, NULL, &msg[MSG_SUB_MENU_40], enable_disable_options, 
+    /* 01 */ STRING_SELECTION_OPTION(NULL, NULL, &msg[MSG_SUB_MENU_40], enable_disable_options,
         &gpsp_config.auto_standby, 2, NULL, PASSIVE_TYPE | HIDEN_TYPE, 1),
 
-    /* 02 */ STRING_SELECTION_OPTION(language_set, NULL, &msg[MSG_SUB_MENU_41], language_options, 
+    /* 02 */ STRING_SELECTION_OPTION(language_set, NULL, &msg[MSG_SUB_MENU_41], language_options,
         &gpsp_config.language, 2, NULL, ACTION_TYPE, 2),
 
-    /* 03 */ STRING_SELECTION_OPTION(NULL, show_card_space, &msg[MSG_SUB_MENU_43], NULL, 
+    /* 03 */ STRING_SELECTION_OPTION(NULL, show_card_space, &msg[MSG_SUB_MENU_43], NULL,
         &desert, 2, NULL, PASSIVE_TYPE | HIDEN_TYPE, 3),
 
-//    /* 03 */ STRING_SELECTION_OPTION(NULL, NULL, &msg[MSG_SUB_MENU_42], on_off_options, 
+//    /* 03 */ STRING_SELECTION_OPTION(NULL, NULL, &msg[MSG_SUB_MENU_42], on_off_options,
 //        &gpsp_config.auto_help, 2, NULL, PASSIVE_TYPE | HIDEN_TYPE, 3),
 
     /* 04 */ ACTION_OPTION(load_default_setting, NULL, &msg[MSG_SUB_MENU_44], NULL, 4),
@@ -2637,7 +2637,7 @@ u32 menu(u16 *original_screen)
      Load_game
   --------------------------------------------------------*/
     MENU_TYPE latest_game_menu;
-  
+
     MENU_OPTION_TYPE load_game_options[] =
     {
         /* 00 */ ACTION_OPTION(menu_load, NULL, &msg[MSG_SUB_MENU_61], NULL, 0),
@@ -2671,7 +2671,7 @@ u32 menu(u16 *original_screen)
         /* 05 */ STRING_SELECTION_OPTION(load_lastest_played, load_lastest_played_passive, NULL, NULL,
             &desert, 2, NULL, ACTION_TYPE, 5)
     };
-    
+
     INIT_MENU(latest_game, submenu_latest_game, NULL);
 
   /*--------------------------------------------------------
@@ -2694,7 +2694,7 @@ u32 menu(u16 *original_screen)
     /* 06 */ SUBMENU_OPTION(&load_game_menu, NULL, NULL, 6),
 
     /* 07 */ ACTION_OPTION(menu_restart, NULL, NULL, NULL, 7),
-    
+
     /* 08 */ ACTION_OPTION(menu_return, NULL, NULL, NULL, 8)
   };
 
@@ -2825,16 +2825,16 @@ u32 menu(u16 *original_screen)
         }
         else
             strcpy(line_buffer, *(display_option->display_string));
-    
+
         line_num= display_option-> line_number;
         if(display_option == current_option)
             color= COLOR_ACTIVE_ITEM;
         else
             color= COLOR_INACTIVE_ITEM;
-    
+
         PRINT_STRING_BG(down_screen_addr, line_buffer, COLOR_INACTIVE_ITEM, COLOR_TRANS, 27,
             38 + line_num*20);
-    
+
         if(display_option == current_option)
         {
 			// Not sure what that is, so disabled [Neb]
@@ -2912,7 +2912,7 @@ u32 menu(u16 *original_screen)
         repeat = 0;
         reg[CHANGED_PC_STATUS] = 1;
 
-        reorder_latest_file(); 
+        reorder_latest_file();
         get_savestate_filelist();
         return 0;
     }
@@ -3059,16 +3059,16 @@ u32 menu(u16 *original_screen)
                 {
                     strcpy(line_buffer, *(display_option->display_string));
                 }
-    
+
                 line_num= display_option-> line_number;
                 if(display_option == current_option)
                     color= COLOR_ACTIVE_ITEM;
                 else
                     color= COLOR_INACTIVE_ITEM;
-        
+
                 PRINT_STRING_BG(down_screen_addr, line_buffer, color, COLOR_TRANS, 27,
                     38 + line_num*20);
-        
+
                 if(display_option == current_option)
                 {
 			// Not sure what that is, so disabled [Neb]
@@ -3205,13 +3205,13 @@ u32 menu(u16 *original_screen)
   clear_screen(0);
   flip_screen();
   clear_gba_screen(0);
-  flip_gba_screen();  
+  flip_gba_screen();
   mdelay(100);
   clear_screen(0);
   flip_screen();
   clear_gba_screen(0);
-  flip_gba_screen();  
-  
+  flip_gba_screen();
+
   if(bg_screenp != NULL) free(bg_screenp);
 
 // menu終了時の処理
@@ -3565,7 +3565,7 @@ void reorder_latest_file(void)
     char *pt, *ext_pos, *ext_pos1;
     u32 i, len;
     char full_file[512];
-    
+
     if(gamepak_filename[0] == '\0')
         return;
 
@@ -3580,7 +3580,7 @@ void reorder_latest_file(void)
                 break;
         }
     }
-    
+
     //some one match, ly to last
     if(i < 5)
     {
@@ -3594,12 +3594,12 @@ void reorder_latest_file(void)
                 else
                     break;
             }
-            
+
             strcpy(gpsp_config.latest_file[i-1], full_file);
         }
         return ;
     }
-     
+
     //none match
     for(i= 0; i < 5; i++)
     {
@@ -3609,13 +3609,13 @@ void reorder_latest_file(void)
             break;
         }
     }
-    
+
     if(i < 5) return;
-    
+
     //queue full
     for(i=1; i < 5; i++)
         strcpy(gpsp_config.latest_file[i-1], gpsp_config.latest_file[i]);
-        
+
     sprintf(gpsp_config.latest_file[i-1], "%s/%s", rom_path, gamepak_filename);
 }
 
@@ -3644,7 +3644,7 @@ static int rtc_time_cmp(struct rtc *t1, struct rtc *t2)
         return result;
     result= (int)((unsigned int)(t1 -> seconds) - (unsigned int)(t2 -> seconds));
     if(result != 0)
-        return result;    
+        return result;
 }
 
 static void get_savestate_filelist(void)
@@ -3675,7 +3675,7 @@ static void get_savestate_filelist(void)
     {
         sprintf(postdrix, "_%d.rts", i+1);
         strcpy(pt, postdrix);
-        
+
         fp= fopen(savestate_path, "r");
         if (fp != NULL)
         {
@@ -3799,7 +3799,7 @@ static void reorder_savestate_slot(void)
     u32 x, y;
     char *ptr;
     s32 tmp;
-    
+
     ptr= savestate_map;
     for(x= 0; x < 32; x++)
     {
@@ -3878,7 +3878,7 @@ static void print_status(u32 mode)
 //  sceRtcGetCurrentClockLocalTime(&current_time);
 //  int wday = sceRtcGetDayOfWeek(current_time.year, current_time.month , current_time.day);
 
-//    get_timestamp_string(print_buffer_1, MSG_MENU_DATE_FMT_0, current_time.year+2000, 
+//    get_timestamp_string(print_buffer_1, MSG_MENU_DATE_FMT_0, current_time.year+2000,
 //        current_time.month , current_time.day, current_time.weekday, current_time.hours,
 //        current_time.minutes, current_time.seconds, 0);
 //    sprintf(print_buffer_2,"%s%s", msg[MSG_MENU_DATE], print_buffer_1);
@@ -3914,7 +3914,7 @@ static void print_status(u32 mode)
 #define PSP_SYSTEMPARAM_DATE_FORMAT_MMDDYYYY	1
 #define PSP_SYSTEMPARAM_DATE_FORMAT_DDMMYYYY	2
 
-static void get_timestamp_string(char *buffer, u16 msg_id, u16 year, u16 mon, 
+static void get_timestamp_string(char *buffer, u16 msg_id, u16 year, u16 mon,
     u16 day, u16 wday, u16 hour, u16 min, u16 sec, u32 msec)
 {
 /*
@@ -3942,7 +3942,7 @@ static void get_timestamp_string(char *buffer, u16 msg_id, u16 year, u16 mon,
         "SUN", "MON", "TUE", "WED", "TUR", "FRI", "SAT"
     };
 
-    sprintf(buffer, "%s %02d/%02d/%04d %02d:%02d:%02d", weekday_strings[wday], 
+    sprintf(buffer, "%s %02d/%02d/%04d %02d:%02d:%02d", weekday_strings[wday],
         day, mon, year, hour, min, sec);
 }
 
@@ -4013,7 +4013,7 @@ void _flush_cache()
 //    sceKernelDcacheWritebackAll();
     invalidate_all_cache();
 }
-void gui_init(u32 lang_id)
+int gui_init(u32 lang_id)
 {
 	int flag;
 
@@ -4052,13 +4052,16 @@ void gui_init(u32 lang_id)
 	show_log(down_screen_addr);
 	ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
 
+  //should probably configure the language before using it
+  load_config_file();
+  lang_id = gpsp_config.language;
+
 	flag = icon_init(lang_id);
 	if(0 != flag)
 	{
 		err_msg(DOWN_SCREEN, "Some icons are missing\r\nLoad them onto your card\r\nPress any key to return to\r\nthe menu\r\n\r\nDes icones sont manquantes\r\nChargez-les sur votre carte\r\nAppuyer sur une touche pour\r\nretourner au menu");
 		goto gui_init_err;
 	}
-
 
 	flag = load_font();
 	if(0 != flag)
@@ -4069,8 +4072,6 @@ void gui_init(u32 lang_id)
 		goto gui_init_err;
 	}
 
-	load_config_file();
-	lang_id = gpsp_config.language;
 
 	flag = load_language_msg(LANGUAGE_PACK, lang_id);
 	if(0 != flag)
@@ -4083,7 +4084,8 @@ void gui_init(u32 lang_id)
 
 	// initial_path_config(); // Enable this later [Neb]
 
-	return;
+  //gpsp_main expecting a return value
+	return 1;
 
 gui_init_err:
 	ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);

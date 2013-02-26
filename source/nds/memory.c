@@ -27,7 +27,7 @@ u8 *g_state_buffer_ptr;
 //#define PACKROM_MEM_SIZE (19*1024*1024)     //20MB
 //u8 PACKROM_MEM[ PACKROM_MEM_SIZE ] __attribute__ ((aligned (4))) ;
 //u8 PACKROM_MEM_MAP[ PACKROM_MEM_SIZE/(32*1024)*8 ];
- 
+
 typedef enum
 {
   FLASH_DEVICE_MACRONIX_64KB   = 0x1C,
@@ -3429,8 +3429,10 @@ void init_gamepak_buffer()
   // Try to initialize 32MB (this is mainly for non-PSP platforms)
   gamepak_rom = NULL;
 
-  gamepak_ram_buffer_size = 32 * 1024 * 1024;
-  gamepak_rom = malloc(gamepak_ram_buffer_size);
+  //DS2 won't have 32mb of ram free so might as well skip
+  //to 16 mb
+  //gamepak_ram_buffer_size = 32 * 1024 * 1024;
+  //gamepak_rom = malloc(gamepak_ram_buffer_size);
 
   if(gamepak_rom == NULL)
   {
@@ -3792,7 +3794,7 @@ printf("dead here1\n");
     strcpy(gamepak_filename, current_gamepak_filename);     //file name
     *dot_position= 0;
     strcpy(rom_path, gamepak_filename);                     //file path
-    
+
     //load gamepack failure
     if(load_gamepak(gamepak_filename) == -1)
     {
@@ -3914,7 +3916,7 @@ u32 save_state(char *savestate_filename, u16 *screen_capture)
 
 #define SAVESTATE_READ_MEM_FILENAME(name)                                     \
     FILE_READ_MEM_ARRAY(g_state_buffer_ptr, name);                            \
-            
+
 #define SAVESTATE_WRITE_MEM_FILENAME(name)                                    \
     sprintf(fullname, "%s\\%s", rom_path, name);                              \
     FILE_WRITE_MEM_ARRAY(g_state_buffer_ptr, fullname);                       \
