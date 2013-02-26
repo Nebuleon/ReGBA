@@ -24,9 +24,9 @@
 u8 savestate_write_buffer[SAVESTATE_SIZE];
 u8 *g_state_buffer_ptr;
 
-#define PACKROM_MEM_SIZE (19*1024*1024)     //20MB
-u8 PACKROM_MEM[ PACKROM_MEM_SIZE ] __attribute__ ((aligned (4))) ;
-u8 PACKROM_MEM_MAP[ PACKROM_MEM_SIZE/(32*1024)*8 ];
+//#define PACKROM_MEM_SIZE (19*1024*1024)     //20MB
+//u8 PACKROM_MEM[ PACKROM_MEM_SIZE ] __attribute__ ((aligned (4))) ;
+//u8 PACKROM_MEM_MAP[ PACKROM_MEM_SIZE/(32*1024)*8 ];
  
 typedef enum
 {
@@ -3425,48 +3425,32 @@ void init_memory_gamepak()
 
 // TODO
 void init_gamepak_buffer()
+{
+  // Try to initialize 32MB (this is mainly for non-PSP platforms)
+  gamepak_rom = NULL;
+
+  gamepak_ram_buffer_size = 32 * 1024 * 1024;
+  gamepak_rom = malloc(gamepak_ram_buffer_size);
+
+  if(gamepak_rom == NULL)
   {
-    gamepak_rom = NULL;
-//    strcpy(gamepak_title, "gpSP");
-    gamepak_title[0]= 0;
+    // Try 16MB, for PSP, then lower in 2MB increments
+    gamepak_ram_buffer_size = 16 * 1024 * 1024;
+    gamepak_rom = malloc(gamepak_ram_buffer_size);
 
-#ifdef USE_EXT_MEM
-    if(psp_model == PSP_2000)
-      {
-        gamepak_ram_buffer_size = 32 * 1024 * 1024;
-        gamepak_rom = (u8 *)PSP2K_MEM_TOP;
-        gamepak_rom_resume = malloc(4 * 1024 * 1024);
-      }
-    else
-#endif
-      {
-#if 0
-        // Try to initialize 32MB
-        gamepak_ram_buffer_size = 32 * 1024 * 1024;
-        gamepak_rom = malloc(gamepak_ram_buffer_size);
-
-        if(gamepak_rom == NULL)
-          {
-            // Try 14MB, for PSP, then lower in 1MB increments
-            gamepak_ram_buffer_size = 31 * 1024 * 1024;
-            gamepak_rom = malloc(gamepak_ram_buffer_size);
-
-            while(gamepak_rom == NULL)
-              {
-                gamepak_ram_buffer_size -= (1 * 1024 * 1024);
-                gamepak_rom = malloc(gamepak_ram_buffer_size);
-              }
-          }
-#endif
-		gamepak_ram_buffer_size = PACKROM_MEM_SIZE;
-        gamepak_rom = PACKROM_MEM;
-      }
-    // Here's assuming we'll have enough memory left over for this,
-    // and that the above succeeded (if not we're in trouble all around)
-    gamepak_ram_pages = gamepak_ram_buffer_size / (32 * 1024);
- //   gamepak_memory_map = malloc(sizeof(gamepak_swap_entry_type) * gamepak_ram_pages);
-    gamepak_memory_map = (gamepak_swap_entry_type*)PACKROM_MEM_MAP;
+    while(gamepak_rom == NULL)
+    {
+      gamepak_ram_buffer_size -= (2 * 1024 * 1024);
+      gamepak_rom = malloc(gamepak_ram_buffer_size);
+    }
   }
+
+  // Here's assuming we'll have enough memory left over for this,
+  // and that the above succeeded (if not we're in trouble all around)
+  gamepak_ram_pages = gamepak_ram_buffer_size / (32 * 1024);
+  gamepak_memory_map = malloc(sizeof(gamepak_swap_entry_type) *
+  gamepak_ram_pages);
+}
 
 void init_memory()
 {

@@ -32,6 +32,7 @@
  * 
  ******************************************************************************/
 #include "ds2_types.h"
+#include "ds2_malloc.h"
 #include <stdio.h>
 #include <sys/stat.h>
 #include <ctype.h>
