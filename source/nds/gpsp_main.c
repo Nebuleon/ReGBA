@@ -280,12 +280,12 @@ while(1);
 
 //    OSTimeDly(OS_TICKS_PER_SEC*3);
 
-  // Initial path information
-  initial_gpsp_config();
 //  init_progress(7, "");
 
     if(gui_init(gpsp_config.language) < 0)
         quit();
+  // Initial path information
+  initial_gpsp_config();
   // 初始化进度条
 //  update_progress();
 
