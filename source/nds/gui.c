@@ -31,6 +31,9 @@
 #include "input.h"
 #include "draw.h"
 
+ //program arguments
+char  argv[2][MAX_PATH];
+
 // If adding a language, make sure you update the size of the array in
 // message.h too.
 char *lang[1] =
@@ -1634,6 +1637,39 @@ u32 menu(u16 *original_screen)
     quit(0);
   }
 
+  int LoadGameAndItsData(char *filename){
+    if(load_gamepak(filename) == -1){
+      first_load = 1;
+      gamepak_filename[0] = '\0';
+      return 0;
+    }
+
+    char tempPath[MAX_PATH];
+    strcpy(tempPath, filename);
+
+    //update folders and names for settings/config uses
+    char *dirEnd = strrchr(tempPath, '/');
+    //make sure a valid path was provided
+    if(!dirEnd)
+      return 0;
+
+    //copy file name as gamepak_name
+    strcpy(gamepak_filename, dirEnd+1);
+    //then strip filename from directory path and set it
+    *dirEnd = '\0';
+    strcpy(g_default_rom_dir, tempPath);
+
+    load_game_config_file();
+    reset_gba();
+    return_value = 1;
+    repeat = 0;
+    reg[CHANGED_PC_STATUS] = 1;
+
+    reorder_latest_file();
+    get_savestate_filelist();
+    return 1;
+  }
+
   void menu_load()
   {
     char *file_ext[] = { ".gba", ".bin", ".zip", NULL };
@@ -1648,7 +1684,7 @@ u32 menu(u16 *original_screen)
 
     if(load_file(file_ext, load_filename, g_default_rom_dir) != -1)
     {
-       if(load_gamepak(load_filename) == -1)
+       /*if(load_gamepak(load_filename) == -1)
        {
          quit(0);
        }
@@ -1659,7 +1695,10 @@ u32 menu(u16 *original_screen)
        reg[CHANGED_PC_STATUS] = 1;
 
        reorder_latest_file();
-       get_savestate_filelist();
+       get_savestate_filelist();*/
+      if(!LoadGameAndItsData(load_filename))
+       quit(0);
+
     }
     else
     {
@@ -2963,9 +3002,13 @@ u32 menu(u16 *original_screen)
     if(gamepak_filename[0] == 0)
     {
         first_load = 1;
-        memset(original_screen, 0x00, 240 * 160 * 2);
-        draw_string_vcenter(up_screen_addr, 0, 80, 256, COLOR_WHITE, msg[MSG_NON_LOAD_GAME]);
-        flip_gba_screen();
+        if(strlen(argv[1]) > 0 && LoadGameAndItsData(argv[1]))
+            repeat = 0;
+        else{
+          memset(original_screen, 0x00, 240 * 160 * 2);
+          draw_string_vcenter(up_screen_addr, 0, 80, 256, COLOR_WHITE, msg[MSG_NON_LOAD_GAME]);
+          flip_gba_screen();
+        }
 //    PRINT_STRING_EXT_BG(msg[MSG_NON_LOAD_GAME], 0xFFFF, 0x0000, 60, 75, original_screen, 240);
     }
 
@@ -4008,6 +4051,43 @@ static u32 save_ss_bmp(u16 *image)
     return 1;
 }
 
+/*
+* GUI Initialize
+*/
+static bool Get_Args(char *file, char **filebuf){
+  FILE* dat = fat_fopen(file, "rb");
+  if(dat){
+    int i = 0;
+    while(!fat_feof (dat)){
+      fat_fgets(filebuf[i], 512, dat);
+      int len = strlen(filebuf[i]);
+      if(filebuf[i][len - 1] == '\n')
+        filebuf[i][len - 1] = '\0';
+      i++;
+    }
+
+    fat_fclose(dat);
+    fat_remove(file);
+    return i;
+  }
+  return 0;
+}
+
+int CheckLoad_Arg(){
+  argv[0][0] = '\0';  // Initialise the first byte to be a NULL in case
+  argv[1][0] = '\0';  // there are no arguments to avoid uninit. memory
+  char *argarray[2];
+  argarray[0] = argv[0];
+  argarray[1] = argv[1];
+
+  if(!Get_Args("/plgargs.dat", argarray))
+    return 0;
+
+  fat_remove("plgargs.dat");
+  return 1;
+}
+
+
 int gui_init(u32 lang_id)
 {
 	int flag;
@@ -4018,7 +4098,29 @@ int gui_init(u32 lang_id)
     //Find the "TEMPGBA" system directory
     DIR *current_dir;
 
-    strcpy(main_path, "fat:/TEMPGBA");
+    if(CheckLoad_Arg()){
+      //copy new folder location
+      strcpy(main_path, "fat:");
+      strcat(main_path, argv[0]);
+      //strip off the binary name
+      char *endStr = strrchr(main_path, '/');
+      *endStr = '\0';
+
+      //do a check to make sure the folder is a valid catsfc folder
+      char tempPath[MAX_PATH];
+      strcpy(tempPath, main_path);
+      strcat(tempPath, "/system/gui");
+      DIR *testDir = opendir(tempPath);
+      if(!testDir)
+        //not a valid catsfc install
+        strcpy(main_path, "fat:/TEMPGBA");
+      else//test was successful, do nothing
+        closedir(testDir);
+    }
+    else
+      strcpy(main_path, "fat:/TEMPGBA");
+
+
 
     current_dir = opendir(main_path);
     if(current_dir)
