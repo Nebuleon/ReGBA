@@ -242,6 +242,8 @@ Version
 Reset all settings to defaults?
 #MSG_PROGRESS_RESETTING
 Please wait...
+#MSG_UNCERTAIN
+???
 
 ENDENGLISH
 
@@ -458,6 +460,8 @@ SFC模拟器
 确定将 SFC模拟器恢复为出厂设置吗?
 #MSG_PROGRESS_RESETTING
 正在设置,请稍候...
+#MSG_UNCERTAIN
+???
 
 ENDCHINESESIM
 
@@ -674,6 +678,8 @@ Version
 Remettre tous les paramètres à zéro?
 #MSG_PROGRESS_RESETTING
 Veuillez patienter...
+#MSG_UNCERTAIN
+???
 
 ENDFRENCH
  
@@ -891,6 +897,8 @@ Version
 Alle Einstellungen zurücksetzen?
 #MSG_PROGRESS_RESETTING
 Bitte warten...
+#MSG_UNCERTAIN
+???
  
 ENDGERMAN
 
@@ -1108,6 +1116,8 @@ Versie
 Alle standaard instellingen                   herstellen?
 #MSG_PROGRESS_RESETTING
 Even geduld A.U.B.
+#MSG_UNCERTAIN
+???
 
 ENDDUTCH
 
@@ -1325,6 +1335,8 @@ Versión
 ¿Cargar valores iniciales?
 #MSG_PROGRESS_RESETTING
 Espere un momento...
+#MSG_UNCERTAIN
+???
 
 ENDSPANISH
 
@@ -1541,6 +1553,8 @@ Versione
 Ripristinare le impostazioni predefinite?
 #MSG_PROGRESS_RESETTING
 Attendere...
+#MSG_UNCERTAIN
+???
 
 ENDITALIAN
 
@@ -1757,5 +1771,7 @@ Versão
 Reiniciar todas as configurações para seus padrões?
 #MSG_PROGRESS_RESETTING
 Por favor, espere...
+#MSG_UNCERTAIN
+???
 
 ENDPORTUGUESEBR

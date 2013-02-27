@@ -309,7 +309,7 @@ u32 update_input()
     {
         u16 screen_copy[GBA_SCREEN_BUFF_SIZE];
         copy_screen(screen_copy);
-        u32 ret_val = menu(screen_copy);
+        u32 ret_val = menu(screen_copy, 0 /* first invocation: no */);
 
         return ret_val;
     }

@@ -428,7 +428,7 @@ dgprintf("Global cmd: %s\n", get_gba_file());
 
     u16 screen_copy[GBA_SCREEN_BUFF_SIZE];
     memset((char*)screen_copy, 0, sizeof(screen_copy));
-    menu(screen_copy);
+    menu(screen_copy, 1 /* first invocation: yes */);
 
   last_frame = 0;
 
@@ -461,7 +461,7 @@ u32 into_suspend()
   FILE_CLOSE(gamepak_file_large);
   u16 screen_copy[GBA_SCREEN_BUFF_SIZE];
   copy_screen(screen_copy);
-  u32 ret_val = menu(screen_copy);
+  u32 ret_val = menu(screen_copy, 0 /* first invocation: no */);
   FILE_OPEN(gamepak_file_large, gamepak_filename_full_path, READ);
   return ret_val;
 }

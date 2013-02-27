@@ -3741,7 +3741,7 @@ u32 load_state(char *savestate_filename, FILE *fp)
 
     current_gamepak_filename[0]= '\0';
 //    pause_sound(1);
-    init_progress(DOWN_SCREEN, 9, msg[MSG_LOAD_STATE]);
+    init_progress(DOWN_SCREEN, 9, msg[MSG_UNCERTAIN]);
 
     if(fp != NULL)
     {
@@ -3873,7 +3873,7 @@ u32 save_state(char *savestate_filename, u16 *screen_capture)
 
   g_state_buffer_ptr = savestate_write_buffer;
 
-  init_progress(DOWN_SCREEN, 9, msg[MSG_SAVE_STATE]);
+  init_progress(DOWN_SCREEN, 9, msg[MSG_UNCERTAIN]);
 
   ds2_getTime(&current_time);
   FILE_WRITE_MEM_VARIABLE(g_state_buffer_ptr, current_time);
@@ -3908,7 +3908,7 @@ u32 save_state(char *savestate_filename, u16 *screen_capture)
   mem_save_flag = 1;
 
   update_progress();
-  show_progress(msg[MSG_SAVE_STATE_END]);
+  show_progress(msg[MSG_UNCERTAIN]);
 
 //  pause_sound(0);
   return ret;

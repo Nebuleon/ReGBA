@@ -126,7 +126,7 @@ s32 load_config_file();
 s32 save_game_config_file();
 s32 save_config_file();
 
-u32 menu(u16 *original_screen);
+u32 menu(u16 *original_screen, int FirstInvocation);
 
 u32 load_dircfg(char *file_name);
 u32 load_fontcfg(char *file_name);
@@ -138,6 +138,10 @@ extern  void get_newest_savestate(char *name_buffer);
 void initial_gpsp_config();
 void init_game_config();
 extern void reorder_latest_file(void);
+
+extern void LowFrequencyCPU();
+extern void HighFrequencyCPU();
+extern void GameFrequencyCPU();
 
 #endif
 

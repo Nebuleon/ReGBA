@@ -30,15 +30,23 @@
 #include "gui.h"
 #include "input.h"
 #include "draw.h"
+#include "cheats.h"
 
 // If adding a language, make sure you update the size of the array in
 // message.h too.
-char *lang[1] =
+char *lang[8] =
 	{
 		"English",					// 0
+		"简体中文",					// 1
+		"Français", 					// 2
+		"Deutsch",					// 3
+		"Nederlands",					// 4
+		"Español",					// 5
+		"Italiano",					// 6
+		"Português (Br.)",				// 7
 	};
 
-char *language_options[] = { (char *) &lang[0] };
+char *language_options[] = { (char *) &lang[0], (char *) &lang[1], (char *) &lang[2], (char *) &lang[3], (char *) &lang[4], (char *) &lang[5], (char *) &lang[6], (char *) &lang[7] };
 
 /******************************************************************************
  * 宏定义
@@ -52,6 +60,10 @@ char *language_options[] = { (char *) &lang[0] };
 //#define DIR_LIST_POSITION 360
 #define DIR_LIST_POSITION 130
 #define PAGE_SCROLL_NUM 5
+
+#define SUBMENU_ROW_NUM	6
+
+#define SAVE_STATE_SLOT_NUM 16
 
 #define NDSGBA_VERSION "1.0"
 
@@ -74,8 +86,10 @@ GAME_CONFIG game_config;
 
 //save state file map
 #define RTS_TIMESTAMP_POS   SVS_HEADER_SIZE
-char savestate_map[32];
-static unsigned int savestate_index;
+static unsigned int savestate_index; // current selection in the saved states menu
+static int latest_save; // Slot number of the latest (in time) save for this game, or -1 if none
+static unsigned char SavedStateExistenceCached [SAVE_STATE_SLOT_NUM]; // [I] == TRUE if Cache[I] is meaningful
+static unsigned char SavedStateExistenceCache [SAVE_STATE_SLOT_NUM];
 
 #ifdef TEST_MODE
 #define VER_RELEASE "test"
@@ -83,64 +97,44 @@ static unsigned int savestate_index;
 #define VER_RELEASE "release"
 #endif
 
-#define MAKE_MENU(name, init_function, passive_function)                      \
+#define MAKE_MENU(name, init_function, passive_function, key_function, end_function, \
+	focus_option, screen_focus)												  \
   MENU_TYPE name##_menu =                                                     \
   {                                                                           \
     init_function,                                                            \
     passive_function,                                                         \
+	key_function,															  \
+	end_function,															  \
     name##_options,                                                           \
-    sizeof(name##_options) / sizeof(MENU_OPTION_TYPE)                         \
+    sizeof(name##_options) / sizeof(MENU_OPTION_TYPE),                        \
+	focus_option,															  \
+	screen_focus															  \
   }                                                                           \
 
-#define INIT_MENU(name, init_functions, passive_functions)                    \
-  {                                                                           \
-    name##_menu.init_function = init_functions,                               \
-    name##_menu.passive_function = passive_functions,                         \
-    name##_menu.options = name##_options,                                     \
-    name##_menu.num_options = sizeof(name##_options) / sizeof(MENU_OPTION_TYPE);\
-  }                                                                           \
+#define INIT_MENU(name, init_functions, passive_functions, key, end, focus, screen)\
+	{																		  \
+    name##_menu.init_function = init_functions,								  \
+    name##_menu.passive_function = passive_functions,						  \
+	name##_menu.key_function = key,											  \
+	name##_menu.end_function = end,											  \
+    name##_menu.options = name##_options,									  \
+    name##_menu.num_options = sizeof(name##_options) / sizeof(MENU_OPTION_TYPE),\
+	name##_menu.focus_option = focus,										  \
+	name##_menu.screen_focus = screen;										  \
+	}																		  \
 
-#define GAMEPAD_CONFIG_OPTION(display_string, number)                         \
+#define CHEAT_OPTION(action_function, passive_function, number, line_number)  \
 {                                                                             \
+  action_function,                                                            \
+  passive_function,                                                           \
   NULL,                                                                       \
-  menu_fix_gamepad_help,                                                      \
-  NULL,                                                                       \
-  display_string,                                                             \
-  gamepad_config_buttons,                                                     \
-  gamepad_config_map + gamepad_config_line_to_button[number],                 \
-  sizeof(gamepad_config_buttons) / sizeof(gamepad_config_buttons[0]),         \
-  gamepad_help[gamepad_config_map[                                            \
-   gamepad_config_line_to_button[number]]],                                   \
-  number,                                                                     \
-  STRING_SELECTION_TYPE                                                       \
-}                                                                             \
-
-#define ANALOG_CONFIG_OPTION(display_string, number)                          \
-{                                                                             \
-  NULL,                                                                       \
-  menu_fix_gamepad_help,                                                      \
-  NULL,                                                                       \
-  display_string,                                                             \
-  gamepad_config_buttons,                                                     \
-  gamepad_config_map + number + 12,                                           \
-  sizeof(gamepad_config_buttons) / sizeof(gamepad_config_buttons[0]),         \
-  gamepad_help[gamepad_config_map[number + 12]],                              \
-  number + 2,                                                                 \
-  STRING_SELECTION_TYPE                                                     \
-}                                                                             \
-
-#define CHEAT_OPTION(number, line_number)                                     \
-{                                                                             \
-  NULL,                                                                       \
-  NULL,                                                                       \
-  NULL,                                                                       \
-  &cheat_format_ptr[number],                                                  \
-  enable_disable_options,                                                     \
-  &(game_config.cheats_flag[number].cheat_active),                            \
+  &cheat_data_ptr[number],                                                    \
+  NULL /* enable_disable_options */,                                                     \
+  NULL,				                            	  \
   2,                                                                          \
   NULL,                                                                       \
   line_number,                                                                \
-  STRING_SELECTION_TYPE                                                       \
+  ACTION_TYPE                                         \
 }                                                                             \
 
 #define ACTION_OPTION(action_function, passive_function, display_string,      \
@@ -241,44 +235,47 @@ static unsigned int savestate_index;
    display_string, NULL, option_ptr, num_options, help_string,                \
    line_number, NUMBER_SELECTION_TYPE)                                        \
 
-#define GAMEPAD_MENU_WIDTH 15
 
 typedef enum
 {
-  NUMBER_SELECTION_TYPE = 0x01,
-  STRING_SELECTION_TYPE = 0x02,
-  SUBMENU_TYPE          = 0x04,
-  ACTION_TYPE           = 0x08,
-  HIDEN_TYPE            = 0x10,
-  PASSIVE_TYPE          = 0x00,
+	NUMBER_SELECTION_TYPE = 0x01,
+	STRING_SELECTION_TYPE = 0x02,
+	SUBMENU_TYPE          = 0x04,
+	ACTION_TYPE           = 0x08,
+	HIDEN_TYPE            = 0x10,
+	PASSIVE_TYPE          = 0x00,
 } MENU_OPTION_TYPE_ENUM;
 
 struct _MENU_OPTION_TYPE
 {
-  void (* action_function)();
-  void (* passive_function)();
-  struct _MENU_TYPE *sub_menu;
-  char **display_string;
-  void *options;
-  u32 *current_option;
-  u32 num_options;
-  char **help_string;
-  u32 line_number;
-  MENU_OPTION_TYPE_ENUM option_type;
+	void (* action_function)();				//Active option to process input
+	void (* passive_function)();			//Passive function to process this option
+	struct _MENU_TYPE *sub_menu;			//Sub-menu of this option
+	char **display_string;					//Name and other things of this option
+	void *options;							//output value of this option
+	u32 *current_option;					//output values
+	u32 num_options;						//Total output values
+	char **help_string;						//Help string
+	u32 line_number;						//Order id of this option in it menu
+	MENU_OPTION_TYPE_ENUM option_type;		//Option types
 };
 
 struct _MENU_TYPE
 {
-  void (* init_function)();
-  void (* passive_function)();
-  struct _MENU_OPTION_TYPE *options;
-  u32 num_options;
+	void (* init_function)();				//Function to initialize this menu
+	void (* passive_function)();			//Function to draw this menu
+	void (* key_function)();				//Function to process input
+	void (* end_function)();				//End process of this menu
+	struct _MENU_OPTION_TYPE *options;		//Options array
+	u32	num_options;						//Total options of this menu
+	u32	focus_option;						//Option which obtained focus
+	u32	screen_focus;						//screen positon of the focus option
 };
 
 typedef struct _MENU_OPTION_TYPE MENU_OPTION_TYPE;
 typedef struct _MENU_TYPE MENU_TYPE;
 
-
+/*
 typedef enum
 {
   MAIN_MENU,
@@ -289,6 +286,7 @@ typedef enum
   ADHOC_MENU,
   MISC_MENU
 } MENU_ENUM;
+*/
 
 /******************************************************************************
  * 定义全局变量
@@ -314,10 +312,10 @@ static u32 gamepad_config_line_to_button[] = { 8, 6, 7, 9, 1, 2, 3, 0, 4, 5, 11,
  * 本地函数的声明
  ******************************************************************************/
 static void get_savestate_filelist(void);
-static FILE* get_savestate_snapshot(char *savestate_filename);
 static void get_savestate_filename(u32 slot, char *name_buffer);
-static u32 get_savestate_slot(void);
-static void reorder_savestate_slot(void);
+static unsigned char SavedStateSquareX (u32 slot);
+static unsigned char SavedStateFileExists (u32 slot);
+static void SavedStateCacheInvalidate (void);
 void get_newest_savestate(char *name_buffer);
 static int sort_function(const void *dest_str_ptr, const void *src_str_ptr);
 static u32 parse_line(char *current_line, char *current_str);
@@ -327,8 +325,10 @@ static void get_timestamp_string(char *buffer, u16 msg_id, u16 year, u16 mon, u1
 static void get_time_string(char *buff, struct rtc *rtcp);
 #endif
 static u32 save_ss_bmp(u16 *image);
-void _flush_cache();
 static void init_default_gpsp_config();
+
+void game_disableAudio();
+void game_set_frameskip();
 
 static int sort_function(const void *dest_str_ptr, const void *src_str_ptr)
 {
@@ -1428,12 +1428,6 @@ void init_game_config()
     game_config.gamepad_config_home = BUTTON_ID_X;
     memcpy(gamepad_config_map, game_config.gamepad_config_map, sizeof(game_config.gamepad_config_map));
     gamepad_config_home = game_config.gamepad_config_home;
-
-    savestate_index= 0;
-    for(i= 0; i < 32; i++)
-    {
-        savestate_map[i]= (char)(-(i+1));
-    }
 }
 
 /*--------------------------------------------------------
@@ -1546,577 +1540,560 @@ void initial_gpsp_config()
 /*--------------------------------------------------------
   メニューの表示
 --------------------------------------------------------*/
-u32 menu(u16 *original_screen)
+u32 menu(u16 *screen, int FirstInvocation)
 {
-    gui_action_type gui_action= CURSOR_NONE;
+    gui_action_type gui_action;
     u32 i;
-    u32 repeat = 1;
+    u32 repeat;
     u32 return_value = 0;
     u32 first_load = 0;
-    char current_savestate_filename[MAX_FILE];
+    char tmp_filename[MAX_FILE];
     char line_buffer[512];
-    char cheat_format_str[MAX_CHEATS][41*4];
-    char *cheat_format_ptr[MAX_CHEATS];
+    char cheat_data_str[MAX_CHEATS][5];
+    // ^ Holds the index inside Cheat, as a number in an ASCIIZ string
+    char* cheat_data_ptr[MAX_CHEATS];
+
+	// For cheat groups
+	char* cheat_group_name_ptr[MAX_CHEATS + 1];
+	char cheat_group_names[MAX_CHEATS * CHEAT_NAME_LENGTH];
 
     MENU_TYPE *current_menu = NULL;
     MENU_OPTION_TYPE *current_option = NULL;
     MENU_OPTION_TYPE *display_option = NULL;
 
     u32 current_option_num;
-    u32 parent_option_num;
+//    u32 parent_option_num;
     u32 string_select;
 
     u16 *bg_screenp;
     u32 bg_screenp_color;
 
-  auto void choose_menu();
-  auto void menu_return();
-  auto void menu_exit();
-    auto void touch_menu();
-  auto void menu_load();
-  auto void menu_restart();
-  auto void menu_save_ss();
-  auto void menu_change_state();
-  auto void menu_save_state();
-    auto void menu_savestate_passive();
-  auto void menu_load_state();
-  auto void menu_load_state_file();
-  auto void menu_load_cheat_file();
-  auto void menu_fix_gamepad_help();
-  auto void submenu_graphics();
-  auto void submenu_audio_switch();
-  auto void submenu_cheats();
-    auto void submenu_tools();
-    auto void submenu_screensnap();
-    auto void submenu_others();
-    auto void submenu_load_game();
-  auto void submenu_gamepad();
-    auto void keyremap_show();
-  auto void submenu_analog();
-  auto void submenu_game_state();
-  auto void submenu_gamestate_delette();
-    auto void menu_delstate_passive();
-  auto void submenu_main();
-    auto void main_menu_passive();
-  auto void reload_cheats_page();
-//  auto void set_gamepad();
-    auto void delette_savestate();
-    auto void save_screen_snapshot();
-    auto void browse_screen_snapshot();
-    auto void keyremap();
-    auto void load_default_setting();
-    auto void check_gbaemu_version();
-    auto void load_lastest_played();
-    auto void load_lastest_played_passive();
-    auto void submenu_latest_game();
-    auto void language_set();
-    auto void game_fastforward();
-    auto void sound_switch();
-    auto void check_card_space();
-    auto void show_card_space();
-    auto int plug_mode_load();
+    GAME_CONFIG PreviousGameConfig;  // Compared with current settings to
+    GPSP_CONFIG PreviousGpspConfig;  // determine if they need to be saved
 
-  //局部函数定义
-    void touch_menu()
-    {
+	auto void choose_menu();
+	auto void menu_return();
+	auto void menu_exit();
+	auto void menu_load();
+	auto void menu_restart();
+	auto void menu_save_state();
+	auto void menu_load_state();
+	auto void others_menu_init();
+	auto void main_menu_passive();
+	auto void main_menu_key();
+	auto void delette_savestate();
+	auto void save_screen_snapshot();
+	auto void browse_screen_snapshot();
+	auto void tools_menu_init();
+	auto void load_default_setting();
+	auto void check_gbaemu_version();
+	auto void load_lastest_played();
+	auto void latest_game_menu_passive();
+	auto void latest_game_menu_init();
+	auto void latest_game_menu_key();
+	auto void latest_game_menu_end();
+	auto void language_set();
+	auto void game_fastforward();
+#ifdef ENABLE_FREE_SPACE
+	auto void show_card_space();
+#endif
+	auto void savestate_selitem(u32 sel, u32 y_pos);
+	auto void game_state_menu_passive();
+	auto void gamestate_delette_menu_passive();
+	auto void cheat_menu_init();
+	auto void cheat_menu_end();
+	auto void reload_cheats_page();
+	auto void cheat_option_action();
+	auto void cheat_option_passive();
 
+//Local function definition
 
+	void menu_exit()
+	{
+		HighFrequencyCPU(); // Crank it up, leave quickly
+		if(gamepak_filename[0] != 0)
+		{
+			update_backup_force();
+		}
+		quit();
+	}
+
+	void SaveConfigsIfNeeded()
+	{
+		if (memcmp(&PreviousGameConfig, &game_config, sizeof(GAME_CONFIG)) != 0)
+			save_game_config_file();
+		if (memcmp(&PreviousGpspConfig, &gpsp_config, sizeof(GPSP_CONFIG)) != 0)
+			save_config_file();
+	}
+
+	void PreserveConfigs()
+	{
+		memcpy(&PreviousGameConfig, &game_config, sizeof(GAME_CONFIG));
+		memcpy(&PreviousGpspConfig, &gpsp_config, sizeof(GPSP_CONFIG));
+	}
+
+  int LoadGameAndItsData(char *filename){
+    if (gamepak_filename[0] != '\0') {
+      update_backup_force();
     }
 
-  void menu_return()
-  {
-    if(!first_load)
-      repeat = 0;
-  }
+    draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
+    draw_string_vcenter(down_screen_addr, 36, 100, 190, COLOR_MSSG, msg[MSG_PROGRESS_LOADING_GAME]);
+    ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
 
-  void menu_exit()
-  {
-    quit(0);
-  }
+    HighFrequencyCPU();
+    int load_result = load_gamepak(filename);
+    LowFrequencyCPU();
 
-  void menu_load()
-  {
-    char *file_ext[] = { ".gba", ".bin", ".zip", NULL };
-    char load_filename[MAX_FILE];
-
-    if(gamepak_filename[0] != 0)
+    if(load_result == -1)
     {
-//    if(!gpsp_config.update_backup_flag) // TODO タイミングを検討
-        update_backup_force();
-        save_game_config_file();
-    }
-
-    if(load_file(file_ext, load_filename, g_default_rom_dir) != -1)
-    {
-       if(load_gamepak(load_filename) == -1)
-       {
-         quit(0);
-       }
-       load_game_config_file();
-       reset_gba();
-       return_value = 1;
-       repeat = 0;
-       reg[CHANGED_PC_STATUS] = 1;
-
-       reorder_latest_file();
-       get_savestate_filelist();
+      first_load = 1;
+      gamepak_filename[0] = '\0';
+      return 0;
     }
     else
-    {
-      choose_menu(current_menu);
-    }
-  }
-
-  void menu_restart()
-  {
-    if(!first_load)
     {
       reset_gba();
       reg[CHANGED_PC_STATUS] = 1;
-      return_value = 1;
-      repeat = 0;
     }
+
+    char tempPath[MAX_PATH];
+    strcpy(tempPath, filename);
+
+    //update folders and names for settings/config uses
+    char *dirEnd = strrchr(tempPath, '/');
+    //make sure a valid path was provided
+    if(!dirEnd)
+      return 0;
+
+    //copy file name as gamepak_filename
+    strcpy(gamepak_filename, dirEnd+1);
+    //then strip filename from directory path and set it
+    *dirEnd = '\0';
+    strcpy(g_default_rom_dir, tempPath);
+
+    first_load = 0;
+    load_game_config_file();
+    PreserveConfigs(); // Make the emulator not save what we've JUST read
+    // but it will save the emulator configuration below for latest files
+
+    return_value = 1;
+    repeat = 0;
+
+    reorder_latest_file();
+    get_savestate_filelist();
+
+    game_fast_forward= 0;
+    return 1;
   }
 
-  void menu_save_ss()
-  {
-    if(!first_load)
-      save_ss_bmp(original_screen);
-  }
+	void menu_load()
+	{
+		char *file_ext[] = { ".smc", ".sfc", ".zip", NULL };
 
-  void menu_change_state()
-  {
-    get_savestate_filename(SAVESTATE_SLOT, current_savestate_filename);
-  }
+		if(load_file(file_ext, tmp_filename, g_default_rom_dir) != -1)
+		{
+			strcpy(line_buffer, g_default_rom_dir);
+			strcat(line_buffer, "/");
+			strcat(line_buffer, tmp_filename);
 
-  void submenu_game_state()
-  {
-  }
+			LoadGameAndItsData(line_buffer);
+		}
+		else
+		{
+			choose_menu(current_menu);
+		}
+	}
 
-  void submenu_gamestate_delette()
-  {
-  }
+	void menu_restart()
+	{
+		if(!first_load)
+		{
+			reset_gba();
+			reg[CHANGED_PC_STATUS] = 1;
+			return_value = 1;
+			repeat = 0;
+		}
+	}
 
-  void clear_savestate_slot(u32 slot_index)
-  {
-    get_savestate_filename(slot_index, current_savestate_filename);
-    sprintf(line_buffer, "%s/%s", DEFAULT_SAVE_DIR, current_savestate_filename);
-    unlink(line_buffer);
-    if(savestate_map[slot_index] > 0)
-        savestate_map[slot_index]= -savestate_map[slot_index];
-    reorder_savestate_slot();
-  }
+	void menu_return()
+	{
+		if(!first_load)
+			repeat = 0;
+	}
 
-  void menu_save_state()
-  {
-    if(gui_action == CURSOR_SELECT)
+	void clear_savestate_slot(u32 slot_index)
+	{
+		get_savestate_filename(slot_index, tmp_filename);
+		sprintf(line_buffer, "%s/%s", DEFAULT_SAVE_DIR, tmp_filename);
+		remove(line_buffer);
+		SavedStateCacheInvalidate ();
+	}
+
+    void savestate_selitem(u32 selected, u32 y_pos)
     {
-        //The slot is empty
-        if(!first_load)
+        u32 k;
+
+        for(k= 0; k < SAVE_STATE_SLOT_NUM; k++)
         {
-            u32 key;
-            s32 slot_index;
+		struct gui_iconlist *icon;
+		int Exists = SavedStateFileExists (k);
+		unsigned char X = SavedStateSquareX (k);
 
-            if(bg_screenp != NULL)
-            {
-                bg_screenp_color = COLOR16(43, 11, 11);
-                memcpy(bg_screenp, down_screen_addr, 256*192*2);
-            }
-            else
-                bg_screenp_color = COLOR_BG;
+		if (selected == k && Exists)
+			icon = &ICON_STATEFULL;
+		else if (selected == k && !Exists)
+			icon = &ICON_STATEEMPTY;
+		else if (selected != k && Exists)
+			icon = &ICON_NSTATEFULL;
+		else if (selected != k && !Exists)
+			icon = &ICON_NSTATEEMPTY;
 
-            slot_index= get_savestate_slot();
-            //the slot already have a savestate file
-            if(slot_index >= 31)
-            {
-                draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
-                draw_string_vcenter(down_screen_addr, 29, 55, 198, COLOR_WHITE, msg[MSG_SAVESTATE_FULL]);
-                if(draw_yesno_dialog(DOWN_SCREEN, 115, "Yes", "No") == 0)
-                    return;
-
-                clear_savestate_slot(0);
-            }
-            else
-                slot_index += 1;
-
-
-            savestate_map[slot_index]= -savestate_map[slot_index];
-            get_savestate_filename(slot_index, current_savestate_filename);
-
-            draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
-            draw_string_vcenter(down_screen_addr, 29, 75, 198, COLOR_WHITE, msg[MSG_SAVESTATE_DOING]);
-
-            key= save_state(current_savestate_filename, original_screen);
-            //clear message
-            draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 96, bg_screenp_color);
-            if(key < 1)
-            {
-                draw_string_vcenter(down_screen_addr, 29, 65, 198, COLOR_WHITE, msg[MSG_SAVESTATE_FAILUER]);
-                savestate_map[slot_index]= -savestate_map[slot_index];
-            }
-            else
-            {
-                draw_string_vcenter(down_screen_addr, 29, 75, 198, COLOR_WHITE, msg[MSG_SAVESTATE_SUCCESS]);
-                savestate_index = slot_index;
-            }
-
-            flip_screen();
-        }
-    }
-  }
-
-  void menu_load_state()
-  {
-    if(!first_load)
-    {
-        u32 len;
-        FILE *fp= NULL;
-
-        if(bg_screenp != NULL)
-        {
-            bg_screenp_color = COLOR16(43, 11, 11);
-            memcpy(bg_screenp, down_screen_addr, 256*192*2);
-        }
-        else
-            bg_screenp_color = COLOR_BG;
-
-        //Slot not emtpy
-        if(savestate_map[savestate_index] > 0)
-        {
-            get_savestate_filename(savestate_index, current_savestate_filename);
-            fp= get_savestate_snapshot(current_savestate_filename);
-
-            //file error
-            if(fp == NULL)
-            {
-                draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
-                draw_string_vcenter(down_screen_addr, 29, 80, 198, COLOR_WHITE, msg[MSG_SAVESTATE_FILE_BAD]);
-                flip_screen();
-
-                wait_Allkey_release(0);
-                if(gui_action == CURSOR_SELECT)
-                {
-                    gui_action_type gui_action = CURSOR_NONE;
-                    while(gui_action == CURSOR_NONE)
-                    {
-                        gui_action = get_gui_input();
-                        //OSTimeDly(200/10);
-                    }
-                }
-                else
-                    //OSTimeDly(200/2)
-			;
-                return;
-            }
-
-            //right
-            if(gui_action == CURSOR_SELECT)
-            {
-                draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
-                draw_string_vcenter(up_screen_addr, 29, 75, 198, COLOR_WHITE, msg[MSG_LOADSTATE_DOING]);
-
-                len= load_state(current_savestate_filename, fp);
-                if(len != 0)
-                {
-                    return_value = 1;
-                    repeat = 0;
-                    draw_string_vcenter(down_screen_addr, 29, 75, 198, COLOR_WHITE, msg[MSG_LOADSTATE_SUCCESS]);
-                }
-                else
-                    draw_string_vcenter(down_screen_addr, 29, 75, 198, COLOR_WHITE, msg[MSG_LOADSTATE_FAILURE]);
-            }
-
-            fclose(fp);
-        }
-        else
-        {
-            clear_gba_screen(COLOR_BLACK);
-            draw_string_vcenter(up_screen_addr, 29, 75, 198, COLOR_WHITE, msg[MSG_SAVESTATE_SLOT_EMPTY]);
-            flip_gba_screen();
-        }
-    }
-  }
-
-  void menu_load_state_file()
-  {
-/*    char *file_ext[] = { ".svs", NULL };
-    char load_filename[512];
-    if(load_file(file_ext, load_filename, DEFAULT_SAVE_DIR) != -1)
-    {
-      if (load_state(load_filename, SAVESTATE_SLOT) == 1)
-      {
-        return_value = 1;
-        repeat = 0;
-      }
-      else
-      {
-        clear_screen(COLOR_BG);
-        choose_menu(current_menu);
-      }
-    }
-    else
-    {
-      choose_menu(current_menu);
-    }*/
-  }
-
-    void savestate_selitem(u32 selected)
-    {
-        u32 k, j, x, y;
-        u32 active, active0;
-
-        active0= 0;
-        if(current_option_num == 1 || current_option_num == 2) active0 = 1;
-
-        x= 18;
-        y= 100;
-        for(k= 0, j= 0; k < 32; k++)
-        {
-            if(j== 16) {j= 0; y += 20;}
-            if(savestate_map[k] > 0) active= active0+1;
-            else active = 0;
-
-            if(selected == k && active0 >0)
-            {
-                drawbox(down_screen_addr, x+j*14-1, y-1, x+j*14+10, y+10, COLOR16(31, 31, 31));
-                if(active== 2) active = 3;
-            }
-            draw_selitem(down_screen_addr, x + j*14, y, 1, active);
-
-            j++;
+		show_icon((unsigned short *) down_screen_addr, icon, X, y_pos);
         }
     }
 
-    void menu_savestate_passive()
-    {
-        s32 slot_index;
-        u32 line_num;
+	void game_state_menu_passive()
+	{
+		unsigned int line[3] = {0, 2, 4};
 
-        strcpy(line_buffer, *(display_option->display_string));
-        line_num= display_option-> line_number;
-        if(display_option == current_option)
-            PRINT_STRING_BG(down_screen_addr, line_buffer, COLOR_ACTIVE_ITEM, COLOR_TRANS, 27, 38 + line_num*20);
-        else
-            PRINT_STRING_BG(down_screen_addr, line_buffer, COLOR_INACTIVE_ITEM, COLOR_TRANS, 27, 38 + line_num*20);
+		//draw background
+		show_icon(down_screen_addr, &ICON_SUBBG, 0, 0);
+		show_icon(down_screen_addr, &ICON_TITLE, 0, 0);
+		show_icon(down_screen_addr, &ICON_TITLEICON, 12, 9);
 
-        slot_index= get_savestate_slot();
-        sprintf(line_buffer, "%d", (slot_index+2) > 32 ? 32 : (slot_index+2));
-        PRINT_STRING_BG(down_screen_addr, line_buffer, COLOR_INACTIVE_ITEM, COLOR_TRANS, 151,
-            38 + 1*20);
+		if(current_option_num == 0)
+			show_icon(down_screen_addr, &ICON_BACK, 229, 10);
+		else
+			show_icon(down_screen_addr, &ICON_NBACK, 229, 10);
 
-        if(display_option == current_option)
+		strcpy(line_buffer, *(display_option->display_string));
+		draw_string_vcenter(down_screen_addr, 0, 9, 256, COLOR_ACTIVE_ITEM, line_buffer);
+
+		display_option += 1;
+        for(i= 0; i < 3; i++, display_option++)
         {
-			// Not sure what that is, so disabled [Neb]
-            //show_icon(down_screen_addr, &ICON_SUBM_ISOLATOR, 7, 33 + line_num*20);
-            show_icon(down_screen_addr, &ICON_SUBSELA, 12, 42 + line_num*20);
-			// Not sure what that is, so disabled [Neb]
-            //show_icon(down_screen_addr, &ICON_SUBM_ISOLATOR, 7, 53 + line_num*20);
-            savestate_selitem(slot_index+1);
+            unsigned short color;
+
+			if(display_option == current_option)
+				show_icon(down_screen_addr, &ICON_SUBSELA, 6, 35 + line[i]*27);
+
+			if(display_option->option_type & NUMBER_SELECTION_TYPE)
+			{
+				sprintf(line_buffer, *(display_option->display_string),
+					*(display_option->current_option)+1);	//ADD 1 here
+			}
+			else if(display_option->option_type & STRING_SELECTION_TYPE)
+			{
+				sprintf(line_buffer, *(display_option->display_string),
+					*((u32*)(((u32 *)display_option->options)[*(display_option->current_option)])));
+			}
+			else
+			{
+				strcpy(line_buffer, *(display_option->display_string));
+			}
+
+			if(display_option == current_option)
+				color= COLOR_ACTIVE_ITEM;
+			else
+				color= COLOR_INACTIVE_ITEM;
+
+			PRINT_STRING_BG(down_screen_addr, line_buffer, color, COLOR_TRANS, OPTION_TEXT_X, 40 + line[i]*27);
         }
-    }
 
-    void menu_readstate_passive()
-    {
-        u32 line_num;
+		unsigned int selected_write, selected_read;
 
-        sprintf(line_buffer, *(display_option->display_string),
-            *(display_option->current_option)+1);
+		selected_write = -1;
+		selected_read = -1;
 
-        line_num= display_option-> line_number;
-        if(display_option == current_option)
-            PRINT_STRING_BG(down_screen_addr, line_buffer, COLOR_ACTIVE_ITEM, COLOR_TRANS, 27, 38 + line_num*20);
-        else
-            PRINT_STRING_BG(down_screen_addr, line_buffer, COLOR_INACTIVE_ITEM, COLOR_TRANS, 27, 38 + line_num*20);
+		if(current_option_num == 1 /* write */)
+			selected_write = savestate_index;
+		if(current_option_num == 2 /* read */)
+			selected_read = savestate_index;
 
-        if(display_option == current_option)
-        {
-			// Not sure what that is, so disabled [Neb]
-            //show_icon(down_screen_addr, &ICON_SUBM_ISOLATOR, 7, 33 + line_num*20);
-            show_icon(down_screen_addr, &ICON_SUBSELA, 12, 42 + line_num*20);
-			// Not sure what that is, so disabled [Neb]
-            //show_icon(down_screen_addr, &ICON_SUBM_ISOLATOR, 7, 53 + line_num*20);
-            savestate_selitem(savestate_index);
-        }
-        else if(current_option_num != 1)
-            savestate_selitem(-1);
-    }
+		savestate_selitem(selected_write, 66);
+		savestate_selitem(selected_read, 120);
+	}
 
     u32 delette_savestate_num= 0;
-    void menu_delstate_passive()
-    {
-        u32 line_num;
+	void gamestate_delette_menu_passive()
+	{
+		unsigned int line[2] = {0, 1};
 
-        sprintf(line_buffer, *(display_option->display_string),
-            *(display_option->current_option));
+		//draw background
+		show_icon(down_screen_addr, &ICON_SUBBG, 0, 0);
+		show_icon(down_screen_addr, &ICON_TITLE, 0, 0);
+		show_icon(down_screen_addr, &ICON_TITLEICON, 12, 9);
 
-        line_num= display_option-> line_number;
-        if(display_option == current_option)
-            PRINT_STRING_BG(down_screen_addr, line_buffer, COLOR_ACTIVE_ITEM, COLOR_TRANS, 27, 38 + line_num*20);
+		if(current_option_num == 0)
+			show_icon(down_screen_addr, &ICON_BACK, 229, 6);
+		else
+			show_icon(down_screen_addr, &ICON_NBACK, 229, 6);
+
+		strcpy(line_buffer, *(display_option->display_string));
+		draw_string_vcenter(down_screen_addr, 0, 9, 256, COLOR_ACTIVE_ITEM, line_buffer);
+
+		display_option += 1;
+        for(i= 0; i < 2; i++, display_option++)
+        {
+            unsigned short color;
+
+			if(display_option == current_option)
+				show_icon(down_screen_addr, &ICON_SUBSELA, 6, 35 + line[i]*27);
+
+			if(display_option->option_type & NUMBER_SELECTION_TYPE)
+			{
+				sprintf(line_buffer, *(display_option->display_string),
+					*(display_option->current_option)+1);
+			}
+			else if(display_option->option_type & STRING_SELECTION_TYPE)
+			{
+				sprintf(line_buffer, *(display_option->display_string),
+					*((u32*)(((u32 *)display_option->options)[*(display_option->current_option)])));
+			}
+			else
+			{
+				strcpy(line_buffer, *(display_option->display_string));
+			}
+
+			if(display_option == current_option)
+				color= COLOR_ACTIVE_ITEM;
+			else
+				color= COLOR_INACTIVE_ITEM;
+
+			PRINT_STRING_BG(down_screen_addr, line_buffer, color, COLOR_TRANS, OPTION_TEXT_X, 40 + line[i]*27);
+        }
+
+		if(current_option_num == 2)
+			savestate_selitem(delette_savestate_num, 93);
         else
-            PRINT_STRING_BG(down_screen_addr, line_buffer, COLOR_INACTIVE_ITEM, COLOR_TRANS, 27, 38 + line_num*20);
+            savestate_selitem(-1, 93);
+	}
 
-        if(display_option == current_option)
-        {
-			// Not sure what that is, so disabled [Neb]
-            //show_icon(down_screen_addr, &ICON_SUBM_ISOLATOR, 7, 33 + line_num*20);
-            show_icon(down_screen_addr, &ICON_SUBSELA, 12, 42 + line_num*20);
-			// Not sure what that is, so disabled [Neb]
-            //show_icon(down_screen_addr, &ICON_SUBM_ISOLATOR, 7, 53 + line_num*20);
-            savestate_selitem(delette_savestate_num);
-        }
-        else
-            savestate_selitem(-1);
-    }
+	void menu_save_state()
+	{
+		if(gui_action == CURSOR_SELECT)
+		{
+			if(!first_load)
+			{
+				if (SavedStateFileExists (savestate_index))
+				{
+					draw_message(down_screen_addr, NULL, 28, 31, 227, 165, 0);
+					draw_string_vcenter(down_screen_addr, 36, 74, 190, COLOR_MSSG, msg[MSG_SAVESTATE_FULL]);
+					if(draw_yesno_dialog(DOWN_SCREEN, 115, msg[MSG_GENERAL_CONFIRM_WITH_A], msg[MSG_GENERAL_CANCEL_WITH_B]) == 0)
+						return;
 
-    void menu_load_cheat_file()
-    {
-	// Cheats are temporarily disabled [Neb]
-#if 0
-        char *file_ext[] = { ".cht", NULL };
-        char load_filename[MAX_FILE];
-        u32 i;
+					clear_savestate_slot(savestate_index);
+				}
 
-        if(load_file(file_ext, load_filename, DEFAULT_CHEAT_DIR) != -1)
-        {
-            add_cheats(load_filename);
-            for(i = 0; i < MAX_CHEATS; i++)
-            {
-                if(i >= g_num_cheats)
-                {
-                    sprintf(cheat_format_str[i], msg[MSG_CHEAT_MENU_NON_LOAD], i);
-                }
-                else
-                {
-                    sprintf(cheat_format_str[i], msg[MSG_CHEAT_MENU_LOADED], i,
-                        game_config.cheats_flag[i].cheat_name);
-                }
-            }
-            choose_menu(current_menu);
-        }
-        else
-        {
-            choose_menu(current_menu);
-        }
-#endif
-    }
+				get_savestate_filename(savestate_index, tmp_filename);
 
-  void menu_fix_gamepad_help()
-  {
-  }
+				draw_message(down_screen_addr, NULL, 28, 31, 227, 165, 0);
+				draw_string_vcenter(down_screen_addr, 36, 100, 190, COLOR_MSSG, msg[MSG_PROGRESS_SAVED_STATE_CREATING]);
+				ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
 
-  void submenu_graphics()
-  {
+				HighFrequencyCPU();
+				int flag = save_state(tmp_filename, (void*)screen);
+				LowFrequencyCPU();
+				//clear message
+				draw_message(down_screen_addr, NULL, 28, 31, 227, 96, 0);
+				if(flag < 0)
+				{
+					draw_string_vcenter(down_screen_addr, 36, 74, 190, COLOR_MSSG, msg[MSG_PROGRESS_SAVED_STATE_CREATION_FAILED]);
+				}
+				else
+				{
+					draw_string_vcenter(down_screen_addr, 36, 100, 190, COLOR_MSSG, msg[MSG_PROGRESS_SAVED_STATE_CREATION_SUCCEEDED]);
+				}
 
-  }
+				ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
 
-  void submenu_audio_switch()
-  {
-  }
+				SavedStateCacheInvalidate ();
 
-  void submenu_cheats()
-  {
+				mdelay(500); // let the progress message linger
+			}
+		}
+	}
 
-  }
+	void menu_load_state()
+	{
+		if(!first_load)
+		{
+			FILE *fp= NULL;
 
-    void submenu_tools()
-    {
-    }
+			if(bg_screenp != NULL)
+			{
+				bg_screenp_color = COLOR16(43, 11, 11);
+				memcpy(bg_screenp, down_screen_addr, 256*192*2);
+			}
+			else
+				bg_screenp_color = COLOR_BG;
 
-    void submenu_screensnap()
-    {
-    }
+			if(SavedStateFileExists(savestate_index))
+			{
+				get_savestate_filename(savestate_index, tmp_filename);
+				sprintf(line_buffer, "%s/%s", DEFAULT_SAVE_DIR, tmp_filename);
+				fp= fopen(line_buffer, "r");
 
-    void submenu_others()
-    {
-        check_card_space();
-    }
+				//file error
+				if(fp == NULL)
+				{
+					draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
+					draw_string_vcenter(down_screen_addr, 36, 80, 190, COLOR_MSSG, msg[MSG_PROGRESS_SAVED_STATE_CORRUPTED]);
+					ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
 
-    void submenu_load_game()
-    {
-    }
+					wait_Allkey_release(0);
+					if(gui_action == CURSOR_SELECT)
+						wait_Anykey_press(0);
+					else
+						mdelay(1000);
+					return;
+				}
 
-  void submenu_gamepad()
-  {
+				//right
+				if(gui_action == CURSOR_SELECT)
+				{
+					draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
+					draw_string_vcenter(up_screen_addr, 36, 75, 190, COLOR_MSSG, msg[MSG_PROGRESS_SAVED_STATE_LOADING]);
 
-  }
+					HighFrequencyCPU();
+					int flag = load_state(tmp_filename, fp);
+					LowFrequencyCPU();
+					if(0 == flag)
+					{
+						return_value = 1;
+						repeat = 0;
+						draw_string_vcenter(down_screen_addr, 36, 75, 190, COLOR_MSSG, msg[MSG_PROGRESS_SAVED_STATE_LOAD_SUCCEEDED]);
+					}
+					else
+					{
+						draw_string_vcenter(down_screen_addr, 36, 75, 190, COLOR_MSSG, msg[MSG_PROGRESS_SAVED_STATE_LOAD_FAILED]);
+						mdelay(500); // let the failure show
+					}
+				}
+				else	//load screen snapshot
+				{
+					HighFrequencyCPU();
+					load_game_stat_snapshot(tmp_filename);
+					LowFrequencyCPU();
+				}
+			}
+			else
+			{
+				ds2_clearScreen(UP_SCREEN, COLOR_BLACK);
+				draw_string_vcenter(up_screen_addr, 36, 75, 190, COLOR_WHITE, msg[MSG_TOP_SCREEN_NO_SAVED_STATE_IN_SLOT]);
+				ds2_flipScreen(UP_SCREEN, UP_SCREEN_UPDATE_METHOD);
+			}
+		}
+	}
 
-  void submenu_analog()
-  {
+	void delette_savestate()
+	{
+		if(!first_load && (gui_action == CURSOR_SELECT))
+		{
+			if(bg_screenp != NULL)
+			{
+				bg_screenp_color = COLOR16(43, 11, 11);
+				memcpy(bg_screenp, down_screen_addr, 256*192*2);
+			}
+			else
+				bg_screenp_color = COLOR_BG;
 
-  }
+			wait_Allkey_release(0);
+			if(current_option_num == 1)         //delette all
+			{
+				u32 i, flag;
 
-    void submenu_main()
-    {
-    }
+				draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
+				draw_string_vcenter(down_screen_addr, 36, 75, 190, COLOR_MSSG, msg[MSG_DIALOG_SAVED_STATE_DELETE_ALL]);
 
-  void delette_savestate()
-  {
-    if(!first_load && (gui_action == CURSOR_SELECT))
-    {
-        if(bg_screenp != NULL)
-        {
-            bg_screenp_color = COLOR16(43, 11, 11);
-            memcpy(bg_screenp, down_screen_addr, 256*192*2);
-        }
-        else
-            bg_screenp_color = COLOR_BG;
+				flag= 0;
+				for(i= 0; i < SAVE_STATE_SLOT_NUM; i++)
+					if (SavedStateFileExists (i))
+					{flag= 1; break;}
 
-        wait_Allkey_release(0);
+				if(flag)
+				{
+					if(draw_yesno_dialog(DOWN_SCREEN, 115, msg[MSG_GENERAL_CONFIRM_WITH_A], msg[MSG_GENERAL_CANCEL_WITH_B]))
+					{
+						wait_Allkey_release(0);
+						for(i= 0; i < SAVE_STATE_SLOT_NUM; i++)
+						{
+							get_savestate_filename(i, tmp_filename);
+							sprintf(line_buffer, "%s/%s", DEFAULT_SAVE_DIR, tmp_filename);
+							remove(line_buffer);
+							SavedStateCacheInvalidate ();
+						}
+						savestate_index= 0;
+					}
+				}
+				else
+				{
+					draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
+					draw_string_vcenter(down_screen_addr, 36, 90, 190, COLOR_MSSG, msg[MSG_PROGRESS_SAVED_STATE_ALREADY_EMPTY]);
+					ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
+					mdelay(500);
+				}
+			}
+			else if(current_option_num == 2)    //delette single
+			{
+				draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
 
-        if(current_option_num == 1)         //delette all
-        {
-            u32 i, flag;
+				if(SavedStateFileExists(delette_savestate_num))
+				{
+					sprintf(line_buffer, msg[FMT_DIALOG_SAVED_STATE_DELETE_ONE], delette_savestate_num + 1);
+					draw_string_vcenter(down_screen_addr, 36, 75, 190, COLOR_MSSG, line_buffer);
 
-            draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
-            draw_string_vcenter(down_screen_addr, 29, 75, 198, COLOR_WHITE, msg[MSG_DELETTE_ALL_SAVESTATE_WARING]);
+					if(draw_yesno_dialog(DOWN_SCREEN, 115, msg[MSG_GENERAL_CONFIRM_WITH_A], msg[MSG_GENERAL_CANCEL_WITH_B])) {
+						wait_Allkey_release(0);
+						clear_savestate_slot(delette_savestate_num);
+}
+				}
+				else
+				{
+					draw_string_vcenter(down_screen_addr, 36, 90, 190, COLOR_MSSG, msg[MSG_PROGRESS_SAVED_STATE_ALREADY_EMPTY]);
+					ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
+					mdelay(500);
+				}
+			}
+		}
+	}
 
-            flag= 0;
-            for(i= 0; i < 32; i++)
-                if(savestate_map[i] > 0)
-                    {flag= 1; break;}
+	MENU_TYPE cheats_menu;
+	MENU_TYPE *dynamic_cheat_menu = NULL;
+	MENU_OPTION_TYPE *dynamic_cheat_options = NULL;
+	unsigned char *dynamic_cheat_msg = NULL;
+	unsigned char **dynamic_cheat_pt = NULL;
+	unsigned int dynamic_cheat_active;
+	int dynamic_cheat_scroll_value= 0;
 
-            if(flag)
-            {
-                if(draw_yesno_dialog(DOWN_SCREEN, 115, "Yes", "No"))
-                {
-                    for(i= 0; i < 32; i++)
-                    {
-                        get_savestate_filename(i, current_savestate_filename);
-                        sprintf(line_buffer, "%s/%s", DEFAULT_SAVE_DIR, current_savestate_filename);
-                        unlink(line_buffer);
-                        if(savestate_map[i] > 0)
-                            savestate_map[i]= -savestate_map[i];
-                    }
-                    savestate_index= 0;
-                }
-            }
-            else
-            {
-                draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
-                draw_string_vcenter(down_screen_addr, 29, 90, 198, COLOR_WHITE, msg[MSG_DELETTE_SAVESTATE_NOTHING]);
-                flip_screen();
-            }
-        }
-        else if(current_option_num == 2)    //delette single
-        {
-            draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
+	void cheat_menu_init()
+	{
+		// Currently disabled [Neb]
+	}
 
-            if(savestate_map[delette_savestate_num] > 0)
-            {
-                sprintf(line_buffer, msg[MSG_DELETTE_SINGLE_SAVESTATE_WARING], delette_savestate_num);
-                draw_string_vcenter(down_screen_addr, 29, 70, 198, COLOR_WHITE, line_buffer);
+	void cheat_menu_end()
+	{
+		// Currently disabled [Neb]
+	}
 
-                if(draw_yesno_dialog(DOWN_SCREEN, 115, "Yes", "No"))
-                    clear_savestate_slot(delette_savestate_num);
-            }
-            else
-            {
-                draw_string_vcenter(down_screen_addr, 29, 90, 198, COLOR_WHITE, msg[MSG_DELETTE_SAVESTATE_NOTHING]);
-                flip_screen();
-            }
-        }
-    }
-  }
+	void cheat_option_action()
+	{
+		// Currently disabled [Neb]
+	}
+
+	void cheat_option_passive()
+	{
+		// Currently disabled [Neb]
+	}
+
+	void menu_load_cheat_file()
+	{
+		// Currently disabled [Neb]
+		if (!first_load)
+		{
+		}
+	}
 
     void save_screen_snapshot()
     {
@@ -2135,7 +2112,7 @@ u32 menu(u16 *original_screen)
             {
                 draw_string_vcenter(down_screen_addr, 36, 70, 190, COLOR_MSSG, msg[MSG_PROGRESS_SCREENSHOT_CREATING]);
                 ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
-                if(save_ss_bmp(up_screen_addr)) // TODO preserved screen [Neb]
+                if(save_ss_bmp(screen))
                     draw_string_vcenter(down_screen_addr, 36, 90, 190, COLOR_MSSG, msg[MSG_PROGRESS_SCREENSHOT_CREATION_SUCCEEDED]);
                 else
                     draw_string_vcenter(down_screen_addr, 36, 90, 190, COLOR_MSSG, msg[MSG_PROGRESS_SCREENSHOT_CREATION_FAILED]);
@@ -2157,94 +2134,6 @@ u32 menu(u16 *original_screen)
             play_screen_snapshot();
     }
 
-    void keyremap()
-    {
-        if(gui_action== CURSOR_RIGHT || gui_action== CURSOR_LEFT)
-        {
-//          if(current_option_num != 0)
-//              game_config.use_default_gamepad_map = 0;
-          switch(current_option_num)
-          {
-            case 1: //GBA KEY A
-                if(BUTTON_MAP_A == BUTTON_ID_A)
-                    BUTTON_MAP_A = BUTTON_ID_Y;
-                else if(BUTTON_MAP_A == BUTTON_ID_Y)
-                    BUTTON_MAP_A = BUTTON_ID_A;
-
-                BUTTON_MAP_FA = BUTTON_ID_NONE;
-                BUTTON_MAP_FB = BUTTON_ID_NONE;
-              break;
-            case 2: //GBA KEY B(fixed B)
-              break;
-            case 3: //GBA KEY FA(fixed X)
-                if(BUTTON_MAP_FA == BUTTON_ID_NONE)
-                {
-                   BUTTON_MAP_FA = BUTTON_ID_X;
-                }
-                else
-                   BUTTON_MAP_FA = BUTTON_ID_NONE;
-
-              break;
-            case 4: //GBA KEY FB
-                if(BUTTON_MAP_A == BUTTON_ID_A)
-                {
-                    if(BUTTON_MAP_FB == BUTTON_ID_Y)
-                        BUTTON_MAP_FB = BUTTON_ID_NONE;
-                    else
-                        BUTTON_MAP_FB = BUTTON_ID_Y;
-                }
-                else if(BUTTON_MAP_A == BUTTON_ID_Y)
-                {
-                    if(BUTTON_MAP_FB == BUTTON_ID_NONE)
-                        BUTTON_MAP_FB = BUTTON_ID_A;
-                    else
-                        BUTTON_MAP_FB = BUTTON_ID_NONE;
-                }
-              break;
-            case 5: //Awaking menu
-                if(BUTTON_MAP_MENU == BUTTON_ID_X)
-                {
-                    if(BUTTON_MAP_A != BUTTON_ID_Y && BUTTON_MAP_FB != BUTTON_ID_Y)
-                        BUTTON_MAP_MENU = BUTTON_ID_Y;
-                    else
-                        BUTTON_MAP_MENU = BUTTON_ID_TOUCH;
-                }
-                else if(BUTTON_MAP_MENU == BUTTON_ID_TOUCH)
-                {
-                    if(BUTTON_MAP_FA != BUTTON_ID_X)
-                        BUTTON_MAP_MENU = BUTTON_ID_X;
-                    else if(BUTTON_MAP_A != BUTTON_ID_Y && BUTTON_MAP_FB != BUTTON_ID_Y)
-                        BUTTON_MAP_MENU = BUTTON_ID_Y;
-                }
-                else
-                    BUTTON_MAP_MENU = BUTTON_ID_TOUCH;
-              break;
-            default:
-              break;
-          }
-        }
-
-        if(BUTTON_MAP_MENU == BUTTON_ID_X && BUTTON_MAP_FA == BUTTON_ID_X)
-        {
-            if(BUTTON_MAP_A == BUTTON_ID_Y || BUTTON_MAP_FB == BUTTON_ID_Y)
-                BUTTON_MAP_MENU = BUTTON_ID_TOUCH;
-            else
-                BUTTON_MAP_MENU = BUTTON_ID_Y;
-        }
-        else if(BUTTON_MAP_MENU == BUTTON_ID_Y)
-        {
-            if(BUTTON_MAP_A == BUTTON_ID_Y || BUTTON_MAP_FB == BUTTON_ID_Y)
-            {
-                if(BUTTON_MAP_FA == BUTTON_ID_X)
-                    BUTTON_MAP_MENU = BUTTON_ID_TOUCH;
-                else
-                    BUTTON_MAP_MENU = BUTTON_ID_X;
-            }
-        }
-
-        gamepad_config_home = BUTTON_MAP_MENU;
-    }
-
     void load_default_setting()
     {
         if(bg_screenp != NULL)
@@ -2256,24 +2145,27 @@ u32 menu(u16 *original_screen)
             bg_screenp_color = COLOR_BG;
 
         draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
-        draw_string_vcenter(down_screen_addr, 35, 70, 186, COLOR_WHITE, msg[MSG_LOAD_DEFAULT_WARING]);
+        draw_string_vcenter(down_screen_addr, 36, 70, 190, COLOR_MSSG, msg[MSG_DIALOG_RESET]);
 
-        if(draw_yesno_dialog(DOWN_SCREEN, 115, "Yes", "No"))
+        if(draw_yesno_dialog(DOWN_SCREEN, 115, msg[MSG_GENERAL_CONFIRM_WITH_A], msg[MSG_GENERAL_CANCEL_WITH_B]))
         {
+			wait_Allkey_release(0);
             draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
-            draw_string_vcenter(down_screen_addr, 29, 80, 198, COLOR_WHITE, msg[MSG_DEFAULT_LOADING]);
-            flip_screen();
+            draw_string_vcenter(down_screen_addr, 36, 80, 190, COLOR_MSSG, msg[MSG_PROGRESS_RESETTING]);
+            ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
 
             sprintf(line_buffer, "%s/%s", main_path, GPSP_CONFIG_FILENAME);
-            unlink(line_buffer);
+            remove(line_buffer);
 
             first_load= 1;
             init_default_gpsp_config();
             init_game_config();
 
-            clear_gba_screen(0);
-            draw_string_vcenter(up_screen_addr, 0, 80, 256, COLOR_WHITE, msg[MSG_NON_LOAD_GAME]);
-            flip_gba_screen();
+			ds2_clearScreen(UP_SCREEN, 0);
+            draw_string_vcenter(up_screen_addr, 0, 80, 256, COLOR_WHITE, msg[MSG_TOP_SCREEN_NO_GAME_LOADED]);
+			ds2_flipScreen(UP_SCREEN, 1);
+
+			// mdelay(500); // Delete this delay
         }
     }
 
@@ -2288,265 +2180,172 @@ u32 menu(u16 *original_screen)
             bg_screenp_color = COLOR_BG;
 
         draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
-        draw_string_vcenter(down_screen_addr, 29, 80, 198, COLOR_WHITE, msg[MSG_GBA_VERSION0]);
-        sprintf(line_buffer, "%s  %s", msg[MSG_GBA_VERSION1], NDSGBA_VERSION);
-        draw_string_vcenter(down_screen_addr, 29, 95, 198, COLOR_WHITE, line_buffer);
-        flip_screen();
+        draw_string_vcenter(down_screen_addr, 36, 80, 190, COLOR_MSSG, msg[MSG_EMULATOR_NAME]);
+        sprintf(line_buffer, "%s %s", msg[MSG_WORD_EMULATOR_VERSION], NDSGBA_VERSION);
+        draw_string_vcenter(down_screen_addr, 36, 95, 190, COLOR_MSSG, line_buffer);
+        ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
 
-        gui_action_type gui_action = CURSOR_NONE;
-        while(gui_action == CURSOR_NONE)
-        {
-            gui_action = get_gui_input();
-        }
-    }
-
-    void load_lastest_played()
-    {
-        if(gui_action == CURSOR_LEFT)
-        {
-            draw_hscroll(current_option_num -1, 5);
-        }
-        else if(gui_action == CURSOR_RIGHT)
-        {
-            draw_hscroll(current_option_num -1, -5);
-        }
-        else if(gui_action == CURSOR_SELECT)
-        {
-            char *ext_pos;
-
-            if(gamepak_filename[0] != 0)
-            {
-//              if(!gpsp_config.update_backup_flag) // TODO タイミングを検討
-                update_backup_force();
-
-                save_game_config_file();
-            }
-
-            if(bg_screenp != NULL)
-            {
-                bg_screenp_color = COLOR16(43, 11, 11);
-                memcpy(bg_screenp, down_screen_addr, 256*192*2);
-            }
-            else
-                bg_screenp_color = COLOR_BG;
-
-            draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
-            draw_string_vcenter(down_screen_addr, 30, 75, 196, COLOR_WHITE, msg[MSG_LOADING_GAME]);
-
-            ext_pos= strrchr(gpsp_config.latest_file[current_option_num -1], '/');
-            *ext_pos= '\0';
-            strcpy(rom_path, gpsp_config.latest_file[current_option_num -1]);
-            *ext_pos= '/';
-            if(load_gamepak(ext_pos+1) == -1)
-                return;
-            load_game_config_file();
-            reset_gba();
-
-            reorder_latest_file();
-            get_savestate_filelist();
-
-            get_newest_savestate(current_savestate_filename);
-            if(current_savestate_filename[0] != '\0')
-            {
-                FILE *fp;
-                fp= get_savestate_snapshot(current_savestate_filename);
-                if(fp != NULL)
-                    load_state(current_savestate_filename, fp);
-                else
-                {
-                    reset_gba();
-                    reg[CHANGED_PC_STATUS] = 1;
-                }
-            }
-            else
-            {
-                reset_gba();
-                reg[CHANGED_PC_STATUS] = 1;
-            }
-
-            return_value = 1;
-            repeat = 0;
-        }
-    }
-
-    void release_lastest_played_scroll()
-    {
-        u32 k;
-
-        for(k= 0; k < 5; k++)
-        {
-            if(gpsp_config.latest_file[k][0] != '\0')
-                draw_hscroll_over(k);
-        }
-    }
-
-    void load_lastest_played_passive()
-    {
-        u32 k;
-
-        if(gpsp_config.latest_file[i-1][0] != '\0')
-        {
-//???????
-//            if(current_option_num != i)
-//                draw_hscroll(i-1, 1000);
-//            else
-                draw_hscroll(i-1, 0);
-        }
-
-        k= display_option-> line_number;
-        if(display_option == current_option)
-        {
-			// Not sure what that is, so disabled [Neb]
-            //show_icon(down_screen_addr, &ICON_SUBM_ISOLATOR, 7, 33 + k*20);
-            show_icon(down_screen_addr, &ICON_SUBSELA, 12, 42 + k*20);
-			// Not sure what that is, so disabled [Neb]
-            //show_icon(down_screen_addr, &ICON_SUBM_ISOLATOR, 7, 53 + k*20);
-        }
+		wait_Anykey_press(0);
     }
 
     void language_set()
     {
         if(gui_action == CURSOR_LEFT || gui_action == CURSOR_RIGHT)
         {
-            if(bg_screenp != NULL)
-            {
-                bg_screenp_color = COLOR16(43, 11, 11);
-                memcpy(bg_screenp, down_screen_addr, 256*192*2);
-            }
-            else
-                bg_screenp_color = COLOR_BG;
-
-            draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
-            draw_string_vcenter(down_screen_addr, 30, 75, 196, COLOR_WHITE, msg[MSG_CHANGE_LANGUAGE]);
-            draw_string_vcenter(down_screen_addr, 30, 95, 196, COLOR_WHITE, msg[MSG_CHANGE_LANGUAGE_WAITING]);
-            flip_screen();
+            HighFrequencyCPU(); // crank it up
 
             load_language_msg(LANGUAGE_PACK, gpsp_config.language);
-            gui_change_icon(gpsp_config.language);
 
             if(first_load)
             {
-                clear_gba_screen(0);
-                draw_string_vcenter(up_screen_addr, 0, 80, 256, COLOR_WHITE, msg[MSG_NON_LOAD_GAME]);
-                flip_gba_screen();
+				ds2_clearScreen(UP_SCREEN, 0);
+                draw_string_vcenter(up_screen_addr, 0, 80, 256, COLOR_WHITE, msg[MSG_TOP_SCREEN_NO_GAME_LOADED]);
+				ds2_flipScreen(UP_SCREEN, 1);
             }
+
+            LowFrequencyCPU(); // and back down
         }
     }
 
-    void sound_switch()
-    {
-        sound_on = gpsp_config.enable_audio & 0x1;
-    }
-
-    void check_card_space()
-    {
-        // Disabled [Neb]
-    }
-
+#ifdef ENABLE_FREE_SPACE
+	unsigned int freespace;
     void show_card_space ()
     {
-        // Disabled [Neb]
+        u32 line_num;
+        u32 num_byte;
+
+        strcpy(line_buffer, *(display_option->display_string));
+        line_num= display_option-> line_number;
+        PRINT_STRING_BG(down_screen_addr, line_buffer, COLOR_INACTIVE_ITEM, COLOR_TRANS, 27,
+            40 + (display_option->line_number)*27);
+
+		num_byte = freespace;
+
+        if(num_byte <= 9999*2)
+        { /* < 9999KB */
+            sprintf(line_buffer, "%d", num_byte/2);
+            if(num_byte & 1)
+                strcat(line_buffer, ".5 KB");
+            else
+                strcat(line_buffer, ".0 KB");
+        }
+        else if(num_byte <= 9999*1024*2)
+        { /* < 9999MB */
+            num_byte /= 1024;
+            sprintf(line_buffer, "%d", num_byte/2);
+            if(num_byte & 1)
+                strcat(line_buffer, ".5 MB");
+            else
+                strcat(line_buffer, ".0 MB");
+        }
+        else
+        {
+            num_byte /= 1024*1024;
+            sprintf(line_buffer, "%d", num_byte/2);
+            if(num_byte & 1)
+                strcat(line_buffer, ".5 GB");
+            else
+                strcat(line_buffer, ".0 GB");
+        }
+
+        PRINT_STRING_BG(down_screen_addr, line_buffer, COLOR_INACTIVE_ITEM, COLOR_TRANS, 147,
+            40 + (display_option->line_number)*27);
     }
+#endif
+    
+    char *frameskip_options[] = { (char*)&msg[MSG_VIDEO_FRAME_SKIPPING_AUTOMATIC], (char*)&msg[MSG_VIDEO_FRAME_SKIPPING_0], (char*)&msg[MSG_VIDEO_FRAME_SKIPPING_1], (char*)&msg[MSG_VIDEO_FRAME_SKIPPING_2], (char*)&msg[MSG_VIDEO_FRAME_SKIPPING_3], (char*)&msg[MSG_VIDEO_FRAME_SKIPPING_4], (char*)&msg[MSG_VIDEO_FRAME_SKIPPING_5], (char*)&msg[MSG_VIDEO_FRAME_SKIPPING_6], (char*)&msg[MSG_VIDEO_FRAME_SKIPPING_7], (char*)&msg[MSG_VIDEO_FRAME_SKIPPING_8], (char*)&msg[MSG_VIDEO_FRAME_SKIPPING_9], (char*)&msg[MSG_VIDEO_FRAME_SKIPPING_10] };
 
-    char *screen_ratio_options[] = { (char*) &msg[MSG_SCREEN_RATIO_0], (char*) &msg[MSG_SCREEN_RATIO_1] };
+    char *cpu_frequency_options[] = { (char*)&msg[MSG_OPTIONS_CPU_FREQUENCY_0], (char*)&msg[MSG_OPTIONS_CPU_FREQUENCY_1], (char*)&msg[MSG_OPTIONS_CPU_FREQUENCY_2], (char*)&msg[MSG_OPTIONS_CPU_FREQUENCY_3], (char*)&msg[MSG_OPTIONS_CPU_FREQUENCY_4], (char*)&msg[MSG_OPTIONS_CPU_FREQUENCY_5] };
 
-    char *frameskip_options[] = { (char*) &msg[MSG_FRAMESKIP_0], (char*) &msg[MSG_FRAMESKIP_1] };
+    char *on_off_options[] = { (char*)&msg[MSG_GENERAL_OFF], (char*)&msg[MSG_GENERAL_ON] };
 
-    char *on_off_options[] = { (char*) &msg[MSG_ON_OFF_0], (char*) &msg[MSG_ON_OFF_1] };
+    char *sound_seletion[] = { (char*)&msg[MSG_AUDIO_MUTED], (char*)&msg[MSG_AUDIO_ENABLED] };
 
-    char *sound_seletion[] = { (char*) &msg[MSG_SOUND_SWITCH_0], (char*) &msg[MSG_SOUND_SWITCH_1] };
+//    char *snap_frame_options[] = { (char*)&msg[MSG_SNAP_FRAME_0], (char*)&msg[MSG_SNAP_FRAME_1] };
 
-    char *snap_frame_options[] = { (char*) &msg[MSG_SNAP_FRAME_0], (char*) &msg[MSG_SNAP_FRAME_1] };
-
-    char *enable_disable_options[] = { (char*) &msg[MSG_EN_DIS_ABLE_0], (char*) &msg[MSG_EN_DIS_ABLE_1] };
-
-    char *keyremap_options[] = {(char*) &msg[MSG_KEY_MAP_NONE], (char*) &msg[MSG_KEY_MAP_A], (char*) &msg[MSG_KEY_MAP_B],
-                                (char*) &msg[MSG_KEY_MAP_SL], (char*) &msg[MSG_KEY_MAP_ST], (char*) &msg[MSG_KEY_MAP_RT],
-                                (char*) &msg[MSG_KEY_MAP_LF], (char*) &msg[MSG_KEY_MAP_UP], (char*) &msg[MSG_KEY_MAP_DW],
-                                (char*) &msg[MSG_KEY_MAP_R], (char*) &msg[MSG_KEY_MAP_L], (char*) &msg[MSG_KEY_MAP_X],
-                                (char*) &msg[MSG_KEY_MAP_Y], (char*) &msg[MSG_KEY_MAP_TOUCH]
-                                };
+//    char *enable_disable_options[] = { (char*)&msg[MSG_EN_DIS_ABLE_0], (char*)&msg[MSG_EN_DIS_ABLE_1] };
 
   /*--------------------------------------------------------
     Video & Audio
   --------------------------------------------------------*/
-  MENU_OPTION_TYPE graphics_options[] =
-  {
-    /* 00 */ SUBMENU_OPTION(NULL, &msg[MSG_SUB_MENU_05], NULL, 0),
+	MENU_OPTION_TYPE graphics_options[] =
+	{
+	/* 00 */ SUBMENU_OPTION(NULL, &msg[MSG_MAIN_MENU_VIDEO_AUDIO], NULL, 0),
 
-    /* 01 */ STRING_SELECTION_OPTION(NULL, NULL, &msg[MSG_SUB_MENU_00], screen_ratio_options,
-        &gpsp_config.screen_ratio, 2, NULL, PASSIVE_TYPE | HIDEN_TYPE, 1),
+	/* 01 */ STRING_SELECTION_OPTION(game_fastforward, NULL, &msg[FMT_VIDEO_FAST_FORWARD], on_off_options,
+		&game_fast_forward, 2, NULL, ACTION_TYPE, 1),
 
-    /* 02 */ STRING_SELECTION_OPTION(game_fastforward, NULL, &msg[MSG_SUB_MENU_01], on_off_options,
-        &game_fast_forward, 2, NULL, ACTION_TYPE, 2),
+	/* 02 */	STRING_SELECTION_OPTION(game_disableAudio, NULL, &msg[FMT_AUDIO_SOUND], sound_seletion,
+		&sound_on, 2, NULL, ACTION_TYPE, 2),
 
-    /* 03 */ STRING_SELECTION_OPTION(NULL, NULL, &msg[MSG_SUB_MENU_02], frameskip_options,
-        &game_config.frameskip_type, 2, NULL, PASSIVE_TYPE, 3),
+	/* 03 */	STRING_SELECTION_OPTION(game_set_frameskip, NULL, &msg[FMT_VIDEO_FRAME_SKIPPING], frameskip_options,
+		&game_config.frameskip_value, 12 /* auto (0) and 0..10 (1..11) make 12 option values */, NULL, ACTION_TYPE, 3),
+	};
 
-    /* 04 */ NUMERIC_SELECTION_OPTION(NULL, &msg[MSG_SUB_MENU_03],
-        &game_config.frameskip_value, 10, NULL, 4),
-
-    /* 05 */ STRING_SELECTION_OPTION(sound_switch, NULL, &msg[MSG_SUB_MENU_04], on_off_options,
-        &gpsp_config.enable_audio, 2, NULL, ACTION_TYPE ,5)
-  };
-
-  MAKE_MENU(graphics, submenu_graphics, NULL);
+	MAKE_MENU(graphics, NULL, NULL, NULL, NULL, 0, 0);
 
   /*--------------------------------------------------------
      Game state -- delette
   --------------------------------------------------------*/
-  MENU_TYPE game_state_menu;
+	MENU_TYPE game_state_menu;
 
-  MENU_OPTION_TYPE gamestate_delette_options[] =
-  {
-    /* 00 */ SUBMENU_OPTION(&game_state_menu, &msg[MSG_SUB_MENU_14], NULL, 0),
+	MENU_OPTION_TYPE gamestate_delette_options[] =
+	{
+	/* 00 */ SUBMENU_OPTION(&game_state_menu, &msg[MSG_SAVED_STATE_DELETE_GENERAL], NULL, 0),
 
-    /* 01 */ ACTION_OPTION(delette_savestate, NULL, &msg[MSG_SUB_MENU_130], NULL, 1),
+	/* 01 */ ACTION_OPTION(delette_savestate, NULL, &msg[MSG_SAVED_STATE_DELETE_ALL], NULL, 1),
 
-    /* 02 */ NUMERIC_SELECTION_ACTION_OPTION(delette_savestate, menu_delstate_passive,
-        &msg[MSG_SUB_MENU_131], &delette_savestate_num, 32, NULL, 2)
-  };
+	/* 02 */ NUMERIC_SELECTION_ACTION_OPTION(delette_savestate, NULL,
+		&msg[FMT_SAVED_STATE_DELETE_ONE], &delette_savestate_num, SAVE_STATE_SLOT_NUM, NULL, 2)
+	};
 
-  MAKE_MENU(gamestate_delette, submenu_gamestate_delette, NULL);
+	MAKE_MENU(gamestate_delette, NULL, gamestate_delette_menu_passive, NULL, NULL, 0, 0);
 
   /*--------------------------------------------------------
      Game state
   --------------------------------------------------------*/
-  MENU_OPTION_TYPE game_state_options[] =
-  {
-    /* 00 */ SUBMENU_OPTION(NULL, &msg[MSG_SUB_MENU_14], NULL, 0),
+	MENU_OPTION_TYPE game_state_options[] =
+	{
+	/* 00 */ SUBMENU_OPTION(NULL, &msg[MSG_MAIN_MENU_SAVED_STATES], NULL, 0),
 
-    /* 01 */ ACTION_OPTION(menu_save_state, menu_savestate_passive, &msg[MSG_SUB_MENU_10], NULL, 1),
+	// savestate_index is still a signed int
+	/* 01 */ NUMERIC_SELECTION_ACTION_OPTION(menu_save_state, NULL, &msg[FMT_SAVED_STATE_CREATE], (u32*) &savestate_index, SAVE_STATE_SLOT_NUM, NULL, 1),
 
-    /* 02 */ NUMERIC_SELECTION_ACTION_OPTION(menu_load_state, menu_readstate_passive,
-        &msg[MSG_SUB_MENU_11], &savestate_index, 32, NULL, 2),
+	// savestate_index is still a signed int
+	/* 02 */ NUMERIC_SELECTION_ACTION_OPTION(menu_load_state, NULL,
+        &msg[FMT_SAVED_STATE_LOAD], (u32*) &savestate_index, SAVE_STATE_SLOT_NUM, NULL, 2),
 
-    /* 03 */ SUBMENU_OPTION(&gamestate_delette_menu, &msg[MSG_SUB_MENU_13], NULL, 5),
-  };
+	/* 03 */ SUBMENU_OPTION(&gamestate_delette_menu, &msg[MSG_SAVED_STATE_DELETE_GENERAL], NULL, 5),
+	};
 
-  INIT_MENU(game_state, submenu_game_state, NULL);
+	INIT_MENU(game_state, NULL, game_state_menu_passive, NULL, NULL, 0, 0);
 
   /*--------------------------------------------------------
      Cheat options
   --------------------------------------------------------*/
-  MENU_OPTION_TYPE cheats_options[] =
-  {
-    /* 00 */ SUBMENU_OPTION(NULL, &msg[MSG_SUB_MENU_24], NULL,0),
-
+	MENU_OPTION_TYPE cheats_options[] =
+	{
+	/* 00 */ SUBMENU_OPTION(NULL, &msg[MSG_MAIN_MENU_CHEATS], NULL,0),
+		// Currently disabled [Neb]
 #if 0
-    /* 01 */ CHEAT_OPTION(((CHEATS_PER_PAGE * menu_cheat_page) + 0), 1),
-    /* 02 */ CHEAT_OPTION(((CHEATS_PER_PAGE * menu_cheat_page) + 1), 2),
-    /* 03 */ CHEAT_OPTION(((CHEATS_PER_PAGE * menu_cheat_page) + 2), 3),
+	/* 01 */ CHEAT_OPTION(cheat_option_action, cheat_option_passive,
+		((CHEATS_PER_PAGE * menu_cheat_page) + 0), 1),
+	/* 02 */ CHEAT_OPTION(cheat_option_action, cheat_option_passive,
+		((CHEATS_PER_PAGE * menu_cheat_page) + 1), 2),
+	/* 03 */ CHEAT_OPTION(cheat_option_action, cheat_option_passive,
+		((CHEATS_PER_PAGE * menu_cheat_page) + 2), 3),
+	/* 04 */ CHEAT_OPTION(cheat_option_action, cheat_option_passive,
+		((CHEATS_PER_PAGE * menu_cheat_page) + 3), 4),
 
-    /* 04 */ NUMERIC_SELECTION_ACTION_OPTION(reload_cheats_page, NULL, &msg[MSG_SUB_MENU_20],
-        &menu_cheat_page, MAX_CHEATS_PAGE, NULL, 4),
+	/* 05 */ NUMERIC_SELECTION_ACTION_OPTION(reload_cheats_page, NULL, &msg[FMT_CHEAT_PAGE],
+        &menu_cheat_page, MAX_CHEATS_PAGE, NULL, 5),
 
-    /* 05 */ ACTION_OPTION(menu_load_cheat_file, NULL, &msg[MSG_SUB_MENU_21],
-        NULL, 5)
+	/* 06 */ ACTION_OPTION(menu_load_cheat_file, NULL, &msg[MSG_CHEAT_LOAD_FROM_FILE],
+        NULL, 6)
 #endif
-  };
+	};
 
-  MAKE_MENU(cheats, submenu_cheats, NULL);
+	INIT_MENU(cheats, cheat_menu_init, NULL, NULL, cheat_menu_end, 0, 0);
 
   /*--------------------------------------------------------
      Tools-screensanp
@@ -2555,83 +2354,73 @@ u32 menu(u16 *original_screen)
 
     MENU_OPTION_TYPE tools_screensnap_options[] =
     {
-        /* 00 */ SUBMENU_OPTION(&tools_menu, &msg[MSG_SUB_MENU_302], NULL, 0),
+	/* 00 */ SUBMENU_OPTION(&tools_menu, &msg[MSG_TOOLS_SCREENSHOT_GENERAL], NULL, 0),
 
-        /* 01 */ ACTION_OPTION(save_screen_snapshot, NULL, &msg[MSG_SUB_MENU_300], NULL, 1),
+	/* 01 */ ACTION_OPTION(save_screen_snapshot, NULL, &msg[MSG_SCREENSHOT_CREATE], NULL, 1),
 
-        /* 02 */ ACTION_OPTION(browse_screen_snapshot, NULL, &msg[MSG_SUB_MENU_301], NULL, 2)
+	/* 02 */ ACTION_OPTION(browse_screen_snapshot, NULL, &msg[MSG_SCREENSHOT_BROWSE], NULL, 2)
     };
 
-    MAKE_MENU(tools_screensnap, submenu_screensnap, NULL);
+    MAKE_MENU(tools_screensnap, NULL, NULL, NULL, NULL, 0, 0);
 
-  /*--------------------------------------------------------
-     Tools-keyremap
-  --------------------------------------------------------*/
-    MENU_OPTION_TYPE tools_keyremap_options[] =
-    {
-        /* 00 */ SUBMENU_OPTION(&tools_menu, &msg[MSG_SUB_MENU_315], NULL, 0),
-
-        /* 01 */ STRING_SELECTION_OPTION(keyremap, keyremap_show, &msg[MSG_SUB_MENU_310],
-            NULL, &string_select, 2, NULL, ACTION_TYPE, 1),
-
-        /* 02 */ STRING_SELECTION_OPTION(keyremap, keyremap_show, &msg[MSG_SUB_MENU_311],
-            NULL, &string_select, 1, NULL, ACTION_TYPE, 2),
-
-        /* 03 */ STRING_SELECTION_OPTION(keyremap, keyremap_show, &msg[MSG_SUB_MENU_312],
-            NULL, &string_select, 2, NULL, ACTION_TYPE, 3),
-
-        /* 04 */ STRING_SELECTION_OPTION(keyremap, keyremap_show, &msg[MSG_SUB_MENU_313],
-            NULL, &string_select, 3, NULL, ACTION_TYPE, 4),
-
-        /* 05 */ STRING_SELECTION_OPTION(keyremap, keyremap_show, &msg[MSG_SUB_MENU_314],
-            NULL, &string_select, 3, NULL, ACTION_TYPE, 5)
-    };
-
-    MAKE_MENU(tools_keyremap, NULL, NULL);
   /*--------------------------------------------------------
      Tools
   --------------------------------------------------------*/
     MENU_OPTION_TYPE tools_options[] =
     {
-        /* 00 */ SUBMENU_OPTION(NULL, &msg[MSG_SUB_MENU_32], NULL, 0),
+	/* 00 */ SUBMENU_OPTION(NULL, &msg[MSG_MAIN_MENU_TOOLS], NULL, 0),
 
-        /* 01 */ SUBMENU_OPTION(&tools_screensnap_menu, &msg[MSG_SUB_MENU_30], NULL, 1),
+	/* 01 */ SUBMENU_OPTION(&tools_screensnap_menu, &msg[MSG_TOOLS_SCREENSHOT_GENERAL], NULL, 1),
 
-        /* 02 */ SUBMENU_OPTION(&tools_keyremap_menu, &msg[MSG_SUB_MENU_31], NULL, 2)
+//	/* 02 */ SUBMENU_OPTION(&tools_keyremap_menu, &msg[MSG_SUB_MENU_31], NULL, 2),
+
+//	/* 03 */ STRING_SELECTION_OPTION(time_backward_action, NULL, &msg[MSG_SUB_MENU_302], on_off_options,
+//			&game_config.backward, 2, NULL, ACTION_TYPE, 3),
+
+//	/* 04 */ NUMERIC_SELECTION_ACTION_OPTION(time_period_action, time_period_passive, &msg[MSG_SUB_MENU_32],
+//		&game_config.backward_time, 6, NULL, 4)
     };
 
-    INIT_MENU(tools, submenu_tools, NULL);
-//    tools_menu.init_function = submenu_tools;
-//    tools_menu.passive_function = NULL;
-//    tools_menu.options = tools_options;
-//    tools_menu.num_options= sizeof(tools_options) / sizeof(MENU_OPTION_TYPE);
+    INIT_MENU(tools, tools_menu_init, NULL, NULL, NULL, 0, 0);
 
   /*--------------------------------------------------------
      Others
   --------------------------------------------------------*/
     u32 desert= 0;
-  MENU_OPTION_TYPE others_options[] =
-  {
-    /* 00 */ SUBMENU_OPTION(NULL, &msg[MSG_BACK], NULL, 0),
+	MENU_OPTION_TYPE others_options[] = 
+	{
+	/* 00 */ SUBMENU_OPTION(NULL, &msg[MSG_MAIN_MENU_OPTIONS], NULL, 0),
 
-    /* 01 */ STRING_SELECTION_OPTION(NULL, NULL, &msg[MSG_SUB_MENU_40], enable_disable_options,
-        &gpsp_config.auto_standby, 2, NULL, PASSIVE_TYPE | HIDEN_TYPE, 1),
+	//CPU speed (string: shows MHz)
+	/* 01 */ STRING_SELECTION_OPTION(NULL, NULL, &msg[FMT_OPTIONS_CPU_FREQUENCY], cpu_frequency_options, 
+        &game_config.clock_speed_number, 6, NULL, PASSIVE_TYPE, 1),
 
-    /* 02 */ STRING_SELECTION_OPTION(language_set, NULL, &msg[MSG_SUB_MENU_41], language_options,
-        &gpsp_config.language, 2, NULL, ACTION_TYPE, 2),
+	/* 02 */ STRING_SELECTION_OPTION(language_set, NULL, &msg[FMT_OPTIONS_LANGUAGE], language_options, 
+        &gpsp_config.language, sizeof(language_options) / sizeof(language_options[0]) /* number of possible languages */, NULL, ACTION_TYPE, 2),
 
-    /* 03 */ STRING_SELECTION_OPTION(NULL, show_card_space, &msg[MSG_SUB_MENU_43], NULL,
+#ifdef ENABLE_FREE_SPACE
+	/* 03 */ STRING_SELECTION_OPTION(NULL, show_card_space, &msg[MSG_OPTIONS_CARD_CAPACITY], NULL, 
         &desert, 2, NULL, PASSIVE_TYPE | HIDEN_TYPE, 3),
+#endif
 
-//    /* 03 */ STRING_SELECTION_OPTION(NULL, NULL, &msg[MSG_SUB_MENU_42], on_off_options,
-//        &gpsp_config.auto_help, 2, NULL, PASSIVE_TYPE | HIDEN_TYPE, 3),
+	/* 04 */ ACTION_OPTION(load_default_setting, NULL, &msg[MSG_OPTIONS_RESET], NULL, 
+#ifdef ENABLE_FREE_SPACE
+			4
+#else
+			3
+#endif
+		),
 
-    /* 04 */ ACTION_OPTION(load_default_setting, NULL, &msg[MSG_SUB_MENU_44], NULL, 4),
+	/* 05 */ ACTION_OPTION(check_gbaemu_version, NULL, &msg[MSG_OPTIONS_VERSION], NULL, 
+#ifdef ENABLE_FREE_SPACE
+			5
+#else
+			4
+#endif
+		),
+	};
 
-    /* 05 */ ACTION_OPTION(check_gbaemu_version, NULL, &msg[MSG_SUB_MENU_45], NULL, 5),
-  };
-
-    MAKE_MENU(others, submenu_others, NULL);
+	MAKE_MENU(others, others_menu_init, NULL, NULL, NULL, 1, 1);
 
   /*--------------------------------------------------------
      Load_game
@@ -2640,116 +2429,194 @@ u32 menu(u16 *original_screen)
 
     MENU_OPTION_TYPE load_game_options[] =
     {
-        /* 00 */ ACTION_OPTION(menu_load, NULL, &msg[MSG_SUB_MENU_61], NULL, 0),
+	/* 00 */ SUBMENU_OPTION(NULL, &msg[MSG_LOAD_GAME_MENU_TITLE], NULL, 0),
 
-        /* 01 */ SUBMENU_OPTION(&latest_game_menu, &msg[MSG_SUB_MENU_60], NULL, 1),
+	/* 01 */ ACTION_OPTION(menu_load, NULL, &msg[MSG_LOAD_GAME_FROM_CARD], NULL, 1),
 
-        /* 02 */ SUBMENU_OPTION(NULL, &msg[MSG_SUB_MENU_62], NULL, 2)
+	/* 02 */ SUBMENU_OPTION(&latest_game_menu, &msg[MSG_LOAD_GAME_RECENTLY_PLAYED], NULL, 2)
     };
 
-    MAKE_MENU(load_game, submenu_load_game, NULL);
+    MAKE_MENU(load_game, NULL, NULL, NULL, NULL, 1, 1);
 
   /*--------------------------------------------------------
      Latest game
   --------------------------------------------------------*/
     MENU_OPTION_TYPE latest_game_options[] =
     {
-        /* 00 */ SUBMENU_OPTION(&load_game_menu, &msg[MSG_SUB_MENU_62], NULL, 0),
+	/* 00 */ SUBMENU_OPTION(&load_game_menu, &msg[MSG_LOAD_GAME_RECENTLY_PLAYED], NULL, 0),
 
-        /* 01 */ STRING_SELECTION_OPTION(load_lastest_played, load_lastest_played_passive, NULL, NULL,
-            &desert, 2, NULL, ACTION_TYPE, 1),
+	/* 01 */ ACTION_OPTION(load_lastest_played, NULL, NULL, NULL, 1),
 
-        /* 02 */ STRING_SELECTION_OPTION(load_lastest_played, load_lastest_played_passive, NULL, NULL,
-            &desert, 2, NULL, ACTION_TYPE, 2),
+	/* 02 */ ACTION_OPTION(load_lastest_played, NULL, NULL, NULL, 2),
 
-        /* 03 */ STRING_SELECTION_OPTION(load_lastest_played, load_lastest_played_passive, NULL, NULL,
-            &desert, 2, NULL, ACTION_TYPE, 3),
+	/* 03 */ ACTION_OPTION(load_lastest_played, NULL, NULL, NULL, 3),
 
-        /* 04 */ STRING_SELECTION_OPTION(load_lastest_played, load_lastest_played_passive, NULL, NULL,
-            &desert, 2, NULL, ACTION_TYPE, 4),
+	/* 04 */ ACTION_OPTION(load_lastest_played, NULL, NULL, NULL, 4),
 
-        /* 05 */ STRING_SELECTION_OPTION(load_lastest_played, load_lastest_played_passive, NULL, NULL,
-            &desert, 2, NULL, ACTION_TYPE, 5)
+	/* 05 */ ACTION_OPTION(load_lastest_played, NULL, NULL, NULL, 5)
     };
 
-    INIT_MENU(latest_game, submenu_latest_game, NULL);
+    INIT_MENU(latest_game, latest_game_menu_init, latest_game_menu_passive,
+		latest_game_menu_key, latest_game_menu_end, 0, 0);
 
   /*--------------------------------------------------------
      MAIN MENU
   --------------------------------------------------------*/
-  MENU_OPTION_TYPE main_options[] =
-  {
-    /* 00 */ SUBMENU_OPTION(&graphics_menu, &msg[MSG_MAIN_MENU_0], NULL, 0),
+	MENU_OPTION_TYPE main_options[] =
+	{
+    /* 00 */ SUBMENU_OPTION(&graphics_menu, &msg[MSG_MAIN_MENU_VIDEO_AUDIO], NULL, 0),
 
-    /* 01 */ SUBMENU_OPTION(&game_state_menu, &msg[MSG_MAIN_MENU_1], NULL, 1),
+    /* 01 */ SUBMENU_OPTION(&game_state_menu, &msg[MSG_MAIN_MENU_SAVED_STATES], NULL, 1),
 
-    /* 02 */ SUBMENU_OPTION(&cheats_menu, &msg[MSG_MAIN_MENU_2], NULL, 2),
+    /* 02 */ SUBMENU_OPTION(&cheats_menu, &msg[MSG_MAIN_MENU_CHEATS], NULL, 2),
 
-    /* 03 */ SUBMENU_OPTION(&tools_menu, &msg[MSG_MAIN_MENU_3], NULL, 3),
+    /* 03 */ SUBMENU_OPTION(&tools_menu, &msg[MSG_MAIN_MENU_TOOLS], NULL, 3),
 
-    /* 04 */ SUBMENU_OPTION(&others_menu, &msg[MSG_MAIN_MENU_4], NULL, 4),
+    /* 04 */ SUBMENU_OPTION(&others_menu, &msg[MSG_MAIN_MENU_OPTIONS], NULL, 4),
 
-    /* 05 */ ACTION_OPTION(menu_exit, NULL, &msg[MSG_MAIN_MENU_5], NULL, 5),
+    /* 05 */ ACTION_OPTION(menu_exit, NULL, &msg[MSG_MAIN_MENU_EXIT], NULL, 5),
 
     /* 06 */ SUBMENU_OPTION(&load_game_menu, NULL, NULL, 6),
 
-    /* 07 */ ACTION_OPTION(menu_restart, NULL, NULL, NULL, 7),
+    /* 07 */ ACTION_OPTION(menu_return, NULL, NULL, NULL, 7),
 
-    /* 08 */ ACTION_OPTION(menu_return, NULL, NULL, NULL, 8)
-  };
+    /* 08 */ ACTION_OPTION(menu_restart, NULL, NULL, NULL, 8)
+	};
 
-  MAKE_MENU(main, submenu_main, main_menu_passive);
+	MAKE_MENU(main, NULL, main_menu_passive, main_menu_key, NULL, 6, 0);
 
-    void main_menu_passive()
+	void main_menu_passive()
+	{
+		show_icon(down_screen_addr, &ICON_MAINBG, 0, 0);
+		current_menu -> focus_option = current_option -> line_number;
+
+		//Audio/Video
+		strcpy(line_buffer, *(display_option->display_string));
+		if(display_option++ == current_option) {
+			show_icon(down_screen_addr, &ICON_AVO, 19, 2);
+			show_icon(down_screen_addr, &ICON_MSEL, 5, 57);
+		}
+		else {
+			show_icon(down_screen_addr, &ICON_NAVO, 19, 2);
+			show_icon(down_screen_addr, &ICON_MNSEL, 5, 57);
+		}
+		draw_string_vcenter(down_screen_addr, 7, 57, 75, COLOR_WHITE, line_buffer);
+
+		//Save
+		strcpy(line_buffer, *(display_option->display_string));
+		if(display_option++ == current_option) {
+			show_icon(down_screen_addr, &ICON_SAVO, 103, 2);
+			show_icon(down_screen_addr, &ICON_MSEL, 89, 57);
+		}
+		else {
+			show_icon(down_screen_addr, &ICON_NSAVO, 103, 2);
+			show_icon(down_screen_addr, &ICON_MNSEL, 89, 57);
+		}
+		draw_string_vcenter(down_screen_addr, 91, 57, 75, COLOR_WHITE, line_buffer);
+
+		//Cheat
+		strcpy(line_buffer, *(display_option->display_string));
+		if(display_option++ == current_option) {
+			show_icon(down_screen_addr, &ICON_CHEAT, 187, 2);
+			show_icon(down_screen_addr, &ICON_MSEL, 173, 57);
+		}
+		else {
+			show_icon(down_screen_addr, &ICON_NCHEAT, 187, 2);
+			show_icon(down_screen_addr, &ICON_MNSEL, 173, 57);
+		}
+		draw_string_vcenter(down_screen_addr, 175, 57, 75, COLOR_WHITE, line_buffer);
+
+		//Tools
+		strcpy(line_buffer, *(display_option->display_string));
+		if(display_option++ == current_option) {
+			show_icon(down_screen_addr, &ICON_TOOL, 19, 75);
+			show_icon(down_screen_addr, &ICON_MSEL, 5, 131);
+		}
+		else {
+			show_icon(down_screen_addr, &ICON_NTOOL, 19, 75);
+			show_icon(down_screen_addr, &ICON_MNSEL, 5, 131);
+		}
+		draw_string_vcenter(down_screen_addr, 7, 131, 75, COLOR_WHITE, line_buffer);
+
+		//Other
+		strcpy(line_buffer, *(display_option->display_string));
+		if(display_option++ == current_option) {
+			show_icon(down_screen_addr, &ICON_OTHER, 103, 75);
+			show_icon(down_screen_addr, &ICON_MSEL, 89, 131);
+		}
+		else {
+			show_icon(down_screen_addr, &ICON_NOTHER, 103, 75);
+			show_icon(down_screen_addr, &ICON_MNSEL, 89, 131);
+		}
+		draw_string_vcenter(down_screen_addr, 91, 131, 75, COLOR_WHITE, line_buffer);
+
+		//Exit
+		strcpy(line_buffer, *(display_option->display_string));
+		if(display_option++ == current_option) {
+			show_icon(down_screen_addr, &ICON_EXIT, 187, 75);
+			show_icon(down_screen_addr, &ICON_MSEL, 173, 131);
+		}
+		else {
+			show_icon(down_screen_addr, &ICON_NEXIT, 187, 75);
+			show_icon(down_screen_addr, &ICON_MNSEL, 173, 131);
+		}
+		draw_string_vcenter(down_screen_addr, 175, 131, 75, COLOR_WHITE, line_buffer);
+
+		//New
+		if(display_option++ == current_option)
+			show_icon(down_screen_addr, &ICON_MAINITEM, 0, 154);
+		else
+			show_icon(down_screen_addr, &ICON_NMAINITEM, 0, 154);
+		draw_string_vcenter(down_screen_addr, 0, 165, 85, COLOR_WHITE, msg[MSG_MAIN_MENU_NEW_GAME]);
+
+		//Restart
+		if(display_option++ == current_option)
+			show_icon(down_screen_addr, &ICON_MAINITEM, 85, 154);
+		else
+			show_icon(down_screen_addr, &ICON_NMAINITEM, 85, 154);
+		draw_string_vcenter(down_screen_addr, 85, 165, 85, COLOR_WHITE, msg[MSG_MAIN_MENU_RETURN_TO_GAME]);
+
+		//Return
+		if(display_option++ == current_option)
+			show_icon(down_screen_addr, &ICON_MAINITEM, 170, 154);
+		else
+			show_icon(down_screen_addr, &ICON_NMAINITEM, 170, 154);
+		draw_string_vcenter(down_screen_addr, 170, 165, 85, COLOR_WHITE, msg[MSG_MAIN_MENU_RESET_GAME]);
+	}
+
+    void main_menu_key()
     {
         switch(gui_action)
         {
             case CURSOR_DOWN:
-                if(current_option_num >= (main_menu.num_options - 3))
-                    current_option_num = 0;
-                else
-                    current_option_num += 1;
+				if(current_option_num < 6)	current_option_num += 3;
+				else current_option_num -= 6;
 
                 current_option = current_menu->options + current_option_num;
               break;
 
             case CURSOR_UP:
-                if(current_option_num >= (main_menu.num_options - 3))
-                    current_option_num = current_menu->num_options - 4;
-                else
-                {
-                    if(current_option_num > 0)
-                        current_option_num -= 1;
-                    else
-                        current_option_num = current_menu->num_options - 3;
-                }
+				if(current_option_num < 3)	current_option_num += 6;
+				else current_option_num -= 3;
 
                 current_option = current_menu->options + current_option_num;
               break;
 
             case CURSOR_RIGHT:
-                if(current_option_num >= (main_menu.num_options - 3))
-                {
-                    if(current_option_num < (main_menu.num_options - 1))
-                        current_option_num++;
-                    else
-                        current_option_num = main_menu.num_options - 3;
-                }
-                else
-                    current_option_num = main_menu.num_options - 1;
+				if(current_option_num == 2)	current_option_num -= 2;
+				else if(current_option_num == 5)	current_option_num -= 2;
+				else if(current_option_num == 8)	current_option_num -= 2;
+				else current_option_num += 1;
+
                 current_option = main_menu.options + current_option_num;
               break;
 
             case CURSOR_LEFT:
-                if(current_option_num >= (main_menu.num_options - 3))
-                {
-                    if(current_option_num == (main_menu.num_options - 3))
-                        current_option_num = main_menu.num_options - 1;
-                    else
-                        current_option_num--;
-                }
-                else
-                    current_option_num = main_menu.num_options - 3;
+				if(current_option_num == 0)	current_option_num += 2;
+				else if(current_option_num == 3)	current_option_num += 2;
+				else if(current_option_num == 6)	current_option_num += 2;
+				else current_option_num -= 1;
+
                 current_option = main_menu.options + current_option_num;
               break;
 
@@ -2758,115 +2625,21 @@ u32 menu(u16 *original_screen)
         }// end swith
     }
 
-  void choose_menu(MENU_TYPE *new_menu)
-  {
-    if(new_menu == NULL)
-      new_menu = &main_menu;
-
-    if(current_menu == &latest_game_menu)
-        release_lastest_played_scroll();
-
-    current_menu = new_menu;
-    current_option_num= 0;
-    current_option = new_menu->options;
-    if(current_menu->init_function)
-        current_menu->init_function();
-  }
-
-  void reload_cheats_page()
-  {
-	// Cheats are temporarily disabled [Neb]
-#if 0
-    for(i = 0; i < CHEATS_PER_PAGE; i++)
-    {
-      cheats_options[i+1].display_string = &cheat_format_ptr[(CHEATS_PER_PAGE * menu_cheat_page) + i];
-      cheats_options[i+1].current_option = &(game_config.cheats_flag[(CHEATS_PER_PAGE * menu_cheat_page) + i].cheat_active);
-    }
-#endif
-  }
-
-/*
-  void set_gamepad()
-  {
-    if(game_config.use_default_gamepad_map == 1)
-    {
-      memcpy(game_config.gamepad_config_map, gamepad_config_map, sizeof(game_config.gamepad_config_map));
-      memcpy(gamepad_config_map, gpsp_config.gamepad_config_map, sizeof(gpsp_config.gamepad_config_map));
-    }
-    else
-    {
-      memcpy(gpsp_config.gamepad_config_map, gamepad_config_map, sizeof(gpsp_config.gamepad_config_map));
-      memcpy(gamepad_config_map, game_config.gamepad_config_map, sizeof(game_config.gamepad_config_map));
-    }
-  }
-*/
-
-    void keyremap_show()
-    {
-        unsigned short color;
-        u32 line_num;
-        u32 index;
-
-        if(display_option->option_type & STRING_SELECTION_TYPE)
-        {
-            switch(i)
-            {
-                case 1: index= BUTTON_MAP_A; break;
-                case 2: index= BUTTON_MAP_B; break;
-                case 3: index= BUTTON_MAP_FA; break;
-                case 4: index= BUTTON_MAP_FB; break;
-                case 5: index= BUTTON_MAP_MENU; break;
-                default: index= 0; break;
-            }
-
-            line_num= 0;
-            while(index) {index >>= 1; line_num++;}
-            sprintf(line_buffer, *(display_option->display_string), *((u32*)keyremap_options[line_num]));
-        }
-        else
-            strcpy(line_buffer, *(display_option->display_string));
-
-        line_num= display_option-> line_number;
-        if(display_option == current_option)
-            color= COLOR_ACTIVE_ITEM;
-        else
-            color= COLOR_INACTIVE_ITEM;
-
-        PRINT_STRING_BG(down_screen_addr, line_buffer, COLOR_INACTIVE_ITEM, COLOR_TRANS, 27,
-            38 + line_num*20);
-
-        if(display_option == current_option)
-        {
-			// Not sure what that is, so disabled [Neb]
-            //show_icon(down_screen_addr, &ICON_SUBM_ISOLATOR, 7, 33 + line_num*20);
-            show_icon(down_screen_addr, &ICON_SUBSELA, 12, 42 + line_num*20);
-			// Not sure what that is, so disabled [Neb]
-            //show_icon(down_screen_addr, &ICON_SUBM_ISOLATOR, 7, 53 + line_num*20);
-        }
-    }
-
-    void game_fastforward()
-    {
-        if(game_fast_forward)
-        {
-            game_config.frameskip_value= 9;
-            sound_on= 0;
-            graphics_options[3].option_type |= HIDEN_TYPE;
-            graphics_options[4].option_type |= HIDEN_TYPE;
-            graphics_options[5].option_type |= HIDEN_TYPE;
-        }
-        else
-        {
-            game_config.frameskip_value= 2;
-            sound_on= gpsp_config.enable_audio & 0x1;
-            graphics_options[3].option_type &= ~HIDEN_TYPE;
-            graphics_options[4].option_type &= ~HIDEN_TYPE;
-            graphics_options[5].option_type &= ~HIDEN_TYPE;
-        }
-    }
+	void tools_menu_init()
+	{
+		/* if(game_config.backward)
+			tools_options[4].option_type &= ~HIDEN_TYPE;
+		else
+			tools_options[4].option_type |= HIDEN_TYPE; */
+		// OUT OF BOUNDS MEMORY ACCESS, REENABLE IF NEEDED [NEB]
+		if (first_load)
+			tools_options[3] /* game hotkeys */.option_type |= HIDEN_TYPE;
+		else
+			tools_options[3] /* game hotkeys */.option_type &= ~HIDEN_TYPE;
+	}
 
 	int lastest_game_menu_scroll_value;
-    void submenu_latest_game()
+    void latest_game_menu_init()
     {
         u32 k;
         char *ext_pos;
@@ -2898,327 +2671,720 @@ u32 menu(u16 *original_screen)
 		lastest_game_menu_scroll_value = 0;
     }
 
-    int plug_mode_load()
+    void latest_game_menu_passive()
     {
-        char load_filename[MAX_FILE];
+        u32 k;
+		//draw background
+		show_icon(down_screen_addr, &ICON_SUBBG, 0, 0);
+		show_icon(down_screen_addr, &ICON_TITLE, 0, 0);
+		show_icon(down_screen_addr, &ICON_TITLEICON, 12, 9);
 
-        strcpy(load_filename, gamepak_filename);
-        if(load_gamepak(load_filename) == -1)
-            return -1;
+		if(current_option_num == 0)
+			show_icon(down_screen_addr, &ICON_BACK, 229, 10);
+		else
+		{
+			show_icon(down_screen_addr, &ICON_NBACK, 229, 10);
+			show_icon(down_screen_addr, &ICON_SUBSELA, 6, 35 + (current_option_num-1)*27);
+		}
 
-        load_game_config_file();
-        reset_gba();
-        return_value = 1;
-        repeat = 0;
-        reg[CHANGED_PC_STATUS] = 1;
+		strcpy(line_buffer, *(display_option->display_string));
+		draw_string_vcenter(down_screen_addr, 0, 9, 256, COLOR_ACTIVE_ITEM, line_buffer);
 
-        reorder_latest_file();
-        get_savestate_filelist();
-        return 0;
+		for(k= 0; k<5; k++)
+        if(gpsp_config.latest_file[k][0] != '\0')
+        {
+            if(current_option_num != k+1)
+                draw_hscroll(k, 0);
+            else
+			{
+                draw_hscroll(k, lastest_game_menu_scroll_value);
+				lastest_game_menu_scroll_value = 0;
+			}
+        }
     }
+
+    void latest_game_menu_end()
+    {
+        u32 k;
+
+        for(k= 0; k < 5; k++)
+        {
+            if(gpsp_config.latest_file[k][0] != '\0')
+                draw_hscroll_over(k);
+        }
+    }
+
+	void latest_game_menu_key()
+	{
+		char *ext_pos;
+
+		switch(gui_action)
+        {
+            case CURSOR_DOWN:
+				//clear last option's bg
+				if(current_option_num != 0)
+				{
+					draw_hscroll_over(current_option_num-1);
+	            	ext_pos= strrchr(gpsp_config.latest_file[current_option_num-1], '/');
+                	draw_hscroll_init(down_screen_addr, OPTION_TEXT_X, 40 + (current_option_num-1)*27, OPTION_TEXT_SX,
+                	    COLOR_TRANS, COLOR_INACTIVE_ITEM, ext_pos+1);
+				}
+
+				current_option_num += 1;
+				if(current_option_num >= latest_game_menu.num_options)
+					current_option_num = 0;
+                current_option = current_menu->options + current_option_num;
+
+				//Set current bg
+				if(current_option_num != 0)
+				{
+					draw_hscroll_over(current_option_num-1);
+	            	ext_pos= strrchr(gpsp_config.latest_file[current_option_num-1], '/');
+                	draw_hscroll_init(down_screen_addr, OPTION_TEXT_X, 40 + (current_option_num-1)*27, OPTION_TEXT_SX,
+                	    COLOR_TRANS, COLOR_ACTIVE_ITEM, ext_pos+1);
+				}
+
+              break;
+
+            case CURSOR_UP:
+				//clear last option's bg
+				if(current_option_num != 0)
+				{
+					draw_hscroll_over(current_option_num-1);
+	            	ext_pos= strrchr(gpsp_config.latest_file[current_option_num-1], '/');
+                	draw_hscroll_init(down_screen_addr, OPTION_TEXT_X, 40 + (current_option_num-1)*27, OPTION_TEXT_SX,
+                	    COLOR_TRANS, COLOR_INACTIVE_ITEM, ext_pos+1);
+				}
+
+				if(current_option_num > 0)	current_option_num -= 1;
+				else current_option_num = latest_game_menu.num_options -1;
+                current_option = current_menu->options + current_option_num;
+
+				//Set current bg
+				if(current_option_num != 0)
+				{
+					draw_hscroll_over(current_option_num-1);
+	            	ext_pos= strrchr(gpsp_config.latest_file[current_option_num-1], '/');
+                	draw_hscroll_init(down_screen_addr, OPTION_TEXT_X, 40 + (current_option_num-1)*27, OPTION_TEXT_SX,
+                	    COLOR_TRANS, COLOR_ACTIVE_ITEM, ext_pos+1);
+				}
+
+		      break;
+
+            case CURSOR_RIGHT:
+				lastest_game_menu_scroll_value = -5;
+              break;
+
+            case CURSOR_LEFT:
+				lastest_game_menu_scroll_value = 5;
+              break;
+
+            default:
+              break;
+        }// end swith
+	}
+
+    void load_lastest_played()
+    {
+		char *ext_pos;
+
+		if(bg_screenp != NULL) {
+			bg_screenp_color = COLOR16(43, 11, 11);
+		}
+		else
+			bg_screenp_color = COLOR_BG;
+
+		ext_pos= strrchr(gpsp_config.latest_file[current_option_num -1], '/');
+		*ext_pos= '\0';
+		strcpy(rom_path, gpsp_config.latest_file[current_option_num -1]);
+		*ext_pos= '/';
+
+		ext_pos = gpsp_config.latest_file[current_option_num -1];
+
+		LoadGameAndItsData(ext_pos);
+
+		get_newest_savestate(tmp_filename);
+		if(tmp_filename[0] != '\0')
+		{
+			FILE *fp = fopen(tmp_filename, "rb");
+			load_state(tmp_filename, fp);
+		}
+    }
+
+    void game_fastforward()
+    {
+    }
+
+
+
+	void reload_cheats_page()
+	{
+		for(i = 0; i < CHEATS_PER_PAGE; i++)
+		{
+			cheats_options[i+1].display_string = &cheat_data_ptr[(CHEATS_PER_PAGE * menu_cheat_page) + i];
+		}
+	}
+
+    void others_menu_init()
+    {
+#ifdef ENABLE_FREE_SPACE
+		unsigned int total, used;
+
+		//get card space info
+		freespace = 0;
+		fat_getDiskSpaceInfo("fat:", &total, &used, &freespace);
+#endif
+    }
+
+	void choose_menu(MENU_TYPE *new_menu)
+	{
+		if(new_menu == NULL)
+			new_menu = &main_menu;
+
+		if(NULL != current_menu) {
+			if(current_menu->end_function)
+				current_menu->end_function();
+			SaveConfigsIfNeeded();
+		}
+
+		current_menu = new_menu;
+		current_option_num= current_menu -> focus_option;
+		current_option = new_menu->options + current_option_num;
+		PreserveConfigs();
+		if(current_menu->init_function)
+			current_menu->init_function();
+	}
 
 //----------------------------------------------------------------------------//
-  // Menu 处理
-//    set_cpu_clock(1);
+//	Menu Start
+	LowFrequencyCPU();
+	if (!FirstInvocation)
+	{ // assume that the backlight is already at 3 when the emulator starts
+		mdelay(100); // to prevent ds2_setBacklight() from crashing
+		ds2_setBacklight(3);
+		// also allow the user to press A for New Game right away
+		wait_Allkey_release(0);
+	}
 
-    wait_Allkey_release(0);
-
-//    game_fastforward();
     bg_screenp= (u16*)malloc(256*192*2);
 
-    //In plug mode
-    if(plug_valid)
-    {
-        clear_screen(0);
-        flip_screen();
+	repeat = 1;
 
-        plug_valid= 0;
-        if(plug_mode_load() == 0)
-        {
-            if(bg_screenp != NULL) free(bg_screenp);
+	if(gamepak_filename[0] == 0)
+	{
+		first_load = 1;
+    //try auto loading games passed through argv first
+	// Currently disabled [Neb]
+		//if(strlen(argv[1]) > 0 && LoadGameAndItsData(argv[1]))
+		//	repeat = 0;
+		//else
+		//{
+			ds2_clearScreen(UP_SCREEN, COLOR_BLACK);
+			draw_string_vcenter(up_screen_addr, 0, 80, 256, COLOR_WHITE, msg[MSG_TOP_SCREEN_NO_GAME_LOADED]);
+			ds2_flipScreen(UP_SCREEN, 1);
+		//}
+	}
+	else
+	{
+		/*
+		 * It's pretty complicated. These two flips are needed because,
+		 * otherwise, the menu freezes if S9xAutoSaveSRAM was called after
+		 * loading from a save state.
+		 */
+		ds2_flipScreen(UP_SCREEN, 1);
+		ds2_flipScreen(UP_SCREEN, 1);
+	}
 
-            clear_screen(0);
-            flip_screen();
-            return 0;
-        }
-    }
+	choose_menu(&main_menu);
 
-	// Cheats are temporarily disabled [Neb]
-#if 0
-    for(i = 0; i < MAX_CHEATS; i++)
-    {
-        if(i >= g_num_cheats)
-        {
-            sprintf(cheat_format_str[i], msg[MSG_CHEAT_MENU_NON_LOAD], i);
-        }
-        else
-        {
-            sprintf(cheat_format_str[i], msg[MSG_CHEAT_MENU_LOADED], i, game_config.cheats_flag[i].cheat_name);
-        }
-        cheat_format_ptr[i]= cheat_format_str[i];
-    }
-    reload_cheats_page();
-#endif
+//	Menu loop
 
-    if(gamepak_filename[0] == 0)
-    {
-        first_load = 1;
-        memset(original_screen, 0x00, 240 * 160 * 2);
-        draw_string_vcenter(up_screen_addr, 0, 80, 256, COLOR_WHITE, msg[MSG_NON_LOAD_GAME]);
-        flip_gba_screen();
-//    PRINT_STRING_EXT_BG(msg[MSG_NON_LOAD_GAME], 0xFFFF, 0x0000, 60, 75, original_screen, 240);
-    }
+	while(repeat)
+	{
+		display_option = current_menu->options;
+		string_select= 0;
 
-    choose_menu(&main_menu);
-    current_menu = &main_menu;
+		if(current_menu -> passive_function)
+			current_menu -> passive_function();
+		else
+		{
+			u32 line_num, screen_focus, focus_option;
 
-    current_option_num= 6;
-    current_option = current_menu->options + current_option_num;     //Default at "NEW"
+			//draw background
+			show_icon(down_screen_addr, &ICON_SUBBG, 0, 0);
+			show_icon(down_screen_addr, &ICON_TITLE, 0, 0);
+			show_icon(down_screen_addr, &ICON_TITLEICON, 12, 9);
 
-    // Menu loop
-  while(repeat)
-  {
+			strcpy(line_buffer, *(display_option->display_string));
+			draw_string_vcenter(down_screen_addr, 0, 9, 256, COLOR_ACTIVE_ITEM, line_buffer);
 
-    char tmp_path[MAX_PATH];
-    if(current_menu == &main_menu)
-    {
-	show_icon(down_screen_addr, &ICON_MAINBG, 0, 0);
-    }
-    else
-    {
-	show_icon(down_screen_addr, &ICON_SUBBG, 0, 0);
-    }
-    print_status(0);
+			line_num = current_option_num;
+			screen_focus = current_menu -> screen_focus;
+			focus_option = current_menu -> focus_option;
 
-    display_option = current_menu->options;
-    string_select= 0;
+			if(focus_option < line_num)	//focus next option
+			{
+				focus_option = line_num - focus_option;
+				screen_focus += focus_option;
+				if(screen_focus > SUBMENU_ROW_NUM)	//Reach max row numbers can display
+					screen_focus = SUBMENU_ROW_NUM;
 
-    if(current_menu == &main_menu)
-    {
-        for(i = 0; i < current_menu->num_options -3; i++, display_option++)
-        {
-          unsigned short color;
-          u32 line_num;
-          strcpy(line_buffer, *(display_option->display_string));
+				current_menu -> screen_focus = screen_focus;
+				focus_option = line_num;
+			}
+			else if(focus_option > line_num)	//focus last option
+			{
+				focus_option = focus_option - line_num;
+				if(screen_focus > focus_option)
+					screen_focus -= focus_option;
+				else
+					screen_focus = 0;
 
-          line_num= display_option-> line_number;
-          if(display_option == current_option)
-            color= COLOR_ACTIVE_ITEM;
-          else
-            color= COLOR_INACTIVE_ITEM;
+				if(screen_focus == 0 && line_num > 0)
+					screen_focus = 1;
 
-          PRINT_STRING_BG(down_screen_addr, line_buffer, color, COLOR_TRANS, 160, 35 + line_num*16);
+				current_menu -> screen_focus = screen_focus;
+				focus_option = line_num;
+			}
+			current_menu -> focus_option = focus_option;
 
-          if(display_option == current_option)
-          {
-			// Not sure what that is, so disabled [Neb]
-            //show_icon(down_screen_addr, &ICON_MENU_ISOLATOR, 143, 33 + line_num*16);
-            show_icon(down_screen_addr, &ICON_SUBSELA, 150, 39 + line_num*16);
-			// Not sure what that is, so disabled [Neb]
-            //show_icon(down_screen_addr, &ICON_MENU_ISOLATOR, 143, 49 + line_num*16);
-          }
-        }
+			i = focus_option - screen_focus;
+			display_option += i +1;
 
-        if(display_option++ == current_option)
-          show_icon(down_screen_addr, &ICON_MAINITEM, 0, 132);
-        else
-          show_icon(down_screen_addr, &ICON_NMAINITEM, 0, 132);
+			line_num = current_menu->num_options-1;
+			if(line_num > SUBMENU_ROW_NUM)
+				line_num = SUBMENU_ROW_NUM;
 
-        if(display_option++ == current_option)
-          show_icon(down_screen_addr, &ICON_MAINITEM, 70, 132);
-        else
-          show_icon(down_screen_addr, &ICON_NMAINITEM, 70, 132);
+			if(focus_option == 0)
+				show_icon(down_screen_addr, &ICON_BACK, 229, 10);
+			else
+				show_icon(down_screen_addr, &ICON_NBACK, 229, 10);
 
-        if(display_option++ == current_option)
-          show_icon(down_screen_addr, &ICON_MAINITEM, 168, 132);
-        else
-          show_icon(down_screen_addr, &ICON_NMAINITEM, 168, 132);
-    }
-    else
-    {
-        for(i = 0; i < current_menu->num_options; i++, display_option++)
-        {
-            unsigned short color;
-            u32 line_num;
+			for(i= 0; i < line_num; i++, display_option++)
+    	    {
+    	        unsigned short color;
 
-            if(display_option->passive_function)
-                display_option->passive_function();
-            else
-            {
-                if(display_option->option_type & NUMBER_SELECTION_TYPE)
-                {
-                    sprintf(line_buffer, *(display_option->display_string),
-                        *(display_option->current_option));
-                }
-                else if(display_option->option_type & STRING_SELECTION_TYPE)
-                {
-                    sprintf(line_buffer, *(display_option->display_string),
-                        *((u32*)(((u32 *)display_option->options)[*(display_option->current_option)])));
-                }
-                else
-                {
-                    strcpy(line_buffer, *(display_option->display_string));
-                }
+				if(display_option == current_option)
+					show_icon(down_screen_addr, &ICON_SUBSELA, 6, 35 + i*27);
 
-                line_num= display_option-> line_number;
-                if(display_option == current_option)
-                    color= COLOR_ACTIVE_ITEM;
-                else
-                    color= COLOR_INACTIVE_ITEM;
+				if(display_option->passive_function)
+				{
+					display_option->line_number = i;
+					display_option->passive_function();
+				}
+				else if(display_option->option_type & NUMBER_SELECTION_TYPE)
+				{
+					sprintf(line_buffer, *(display_option->display_string),
+						*(display_option->current_option));
+				}
+				else if(display_option->option_type & STRING_SELECTION_TYPE)
+				{
+					sprintf(line_buffer, *(display_option->display_string),
+						*((u32*)(((u32 *)display_option->options)[*(display_option->current_option)])));
+				}
+				else
+				{
+					strcpy(line_buffer, *(display_option->display_string));
+				}
 
-                PRINT_STRING_BG(down_screen_addr, line_buffer, color, COLOR_TRANS, 27,
-                    38 + line_num*20);
+				if(display_option->passive_function == NULL)
+				{
+					if(display_option == current_option)
+						color= COLOR_ACTIVE_ITEM;
+					else
+						color= COLOR_INACTIVE_ITEM;
 
-                if(display_option == current_option)
-                {
-			// Not sure what that is, so disabled [Neb]
-                    //show_icon(down_screen_addr, &ICON_SUBM_ISOLATOR, 7, 33 + line_num*20);
-                    show_icon(down_screen_addr, &ICON_SUBSELA, 12, 42 + line_num*20);
-			// Not sure what that is, so disabled [Neb]
-                    //show_icon(down_screen_addr, &ICON_SUBM_ISOLATOR, 7, 53 + line_num*20);
-                }
-            }
-        }
-    }
+					PRINT_STRING_BG(down_screen_addr, line_buffer, color, COLOR_TRANS, OPTION_TEXT_X, 40 + i*27);
+				}
+    	    }
+    	}
 
-//    PRINT_STRING_BG(down_screen_addr, current_option->help_string, COLOR_HELP_TEXT, COLOR_BG, 30, 210);
+		struct key_buf inputdata;
+		gui_action = get_gui_input();
 
-    gui_action = get_gui_input();
-    if(gui_action == CURSOR_TOUCH)
-    {
-    }
-    else
-    {
-    }
+		switch(gui_action)
+		{
+			case CURSOR_TOUCH:
+				ds2_getrawInput(&inputdata);
+				wait_Allkey_release(0);
+				/* Back button at the top of every menu but the main one */
+				if(current_menu != &main_menu && inputdata.x > 231 && inputdata.y <= 25)
+				{
+					choose_menu(current_menu->options->sub_menu);
+					break;
+				}
+				/* Main menu */
+				if(current_menu == &main_menu)
+				{
+					// 0     86    172   256
+					//  _____ _____ _____  0
+					// |0VID_|1SAV_|2CHT_| 80
+					// |3TLS_|4OPT_|5EXI_| 160
+					// |6NEW_|7RET_|8RST_| 192
 
-    switch(gui_action)
-    {
-      case CURSOR_DOWN:
-        if(current_menu->passive_function)
-            current_menu->passive_function();
-        else
-        {
-            current_option_num = (current_option_num + 1) % current_menu->num_options;
-            current_option = current_menu->options + current_option_num;
+					current_option_num = (inputdata.y / 80) * 3 + (inputdata.x / 86);
+					current_option = current_menu->options + current_option_num;
 
-            while(current_option -> option_type & HIDEN_TYPE)
-            {
-                current_option_num = (current_option_num + 1) % current_menu->num_options;
-                current_option = current_menu->options + current_option_num;
-            }
-        }
+					if(current_option -> option_type & HIDEN_TYPE)
+						break;
+					else if(current_option->option_type & ACTION_TYPE)
+						current_option->action_function();
+					else if(current_option->option_type & SUBMENU_TYPE)
+						choose_menu(current_option->sub_menu);
+				}
+				/* This is the majority case, covering all menus except save states, screen shots, and game loading */
+				else if(current_menu != (main_menu.options + 1)->sub_menu
+				&& current_menu != ((main_menu.options +1)->sub_menu->options + 3)->sub_menu
+				&& current_menu != (main_menu.options +3)->sub_menu
+				&& current_menu != ((main_menu.options +3)->sub_menu->options + 1)->sub_menu
+				&& current_menu != (main_menu.options +6)->sub_menu
+				&& current_menu != ((main_menu.options +6)->sub_menu->options + 2)->sub_menu)
+				{
+					if (inputdata.y <= 33 || inputdata.y > 192)
+						break;
+					// ___ 33        This screen has 6 possible rows. Touches
+					// ___ 60        above or below these are ignored.
+					// . . . (+27)   The row between 33 and 60 is [1], though!
+					// ___ 192
+					u32 next_option_num = (inputdata.y - 33) / 27 + 1;
+					struct _MENU_OPTION_TYPE *next_option = current_menu->options + next_option_num;
 
-        break;
+					if (next_option_num >= current_menu->num_options)
+						break;
 
-      case CURSOR_UP:
-        if(current_menu->passive_function)
-            current_menu->passive_function();
-        else
-        {
-            if(current_option_num)
-                current_option_num--;
-            else
-                current_option_num = current_menu->num_options - 1;
-            current_option = current_menu->options + current_option_num;
+					if(!next_option)
+						break;
 
-            while(current_option -> option_type & HIDEN_TYPE)
-            {
-                if(current_option_num)
-                    current_option_num--;
-                else
-                    current_option_num = current_menu->num_options - 1;
-                current_option = current_menu->options + current_option_num;
-            }
-        }
+					if(next_option -> option_type & HIDEN_TYPE)
+						break;
 
-        break;
+					current_option_num = next_option_num;
+					current_option = current_menu->options + current_option_num;
 
-      case CURSOR_RIGHT:
-        if(current_menu->passive_function)
-            current_menu->passive_function();
-        {
-            if(current_option->option_type & (NUMBER_SELECTION_TYPE | STRING_SELECTION_TYPE))
-            {
-                u32 current_option_val = *(current_option->current_option);
+					if(current_menu->key_function)
+					{
+						gui_action = CURSOR_RIGHT;
+						current_menu->key_function();
+					}
+					else if(current_option->option_type & (NUMBER_SELECTION_TYPE | STRING_SELECTION_TYPE))
+					{
+						gui_action = CURSOR_RIGHT;
+						u32 current_option_val = *(current_option->current_option);
 
-                if(current_option_val <  current_option->num_options -1)
-                    current_option_val++;
-                else
-                    current_option_val= 0;
+						if(current_option_val <  current_option->num_options -1)
+							current_option_val++;
+						else
+							current_option_val= 0;
+						*(current_option->current_option) = current_option_val;
 
-                *(current_option->current_option) = current_option_val;
+						if(current_option->action_function)
+							current_option->action_function();
+					}
+					else if(current_option->option_type & ACTION_TYPE)
+						current_option->action_function();
+					else if(current_option->option_type & SUBMENU_TYPE)
+						choose_menu(current_option->sub_menu);
+				}
+				/* Save states */
+				else if(current_menu == (main_menu.options + 1)->sub_menu)
+				{
+					u32 next_option_num;
+					if(inputdata.y <= 33)
+						break;
+					else if(inputdata.y <= 60)
+						break; // "Create saved state"
+					else if(inputdata.y <= 87) // Save cell
+						next_option_num = 1;
+					else if(inputdata.y <= 114)
+						break; // "Load saved state"
+					else if(inputdata.y <= 141) // Load cell
+						next_option_num = 2;
+					else if(inputdata.y <= 168) // Del...
+						next_option_num = 3;
+					else
+						break;
 
-                if(current_option->action_function)
-                    current_option->action_function();
-            }
-        }
+					struct _MENU_OPTION_TYPE *next_option = current_menu->options + next_option_num;
 
-        break;
+					if(next_option_num == 1 /* write */ || next_option_num == 2 /* read */)
+					{
+						u32 current_option_val = *(next_option->current_option);
+						u32 old_option_val = current_option_val;
 
-      case CURSOR_LEFT:
-        if(current_menu->passive_function)
-            current_menu->passive_function();
-        else
-        {
-            if(current_option->option_type & (NUMBER_SELECTION_TYPE |
-                STRING_SELECTION_TYPE))
-            {
-                u32 current_option_val = *(current_option->current_option);
+						// This row has SAVE_STATE_SLOT_NUM cells for save states, each ICON_STATEFULL.x pixels wide.
+						// The left side of a square is at SavedStateSquareX(slot).
+						int found_state = FALSE;
+						int i;
+						for (i = 0; i < SAVE_STATE_SLOT_NUM; i++)
+						{
+							unsigned char StartX = SavedStateSquareX (i);
+							if (inputdata.x >= StartX && inputdata.x < StartX + ICON_STATEFULL.x)
+							{
+								current_option_val = i;
+								found_state = TRUE;
+								break;
+							}
+						}
+						if(!found_state)
+							break;
 
-                if(current_option_val)
-                    current_option_val--;
-                else
-                    current_option_val = current_option->num_options - 1;
+						current_option_num = next_option_num;
+						current_option = next_option;
 
-                *(current_option->current_option) = current_option_val;
+						*(current_option->current_option) = current_option_val;
 
-                if(current_option->action_function)
-                    current_option->action_function();
-            }
-        }
+						if(current_option_val == old_option_val)
+						{
+							gui_action = CURSOR_SELECT;
+							if(current_option->option_type & ACTION_TYPE)
+								current_option->action_function();
+							else if(current_option->option_type & SUBMENU_TYPE)
+								choose_menu(current_option->sub_menu);
+						}
+						else
+						{
+							// Initial selection of a saved state
+							// needs to show its screenshot
+							if(current_option->option_type & ACTION_TYPE)
+								current_option->action_function();
+						}
+						break;
+					}
 
-        break;
+					gui_action = CURSOR_SELECT;
+					if(next_option -> option_type & HIDEN_TYPE)
+						break;
 
-      case CURSOR_EXIT:
-        if(current_menu == &main_menu)
-          menu_return();
+					current_option_num = next_option_num;
+					current_option = next_option;
 
-        choose_menu(&main_menu);
-        break;
+					if(current_option->option_type & ACTION_TYPE)
+						current_option->action_function();
+					else if(current_option->option_type & SUBMENU_TYPE)
+						choose_menu(current_option->sub_menu);
+				}
+				/* Delete state sub menu */
+				else if(current_menu == ((main_menu.options + 1)->sub_menu->options + 3)->sub_menu)
+				{
+					u32 next_option_num;
+					if(inputdata.y <= 33)
+						break;
+					else if(inputdata.y <= 60)
+						next_option_num = 1;
+					else if(inputdata.y <= 87)
+						break;
+					else if(inputdata.y <= 114)
+						next_option_num = 2;
+					else
+						break;
 
-      case CURSOR_SELECT:
-        if(current_option->option_type & ACTION_TYPE)
-            current_option->action_function();
-        else if(current_option->option_type & SUBMENU_TYPE)
-            choose_menu(current_option->sub_menu);
-        break;
+					struct _MENU_OPTION_TYPE *next_option = current_menu->options + next_option_num;
 
-      default:
-        ;
-        break;
-    }  // end swith
+					if(next_option_num == 2)
+					{
+						u32 current_option_val = *(next_option->current_option);
+						u32 old_option_val = current_option_val;
 
-    flip_screen();
-    clear_screen(COLOR_BLACK);
-  }  // end while
+						// This row has SAVE_STATE_SLOT_NUM cells for save states, each ICON_STATEFULL.x pixels wide.
+						// The left side of a square is at SavedStateSquareX(slot).
+						int found_state = FALSE;
+						int i;
+						for (i = 0; i < SAVE_STATE_SLOT_NUM; i++)
+						{
+							unsigned char StartX = SavedStateSquareX (i);
+							if (inputdata.x >= StartX && inputdata.x < StartX + ICON_STATEFULL.x)
+							{
+								current_option_val = i;
+								found_state = TRUE;
+								break;
+							}
+						}
+						if(!found_state)
+							break;
 
-  clear_screen(0);
-  flip_screen();
-  clear_gba_screen(0);
-  flip_gba_screen();
-  mdelay(100);
-  clear_screen(0);
-  flip_screen();
-  clear_gba_screen(0);
-  flip_gba_screen();
+						current_option_num = next_option_num;
+						current_option = next_option;
 
-  if(bg_screenp != NULL) free(bg_screenp);
+						*(current_option->current_option) = current_option_val;
 
-// menu終了時の処理
-  wait_Allkey_release(0);
-//  set_cpu_clock(2);
+						if(current_option_val == old_option_val)
+						{
+							gui_action = CURSOR_SELECT;
+							if(current_option->option_type & ACTION_TYPE)
+								current_option->action_function();
+							else if(current_option->option_type & SUBMENU_TYPE)
+								choose_menu(current_option->sub_menu);
+						}
+						break;
+					}
 
-  return return_value;
+					gui_action = CURSOR_SELECT;
+					if(next_option -> option_type & HIDEN_TYPE)
+						break;
+
+					current_option_num = next_option_num;
+					current_option = next_option;
+
+					if(current_option->option_type & ACTION_TYPE)
+						current_option->action_function();
+					else if(current_option->option_type & SUBMENU_TYPE)
+						choose_menu(current_option->sub_menu);
+				}
+				/* Screenshots and new game loading */
+				else if(current_menu == (main_menu.options + 3)->sub_menu
+				|| current_menu == ((main_menu.options +3)->sub_menu->options + 1)->sub_menu
+				|| current_menu == (main_menu.options + 6)->sub_menu
+				|| current_menu == ((main_menu.options +6)->sub_menu->options + 2)->sub_menu)
+				{
+					if (inputdata.y <= 33 || inputdata.y > 192)
+						break;
+					// ___ 33        This screen has 6 possible rows. Touches
+					// ___ 60        above or below these are ignored.
+					// . . . (+27)   The row between 33 and 60 is [1], though!
+					// ___ 192
+					u32 next_option_num = (inputdata.y - 33) / 27 + 1;
+					if (next_option_num > current_menu->num_options)
+						break;
+
+					struct _MENU_OPTION_TYPE *next_option = current_menu->options + next_option_num;
+
+					if(next_option -> option_type & HIDEN_TYPE)
+						break;
+
+					current_option_num = next_option_num;
+					current_option = next_option;
+
+					if(current_option->option_type & ACTION_TYPE)
+						current_option->action_function();
+					else if(current_option->option_type & SUBMENU_TYPE)
+						choose_menu(current_option->sub_menu);
+				}
+				break;
+			case CURSOR_DOWN:
+				if(current_menu->key_function)
+					current_menu->key_function();
+				else
+				{
+					current_option_num = (current_option_num + 1) % current_menu->num_options;
+					current_option = current_menu->options + current_option_num;
+
+					while(current_option -> option_type & HIDEN_TYPE)
+					{
+						current_option_num = (current_option_num + 1) % current_menu->num_options;
+						current_option = current_menu->options + current_option_num;
+					}
+				}
+				break;
+
+			case CURSOR_UP:
+				if(current_menu->key_function)
+					current_menu->key_function();
+				else
+				{
+					if(current_option_num)
+						current_option_num--;
+					else
+						current_option_num = current_menu->num_options - 1;
+					current_option = current_menu->options + current_option_num;
+
+					while(current_option -> option_type & HIDEN_TYPE)
+					{
+						if(current_option_num)
+							current_option_num--;
+						else
+							current_option_num = current_menu->num_options - 1;
+						current_option = current_menu->options + current_option_num;
+					}
+				}
+				break;
+
+			case CURSOR_RIGHT:
+				if(current_menu->key_function)
+					current_menu->key_function();
+				else
+				{
+					if(current_option->option_type & (NUMBER_SELECTION_TYPE | STRING_SELECTION_TYPE))
+					{
+						u32 current_option_val = *(current_option->current_option);
+
+						if(current_option_val <  current_option->num_options -1)
+							current_option_val++;
+						else
+							current_option_val= 0;
+						*(current_option->current_option) = current_option_val;
+
+						if(current_option->action_function)
+							current_option->action_function();
+					}
+				}
+				break;
+
+			case CURSOR_LEFT:
+				if(current_menu->key_function)
+					current_menu->key_function();
+				else
+				{
+					if(current_option->option_type & (NUMBER_SELECTION_TYPE | STRING_SELECTION_TYPE))
+					{
+						u32 current_option_val = *(current_option->current_option);
+
+						if(current_option_val)
+							current_option_val--;
+						else
+							current_option_val = current_option->num_options - 1;
+						*(current_option->current_option) = current_option_val;
+
+						if(current_option->action_function)
+							current_option->action_function();
+					}
+				}
+				break;
+
+			case CURSOR_EXIT:
+				wait_Allkey_release(0);
+				break;
+
+			case CURSOR_SELECT:
+				wait_Allkey_release(0);
+				if(current_option->option_type & ACTION_TYPE)
+					current_option->action_function();
+				else if(current_option->option_type & SUBMENU_TYPE)
+					choose_menu(current_option->sub_menu);
+				break;
+
+			case CURSOR_BACK:
+				wait_Allkey_release(0);
+				if(current_menu != &main_menu)
+					choose_menu(current_menu->options->sub_menu);
+				else
+					menu_return();
+				break;
+
+			default:
+				break;
+		} // end swith
+
+		ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
+	} // end while
+
+	if (current_menu && current_menu->end_function)
+		current_menu->end_function();
+	SaveConfigsIfNeeded();
+
+	if(bg_screenp != NULL) free((void*)bg_screenp);
+
+	ds2_clearScreen(DOWN_SCREEN, 0);
+	ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
+	gui_copy_screen(up_screen_addr, (void*) screen, 0, 0, 256, 192);
+	ds2_flipScreen(UP_SCREEN, UP_SCREEN_UPDATE_METHOD);
+	wait_Allkey_release(0);
+
+	mdelay(100); // to prevent ds2_setBacklight() from crashing
+	ds2_setBacklight(2);
+
+	GameFrequencyCPU();
+
+	return return_value;
 }
 
 u32 load_dircfg(char *file_name)  // TODO: Working directory configure
@@ -3647,184 +3813,148 @@ static int rtc_time_cmp(struct rtc *t1, struct rtc *t2)
         return result;
 }
 
-static void get_savestate_filelist(void)
+
+int load_game_stat_snapshot(char* file)
 {
-    struct rtc  current_time[32];
-    int i;
-    char savestate_path[MAX_PATH];
-    char postdrix[8];
-    char *pt;
-    FILE *fp;
+	FILE* fp;
+	char tmp_path[MAX_PATH];
+	unsigned int n, m;
 
-//    char time_st[32];
+	sprintf(tmp_path, "%s/%s", DEFAULT_SAVE_DIR, file);
+	fp = fopen(tmp_path, "r");
+	if(NULL == fp)
+		return -1;
 
-    memset((char*)current_time, 0xFF, sizeof(current_time));
-    for(i= 0; i < 32; i++)
-    {
-        savestate_map[i]= (char)(-(i+1));
-    }
-/*
-    for(i= 0; i < 32; i++)
-    {
-        printf("%d  %d\n", i, savestate_map[i]);
-    }
-*/
-    sprintf(savestate_path, "%s/%s", DEFAULT_SAVE_DIR, gamepak_filename);
-    pt= strrchr(savestate_path, '.');
-    for(i= 0; i < 32; i++)
-    {
-        sprintf(postdrix, "_%d.rts", i+1);
-        strcpy(pt, postdrix);
+	m = fread((void*)&n, 1, 4, fp);
+	if(m < 4)
+	{
+		fclose(fp);
+		return - 2;
+	}
 
-        fp= fopen(savestate_path, "r");
-        if (fp != NULL)
-        {
-            if(fseek(fp, RTS_TIMESTAMP_POS, SEEK_SET))
-            { /* Read back the time stamp */
-                fread((char*)&current_time[i], 1, sizeof(struct rtc), fp);
-                savestate_map[i] = (char)(i+1);
+	fseek(fp, n+sizeof(struct rtc), SEEK_SET);
 
-//                get_time_string(time_st, &current_time[i]);
-//                printf("%d  %s\n", i, time_st);
-            }
-            fclose(fp);
-        }
-    }
+	m = fread(up_screen_addr, 1, 256*192*2, fp);
+	if(m < 256*192*2)
+	{
+		fclose(fp);
+		return -4;
+	}
 
-    int k, reslut;
-    struct rtc current_time_tmp;
-    for(i= 0; i < 32-1; i++)
-    {
-        for(k=0; k < 32-1-i; k++)
-        {
-            reslut= rtc_time_cmp(&current_time[k], &current_time[k+1]);
-            if(reslut > 0)
-            {
-               current_time_tmp = current_time[k];
-               current_time[k] = current_time[k+1];
-               current_time[k+1] = current_time_tmp;
-               reslut = savestate_map[k];
-               savestate_map[k] = savestate_map[k+1];
-               savestate_map[k+1] = reslut;
-            }
-        }
-    }
-/*
-    for(i= 0; i < 32; i++)
-    {
-        printf("%d  %d  ", i, savestate_map[i]);
-        get_time_string(time_st, &current_time[i]);
-        printf("%s\n", time_st);
-    }
-*/
-    savestate_index= get_savestate_slot();
-    if(savestate_index < 0) savestate_index = 0;
+	fclose(fp);
+	ds2_flipScreen(UP_SCREEN, UP_SCREEN_UPDATE_METHOD);
+	return 0;
 }
 
-static FILE* get_savestate_snapshot(char *savestate_filename)
+static void get_savestate_filelist(void)
 {
-    char savestate_path[MAX_PATH];
-    struct rtc  current_time;
-    u16 snapshot_buffer[240 * 160];
-    FILE *fp;
-    char *pt;
+	int i;
+	char savestate_path[MAX_PATH];
+	char postdrix[8];
+	char *pt;
+	FILE *fp;
+	unsigned int n, m;
+	// Which is the latest?
+	/* global */ latest_save = -1;
+	struct rtc latest_save_time, current_time;
+	memset(&latest_save_time, 0, sizeof (struct rtc));
 
-    clear_gba_screen(COLOR_BLACK);
+	sprintf(savestate_path, "%s/%s", DEFAULT_SAVE_DIR, gamepak_filename);
+	pt= strrchr(savestate_path, '.');
+	for(i= 0; i < SAVE_STATE_SLOT_NUM; i++)
+	{
+		sprintf(postdrix, "_%d.rts", i+1);
+		strcpy(pt, postdrix);
 
-    sprintf(savestate_path, "%s/%s", DEFAULT_SAVE_DIR, savestate_filename);
-    fp= fopen(savestate_path, "r");
-    if(fp == NULL)
-    {
-printf("Open %s failure\n", savestate_path);
-        goto get_savestate_snapshot_error;
-    }
+		fp= fopen(savestate_path, "r");
+		if (fp != NULL)
+		{
+			SavedStateExistenceCache [i] = TRUE;
+			m = fread((void*)&n, 1, 4, fp);
+			if(m < 4) {
+				fclose(fp);
+				continue;
+			}
 
-    if(SVS_FILE_SIZE != file_length(fp)) goto get_savestate_snapshot_error;
+			fseek(fp, n, SEEK_SET);
+			/* Read back the time stamp */
+			fread((char*)&current_time, 1, sizeof(struct rtc), fp);
+			if (rtc_time_cmp (&current_time, &latest_save_time) > 0)
+			{
+				latest_save = i;
+				latest_save_time = current_time;
+			}
+			fclose(fp);
+		}
+		else
+			SavedStateExistenceCache [i] = FALSE;
 
-    pt= savestate_path;
-    fread(pt, 1, SVS_HEADER_SIZE, fp);
+		SavedStateExistenceCached [i] = TRUE;
+	}
 
-    pt[SVS_HEADER_SIZE]= 0;
-    if(strcmp(pt, SVS_HEADER)) goto get_savestate_snapshot_error;
-
-    fread((char*)&current_time, 1, sizeof(struct rtc), fp);
-    fread((char*)snapshot_buffer, 1, 240*160*2, fp);
-
-    pt[0]= 0, pt[1]= 0;
-    fread(pt, 1, 2, fp);
-
-    if(pt[0] != 0x5A || pt[1] != 0x3C) goto get_savestate_snapshot_error;
-
-    //get_time_string(pt, &current_time);
-    //PRINT_STRING_GBA_UTF8(pt, COLOR_WHITE, COLOR_TRANS, 5, 0);
-
-    blit_to_screen(snapshot_buffer, 240, 160, -1, -1);
-    flip_gba_screen();
-    return fp;
-
-get_savestate_snapshot_error:
-    if(fp != NULL)  fclose(fp);
-    draw_string_vcenter(up_screen_addr, 29, 75, 198, COLOR_WHITE, msg[MSG_SAVESTATE_SLOT_EMPTY]);
-    flip_gba_screen();
-printf("Read %s failure\n", savestate_path);
-    return NULL;
+	if(latest_save < 0)
+		savestate_index = 0;
+	else
+		savestate_index = latest_save;
 }
 
 static void get_savestate_filename(u32 slot, char *name_buffer)
 {
-  char savestate_ext[16];
+	char savestate_ext[16];
+	char *pt;
 
-  sprintf(savestate_ext, "_%d.rts", savestate_map[slot]);
-  change_ext(gamepak_filename, name_buffer, savestate_ext);
+	sprintf(savestate_ext, "_%d.rts", slot+1);
+	pt = strrchr(gamepak_filename, '/');
+	if(NULL == pt)
+		pt = gamepak_filename;
+	else
+		pt += 1;
+
+	change_ext(pt, name_buffer, savestate_ext);
 }
 
-static u32 get_savestate_slot(void)
+unsigned char SavedStateSquareX (u32 slot)
 {
-    s32 i;
-    char *ptr;
-
-    i= 31;
-    ptr= savestate_map;
-    while(i >= 0)
-    {
-        if(ptr[i] > 0) break;
-        i--;
-    }
-
-    return i;
+	return (SCREEN_WIDTH * (slot + 1) / (SAVE_STATE_SLOT_NUM + 1))
+		- ICON_STATEFULL.x / 2;
 }
 
-static void reorder_savestate_slot(void)
+unsigned char SavedStateFileExists (u32 slot)
 {
-    u32 x, y;
-    char *ptr;
-    s32 tmp;
+	if (SavedStateExistenceCached [slot])
+		return SavedStateExistenceCache [slot];
 
-    ptr= savestate_map;
-    for(x= 0; x < 32; x++)
-    {
-        tmp= ptr[x];
-        if(tmp< 0)
-        {
-            for(y= x+1; y< 32; y++)
-                ptr[y-1]= ptr[y];
-            ptr[31]= tmp;
-        }
-    }
+	char BaseName [MAX_PATH + 1];
+	char FullName [MAX_PATH + 1];
+	get_savestate_filename(slot, BaseName);
+	sprintf(FullName, "%s/%s", DEFAULT_SAVE_DIR, BaseName);
+	FILE *SavedStateFile = fopen(FullName, "r");
+	unsigned char Result = SavedStateFile != NULL;
+	if (Result)
+	{
+		fclose(SavedStateFile);
+	}
+	SavedStateExistenceCache [slot] = Result;
+	SavedStateExistenceCached [slot] = TRUE;
+	return Result;
+}
+
+void SavedStateCacheInvalidate (void)
+{
+	int i;
+	for (i = 0; i < SAVE_STATE_SLOT_NUM; i++)
+		SavedStateExistenceCached [i] = FALSE;
 }
 
 void get_newest_savestate(char *name_buffer)
 {
-    int i;
-
-    i= get_savestate_slot();
-    if (i < 0)
+    if (latest_save < 0)
     {
         name_buffer[0]= '\0';
         return;
     }
 
-    get_savestate_filename(i, name_buffer);
+    get_savestate_filename(latest_save, name_buffer);
 }
 
 static u32 parse_line(char *current_line, char *current_str)
@@ -3960,6 +4090,24 @@ static void get_time_string(char *buff, struct rtc *rtcp)
 }
 #endif
 
+void LowFrequencyCPU()
+{
+	ds2_setCPUclocklevel(0); // 60 MHz
+}
+
+void HighFrequencyCPU()
+{
+	ds2_setCPUclocklevel(13); // 396 MHz
+}
+
+void GameFrequencyCPU()
+{
+	u32 clock_speed_table[6] = {6, 9, 10, 11, 12, 13};	//240, 300, 336, 360, 384, 396
+
+	if(game_config.clock_speed_number <= 5)
+		ds2_setCPUclocklevel(clock_speed_table[game_config.clock_speed_number]);
+}
+
 static u32 save_ss_bmp(u16 *image)
 {
     static unsigned char header[] ={ 'B',  'M',  0x00, 0x00, 0x00, 0x00, 0x00,
@@ -4008,12 +4156,15 @@ static u32 save_ss_bmp(u16 *image)
     return 1;
 }
 
+// Fill these in [Neb]
+void game_disableAudio() {}
+void game_set_frameskip() {}
+
 int gui_init(u32 lang_id)
 {
 	int flag;
 
-	// HighFrequencyCPU(); // Crank it up. When the menu starts, -> 0.
-	// Enable this later [Neb]
+	HighFrequencyCPU(); // Crank it up. When the menu starts, -> 0.
 
     //Find the "TEMPGBA" system directory
     DIR *current_dir;
