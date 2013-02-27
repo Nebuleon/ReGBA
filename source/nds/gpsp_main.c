@@ -62,7 +62,8 @@ u32 synchronize_flag = 1;
 //const char main_path[]="mmc:\\NDSGBA";
 char main_path[MAX_PATH];
 
-char rom_path[MAX_PATH];
+//Removing rom_path due to confusion
+//char rom_path[MAX_PATH];
 
 //vu32 quit_flag;
 vu32 power_flag;

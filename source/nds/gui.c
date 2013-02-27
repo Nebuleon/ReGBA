@@ -1459,7 +1459,8 @@ void init_default_gpsp_config()
   gpsp_config.rom_path[0]= 0;
   memset(gpsp_config.latest_file, 0, sizeof(gpsp_config.latest_file));
 
-  strcpy(rom_path, main_path);
+  //Removing rom_path due to confusion
+  //strcpy(rom_path, main_path);
   gamepak_filename[0] = '\0';
 }
 
@@ -2256,7 +2257,7 @@ u32 menu(u16 *screen, int FirstInvocation)
             40 + (display_option->line_number)*27);
     }
 #endif
-    
+
     char *frameskip_options[] = { (char*)&msg[MSG_VIDEO_FRAME_SKIPPING_AUTOMATIC], (char*)&msg[MSG_VIDEO_FRAME_SKIPPING_0], (char*)&msg[MSG_VIDEO_FRAME_SKIPPING_1], (char*)&msg[MSG_VIDEO_FRAME_SKIPPING_2], (char*)&msg[MSG_VIDEO_FRAME_SKIPPING_3], (char*)&msg[MSG_VIDEO_FRAME_SKIPPING_4], (char*)&msg[MSG_VIDEO_FRAME_SKIPPING_5], (char*)&msg[MSG_VIDEO_FRAME_SKIPPING_6], (char*)&msg[MSG_VIDEO_FRAME_SKIPPING_7], (char*)&msg[MSG_VIDEO_FRAME_SKIPPING_8], (char*)&msg[MSG_VIDEO_FRAME_SKIPPING_9], (char*)&msg[MSG_VIDEO_FRAME_SKIPPING_10] };
 
     char *cpu_frequency_options[] = { (char*)&msg[MSG_OPTIONS_CPU_FREQUENCY_0], (char*)&msg[MSG_OPTIONS_CPU_FREQUENCY_1], (char*)&msg[MSG_OPTIONS_CPU_FREQUENCY_2], (char*)&msg[MSG_OPTIONS_CPU_FREQUENCY_3], (char*)&msg[MSG_OPTIONS_CPU_FREQUENCY_4], (char*)&msg[MSG_OPTIONS_CPU_FREQUENCY_5] };
@@ -2391,23 +2392,23 @@ u32 menu(u16 *screen, int FirstInvocation)
      Others
   --------------------------------------------------------*/
     u32 desert= 0;
-	MENU_OPTION_TYPE others_options[] = 
+	MENU_OPTION_TYPE others_options[] =
 	{
 	/* 00 */ SUBMENU_OPTION(NULL, &msg[MSG_MAIN_MENU_OPTIONS], NULL, 0),
 
 	//CPU speed (string: shows MHz)
-	/* 01 */ STRING_SELECTION_OPTION(NULL, NULL, &msg[FMT_OPTIONS_CPU_FREQUENCY], cpu_frequency_options, 
+	/* 01 */ STRING_SELECTION_OPTION(NULL, NULL, &msg[FMT_OPTIONS_CPU_FREQUENCY], cpu_frequency_options,
         &game_config.clock_speed_number, 6, NULL, PASSIVE_TYPE, 1),
 
-	/* 02 */ STRING_SELECTION_OPTION(language_set, NULL, &msg[FMT_OPTIONS_LANGUAGE], language_options, 
+	/* 02 */ STRING_SELECTION_OPTION(language_set, NULL, &msg[FMT_OPTIONS_LANGUAGE], language_options,
         &gpsp_config.language, sizeof(language_options) / sizeof(language_options[0]) /* number of possible languages */, NULL, ACTION_TYPE, 2),
 
 #ifdef ENABLE_FREE_SPACE
-	/* 03 */ STRING_SELECTION_OPTION(NULL, show_card_space, &msg[MSG_OPTIONS_CARD_CAPACITY], NULL, 
+	/* 03 */ STRING_SELECTION_OPTION(NULL, show_card_space, &msg[MSG_OPTIONS_CARD_CAPACITY], NULL,
         &desert, 2, NULL, PASSIVE_TYPE | HIDEN_TYPE, 3),
 #endif
 
-	/* 04 */ ACTION_OPTION(load_default_setting, NULL, &msg[MSG_OPTIONS_RESET], NULL, 
+	/* 04 */ ACTION_OPTION(load_default_setting, NULL, &msg[MSG_OPTIONS_RESET], NULL,
 #ifdef ENABLE_FREE_SPACE
 			4
 #else
@@ -2415,7 +2416,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 #endif
 		),
 
-	/* 05 */ ACTION_OPTION(check_gbaemu_version, NULL, &msg[MSG_OPTIONS_VERSION], NULL, 
+	/* 05 */ ACTION_OPTION(check_gbaemu_version, NULL, &msg[MSG_OPTIONS_VERSION], NULL,
 #ifdef ENABLE_FREE_SPACE
 			5
 #else
@@ -2800,7 +2801,8 @@ u32 menu(u16 *screen, int FirstInvocation)
 
 		ext_pos= strrchr(gpsp_config.latest_file[current_option_num -1], '/');
 		*ext_pos= '\0';
-		strcpy(rom_path, gpsp_config.latest_file[current_option_num -1]);
+    //Removing rom_path due to confusion, replacing with g_default_rom_dir
+		strcpy(g_default_rom_dir, gpsp_config.latest_file[current_option_num -1]);
 		*ext_pos= '/';
 
 		ext_pos = gpsp_config.latest_file[current_option_num -1];
@@ -3774,7 +3776,8 @@ void reorder_latest_file(void)
     {
         if(gpsp_config.latest_file[i][0] == '\0')
         {
-            sprintf(gpsp_config.latest_file[i], "%s/%s", rom_path, gamepak_filename);
+            //Removing rom_path due to confusion, replacing with g_default_rom_dir
+            sprintf(gpsp_config.latest_file[i], "%s/%s", g_default_rom_dir, gamepak_filename);
             break;
         }
     }
@@ -3785,7 +3788,8 @@ void reorder_latest_file(void)
     for(i=1; i < 5; i++)
         strcpy(gpsp_config.latest_file[i-1], gpsp_config.latest_file[i]);
 
-    sprintf(gpsp_config.latest_file[i-1], "%s/%s", rom_path, gamepak_filename);
+    //Removing rom_path due to confusion, replacing with g_default_rom_dir
+    sprintf(gpsp_config.latest_file[i-1], "%s/%s", g_default_rom_dir, gamepak_filename);
 }
 
 

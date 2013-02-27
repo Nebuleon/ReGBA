@@ -74,7 +74,10 @@ s32 load_file_zip(char *filename)
   zip_buffer_size = ZIP_BUFFER_SIZE;
   cbuffer = zip_buff;
 
-  sprintf(tmp, "%s\\%s", rom_path, filename);
+  //Removing rom_path due to confusion
+  //sprintf(tmp, "%s\\%s", rom_path, filename);
+  //uses full filepath now
+  strcpy(tmp, filename);
   FILE_OPEN(fd, tmp, READ);
 
   if(!FILE_CHECK_VALID(fd))
@@ -201,7 +204,7 @@ s32 load_file_zip(char *filename)
       }
     }
   }
-   
+
 outcode:
   FILE_CLOSE(fd);
 

@@ -3798,13 +3798,15 @@ printf("dead here1\n");
     dot_position = strrchr(current_gamepak_filename, '\\');
     strcpy(gamepak_filename, current_gamepak_filename);     //file name
     *dot_position= 0;
-    strcpy(rom_path, gamepak_filename);                     //file path
+    //Removing rom_path due to confusion
+    //strcpy(rom_path, gamepak_filename);                     //file path
 
     //load gamepack failure
     if(load_gamepak(gamepak_filename) == -1)
     {
         gamepak_filename[0] ='\0';
-        rom_path[0] = '\0';
+        //Removing rom_path due to confusion
+        //rom_path[0] = '\0';
         return 0;
     }
 
@@ -3923,7 +3925,10 @@ u32 save_state(char *savestate_filename, u16 *screen_capture)
     FILE_READ_MEM_ARRAY(g_state_buffer_ptr, name);                            \
 
 #define SAVESTATE_WRITE_MEM_FILENAME(name)                                    \
-    sprintf(fullname, "%s\\%s", rom_path, name);                              \
+    //Removing rom_path due to confusion                                      \
+    //sprintf(fullname, "%s\\%s", rom_path, name);                            \
+    //using full filepath here                                                \
+    strcpy(fullname, name);                                                   \
     FILE_WRITE_MEM_ARRAY(g_state_buffer_ptr, fullname);                       \
 
 #define memory_savestate_body(type)                                           \

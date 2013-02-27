@@ -174,7 +174,8 @@ extern u32 skip_next_frame_flag;
 extern TIMER_TYPE timer[4];
 extern u32 prescale_table[];
 extern char main_path[MAX_PATH];
-extern char rom_path[MAX_PATH];
+//Removing rom_path due to confusion
+//extern char rom_path[MAX_PATH];
 extern volatile u32 real_frame_count;
 extern u32 virtual_frame_count;
 extern int date_format;
