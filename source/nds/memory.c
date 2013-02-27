@@ -2549,12 +2549,15 @@ static s32 load_gamepak_raw(char *name_path)
   return -1;
 }
 
-s32 load_gamepak(char *name)
+/*
+ * Loads a GBA ROM from a file whose full path is in the first parameter.
+ * Returns 0 on success and -1 on failure.
+ */
+s32 load_gamepak(char *file_path)
 {
-  char *dot_position = strrchr(name, '.');
+  char *dot_position = strrchr(file_path, '.');
   s32 file_size;
   char cheats_filename[MAX_FILE];
-  char file_path[MAX_FILE];
 
 //dgprintf("file_name %s\n", name);
 
@@ -2565,7 +2568,6 @@ s32 load_gamepak(char *name)
 //  gamepak_file_large = (FILE_TAG_TYPE)(-1);
   gamepak_file_large = NULL;
 
-  sprintf(file_path, "%s/%s", rom_path, name);
   if(!strcasecmp(dot_position, ".zip"))
   {
     // 如果是 ZIP 文件时
@@ -2590,8 +2592,6 @@ s32 load_gamepak(char *name)
   if(file_size != -1)
   {
     gamepak_size = (file_size + 0x7FFF) & ~0x7FFF;
-
-    strcpy(gamepak_filename, name);
 #if 0
     change_ext(gamepak_filename, backup_filename, ".sav");
     load_backup(backup_filename);

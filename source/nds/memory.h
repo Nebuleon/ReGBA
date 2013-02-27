@@ -228,7 +228,7 @@ extern CPU_ALERT_TYPE write_memory32(u32 address, u32 value);
 extern CPU_ALERT_TYPE dma_transfer(DMA_TRANSFER_TYPE *dma);
 extern u8 *memory_region(u32 address, u32 *memory_limit);
 extern s32 load_bios(char *name);
-extern s32 load_gamepak(char *name);
+extern s32 load_gamepak(char *file_path);
 extern u8 *load_gamepak_page(u32 physical_index);
 extern u32 load_backup(char *name);
 extern void init_memory();
