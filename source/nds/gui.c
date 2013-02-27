@@ -2877,16 +2877,15 @@ u32 menu(u16 *screen, int FirstInvocation)
 	if(gamepak_filename[0] == 0)
 	{
 		first_load = 1;
-    //try auto loading games passed through argv first
-	// Currently disabled [Neb]
-		//if(strlen(argv[1]) > 0 && LoadGameAndItsData(argv[1]))
-		//	repeat = 0;
-		//else
-		//{
+		//try auto loading games passed through argv first
+		if(strlen(argv[1]) > 0 && LoadGameAndItsData(argv[1]))
+			repeat = 0;
+		else
+		{
 			ds2_clearScreen(UP_SCREEN, COLOR_BLACK);
 			draw_string_vcenter(up_screen_addr, 0, 80, 256, COLOR_WHITE, msg[MSG_TOP_SCREEN_NO_GAME_LOADED]);
 			ds2_flipScreen(UP_SCREEN, 1);
-		//}
+		}
 	}
 	else
 	{
