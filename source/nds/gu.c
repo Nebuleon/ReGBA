@@ -93,9 +93,9 @@ static u32 *display_addr;
 
 #ifdef NDS_LAYER
 //RGB555
-//u16  gba_screen_buffer[256*192];
-//u16* gba_screen_address= gba_screen_buffer + 16*256 + 8;
-u16* gba_screen_address;
+u16  gba_screen_buffer[256*192];
+u16* gba_screen_address= (u16*)(((u16*)gba_screen_buffer) + 16*256 + 8);
+//u16* gba_screen_address;
 u32  gba_screen_pitch= 256;
 int  buf_handle;
 #else
@@ -117,13 +117,28 @@ void init_video()
 
 void init_video()
 {  
+	memset((u8*)screen_buffer, 0x00, sizeof(screen_buffer));
+	
 	// Need to show the loading screen here.
+	// u8 *ptr;
+	// ptr = (u8*)up_screen_addr;
+    memset((u8*)gba_screen_buffer, 0, 256*192*2);
+    // gba_screen_address= (u16*)ptr + 16*256 + 8;
+	
+	//flip_screen();
+    flip_gba_screen();
 }
 
 #ifdef NDS_LAYER
 void flip_screen(void)
 {
-	ds2_flipScreen(UP_SCREEN, UP_SCREEN_UPDATE_METHOD);
+	u32 i;
+	u32 *dst_ptr = down_screen_addr;
+    u32 *src_ptr= (u32*)screen_buffer;
+    for(i= 0; i< 128*192; i++)
+        *dst_ptr++ = *src_ptr++;
+		
+	ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
 }
 #else
 void flip_screen(void)
@@ -169,6 +184,12 @@ void flip_gba_screen(void)
     update_buf(buf_handle);
   }
 */
+	u32 i;
+	u32 *dst_ptr = (u32*)up_screen_addr;
+    u32 *src_ptr= (u32*)gba_screen_buffer;
+    for(i= 0; i< 128*192; i++)
+        *dst_ptr++ = *src_ptr++;
+		
 	ds2_flipScreen(UP_SCREEN, UP_SCREEN_UPDATE_METHOD);
 }
 #endif
@@ -202,6 +223,7 @@ void clear_gba_screen(u16 color)
   for(i= 0; i < screen_height * screen_width; i++)
       *dst++ = color;
 #endif
+  flip_gba_screen();
 }
 
 #ifndef NDS_LAYER

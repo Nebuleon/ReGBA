@@ -527,7 +527,7 @@ u32 update_gba()
 //         {
 //              update_scanline();
 //          }
-          if(to_skip >= SKIP_RATE)
+          //if(to_skip >= SKIP_RATE)
             update_scanline();
 
           // If in visible area also fire HDMA
@@ -574,9 +574,8 @@ u32 update_gba()
             dma_transfer(dma + 3);
 
        }
-        else
-
-        if(vcount == 228) {
+       else if(vcount == 228)
+	   {
           // Transition from vblank to next screen
           dispstat &= ~0x01;
           frame_ticks++;
@@ -585,7 +584,7 @@ u32 update_gba()
 
           if(update_input() != 0)
             continue;
-
+#if 0
           if((power_flag == 1) && (into_suspend() != 0))
             continue;
 
@@ -593,6 +592,7 @@ u32 update_gba()
             update_backup();
 
           process_cheats();
+#endif
 
           update_gbc_sound(cpu_ticks);
 
@@ -610,13 +610,14 @@ u32 update_gba()
 
 //          if(!skip_next_frame_flag)
 //            flip_gba_screen();
-            if(to_skip >= SKIP_RATE)
+            //if(to_skip >= SKIP_RATE)
             {
+				//clear_gba_screen(RGB15(255, 0, 0));
                 flip_gba_screen();
                 to_skip= 0;
             }
-            else
-              to_skip ++;
+            //else
+            //  to_skip ++;
 
 //printf("SKIP_RATE %d %d\n", SKIP_RATE, to_skip);
         } //(vcount == 228)

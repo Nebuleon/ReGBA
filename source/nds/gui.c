@@ -1235,7 +1235,7 @@ u32 play_screen_snapshot(void)
     			        }
 					}
 
-					ds2_flipScreen(UP_SCREEN, 1);
+					ds2_flipScreen(UP_SCREEN, UP_SCREEN_UPDATE_METHOD);
 				}
 
 				closeBMP(&SbmpInfo);

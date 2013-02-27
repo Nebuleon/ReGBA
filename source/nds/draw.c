@@ -797,7 +797,7 @@ u32 draw_yesno_dialog(enum SCREEN_ID screen, u32 sy, char *yes, char *no)
 	show_icon((unsigned short*)screen_addr, &ICON_BUTTON, 136, 128);
     draw_string_vcenter((unsigned short*)screen_addr, 138, 130, 73, COLOR_WHITE, no);
 
-	ds2_flipScreen(screen, 2);
+	ds2_flipScreen(screen, DOWN_SCREEN_UPDATE_METHOD);
 
     gui_action_type gui_action = CURSOR_NONE;
     while((gui_action != CURSOR_SELECT)  && (gui_action != CURSOR_BACK))
@@ -879,7 +879,7 @@ u32 draw_hotkey_dialog(enum SCREEN_ID screen, u32 sy, char *clear, char *cancel)
 	show_icon((unsigned short*)screen_addr, &ICON_BUTTON, 136, 128);
     draw_string_vcenter((unsigned short*)screen_addr, 138, 130, 73, COLOR_WHITE, cancel);
 
-	ds2_flipScreen(screen, 2);
+	ds2_flipScreen(screen, DOWN_SCREEN_UPDATE_METHOD);
 
 	// This function has been started by a key press. Wait for it to end.
 	struct key_buf inputdata;
@@ -953,7 +953,7 @@ void init_progress(enum SCREEN_ID screen, u32 total, char *text)
     drawboxfill((unsigned short*)screen_addr, progress_sx, progress_sy, progress_ex, 
 		progress_ey, COLOR16(15, 15, 15));
 
-	ds2_flipScreen(_progress_screen_id, 2);
+	ds2_flipScreen(_progress_screen_id, DOWN_SCREEN_UPDATE_METHOD);
 }
 
 //	update progress bar
@@ -976,7 +976,7 @@ void update_progress(void)
 
 	drawboxfill(screen_addr, progress_sx, progress_sy, progress_sx+width, progress_ey, COLOR16(30, 19, 7));
 
-	ds2_flipScreen(_progress_screen_id, 2);
+	ds2_flipScreen(_progress_screen_id, DOWN_SCREEN_UPDATE_METHOD);
 }
 
 //	display progress string
@@ -1001,7 +1001,7 @@ void show_progress(char *text)
 //  if (text[0] != '\0')
 //    print_string_center(progress_sy - 21, COLOR_PROGRESS_TEXT, COLOR_DIALOG, text);
 
-	ds2_flipScreen(_progress_screen_id, 2);
+	ds2_flipScreen(_progress_screen_id, DOWN_SCREEN_UPDATE_METHOD);
 
 //  OSTimeDly(progress_wait);
 	mdelay(500);
