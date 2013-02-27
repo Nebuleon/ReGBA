@@ -1558,9 +1558,9 @@ u32 menu(u16 *original_screen)
     char cheat_format_str[MAX_CHEATS][41*4];
     char *cheat_format_ptr[MAX_CHEATS];
 
-    MENU_TYPE *current_menu;
-    MENU_OPTION_TYPE *current_option;
-    MENU_OPTION_TYPE *display_option;
+    MENU_TYPE *current_menu = NULL;
+    MENU_OPTION_TYPE *current_option = NULL;
+    MENU_OPTION_TYPE *display_option = NULL;
 
     u32 current_option_num;
     u32 parent_option_num;
@@ -4008,11 +4008,6 @@ static u32 save_ss_bmp(u16 *image)
     return 1;
 }
 
-void _flush_cache()
-{
-//    sceKernelDcacheWritebackAll();
-    invalidate_all_cache();
-}
 int gui_init(u32 lang_id)
 {
 	int flag;
