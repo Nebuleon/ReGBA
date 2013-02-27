@@ -189,9 +189,6 @@ extern void show_Vscrollbar(char *screen, u32 x, u32 y, u32 part, u32 total);
 extern void show_log(void* screen_addr);
 extern void err_msg(enum SCREEN_ID screen, char *msg);
 
-extern void gui_copy_screen(void* to, void *from, u32 x, u32 y, u32 w, u32 h);
-extern void gui_blit_to_screen(void* screen_addr, u16 *src, u32 w, u32 h, u32 dest_x, u32 dest_y);
-
 #ifdef __cplusplus
 }
 #endif

@@ -3380,7 +3380,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 
 	ds2_clearScreen(DOWN_SCREEN, 0);
 	ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
-	gui_copy_screen(up_screen_addr, (void*) screen, 0, 0, 256, 192);
+	copy_screen(screen);
 	ds2_flipScreen(UP_SCREEN, UP_SCREEN_UPDATE_METHOD);
 	wait_Allkey_release(0);
 

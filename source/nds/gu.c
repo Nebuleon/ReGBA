@@ -200,12 +200,7 @@ void clear_screen(u16 color)
 void clear_gba_screen(u16 color)
 {
 #ifdef NDS_LAYER
-  u32 i;
-  u16 *dst; 
-
-  dst= gba_screen_address -16*256 -8;
-  for(i= 0; i < screen_height * screen_width; i++)
-      *dst++ = color;
+	ds2_clearScreen(UP_SCREEN, color);
 #endif
   flip_gba_screen();
 }
