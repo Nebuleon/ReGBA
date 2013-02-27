@@ -2565,7 +2565,7 @@ s32 load_gamepak(char *name)
 //  gamepak_file_large = (FILE_TAG_TYPE)(-1);
   gamepak_file_large = NULL;
 
-  sprintf(file_path, "%s\\%s", rom_path, name);
+  sprintf(file_path, "%s/%s", rom_path, name);
   if(!strcasecmp(dot_position, ".zip"))
   {
     // 如果是 ZIP 文件时
@@ -2574,7 +2574,7 @@ s32 load_gamepak(char *name)
     file_size = load_file_zip(file_path);
     if(file_size == -2)
     {
-      sprintf(file_path, "%s\\GAMEPAK\\%s", main_path, ZIP_TMP);
+      sprintf(file_path, "%s/GAMEPAK/%s", main_path, ZIP_TMP);
       file_size = load_gamepak_raw(file_path);
     }
   }
@@ -2592,9 +2592,10 @@ s32 load_gamepak(char *name)
     gamepak_size = (file_size + 0x7FFF) & ~0x7FFF;
 
     strcpy(gamepak_filename, name);
-
+#if 0
     change_ext(gamepak_filename, backup_filename, ".sav");
     load_backup(backup_filename);
+#endif
     update_progress();
 
     memcpy(gamepak_title, gamepak_rom + 0xA0, 12);
@@ -2626,13 +2627,17 @@ s32 load_gamepak(char *name)
 
     mem_save_flag = 0;
 
+#if 0
     load_game_config(gamepak_title, gamepak_code, gamepak_maker);
+#endif
     update_progress();
 //    load_game_config_file();
 //    update_progress();
 
+#if 0
     change_ext(gamepak_filename, cheats_filename, ".cht");
     add_cheats(cheats_filename);
+#endif
     update_progress();
 
     show_progress("Load ROM OK.");  // TODO

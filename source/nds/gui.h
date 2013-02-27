@@ -29,7 +29,7 @@
 #include "bitmap.h"
 
 #define UP_SCREEN_UPDATE_METHOD   0
-#define DOWN_SCREEN_UPDATE_METHOD 2
+#define DOWN_SCREEN_UPDATE_METHOD 0
 
 // For general option text
 #define OPTION_TEXT_X             10

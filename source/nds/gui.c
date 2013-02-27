@@ -32,6 +32,9 @@
 #include "draw.h"
 #include "cheats.h"
 
+ //program arguments
+char  argv[2][MAX_PATH];
+
 // If adding a language, make sure you update the size of the array in
 // message.h too.
 char *lang[8] =
@@ -1235,7 +1238,7 @@ u32 play_screen_snapshot(void)
     			        }
 					}
 
-					ds2_flipScreen(UP_SCREEN, 1);
+					ds2_flipScreen(UP_SCREEN, UP_SCREEN_UPDATE_METHOD);
 				}
 
 				closeBMP(&SbmpInfo);
@@ -1632,7 +1635,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 		memcpy(&PreviousGpspConfig, &gpsp_config, sizeof(GPSP_CONFIG));
 	}
 
-  int LoadGameAndItsData(char *filename){
+  int LoadGameAndItsData(char *filename) {
     if (gamepak_filename[0] != '\0') {
       update_backup_force();
     }
@@ -1640,6 +1643,7 @@ u32 menu(u16 *screen, int FirstInvocation)
     draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
     draw_string_vcenter(down_screen_addr, 36, 100, 190, COLOR_MSSG, msg[MSG_PROGRESS_LOADING_GAME]);
     ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
+
 
     HighFrequencyCPU();
     int load_result = load_gamepak(filename);
@@ -1689,7 +1693,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 
 	void menu_load()
 	{
-		char *file_ext[] = { ".smc", ".sfc", ".zip", NULL };
+		char *file_ext[] = { ".gba", ".bin", ".zip", NULL };
 
 		if(load_file(file_ext, tmp_filename, g_default_rom_dir) != -1)
 		{
@@ -4160,6 +4164,42 @@ static u32 save_ss_bmp(u16 *image)
 void game_disableAudio() {}
 void game_set_frameskip() {}
 
+/*
+* GUI Initialize
+*/
+static bool Get_Args(char *file, char **filebuf){
+  FILE* dat = fat_fopen(file, "rb");
+  if(dat){
+    int i = 0;
+    while(!fat_feof (dat)){
+      fat_fgets(filebuf[i], 512, dat);
+      int len = strlen(filebuf[i]);
+      if(filebuf[i][len - 1] == '\n')
+        filebuf[i][len - 1] = '\0';
+      i++;
+    }
+
+    fat_fclose(dat);
+    fat_remove(file);
+    return i;
+  }
+  return 0;
+}
+
+int CheckLoad_Arg(){
+  argv[0][0] = '\0';  // Initialise the first byte to be a NULL in case
+  argv[1][0] = '\0';  // there are no arguments to avoid uninit. memory
+  char *argarray[2];
+  argarray[0] = argv[0];
+  argarray[1] = argv[1];
+
+  if(!Get_Args("/plgargs.dat", argarray))
+    return 0;
+
+  fat_remove("plgargs.dat");
+  return 1;
+}
+
 int gui_init(u32 lang_id)
 {
 	int flag;
@@ -4169,7 +4209,29 @@ int gui_init(u32 lang_id)
     //Find the "TEMPGBA" system directory
     DIR *current_dir;
 
-    strcpy(main_path, "fat:/TEMPGBA");
+    if(CheckLoad_Arg()){
+      //copy new folder location
+      strcpy(main_path, "fat:");
+      strcat(main_path, argv[0]);
+      //strip off the binary name
+      char *endStr = strrchr(main_path, '/');
+      *endStr = '\0';
+
+      //do a check to make sure the folder is a valid catsfc folder
+      char tempPath[MAX_PATH];
+      strcpy(tempPath, main_path);
+      strcat(tempPath, "/system/gui");
+      DIR *testDir = opendir(tempPath);
+      if(!testDir)
+        //not a valid catsfc install
+        strcpy(main_path, "fat:/TEMPGBA");
+      else//test was successful, do nothing
+        closedir(testDir);
+    }
+    else
+      strcpy(main_path, "fat:/TEMPGBA");
+
+
 
     current_dir = opendir(main_path);
     if(current_dir)
