@@ -422,13 +422,20 @@ dgprintf("Global cmd: %s\n", get_gba_file());
   }
 #endif
 
+	strcpy(rom_path, "fat:");
+	if(load_gamepak("test.gba") == -1)
+    {
+		error_msg("Test.gba could not be loaded.\n");
+        quit();
+    }
+
     init_cpu();
     init_memory();
     reset_sound();
 
-    u16 screen_copy[GBA_SCREEN_BUFF_SIZE];
-    memset((char*)screen_copy, 0, sizeof(screen_copy));
-    menu(screen_copy);
+    // u16 screen_copy[GBA_SCREEN_BUFF_SIZE];
+    // memset((char*)screen_copy, 0, sizeof(screen_copy));
+    // menu(screen_copy);
 
   last_frame = 0;
 
