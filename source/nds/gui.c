@@ -4127,8 +4127,8 @@ static u32 save_ss_bmp(u16 *image)
 {
     static unsigned char header[] ={ 'B',  'M',  0x00, 0x00, 0x00, 0x00, 0x00,
                                     0x00, 0x00, 0x00, 0x36, 0x00, 0x00, 0x00,
-                                    0x28, 0x00, 0x00, 0x00,  0, 0x01, 0x00,
-                                    0x00,  192, 0x00, 0x00, 0x00, 0x01, 0x00,
+                                    0x28, 0x00, 0x00, 0x00,  240, 0x00, 0x00,
+                                    0x00,  160, 0x00, 0x00, 0x00, 0x01, 0x00,
                                     0x18, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                                     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                                     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -4137,7 +4137,7 @@ static u32 save_ss_bmp(u16 *image)
     char ss_filename[MAX_FILE];
     char save_ss_path[MAX_PATH];
     struct rtc current_time;
-    char rgb_data[256*192*3];
+    char rgb_data[240*160*3];
     unsigned int x,y;
     unsigned short col;
     unsigned char r,g,b;
@@ -4147,25 +4147,25 @@ static u32 save_ss_bmp(u16 *image)
     sprintf(save_ss_path, "%s/%s%02d%02d%02d%02d%02d.bmp", DEFAULT_SS_DIR, ss_filename,
     current_time.month, current_time.day, current_time.hours, current_time.minutes, current_time.seconds);
 
-    for(y = 0; y < 192; y++)
+    for(y = 0; y < 160; y++)
     {
-        for(x = 0; x < 256; x++)
+        for(x = 0; x < 240; x++)
         {
-            col = image[x + y * 256];
+            col = image[x + y * 240];
             r = (col >> 10) & 0x1F;
             g = (col >> 5) & 0x1F;
             b = (col) & 0x1F;
 
-            rgb_data[(191-y)*256*3+x*3+2] = b << 3;
-            rgb_data[(191-y)*256*3+x*3+1] = g << 3;
-            rgb_data[(191-y)*256*3+x*3+0] = r << 3;
+            rgb_data[(159-y)*240*3+x*3+2] = b << 3;
+            rgb_data[(159-y)*240*3+x*3+1] = g << 3;
+            rgb_data[(159-y)*240*3+x*3+0] = r << 3;
         }
     }
 
     FILE *ss = fopen( save_ss_path, "wb" );
     if( ss == NULL ) return 0;
     fwrite( header, sizeof(header), 1, ss );
-    fwrite( rgb_data, 1, 256*192*3, ss);
+    fwrite( rgb_data, 1, 240*160*3, ss);
     fclose( ss );
 
     return 1;
