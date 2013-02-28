@@ -25,7 +25,7 @@
  ******************************************************************************/
 
 /******************************************************************************
- * 
+ *
  ******************************************************************************/
 #include "common.h"
 
@@ -369,7 +369,7 @@ void sound_timer(FIXED16_16 frequency_step, u32 channel)
           case DIRECT_SOUND_LEFTRIGHT:
             RENDER_SAMPLES(BOTH);
             break;
-        }     
+        }
     }
     else
     {
@@ -569,7 +569,7 @@ void update_gbc_sound(u32 cpu_ticks)
 
 #ifdef NDS_LAYER
 //    if(start_flag== 0)
-//    {       
+//    {
         if(CHECK_BUFFER() >= AUDIO_LEN*2)
         {
 //            start_flag= 1;
@@ -577,7 +577,7 @@ void update_gbc_sound(u32 cpu_ticks)
             if(game_fast_forward)
                 sound_skip();
             else
-                sound_update();                
+                sound_update();
         }
 //    }
 #endif
@@ -736,7 +736,7 @@ void sound_write_mem_savestate()
   sceKernelExitThread(0);
   return 0;
 }
-#endif 
+#endif
 
 #ifndef NDS_LAYER
  static int sound_update_thread(SceSize args, void *argp)
@@ -899,7 +899,7 @@ if(AUTO_SKIP)
                 pp += 1;
         }
 
-        while(ds2_checkAudiobuff() > 1);
+        while(ds2_checkAudiobuff() > AUDIO_BUFFER_COUNT);
             //OSTimeDly(1);
     }
 
@@ -912,18 +912,18 @@ if(AUTO_SKIP)
             if(SKIP_RATE < 8)
             SKIP_RATE += 1;
             pp = 1;
-        }        
+        }
     }
 }
 else
 {
-    while(ds2_checkAudiobuff() > 2)
+    while(ds2_checkAudiobuff() > AUDIO_BUFFER_COUNT)
             mdelay(1);
 }
 
     audio_buff = ds2_getAudiobuff();
     if(audio_buff != NULL)
-    {    
+    {
     dst_ptr = audio_buff;
     dst_ptr1 = dst_ptr + AUDIO_LEN;
 
@@ -1008,7 +1008,7 @@ void synchronize_sound()
   while(CHECK_BUFFER() >= audio_buffer_size) // TODO:調整必要
     sceKernelDelayThread(SAMPLE_COUNT / 44100 * 1000 * 1000 * 0.25);
 }
-#endif 
+#endif
 
 void synchronize_sound()
 {

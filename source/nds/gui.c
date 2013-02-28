@@ -57,12 +57,12 @@ char *language_options[] = { (char *) &lang[0], (char *) &lang[1], (char *) &lan
 #define STATUS_ROWS 0
 #define CURRENT_DIR_ROWS 2
 //#define FILE_LIST_ROWS 25
-#define FILE_LIST_ROWS 5
+#define FILE_LIST_ROWS 6
 #define FILE_LIST_ROWS_CENTER   (FILE_LIST_ROWS/2)
 #define FILE_LIST_POSITION 50
 //#define DIR_LIST_POSITION 360
 #define DIR_LIST_POSITION 130
-#define PAGE_SCROLL_NUM 5
+#define PAGE_SCROLL_NUM 6
 
 #define SUBMENU_ROW_NUM	6
 
