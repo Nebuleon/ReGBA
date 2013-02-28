@@ -920,91 +920,21 @@ u32 draw_hotkey_dialog(enum SCREEN_ID screen, u32 sy, char *clear, char *cancel)
 	return TotalKeys;
 }
 
-/*
-*	Drawing progress bar
-*/
-static enum SCREEN_ID _progress_screen_id;
-static int progress_total;
-static int progress_current;
-static char progress_message[256];
+/**** PROGRESS BAR FUNCTIONS are present for gpSP but empty ****/
 
 //	progress bar initialize
 void init_progress(enum SCREEN_ID screen, u32 total, char *text)
 {
-	void* screen_addr;
-
-	_progress_screen_id = screen;
-	if(_progress_screen_id & UP_MASK)
-		screen_addr = up_screen_addr;
-	else
-		screen_addr = down_screen_addr;
-
-	progress_current = 0;
-	progress_total   = total;
-//  strcpy(progress_message, text);
-
-//  draw_dialog(progress_sx - 8, progress_sy -29, progress_ex + 8, progress_ey + 13);
-
-//  boxfill(progress_sx - 1, progress_sy - 1, progress_ex + 1, progress_ey + 1, 0);
-
-//  if (text[0] != '\0')
-//    print_string_center(progress_sy - 21, COLOR_PROGRESS_TEXT, COLOR_DIALOG, text);
-
-    drawboxfill((unsigned short*)screen_addr, progress_sx, progress_sy, progress_ex, 
-		progress_ey, COLOR16(15, 15, 15));
-
-	ds2_flipScreen(_progress_screen_id, DOWN_SCREEN_UPDATE_METHOD);
 }
 
 //	update progress bar
 void update_progress(void)
 {
-	void* screen_addr;
-
-	if(_progress_screen_id & UP_MASK)
-		screen_addr = up_screen_addr;
-	else
-		screen_addr = down_screen_addr;
-
-  int width = (int)( ((float)++progress_current / (float)progress_total) * ((float)SCREEN_WIDTH / 3.0 * 2.0) );
-
-//  draw_dialog(progress_sx - 8, progress_sy -29, progress_ex + 8, progress_ey + 13);
-
-//  boxfill(progress_sx - 1, progress_sy - 1, progress_ex + 1, progress_ey + 1, COLOR_BLACK);
-//  if (progress_message[0] != '\0')
-//    print_string_center(progress_sy - 21, COLOR_PROGRESS_TEXT, COLOR_DIALOG, progress_message);
-
-	drawboxfill(screen_addr, progress_sx, progress_sy, progress_sx+width, progress_ey, COLOR16(30, 19, 7));
-
-	ds2_flipScreen(_progress_screen_id, DOWN_SCREEN_UPDATE_METHOD);
 }
 
 //	display progress string
 void show_progress(char *text)
 {
-	void* screen_addr;
-
-	if(_progress_screen_id & UP_MASK)
-		screen_addr = up_screen_addr;
-	else
-		screen_addr = down_screen_addr;
-
-//  draw_dialog(progress_sx - 8, progress_sy -29, progress_ex + 8, progress_ey + 13);
-//  boxfill(progress_sx - 1, progress_sy - 1, progress_ex + 1, progress_ey + 1, COLOR_BLACK);
-
-	if (progress_current)
-	{
-		int width = (int)( (float)(++progress_current / progress_total) * (float)(SCREEN_WIDTH / 3.0 * 2.0) );
-		drawboxfill(screen_addr, progress_sx, progress_sy, progress_sx+width, progress_ey, COLOR16(30, 19, 7));
-	}
-
-//  if (text[0] != '\0')
-//    print_string_center(progress_sy - 21, COLOR_PROGRESS_TEXT, COLOR_DIALOG, text);
-
-	ds2_flipScreen(_progress_screen_id, DOWN_SCREEN_UPDATE_METHOD);
-
-//  OSTimeDly(progress_wait);
-	mdelay(500);
 }
 
 /*
