@@ -3737,121 +3737,51 @@ printf("D %s\n", dot_position);
 }
 #endif
 
+/*
+ * Loads a saved state, given its file name and a file handle already opened
+ * in at least mode "rb" to the same file.
+ * Assumes the gamepak used to save the state is the one that is currently
+ * loaded.
+ * Returns 0 on success, non-zero on failure.
+ */
 u32 load_state(char *savestate_filename, FILE *fp)
 {
-    FILE *mfp;
-    char current_gamepak_filename[MAX_FILE];
-    u32 i;
-    char *dot_position;
+    size_t i;
 
-    current_gamepak_filename[0]= '\0';
 //    pause_sound(1);
-    init_progress(DOWN_SCREEN, 9, msg[MSG_UNCERTAIN]);
 
     if(fp != NULL)
     {
         i= fread(savestate_write_buffer, 1, SAVESTATE_SIZE, fp);
 printf("fread %d\n", i);
+	if (i < SAVESTATE_SIZE)
+		return 1; // Failed to fully read the file
 
         g_state_buffer_ptr = savestate_write_buffer;
 printf("gamepak_filename0: %s\n", gamepak_filename);
-        strcpy(current_gamepak_filename, gamepak_filename);
-        update_progress();
 
         savestate_block(read_mem);
-        update_progress();
 
         flush_translation_cache_ram();
         flush_translation_cache_rom();
         flush_translation_cache_bios();
-        update_progress();
 
         oam_update = 1;
         gbc_sound_update = 1;
-        update_progress();
+
 printf("gamepak_filename1: %s\n", gamepak_filename);
-        dot_position = strrchr(gamepak_filename, '/');
-        if(!strcmp(current_gamepak_filename, dot_position+1))
-        {
-            strcpy(current_gamepak_filename, dot_position+1);
-            strcpy(gamepak_filename, current_gamepak_filename);
 
-            // Oops, these contain raw pointers
-            for(i = 0; i < 4; i++)
-            {
-                gbc_sound_channel[i].sample_data = square_pattern_duty[2];
-            }
-
-            reg[CHANGED_PC_STATUS] = 1;
-
-            return 1;
-        }
-printf("dead here0\n");
-        strcpy(current_gamepak_filename, gamepak_filename);
-    }
-printf("dead here1\n");
-    if(savestate_filename != NULL)
-        strcpy(current_gamepak_filename, savestate_filename);
-    else if(current_gamepak_filename == NULL)
-        return 0;
-
-    dot_position = strrchr(current_gamepak_filename, '/');
-    strcpy(gamepak_filename, current_gamepak_filename);     //file name
-    *dot_position= 0;
-    //Removing rom_path due to confusion
-    //strcpy(rom_path, gamepak_filename);                     //file path
-
-    //load gamepack failure
-    if(load_gamepak(gamepak_filename) == -1)
+    // Oops, these contain raw pointers
+    for(i = 0; i < 4; i++)
     {
-        gamepak_filename[0] ='\0';
-        //Removing rom_path due to confusion
-        //rom_path[0] = '\0';
-        return 0;
+        gbc_sound_channel[i].sample_data = square_pattern_duty[2];
     }
 
-    reset_gba();
+    reg[CHANGED_PC_STATUS] = 1;
 
-    //Find the newest savestate file
-    get_newest_savestate(current_gamepak_filename);
-    if(current_gamepak_filename[0])
-    {
-        char *pt;
-
-        pt= current_gamepak_filename;
-        mfp= fopen(current_gamepak_filename, "r");
-        if(mfp == NULL) return 2;
-
-        fread(pt, 1, SVS_HEADER_SIZE, mfp);
-        pt[SVS_HEADER_SIZE]= 0;
-
-        if(strcmp(pt, SVS_HEADER))
-        {
-            fclose(mfp);
-            return 2;
-        }
-
-        if(fseek(mfp, (SVS_HEADER_SIZE +sizeof(struct rtc) +240*160*2), SEEK_SET) < 0)
-        {
-            fclose(mfp);
-            return 2;
-        }
-
-        pt[0]= 0, pt[1]= 0;
-        fread(pt, 1, 2, mfp);
-        if(pt[0] != 0x5A || pt[1] != 0x3C)
-        {
-            fclose(mfp);
-            return 2;
-        }
-
-        load_state(NULL, mfp);
-        fclose(mfp);
+    return 0;
     }
-    else
-        return 2;
-
-    return 1;
+    else return 1;
 }
 
 

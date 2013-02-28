@@ -37,10 +37,15 @@
 #include <sys/stat.h>
 #include <ctype.h>
 #include <dirent.h>
-#include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#ifndef NDS_LAYER
+#include <unistd.h>
+#else
+#include "fs_api.h"
+#include "ds2_unistd.h"
+#endif
 //#include <fastmath.h>
 
 //#include <zlib.h>
@@ -74,7 +79,6 @@
 /******************************************************************************
  * 宏定义
  ******************************************************************************/
-#include "fs_api.h"
 
 #define GET_DISK_FREE_SPACE FS_CMD_GET_DISKFREE
 #define FILE_ID FILE*

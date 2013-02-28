@@ -49,9 +49,10 @@
 
 #define BYTES_PER_READ 512
 
-#ifndef NULL
- #define NULL 0
-#endif
+// MODIFICATION START [Neb]
+// In libfat by Chishm, some types are #define'd here. In the DS2 SDK,
+// these types are defined by another header.
+#include "ds2_types.h"
 
 #ifndef bool
 #define bool int
@@ -65,21 +66,7 @@
 #define true 1
 #endif
 
-#ifndef u8
-#define u8 unsigned char
-#endif
-
-#ifndef u16
-#define u16 unsigned short
-#endif
-
-#ifndef u32
-#define u32 unsigned long
-#endif
-
-#ifndef s32
-#define s32 long
-#endif
+// MODIFICATION END [Neb]
 
 struct _reent
 {
