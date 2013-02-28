@@ -1698,6 +1698,14 @@ u32 menu(u16 *screen, int FirstInvocation)
 
 		if(load_file(file_ext, tmp_filename, g_default_rom_dir) != -1)
 		{
+			if(bg_screenp != NULL)
+			{
+				bg_screenp_color = COLOR16(43, 11, 11);
+				memcpy(bg_screenp, down_screen_addr, 256*192*2);
+			}
+			else
+				bg_screenp_color = COLOR_BG;
+
 			strcpy(line_buffer, g_default_rom_dir);
 			strcat(line_buffer, "/");
 			strcat(line_buffer, tmp_filename);
