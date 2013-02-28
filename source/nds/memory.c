@@ -2221,7 +2221,7 @@ u32 load_backup(char *name)
   char backup_path[MAX_PATH];
   FILE_ID backup_file;
 
-  sprintf(backup_path, "%s\\%s", DEFAULT_SAVE_DIR, name);
+  sprintf(backup_path, "%s/%s", DEFAULT_SAVE_DIR, name);
   FILE_OPEN(backup_file, backup_path, READ);
 
   if(FILE_CHECK_VALID(backup_file))
@@ -2278,7 +2278,7 @@ u32 save_backup(char *name)
 
   if(backup_type != BACKUP_NONE)
   {
-    sprintf(backup_path, "%s\\%s", DEFAULT_SAVE_DIR, name);
+    sprintf(backup_path, "%s/%s", DEFAULT_SAVE_DIR, name);
     FILE_OPEN(backup_file, backup_path, WRITE);
 
     if(FILE_CHECK_VALID(backup_file))
@@ -2403,7 +2403,7 @@ s32 load_game_config(char *gamepak_title, char *gamepak_code, char *gamepak_make
   backup_type = BACKUP_NONE;
 
 
-  sprintf(config_path, "%s\\%s", main_path, CONFIG_FILENAME);
+  sprintf(config_path, "%s/%s", main_path, CONFIG_FILENAME);
 
   config_file = fopen(config_path, "rb");
 
@@ -3634,7 +3634,7 @@ u32 load_state(char *savestate_filename, u32 slot_num)
 
   if (slot_num != MEM_STATE_NUM)
   {
-    sprintf(savestate_path, "%s\\%s", DEFAULT_SAVE_DIR, savestate_filename);
+    sprintf(savestate_path, "%s/%s", DEFAULT_SAVE_DIR, savestate_filename);
     FILE_OPEN(savestate_file, savestate_path, READ);
     if(FILE_CHECK_VALID(savestate_file))
     {
@@ -3684,7 +3684,7 @@ printf("C %s\n", current_gamepak_filename);
 printf("G %s\n", gamepak_filename);
   // TODO: savestate file not match the rom
   char *dot_position;
-  dot_position = strrchr(gamepak_filename, '\\');
+  dot_position = strrchr(gamepak_filename, '/');
 printf("D %s\n", dot_position);
   if(strcmp(current_gamepak_filename, dot_position+1))  //compara file name
   {
@@ -3770,7 +3770,7 @@ printf("gamepak_filename0: %s\n", gamepak_filename);
         gbc_sound_update = 1;
         update_progress();
 printf("gamepak_filename1: %s\n", gamepak_filename);
-        dot_position = strrchr(gamepak_filename, '\\');
+        dot_position = strrchr(gamepak_filename, '/');
         if(!strcmp(current_gamepak_filename, dot_position+1))
         {
             strcpy(current_gamepak_filename, dot_position+1);
@@ -3795,7 +3795,7 @@ printf("dead here1\n");
     else if(current_gamepak_filename == NULL)
         return 0;
 
-    dot_position = strrchr(current_gamepak_filename, '\\');
+    dot_position = strrchr(current_gamepak_filename, '/');
     strcpy(gamepak_filename, current_gamepak_filename);     //file name
     *dot_position= 0;
     //Removing rom_path due to confusion
@@ -3867,7 +3867,7 @@ printf("dead here1\n");
 --------------------------------------------------------*/
 u32 save_state(char *savestate_filename, u16 *screen_capture)
 {
-  char savestate_path[512];
+  char savestate_path[MAX_PATH];
   FILE_ID savestate_file;
 //  char buf[256];
   struct rtc current_time;
@@ -3876,7 +3876,7 @@ u32 save_state(char *savestate_filename, u16 *screen_capture)
   ret= 1;
 //  pause_sound(1);
 
-  sprintf(savestate_path, "%s\\%s", DEFAULT_SAVE_DIR, savestate_filename);
+  sprintf(savestate_path, "%s/%s", DEFAULT_SAVE_DIR, savestate_filename);
 
   g_state_buffer_ptr = savestate_write_buffer;
 
@@ -3925,9 +3925,9 @@ u32 save_state(char *savestate_filename, u16 *screen_capture)
     FILE_READ_MEM_ARRAY(g_state_buffer_ptr, name);                            \
 
 #define SAVESTATE_WRITE_MEM_FILENAME(name)                                    \
-    //Removing rom_path due to confusion                                      \
-    //sprintf(fullname, "%s\\%s", rom_path, name);                            \
-    //using full filepath here                                                \
+    /* // Removing rom_path due to confusion                                      \
+    sprintf(fullname, "%s/%s", rom_path, name);                            \
+    // using full filepath here */                                               \
     strcpy(fullname, name);                                                   \
     FILE_WRITE_MEM_ARRAY(g_state_buffer_ptr, fullname);                       \
 
