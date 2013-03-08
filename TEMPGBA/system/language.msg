@@ -1612,7 +1612,7 @@ Atalhos de tecla do jogo atual...
 #FMT_OPTIONS_LANGUAGE
 Idioma                              %s
 #FMT_OPTIONS_CPU_FREQUENCY
-Frequencia da CPU          %s
+Frequência da CPU          %s
 #MSG_OPTIONS_CPU_FREQUENCY_0
 [0] 240 MHz
 #MSG_OPTIONS_CPU_FREQUENCY_1
