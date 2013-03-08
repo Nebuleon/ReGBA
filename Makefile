@@ -79,7 +79,7 @@ all: $(OUTPUT).plg makedirs
 
 release: all
 	-rm -f $(OUTPUT).zip
-	zip -r $(OUTPUT).zip $(PLUGIN_DIR) $(OUTPUT).plg $(OUTPUT).bmp $(OUTPUT).ini copyright installation.txt README.md source.txt version
+	zip -r $(OUTPUT).zip $(PLUGIN_DIR) $(OUTPUT).plg $(OUTPUT).bmp $(OUTPUT).ini copyright installation.txt README.md source.txt
 
 # $< is the source (OUTPUT.dat); $@ is the target (OUTPUT.plg)
 .dat.plg:
