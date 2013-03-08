@@ -1,0 +1,1 @@
+The source for TempGBA is not bundled with the download to keep the download size as small as possible, since few users, if any, have any use for the source.  If you are interested in viewing the source or making contributions to TempGBA, you can find the source on GITHUB at https://github.com/Nebuleon/TempGBA.
