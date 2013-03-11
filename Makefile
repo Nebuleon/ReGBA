@@ -46,7 +46,6 @@ C_SOURCES    = source/nds/gpsp_main.c    \
                source/nds/bios.c        \
                source/nds/draw.c        \
                source/nds/bdf_font.c    \
-               source/nds/unicode.c     \
                source/nds/zip.c         \
                source/nds/bitmap.c      \
                source/nds/ds2_main.c

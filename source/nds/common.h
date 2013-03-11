@@ -253,7 +253,6 @@ u64 dbg_time_2;
 
 #include "gui.h"
 #include "gu.h"
-#include "unicode.h"
 
 #if 0
 #ifdef USE_ADHOC
