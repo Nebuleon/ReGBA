@@ -1176,7 +1176,7 @@ u32 play_screen_snapshot(void)
 	unsigned int type;
 
     draw_message(down_screen_addr, screenp, 28, 31, 227, 165, color_bg);
-    draw_string_vcenter(down_screen_addr, MESSAGE_BOX_TEXT_X, MESSAGE_BOX_TEXT_Y, MESSAGE_BOX_TEXT_SX, COLOR_MSSG, msg[MSG_SLIDESHOW_SCREENSHOT_KEYS]);
+    draw_string_vcenter(down_screen_addr, MESSAGE_BOX_TEXT_X, MESSAGE_BOX_TEXT_Y, MESSAGE_BOX_TEXT_SX, COLOR_MSSG, msg[MSG_SCREENSHOT_SLIDESHOW_KEYS]);
     ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
 
     repeat= 1;
