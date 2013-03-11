@@ -1021,14 +1021,14 @@ u32 BDF_cut_string(char *string, u32 width, u32 direction)
 
 /*-----------------------------------------------------------------------------
 - count UNICODE charactor numbers in width pixels
-- direction 0: count UNICODE charactor numbers in width pixels, from front
-- direction 1: count UNICODE charactor numbers in width pixels, from end
+- direction 0: count UNICODE charactor numbers in width pixels, from end
+- direction 1: count UNICODE charactor numbers in width pixels, from front
 - direction 2: conut total pixel width of len UNICODE charachtors, from end
 - direction 3: conut total pixel width of len UNICODE charachtors, from front
 ------------------------------------------------------------------------------*/
 u32 BDF_cut_unicode(u16 *unicodes, u32 len, u32 width, u32 direction)
 {
-    u32 i, xw, num;
+    u32 i, lastSpace = 0, xw, num;
     u16 unicode;
     u32 start, end;
     struct bdffont *bdf_fontp[2];
@@ -1048,14 +1048,19 @@ u32 BDF_cut_unicode(u16 *unicodes, u32 len, u32 width, u32 direction)
 		while(len > 0)
 		{
 			unicode= unicodes[i];
+			if (unicode == 0x0A)
+				return num - len;
+			else if (unicode == ' ')
+				lastSpace = len;
+
 			xw += BDF_width16_ucs(unicode);
 
-			if(xw >= width) break;
+			if(xw > width) return num - lastSpace;
 			i += direction;
 			len--;
 		}
 
-		num -= len;
+		return num - len;
 	}
     else
     {
@@ -1072,9 +1077,9 @@ u32 BDF_cut_unicode(u16 *unicodes, u32 len, u32 width, u32 direction)
         }
 
         num= xw;
-    }
 
-    return num;
+        return num;
+    }
 }
 
 

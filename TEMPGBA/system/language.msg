@@ -220,17 +220,12 @@ No screenshots found
 Playing...
 #MSG_PAUSE_SLIDE
 Pause...
-#MSG_PLAY_SLIDE1
-*u  Speed up
-#MSG_PLAY_SLIDE2
-*d  Slow down
-#MSG_PLAY_SLIDE3
-*l  Previous image
-#MSG_PLAY_SLIDE4
-*r  Next image
-#MSG_PLAY_SLIDE5
-*A  Pause
-#MSG_PLAY_SLIDE6
+#MSG_SCREENSHOT_SLIDESHOW_KEYS
+*u  Speed up\n
+*d  Slow down\n
+*l  Previous image\n
+*r  Next image\n
+*A  Pause\n
 *B  Return to the menu
 #MSG_PROGRESS_LOADING_GAME
 Loading...
@@ -438,17 +433,12 @@ Press the buttons you wish to use to perform this action.
 正在播放
 #MSG_PAUSE_SLIDE
 已暂停
-#MSG_PLAY_SLIDE1
-*u  加快播放
-#MSG_PLAY_SLIDE2
-*d  减慢播放
-#MSG_PLAY_SLIDE3
-*l  上一帧
-#MSG_PLAY_SLIDE4
-*r  下一帧
-#MSG_PLAY_SLIDE5
-*A   暂停
-#MSG_PLAY_SLIDE6
+#MSG_SCREENSHOT_SLIDESHOW_KEYS
+*u  加快播放\n
+*d  减慢播放\n
+*l  上一帧\n
+*r  下一帧\n
+*A   暂停\n
 *B   返回菜单
 #MSG_PROGRESS_LOADING_GAME
 正在装载游戏...
@@ -656,17 +646,12 @@ Aucune capture d'écran trouvée
 En cours...
 #MSG_PAUSE_SLIDE
 Pause...
-#MSG_PLAY_SLIDE1
-*u  Accélérer
-#MSG_PLAY_SLIDE2
-*d  Ralentir
-#MSG_PLAY_SLIDE3
-*l  Précédente
-#MSG_PLAY_SLIDE4
-*r  Suivante
-#MSG_PLAY_SLIDE5
-*A  Pause
-#MSG_PLAY_SLIDE6
+#MSG_SCREENSHOT_SLIDESHOW_KEYS
+*u  Accélérer\n
+*d  Ralentir\n
+*l  Précédente\n
+*r  Suivante\n
+*A  Pause\n
 *B  Retour au menu
 #MSG_PROGRESS_LOADING_GAME
 Chargement...
@@ -875,17 +860,12 @@ Keine Screenshots gefunden
 Zeigen...
 #MSG_PAUSE_SLIDE
 Pause...
-#MSG_PLAY_SLIDE1
-*u  Geschw. hoch
-#MSG_PLAY_SLIDE2
-*d  Geschw. runter
-#MSG_PLAY_SLIDE3
-*l  Voriges Bild
-#MSG_PLAY_SLIDE4
-*r  Nächstes Bild
-#MSG_PLAY_SLIDE5
-*A  Pause
-#MSG_PLAY_SLIDE6
+#MSG_SCREENSHOT_SLIDESHOW_KEYS
+*u  Geschw. hoch\n
+*d  Geschw. runter\n
+*l  Voriges Bild\n
+*r  Nächstes Bild\n
+*A  Pause\n
 *B  Zurück zum Menü
 #MSG_PROGRESS_LOADING_GAME
 Laden...
@@ -993,7 +973,7 @@ Sla spelstaat 1 op
 #MSG_HOTKEY_FULL_SCREEN_TOGGLE
 Schakel naar volledig scherm
 #MSG_PROGRESS_HOTKEY_WAITING_FOR_KEYS
-Druk op de gewenste                             knoppencombinatie.
+Druk op de gewenste knoppencombinatie.
 #MSG_HOTKEY_DELETE_WITH_A
 *A Wissen
 #MSG_HOTKEY_CANCEL_WITH_B
@@ -1055,7 +1035,7 @@ Er is geen spel geladen!
 #MSG_CHEAT_ELEMENT_NOT_LOADED
 <Leeg>
 #MSG_SAVESTATE_FULL
-Het huidige slot bevat al een                spelstaat.                                              Deze spelstaat overschrijven?
+Het huidige slot bevat al een spelstaat. Deze spelstaat overschrijven?
 #MSG_PROGRESS_SAVED_STATE_CREATING
 Opslaan...
 #MSG_PROGRESS_SAVED_STATE_CREATION_FAILED
@@ -1094,17 +1074,12 @@ Geen beeldschermafdrukken gevonden.
 Aan het afspelen...
 #MSG_PAUSE_SLIDE
 Pauzeren...
-#MSG_PLAY_SLIDE1
-*u  Sneller
-#MSG_PLAY_SLIDE2
-*d  Langzamer
-#MSG_PLAY_SLIDE3
-*l  Vorige afbeelding
-#MSG_PLAY_SLIDE4
-*r  Volgende afbeelding
-#MSG_PLAY_SLIDE5
-*A  Pauzeren
-#MSG_PLAY_SLIDE6
+#MSG_SCREENSHOT_SLIDESHOW_KEYS
+*u  Sneller\n
+*d  Langzamer\n
+*l  Vorige afbeelding\n
+*r  Volgende afbeelding\n
+*A  Pauzeren\n
 *B  Terug naar het menu
 #MSG_PROGRESS_LOADING_GAME
 Laden...
@@ -1113,7 +1088,7 @@ CATSFC SNES emulator
 #MSG_WORD_EMULATOR_VERSION
 Versie
 #MSG_DIALOG_RESET
-Alle standaard instellingen                   herstellen?
+Alle standaard instellingen herstellen?
 #MSG_PROGRESS_RESETTING
 Even geduld A.U.B.
 #MSG_UNCERTAIN
@@ -1274,7 +1249,7 @@ No hay juego cargado
 #MSG_CHEAT_ELEMENT_NOT_LOADED
 <Vacío>
 #MSG_SAVESTATE_FULL
-    Posición actual en uso.                          ¿Sobreescribirla?
+Posición actual en uso. ¿Sobreescribirla?
 #MSG_PROGRESS_SAVED_STATE_CREATING
 Salvando la partida...
 #MSG_PROGRESS_SAVED_STATE_CREATION_FAILED
@@ -1313,17 +1288,12 @@ Salvando la captura...
 Ejecutando...
 #MSG_PAUSE_SLIDE
 Pausa...
-#MSG_PLAY_SLIDE1
-*u  Velocidad +
-#MSG_PLAY_SLIDE2
-*d  Velocidad -
-#MSG_PLAY_SLIDE3
-*l  Anterior
-#MSG_PLAY_SLIDE4
-*r  Siguiente
-#MSG_PLAY_SLIDE5
-*A  Pausa
-#MSG_PLAY_SLIDE6
+#MSG_SCREENSHOT_SLIDESHOW_KEYS
+*u  Velocidad +\n
+*d  Velocidad -\n
+*l  Anterior\n
+*r  Siguiente\n
+*A  Pausa\n
 *B  Volver al menú
 #MSG_PROGRESS_LOADING_GAME
 Cargando el juego...
@@ -1531,17 +1501,12 @@ Nessuna schermata trovata
 In Esecuzione...
 #MSG_PAUSE_SLIDE
 Pausa...
-#MSG_PLAY_SLIDE1
-*u  Aumenta velocità
-#MSG_PLAY_SLIDE2
-*d  Diminuisci velocità
-#MSG_PLAY_SLIDE3
-*l  Ultima immagine
-#MSG_PLAY_SLIDE4
-*r  Prossima immagine
-#MSG_PLAY_SLIDE5
-*A  Pausa
-#MSG_PLAY_SLIDE6
+#MSG_SCREENSHOT_SLIDESHOW_KEYS
+*u  Aumenta velocità\n
+*d  Diminuisci velocità\n
+*l  Ultima immagine\n
+*r  Prossima immagine\n
+*A  Pausa\n
 *B  Ritorna al menù principale
 #MSG_PROGRESS_LOADING_GAME
 Caricando...
@@ -1749,17 +1714,12 @@ Nenhuma foto encontrada
 Executando...
 #MSG_PAUSE_SLIDE
 Pausar...
-#MSG_PLAY_SLIDE1
-*u  Acelerar
-#MSG_PLAY_SLIDE2
-*d  Desacelerar
-#MSG_PLAY_SLIDE3
-*l  Foto anterior
-#MSG_PLAY_SLIDE4
-*r  Proxima foto
-#MSG_PLAY_SLIDE5
-*A  Pausar
-#MSG_PLAY_SLIDE6
+#MSG_SCREENSHOT_SLIDESHOW_KEYS
+*u  Acelerar\n
+*d  Desacelerar\n
+*l  Foto anterior\n
+*r  Proxima foto\n
+*A  Pausar\n
 *B  Voltar ao menu
 #MSG_PROGRESS_LOADING_GAME
 Carregando...

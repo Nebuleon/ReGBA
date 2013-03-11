@@ -300,7 +300,7 @@ void draw_message(void* screen_addr, u16 *screen_bg, u32 sx, u32 sy, u32 ex, u32
     {
 //        drawbox(screen_addr, sx, sy, ex, ey, COLOR16(12, 12, 12));
 //        drawboxfill(screen_addr, sx+1, sy+1, ex-1, ey-1, color_fg);
-		show_icon(screen_addr, &ICON_MSG, 34, 48);
+		show_icon(screen_addr, &ICON_MSG, (NDS_SCREEN_WIDTH - ICON_MSG.x) / 2, (NDS_SCREEN_HEIGHT - ICON_MSG.y) / 2);
     }
     else
     {
@@ -346,28 +346,26 @@ void draw_string_vcenter(void* screen_addr, u32 sx, u32 sy, u32 width, u32 color
     while(*string)
     {
         string= utf8decode(string, unicode+num);
-        if(unicode[num] != 0x0D && unicode[num] != 0x0A) num++;
+        num++;
     }
 
     if(num== 0) return;
-
-    i= BDF_cut_unicode(unicode, num, width, 1);
-    if(i == num)
-    {
-        x= BDF_cut_unicode(unicode, num, 0, 3);
-        sx += (width - x)/2;
-    }
 
     screenp = (unsigned short*)screen_addr + sx + sy*SCREEN_WIDTH;
     i= 0;
     while(i < num)
     {
         m= BDF_cut_unicode(&unicode[i], num-i, width, 1);
-        x= 0;
+        x= (width - BDF_cut_unicode(&unicode[i], m, 0, 3)) / 2;
         while(m--)
         {
             x += BDF_render16_ucs(screenp+x, SCREEN_WIDTH, 0, COLOR_TRANS, 
                 color_fg, unicode[i++]);
+        }
+        if (i < num && (unicode[i] == 0x0D || unicode[i] == 0x0A))
+            i++;
+	else {
+            while (i < num && (unicode[i] == ' ')) i++;
         }
         screenp += FONTS_HEIGHT * SCREEN_WIDTH;
     }
@@ -406,12 +404,29 @@ struct scroll_string_info{
 static struct scroll_string_info    scroll_strinfo[MAX_SCROLL_STRING];
 static u32  scroll_string_num= 0;
 
+/*
+ * Initialises a text scroller to display a certain string.
+ * Input assertions: sx + width < NDS_SCREEN_WIDTH &&
+ *   sy + [text height] < NDS_SCREEN_HEIGHT && string != NULL &&
+ *   screen_addr != NULL.
+ * Input: 'screen_addr', the address of the upper-left corner of the screen.
+ *        'sx' and 'sy', the X and Y coordinates of the upper-left corner of
+ *          the text.
+ *        'width', the width of the scroller's viewport.
+ *        'color_bg', the RGB15 color of the background around the text, or
+ *          COLOR_TRANS for transparency.
+ *        'color_fg', the RGB15 color of the text.
+ *        'string', the text to be scrolled, encoded as UTF-8.
+ * Output: the scroller's handle, to be used to scroll the text in
+ *   draw_hscroll.
+ */
 u32 draw_hscroll_init(void* screen_addr, u32 sx, u32 sy, u32 width, 
         u32 color_bg, u32 color_fg, char *string)
 {
-    u32 index, x, num, len, i;
+    u32 index, x, textWidth, num, len, i;
     u16 *unicode, *screenp;
 
+    // 1. Which scroller should we use for this request?
     for(i= 0; i < MAX_SCROLL_STRING; i++)
     {
         if(scroll_strinfo[i].screenp == NULL)
@@ -422,23 +437,39 @@ u32 draw_hscroll_init(void* screen_addr, u32 sx, u32 sy, u32 width,
         return -1;
 
     index= i;
-    screenp= (u16*)malloc((256+128)*FONTS_HEIGHT*2);
-    if(screenp == NULL)
-    {
-        scroll_strinfo[index].str_len = 0;
-        return -2;
-    }
 
-    unicode= (u16*)malloc(256*2);
+    // 2. Convert to Unicode while calculating the width of the text.
+    unicode= (u16*)malloc(strlen(string)*sizeof(u16));
     if(unicode == NULL)
     {
         scroll_strinfo[index].str_len = 0;
-        free((void*)screenp);
         return -3;
     }
 
+    num= 0;
+    textWidth = 0;
+    while(*string)
+    {
+        string= utf8decode(string, unicode+num);
+        if(unicode[num] != 0x0D && unicode[num] != 0x0A) {
+            textWidth += BDF_width16_ucs(unicode[num]);
+            num++;
+        }
+    }
+    if (textWidth < width)
+        textWidth = width;
+
+    // 3. Allocate a rectangle of pixels for drawing the entire text into.
+    screenp= (u16*)malloc(textWidth*FONTS_HEIGHT*sizeof(u16));
+    if(screenp == NULL)
+    {
+        scroll_strinfo[index].str_len = 0;
+        free((void*)unicode);
+        return -2;
+    }
+
     if(color_bg == COLOR_TRANS)
-        memset(screenp, 0, (256+128)*FONTS_HEIGHT*2);
+        memset(screenp, 0, textWidth*FONTS_HEIGHT*sizeof(u16));
 
     scroll_string_num += 1;
     scroll_strinfo[index].screenp = (unsigned short*)screen_addr;
@@ -451,74 +482,53 @@ u32 draw_hscroll_init(void* screen_addr, u32 sx, u32 sy, u32 width,
     scroll_strinfo[index].unicode= unicode;
     scroll_strinfo[index].buff_fonts= screenp;
     scroll_strinfo[index].buff_bg= 0;
-
-    num= 0;
-    while(*string)
-    {
-        string= utf8decode(string, unicode+num);
-        if(unicode[num] != 0x0D && unicode[num] != 0x0A) num++;
-    }
-
-    scroll_strinfo[index].str_len= num;
-    if(num == 0)
-        return index;
-
-    len= BDF_cut_unicode(unicode, num, 256+128, 1);
-    i= 0;
-    x= 0;
-    while(i < len)
-    {
-        x += BDF_render16_ucs(screenp + x, 256+128, 0, color_bg, color_fg, unicode[i++]);
-    }
-
-    scroll_strinfo[index].buff_width= x;
+    scroll_strinfo[index].buff_width= textWidth;
     scroll_strinfo[index].pos_pixel= 0;
     scroll_strinfo[index].str_start= 0;
     scroll_strinfo[index].str_end= len-1;
 
-    num= scroll_strinfo[index].height;
-    len= width;
+    scroll_strinfo[index].str_len= num;
+    if(num == 0)
+        return index; // (1. Which scroller?)
 
-    u16 *screenp1;
-
-    if(color_bg == COLOR_TRANS)
+    // 4. Render text into the allocation.
+    i= 0;
+    x= 0;
+    while(i < num)
     {
-        u16 pixel;
-
-        for(i= 0; i < num; i++)
-        {
-            screenp= (unsigned short*)screen_addr + sx + (sy + i) * SCREEN_WIDTH;
-            screenp1= scroll_strinfo[index].buff_fonts + i*(256+128);
-            for(x= 0; x < len; x++)
-            {
-                pixel= *screenp1++;
-				if(pixel) *screenp = pixel;
-				screenp ++;
-            }
-        }
-    }
-    else
-    {
-        screenp= (unsigned short*)screen_addr + sx + sy * SCREEN_WIDTH;
-        screenp1= scroll_strinfo[index].buff_fonts;
-
-        for(i= 0; i < num; i++)
-        {
-            memcpy((char*)screenp, (char*)screenp1, len*2);
-            screenp += SCREEN_WIDTH;
-            screenp1 += (256+128);
-        }
+        x += BDF_render16_ucs(screenp + x, textWidth, 0, color_bg, color_fg, unicode[i++]);
     }
 
-    return index;
+    // 5. Draw text to the screen at its initial position (left justified).
+    draw_hscroll(index, 0 /* stay on the left */);
+
+    return index; // (1. Which scroller?)
 }
 
+/*
+ * Scrolls an initialised scroller's text.
+ * A scroller is never allowed to go past the beginning of the text when
+ * scrolling to the left, or to go past the end when scrolling to the right.
+ * Input assertions: index was returned by a previous call to
+ *   draw_hscroll_init and not used in a call to draw_hscroll_over.
+ * Input: 'index', the scroller's handle.
+ *        'scroll_val', the number of pixels to scroll. The sign affects the
+ *          direction. If scroll_val > 0, the scroller's viewport is moved to
+ *          the left; if < 0, the scroller's viewport is moved to the right.
+ * Output: the number of pixels still available to scroll in the direction
+ *   specified by the sign of 'scroll_val'.
+ *
+ * Example: (assume each letter is 1 pixel; this won't be true in reality)
+ *           [some lengthy text shown in ]         |
+ * val -5 -> |    [lengthy text shown in a scr]xxxxx -> to right, returns 5
+ * val -5 -> |         [hy text shown in a scroller] -> to right, returns 0
+ * val  3 -> xxxxxxx[ngthy text shown in a scrol]  | -> to left,  returns 7
+ * val  3 -> xxxx[ lengthy text shown in a sc]     | -> to left,  returns 4
+ */
 u32 draw_hscroll(u32 index, s32 scroll_val)
 {
     u32 color_bg, color_fg, i, width, height;
     s32 xoff;
-
-//static int flag= 0;
 
     if(index >= MAX_SCROLL_STRING) return -1;
     if(scroll_strinfo[index].screenp == NULL) return -2;
@@ -526,133 +536,20 @@ u32 draw_hscroll(u32 index, s32 scroll_val)
     
     width= scroll_strinfo[index].width;
     height= scroll_strinfo[index].height;
-    xoff= scroll_strinfo[index].pos_pixel - scroll_val;
     color_bg= scroll_strinfo[index].color_bg;
     color_fg= scroll_strinfo[index].color_fg;
 
-    if(scroll_val > 0)    //shift right
-    {
-        if(xoff <= 0)
-        {
-            if(scroll_strinfo[index].str_start > 0)
-            {
-                u32 x, y, len;
-                u16 *unicode;
-                u32 *ptr;
-                //we assume the malloced memory are 4 bytes aligned, or else this method is wrong
-                y= height*width;
-                ptr= (u32*)scroll_strinfo[index].buff_fonts;
-                y= ((256+128)*FONTS_HEIGHT*2+3)/4;
-                x= 0;
-                while(x<y)  ptr[x++] = 0;
-    
-                unicode= scroll_strinfo[index].unicode + scroll_strinfo[index].str_end;
-                len= scroll_strinfo[index].str_end +1;
-                x= (scroll_val > SCREEN_WIDTH/4) ? scroll_val : SCREEN_WIDTH/4;
-                y= BDF_cut_unicode(unicode, len, x, 0);
-                if(y < len) y += 1;
-    
-                if(y < scroll_strinfo[index].str_start)
-                    scroll_strinfo[index].str_start -= y;
-                else
-                {
-                    y= scroll_strinfo[index].str_start;
-                    scroll_strinfo[index].str_start = 0;
-                }
-    
-                len= scroll_strinfo[index].str_len - scroll_strinfo[index].str_start;
-                unicode= scroll_strinfo[index].unicode + scroll_strinfo[index].str_start;
-                x= 0;
-                i= 0;
-                while(i < y)
-                {
-                    x += BDF_render16_ucs(scroll_strinfo[index].buff_fonts + x, 256+128, 0, 
-                        color_bg, color_fg, unicode[i++]);
-                    if(x >= (256+128-14)) break;
-                }
-    
-                y= x;
-                while(i < len)
-                {
-                    x += BDF_render16_ucs(scroll_strinfo[index].buff_fonts + x, 256+128, 0, 
-                        color_bg, color_fg, unicode[i++]);
-                    if(x >= (256+128-14)) break;
-                }
-    
-                scroll_strinfo[index].pos_pixel += y - scroll_val;
-                if((scroll_strinfo[index].pos_pixel + width) > (256+128))
-                    scroll_strinfo[index].pos_pixel= 0;
-                scroll_strinfo[index].buff_width= x;
-                scroll_strinfo[index].str_end = scroll_strinfo[index].str_start + i -1;
-            }
-            else
-            {
-                if(scroll_strinfo[index].pos_pixel > 0)
-                    scroll_strinfo[index].pos_pixel= 0;
-                else
-                    return 0;
-            }
-    
-            xoff= scroll_strinfo[index].pos_pixel;
-        }
-        else
-            scroll_strinfo[index].pos_pixel= xoff;
-    }
-    else if(xoff < (s32)scroll_strinfo[index].buff_width)   //shift left
-    {
-        if((scroll_strinfo[index].buff_width + width) > (256+128))
-        if((xoff + width) > scroll_strinfo[index].buff_width)
-        {
-            u32 x, y, len;
-            u16 *unicode;
-            u32 *ptr;
-            //we assume the malloced memory are 4 bytes aligned, or else this method is wrong
-            y= height*width;
-            ptr= (u32*)scroll_strinfo[index].buff_fonts;
-            y= ((256+128)*FONTS_HEIGHT*2+3)/4;
-            x= 0;
-            while(x<y)  ptr[x++] = 0;
+    // 1. Shift the scroller.
+    scroll_strinfo[index].pos_pixel -= scroll_val;
+    if (scroll_strinfo[index].pos_pixel < 0) // Reached the beginning
+        scroll_strinfo[index].pos_pixel = 0;
+    else if (scroll_strinfo[index].pos_pixel > scroll_strinfo[index].buff_width - width) // Reached the end
+        scroll_strinfo[index].pos_pixel = scroll_strinfo[index].buff_width - width;
 
-            unicode= scroll_strinfo[index].unicode + scroll_strinfo[index].str_start;
-            len= scroll_strinfo[index].str_len - scroll_strinfo[index].str_start;
-            x= (scroll_val > SCREEN_WIDTH/4) ? scroll_val : SCREEN_WIDTH/4;
-            x= ((s32)x < xoff) ? x : xoff;
-            y= BDF_cut_unicode(unicode, len, x, 1);
-
-            scroll_strinfo[index].str_start += y;
-            len= scroll_strinfo[index].str_len - scroll_strinfo[index].str_start;
-            y= scroll_strinfo[index].str_end - scroll_strinfo[index].str_start +1;
-            unicode= scroll_strinfo[index].unicode + scroll_strinfo[index].str_start;
-            x= 0;
-            i= 0;
-            while(i < y)
-            {
-                x += BDF_render16_ucs(scroll_strinfo[index].buff_fonts + x, 256+128, 0, 
-                    color_bg, color_fg, unicode[i++]);
-            }
-
-            xoff -= scroll_strinfo[index].buff_width - x;
-
-            while(i < len)
-            {
-                x += BDF_render16_ucs(scroll_strinfo[index].buff_fonts + x, 256+128, 0, 
-                    color_bg, color_fg, unicode[i++]);
-                if(x >= (256+128-14)) break;
-            }
-
-            scroll_strinfo[index].buff_width= x;
-            scroll_strinfo[index].str_end = scroll_strinfo[index].str_start + i -1;
-        }
-
-        scroll_strinfo[index].pos_pixel= xoff;
-    }
-    else
-        return 0;
-
+    // 2. Draw the scroller's text at its new position.
     u32 x, sx, sy, pixel;
     u16 *screenp, *screenp1;
 
-    color_bg = scroll_strinfo[index].color_bg;
     sx= scroll_strinfo[index].sx;
     sy= scroll_strinfo[index].sy;
 
@@ -661,7 +558,7 @@ u32 draw_hscroll(u32 index, s32 scroll_val)
         for(i= 0; i < height; i++)
         {
             screenp= scroll_strinfo[index].screenp + sx + (sy + i) * SCREEN_WIDTH;
-            screenp1= scroll_strinfo[index].buff_fonts + xoff + i*(256+128);
+            screenp1= scroll_strinfo[index].buff_fonts + scroll_strinfo[index].pos_pixel + i*scroll_strinfo[index].buff_width;
             for(x= 0; x < width; x++)
             {
                 pixel= *screenp1++;
@@ -675,19 +572,21 @@ u32 draw_hscroll(u32 index, s32 scroll_val)
         for(i= 0; i < height; i++)
         {
             screenp= scroll_strinfo[index].screenp + sx + (sy + i) * SCREEN_WIDTH;
-            screenp1= scroll_strinfo[index].buff_fonts + xoff + i*(256+128);
+            screenp1= scroll_strinfo[index].buff_fonts + scroll_strinfo[index].pos_pixel + i*scroll_strinfo[index].buff_width;
             for(x= 0; x < width; x++)
                 *screenp++ = *screenp1++;
         }
     }
 
-    u32 ret;
+    // 3. Return how many more pixels we can scroll in the same direction.
     if(scroll_val > 0)
-        ret= scroll_strinfo[index].pos_pixel;
+        // Scrolling to the left: Return the number of pixels we can still go
+        // to the left.
+        return scroll_strinfo[index].pos_pixel;
     else
-        ret= scroll_strinfo[index].buff_width - scroll_strinfo[index].pos_pixel;
-
-    return ret;
+        // Scrolling to the right: Return the number of pixels we can still go
+        // to the right.
+        return scroll_strinfo[index].buff_width - scroll_strinfo[index].pos_pixel - width;
 }
 
 void draw_hscroll_over(u32 index)
@@ -789,15 +688,18 @@ u32 draw_yesno_dialog(enum SCREEN_ID screen, u32 sy, char *yes, char *no)
 	else
 		screen_addr = down_screen_addr;
 
-    i= SCREEN_WIDTH/2 - box_width - 2;
-	show_icon((unsigned short*)screen_addr, &ICON_BUTTON, 49, 128);
-    draw_string_vcenter((unsigned short*)screen_addr, 51, 130, 73, COLOR_WHITE, yes);
+	sy = (NDS_SCREEN_HEIGHT + ICON_MSG.y) / 2 - 8 - ICON_BUTTON.y;
 
-    i= SCREEN_WIDTH/2 + 3;
-	show_icon((unsigned short*)screen_addr, &ICON_BUTTON, 136, 128);
-    draw_string_vcenter((unsigned short*)screen_addr, 138, 130, 73, COLOR_WHITE, no);
+	u32 left_sx = NDS_SCREEN_WIDTH / 2 - 8 - ICON_BUTTON.x,
+	    right_sx = NDS_SCREEN_WIDTH / 2 + 8;
 
-	ds2_flipScreen(screen, DOWN_SCREEN_UPDATE_METHOD);
+	show_icon((unsigned short*)screen_addr, &ICON_BUTTON, left_sx, sy);
+    draw_string_vcenter((unsigned short*)screen_addr, left_sx + 2, sy, ICON_BUTTON.x - 4, COLOR_WHITE, yes);
+
+	show_icon((unsigned short*)screen_addr, &ICON_BUTTON, right_sx, sy);
+    draw_string_vcenter((unsigned short*)screen_addr, right_sx + 2, sy, ICON_BUTTON.x - 4, COLOR_WHITE, no);
+
+	ds2_flipScreen(screen, 2);
 
     gui_action_type gui_action = CURSOR_NONE;
     while((gui_action != CURSOR_SELECT)  && (gui_action != CURSOR_BACK))
@@ -808,11 +710,11 @@ u32 draw_yesno_dialog(enum SCREEN_ID screen, u32 sy, char *yes, char *no)
 		struct key_buf inputdata;
 		ds2_getrawInput(&inputdata);
 		// Turn it into a SELECT (A) or BACK (B) if the button is touched.
-		if (inputdata.y >= 128 && inputdata.y < 128 + ICON_BUTTON.y)
+		if (inputdata.y >= sy && inputdata.y < sy + ICON_BUTTON.y)
 		{
-			if (inputdata.x >= 49 && inputdata.x < 49 + ICON_BUTTON.x)
+			if (inputdata.x >= left_sx && inputdata.x < left_sx + ICON_BUTTON.x)
 				gui_action = CURSOR_SELECT;
-			else if (inputdata.x >= 136 && inputdata.x < 136 + ICON_BUTTON.x)
+			else if (inputdata.x >= right_sx && inputdata.x < right_sx + ICON_BUTTON.x)
 				gui_action = CURSOR_BACK;
 		}
 	}
