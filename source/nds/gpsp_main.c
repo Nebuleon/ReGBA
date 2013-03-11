@@ -588,12 +588,12 @@ u32 update_gba()
 #if 0
           if((power_flag == 1) && (into_suspend() != 0))
             continue;
+#endif
 
           if(game_config.update_backup_flag == 1)
             update_backup();
 
           process_cheats();
-#endif
 
           update_gbc_sound(cpu_ticks);
 

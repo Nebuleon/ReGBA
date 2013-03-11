@@ -2592,10 +2592,8 @@ s32 load_gamepak(char *file_path)
   if(file_size != -1)
   {
     gamepak_size = (file_size + 0x7FFF) & ~0x7FFF;
-#if 0
     change_ext(gamepak_filename, backup_filename, ".sav");
     load_backup(backup_filename);
-#endif
     update_progress();
 
     memcpy(gamepak_title, gamepak_rom + 0xA0, 12);
@@ -2606,7 +2604,6 @@ s32 load_gamepak(char *file_path)
     gamepak_maker[2] = 0;
 
     //Validate the GBA title
-/*
     char *pt= gamepak_rom + 0xA0;
     int i;
     for(i= 0; i < 18; i++)
@@ -2614,7 +2611,6 @@ s32 load_gamepak(char *file_path)
         if((pt[i] < '0' && pt[i] > 0) || (pt[i] > '9' && pt[i] < 'A') || pt > 'Z')
             return -1;
     }
-*/
 
     // crc32を取得
 #if 0
@@ -2627,9 +2623,7 @@ s32 load_gamepak(char *file_path)
 
     mem_save_flag = 0;
 
-#if 0
     load_game_config(gamepak_title, gamepak_code, gamepak_maker);
-#endif
     update_progress();
 //    load_game_config_file();
 //    update_progress();
