@@ -1640,6 +1640,22 @@ u32 menu(u16 *screen, int FirstInvocation)
     draw_string_vcenter(down_screen_addr, MESSAGE_BOX_TEXT_X, MESSAGE_BOX_TEXT_Y, MESSAGE_BOX_TEXT_SX, COLOR_MSSG, msg[MSG_PROGRESS_LOADING_GAME]);
     ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
 
+    // load_gamepak requires gamepak_filename to be set first.
+
+    char tempPath[MAX_PATH];
+    strcpy(tempPath, filename);
+
+    //update folders and names for settings/config uses
+    char *dirEnd = strrchr(tempPath, '/');
+    //make sure a valid path was provided
+    if(!dirEnd)
+      return 0;
+
+    //copy file name as gamepak_filename
+    strcpy(gamepak_filename, dirEnd+1);
+    //then strip filename from directory path and set it
+    *dirEnd = '\0';
+    strcpy(g_default_rom_dir, tempPath);
 
     HighFrequencyCPU();
     int load_result = load_gamepak(filename);
@@ -1656,21 +1672,6 @@ u32 menu(u16 *screen, int FirstInvocation)
       reset_gba();
       reg[CHANGED_PC_STATUS] = 1;
     }
-
-    char tempPath[MAX_PATH];
-    strcpy(tempPath, filename);
-
-    //update folders and names for settings/config uses
-    char *dirEnd = strrchr(tempPath, '/');
-    //make sure a valid path was provided
-    if(!dirEnd)
-      return 0;
-
-    //copy file name as gamepak_filename
-    strcpy(gamepak_filename, dirEnd+1);
-    //then strip filename from directory path and set it
-    *dirEnd = '\0';
-    strcpy(g_default_rom_dir, tempPath);
 
     first_load = 0;
     load_game_config_file();
