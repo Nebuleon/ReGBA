@@ -2604,13 +2604,14 @@ s32 load_gamepak(char *file_path)
     gamepak_maker[2] = 0;
 
     //Validate the GBA title
+/* // Doesn't work for some reason [Neb]
     char *pt= gamepak_rom + 0xA0;
     int i;
     for(i= 0; i < 18; i++)
     {
-        if((pt[i] < '0' && pt[i] > 0) || (pt[i] > '9' && pt[i] < 'A') || pt > 'Z')
+        if((pt[i] < '0' && pt[i] > 0) || (pt[i] > '9' && pt[i] < 'A') || pt[i] > 'Z')
             return -1;
-    }
+    */
 
     // crc32を取得
 #if 0
