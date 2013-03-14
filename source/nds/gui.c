@@ -95,19 +95,19 @@ static unsigned char SavedStateExistenceCached [SAVE_STATE_SLOT_NUM]; // [I] == 
 static unsigned char SavedStateExistenceCache [SAVE_STATE_SLOT_NUM];
 
 // These are U+05C8 and subsequent codepoints encoded in UTF-8.
-const uint8 HOTKEY_A_DISPLAY[] = {0xD7, 0x88, 0x00};
-const uint8 HOTKEY_B_DISPLAY[] = {0xD7, 0x89, 0x00};
-const uint8 HOTKEY_X_DISPLAY[] = {0xD7, 0x8A, 0x00};
-const uint8 HOTKEY_Y_DISPLAY[] = {0xD7, 0x8B, 0x00};
-const uint8 HOTKEY_L_DISPLAY[] = {0xD7, 0x8C, 0x00};
-const uint8 HOTKEY_R_DISPLAY[] = {0xD7, 0x8D, 0x00};
-const uint8 HOTKEY_START_DISPLAY[] = {0xD7, 0x8E, 0x00};
-const uint8 HOTKEY_SELECT_DISPLAY[] = {0xD7, 0x8F, 0x00};
+const u8 HOTKEY_A_DISPLAY[] = {0xD7, 0x88, 0x00};
+const u8 HOTKEY_B_DISPLAY[] = {0xD7, 0x89, 0x00};
+const u8 HOTKEY_X_DISPLAY[] = {0xD7, 0x8A, 0x00};
+const u8 HOTKEY_Y_DISPLAY[] = {0xD7, 0x8B, 0x00};
+const u8 HOTKEY_L_DISPLAY[] = {0xD7, 0x8C, 0x00};
+const u8 HOTKEY_R_DISPLAY[] = {0xD7, 0x8D, 0x00};
+const u8 HOTKEY_START_DISPLAY[] = {0xD7, 0x8E, 0x00};
+const u8 HOTKEY_SELECT_DISPLAY[] = {0xD7, 0x8F, 0x00};
 // These are U+2190 and subsequent codepoints encoded in UTF-8.
-const uint8 HOTKEY_LEFT_DISPLAY[] = {0xE2, 0x86, 0x90, 0x00};
-const uint8 HOTKEY_UP_DISPLAY[] = {0xE2, 0x86, 0x91, 0x00};
-const uint8 HOTKEY_RIGHT_DISPLAY[] = {0xE2, 0x86, 0x92, 0x00};
-const uint8 HOTKEY_DOWN_DISPLAY[] = {0xE2, 0x86, 0x93, 0x00};
+const u8 HOTKEY_LEFT_DISPLAY[] = {0xE2, 0x86, 0x90, 0x00};
+const u8 HOTKEY_UP_DISPLAY[] = {0xE2, 0x86, 0x91, 0x00};
+const u8 HOTKEY_RIGHT_DISPLAY[] = {0xE2, 0x86, 0x92, 0x00};
+const u8 HOTKEY_DOWN_DISPLAY[] = {0xE2, 0x86, 0x93, 0x00};
 
 #ifdef TEST_MODE
 #define VER_RELEASE "test"
