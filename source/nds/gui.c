@@ -94,6 +94,21 @@ static int latest_save; // Slot number of the latest (in time) save for this gam
 static unsigned char SavedStateExistenceCached [SAVE_STATE_SLOT_NUM]; // [I] == TRUE if Cache[I] is meaningful
 static unsigned char SavedStateExistenceCache [SAVE_STATE_SLOT_NUM];
 
+// These are U+05C8 and subsequent codepoints encoded in UTF-8.
+const uint8 HOTKEY_A_DISPLAY[] = {0xD7, 0x88, 0x00};
+const uint8 HOTKEY_B_DISPLAY[] = {0xD7, 0x89, 0x00};
+const uint8 HOTKEY_X_DISPLAY[] = {0xD7, 0x8A, 0x00};
+const uint8 HOTKEY_Y_DISPLAY[] = {0xD7, 0x8B, 0x00};
+const uint8 HOTKEY_L_DISPLAY[] = {0xD7, 0x8C, 0x00};
+const uint8 HOTKEY_R_DISPLAY[] = {0xD7, 0x8D, 0x00};
+const uint8 HOTKEY_START_DISPLAY[] = {0xD7, 0x8E, 0x00};
+const uint8 HOTKEY_SELECT_DISPLAY[] = {0xD7, 0x8F, 0x00};
+// These are U+2190 and subsequent codepoints encoded in UTF-8.
+const uint8 HOTKEY_LEFT_DISPLAY[] = {0xE2, 0x86, 0x90, 0x00};
+const uint8 HOTKEY_UP_DISPLAY[] = {0xE2, 0x86, 0x91, 0x00};
+const uint8 HOTKEY_RIGHT_DISPLAY[] = {0xE2, 0x86, 0x92, 0x00};
+const uint8 HOTKEY_DOWN_DISPLAY[] = {0xE2, 0x86, 0x93, 0x00};
+
 #ifdef TEST_MODE
 #define VER_RELEASE "test"
 #else
@@ -3544,119 +3559,229 @@ printf("current_str %s\n", current_str);
 }
 
 /*--------------------------------------------------------
+	Load language message
 --------------------------------------------------------*/
 int load_language_msg(char *filename, u32 language)
 {
-    FILE *fp;
-    char msg_path[MAX_PATH];
-    char string[256];
-    char start[32];
-    char end[32];
-    char *pt, *dst;
-    u32 cmplen;
-    u32 loop, offset, len;
-    int ret;
+	FILE *fp;
+	char msg_path[MAX_PATH];
+	char string[256];
+	char start[32];
+	char end[32];
+	char *pt, *dst;
+	u32 loop, offset, len;
+	int ret;
 
-    sprintf(msg_path, "%s/%s", main_path, filename);
-    fp = fopen(msg_path, "rb");
-    if(fp == NULL)
-        return -1;
+	sprintf(msg_path, "%s/%s", main_path, filename);
+	fp = fopen(msg_path, "rb");
+	if(fp == NULL)
+	return -1;
 
-    switch(language)
-    {
-    case ENGLISH:
-        strcpy(start, "STARTENGLISH");
-        strcpy(end, "ENDENGLISH");
-        cmplen= 12;
-        break;
-    default:
-        strcpy(start, "STARTENGLISH");
-        strcpy(end, "ENDENGLISH");
-        cmplen= 12;
-        break;
-    }
-    //find the start flag
-    ret= 0;
-    while(1)
-    {
-        pt= fgets(string, 256, fp);
-        if(pt == NULL)
-        {
-            ret= -2;
-            goto load_language_msg_error;
-        }
+	switch(language)
+	{
+	case ENGLISH:
+	default:
+		strcpy(start, "STARTENGLISH");
+		strcpy(end, "ENDENGLISH");
+		break;
+	case CHINESE_SIMPLIFIED:
+		strcpy(start, "STARTCHINESESIM");
+		strcpy(end, "ENDCHINESESIM");
+		break;
+	case FRENCH:
+		strcpy(start, "STARTFRENCH");
+		strcpy(end, "ENDFRENCH");
+		break;
+	case GERMAN:
+		strcpy(start, "STARTGERMAN");
+		strcpy(end, "ENDGERMAN");
+		break;
+	case DUTCH:
+		strcpy(start, "STARTDUTCH");
+		strcpy(end, "ENDDUTCH");
+		break;
+	case SPANISH:
+		strcpy(start, "STARTSPANISH");
+		strcpy(end, "ENDSPANISH");
+		break;
+	case ITALIAN:
+		strcpy(start, "STARTITALIAN");
+		strcpy(end, "ENDITALIAN");
+		break;
+	case PORTUGUESE_BRAZILIAN:
+		strcpy(start, "STARTPORTUGUESEBR");
+		strcpy(end, "ENDPORTUGUESEBR");
+		break;
+	}
+	u32 cmplen = strlen(start);
 
-        if(!strncmp(pt, start, cmplen))
-            break;
-    }
+	//find the start flag
+	ret= 0;
+	while(1)
+	{
+		pt= fgets(string, 256, fp);
+		if(pt == NULL)
+		{
+			ret= -2;
+			goto load_language_msg_error;
+		}
 
-    loop= 0;
-    offset= 0;
-    dst= msg_data;
-    msg[0]= dst;
+		if(!strncmp(pt, start, cmplen))
+			break;
+	}
 
-    while(loop != MSG_END)
-    {
-        while(1)
-        {
-            pt = fgets(string, 256, fp);
-            if(pt[0] == '#' || pt[0] == 0x0D || pt[0] == 0x0A)
-                continue;
-            if(pt != NULL)
-                break;
-            else
-            {
-                ret = -3;
-                goto load_language_msg_error;
-            }
-        }
+	loop= 0;
+	offset= 0;
+	dst= msg_data;
+	msg[0]= dst;
 
-        if(!strncmp(pt, end, cmplen-2))
-            break;
+	while(loop != MSG_END)
+	{
+		while(1)
+		{
+			pt = fgets(string, 256, fp);
+			if(pt[0] == '#' || pt[0] == '\r' || pt[0] == '\n')
+				continue;
+			if(pt != NULL)
+				break;
+			else
+			{
+				ret = -3;
+				goto load_language_msg_error;
+			}
+		}
 
-        len= strlen(pt);
-        memcpy(dst, pt, len);
+		if(!strncmp(pt, end, cmplen-2))
+			break;
 
-        dst += len;
-        //at a line return, when "\n" paded, this message not end
-        if(*(dst-1) == 0x0A)
-        {
-            pt = strrchr(pt, '\\');
-            if((pt != NULL) && (*(pt+1) == 'n'))
-            {
-                if(*(dst-2) == 0x0D)
-                {
-                    *(dst-4)= '\n';
-                    dst -= 3;
-                }
-                else
-                {
-                    *(dst-3)= '\n';
-                    dst -= 2;
-                }
-            }
-            else//a message end
-            {
-                if(*(dst-2) == 0x0D)
-                    dst -= 1;
-                *(dst-1) = '\0';
-                msg[++loop] = dst;
-            }
-        }
-    }
+		len= strlen(pt);
+		// memcpy(dst, pt, len);
 
-/*
-unsigned char *ppt;
-len= 0;
-ppt= msg[0];
-printf("------\n");
-while(*ppt)
-    printf("%02x ", *ppt++);
-*/
+		// Replace key definitions (*letter) with Pictochat icons
+		// while copying.
+		unsigned int srcChar, dstLen = 0;
+		for (srcChar = 0; srcChar < len; srcChar++)
+		{
+			if (pt[srcChar] == '*')
+			{
+				switch (pt[srcChar + 1])
+				{
+				case 'A':
+					memcpy(&dst[dstLen], HOTKEY_A_DISPLAY, sizeof (HOTKEY_A_DISPLAY) - 1);
+					srcChar++;
+					dstLen += sizeof (HOTKEY_A_DISPLAY) - 1;
+					break;
+				case 'B':
+					memcpy(&dst[dstLen], HOTKEY_B_DISPLAY, sizeof (HOTKEY_B_DISPLAY) - 1);
+					srcChar++;
+					dstLen += sizeof (HOTKEY_B_DISPLAY) - 1;
+					break;
+				case 'X':
+					memcpy(&dst[dstLen], HOTKEY_X_DISPLAY, sizeof (HOTKEY_X_DISPLAY) - 1);
+					srcChar++;
+					dstLen += sizeof (HOTKEY_X_DISPLAY) - 1;
+					break;
+				case 'Y':
+					memcpy(&dst[dstLen], HOTKEY_Y_DISPLAY, sizeof (HOTKEY_Y_DISPLAY) - 1);
+					srcChar++;
+					dstLen += sizeof (HOTKEY_Y_DISPLAY) - 1;
+					break;
+				case 'L':
+					memcpy(&dst[dstLen], HOTKEY_L_DISPLAY, sizeof (HOTKEY_L_DISPLAY) - 1);
+					srcChar++;
+					dstLen += sizeof (HOTKEY_L_DISPLAY) - 1;
+					break;
+				case 'R':
+					memcpy(&dst[dstLen], HOTKEY_R_DISPLAY, sizeof (HOTKEY_R_DISPLAY) - 1);
+					srcChar++;
+					dstLen += sizeof (HOTKEY_R_DISPLAY) - 1;
+					break;
+				case 'S':
+					memcpy(&dst[dstLen], HOTKEY_START_DISPLAY, sizeof (HOTKEY_START_DISPLAY) - 1);
+					srcChar++;
+					dstLen += sizeof (HOTKEY_START_DISPLAY) - 1;
+					break;
+				case 's':
+					memcpy(&dst[dstLen], HOTKEY_SELECT_DISPLAY, sizeof (HOTKEY_SELECT_DISPLAY) - 1);
+					srcChar++;
+					dstLen += sizeof (HOTKEY_SELECT_DISPLAY) - 1;
+					break;
+				case 'u':
+					memcpy(&dst[dstLen], HOTKEY_UP_DISPLAY, sizeof (HOTKEY_UP_DISPLAY) - 1);
+					srcChar++;
+					dstLen += sizeof (HOTKEY_UP_DISPLAY) - 1;
+					break;
+				case 'd':
+					memcpy(&dst[dstLen], HOTKEY_DOWN_DISPLAY, sizeof (HOTKEY_DOWN_DISPLAY) - 1);
+					srcChar++;
+					dstLen += sizeof (HOTKEY_DOWN_DISPLAY) - 1;
+					break;
+				case 'l':
+					memcpy(&dst[dstLen], HOTKEY_LEFT_DISPLAY, sizeof (HOTKEY_LEFT_DISPLAY) - 1);
+					srcChar++;
+					dstLen += sizeof (HOTKEY_LEFT_DISPLAY) - 1;
+					break;
+				case 'r':
+					memcpy(&dst[dstLen], HOTKEY_RIGHT_DISPLAY, sizeof (HOTKEY_RIGHT_DISPLAY) - 1);
+					srcChar++;
+					dstLen += sizeof (HOTKEY_RIGHT_DISPLAY) - 1;
+					break;
+				case '\0':
+					dst[dstLen] = pt[srcChar];
+					dstLen++;
+					break;
+				default:
+					memcpy(&dst[dstLen], &pt[srcChar], 2);
+					srcChar++;
+					dstLen += 2;
+					break;
+				}
+			}
+			else
+			{
+				dst[dstLen] = pt[srcChar];
+				dstLen++;
+			}
+		}
+
+		dst += dstLen;
+		//at a line return, when "\n" paded, this message not end
+		if(*(dst-1) == 0x0A)
+		{
+			pt = strrchr(pt, '\\');
+			if((pt != NULL) && (*(pt+1) == 'n'))
+			{
+				if(*(dst-2) == 0x0D)
+				{
+					*(dst-4)= '\n';
+					dst -= 3;
+				}
+				else
+				{
+					*(dst-3)= '\n';
+					dst -= 2;
+				}
+			}
+			else//a message end
+			{
+				if(*(dst-2) == 0x0D)
+					dst -= 1;
+				*(dst-1) = '\0';
+				msg[++loop] = dst;
+			}
+		}
+	}
+
+	#if 0
+	loop= 0;
+	printf("------\n");
+	while(loop != MSG_END)
+	printf("%d: %s\n",loop, msg[loop++]);
+	#endif
 
 load_language_msg_error:
-  fclose(fp);
-  return ret;
+	fclose(fp);
+	return ret;
 }
 
 /*--------------------------------------------------------
