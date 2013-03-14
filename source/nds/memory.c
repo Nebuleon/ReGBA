@@ -3747,12 +3747,19 @@ u32 load_state(char *savestate_filename, FILE *fp)
 
     if(fp != NULL)
     {
+	// Skip SVS_HEADER, whose size is SVS_HEADER_SIZE.
+	{
+		u8 ignored[SVS_HEADER_SIZE];
+		i = fread(ignored, 1, SVS_HEADER_SIZE, fp);
+		if (i < SVS_HEADER_SIZE)
+			return 1; // Failed to fully read the file
+	}
         i= fread(savestate_write_buffer, 1, SAVESTATE_SIZE, fp);
 printf("fread %d\n", i);
 	if (i < SAVESTATE_SIZE)
 		return 1; // Failed to fully read the file
 
-        g_state_buffer_ptr = savestate_write_buffer;
+        g_state_buffer_ptr = savestate_write_buffer + sizeof(struct rtc) + (240 * 160 * 2) + 2;
 printf("gamepak_filename0: %s\n", gamepak_filename);
 
         savestate_block(read_mem);
