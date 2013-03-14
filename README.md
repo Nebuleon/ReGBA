@@ -21,6 +21,22 @@ Then, copy the `CATSFC` subdirectory to the root of the card.
 
 - - - - CUT HERE - - - -
 
+# Improving game compatibility with game_config.txt
+
+Included with this release is a file called game_config.txt. The file is the
+same as the one included in gpSP Kai. It goes in the `TEMPGBA` directory on
+your storage card when you extract the release.
+
+This file contains information to enhance game compatibility in two ways.
+* Firstly, it tells TempGBA about the save type used by a certain game, so that
+  battery-backed saves may be read and written correctly.
+* Secondly, it tells TempGBA about idle loops in a certain game, so that it may
+  stop emulating when the game reaches them. It runs the game faster.
+
+game_config.txt receives updates from the community occasionally.
+For the latest version, see:
+<http://filetrip.net/nds-downloads/flashcart-files/latest-x-f12630.html>
+
 # Cheats
 
 There is currently no cheat support in TempGBA, pending the discovery of a
