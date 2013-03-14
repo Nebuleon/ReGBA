@@ -3828,27 +3828,23 @@ int load_game_stat_snapshot(char* file)
 {
 	FILE* fp;
 	char tmp_path[MAX_PATH];
-	unsigned int n, m;
+	unsigned int n, m, y;
 
 	sprintf(tmp_path, "%s/%s", DEFAULT_SAVE_DIR, file);
 	fp = fopen(tmp_path, "r");
 	if(NULL == fp)
 		return -1;
 
-	m = fread((void*)&n, 1, 4, fp);
-	if(m < 4)
-	{
-		fclose(fp);
-		return - 2;
-	}
+	fseek(fp, SVS_HEADER_SIZE+sizeof(struct rtc), SEEK_SET);
 
-	fseek(fp, n+sizeof(struct rtc), SEEK_SET);
-
-	m = fread(up_screen_addr, 1, 256*192*2, fp);
-	if(m < 256*192*2)
+	for (y = 0; y < 160; y++)
 	{
-		fclose(fp);
-		return -4;
+		m = fread((u16*) up_screen_addr + (y + 16) * NDS_SCREEN_WIDTH + 8, 1, 240 * sizeof(u16), fp);
+		if(m < 240*sizeof(u16))
+		{
+			fclose(fp);
+			return -4;
+		}
 	}
 
 	fclose(fp);
