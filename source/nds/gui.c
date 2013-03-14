@@ -68,7 +68,7 @@ char *language_options[] = { (char *) &lang[0], (char *) &lang[1], (char *) &lan
 
 #define SAVE_STATE_SLOT_NUM 16
 
-#define NDSGBA_VERSION "1.0"
+#define NDSGBA_VERSION "alpha 1"
 
 #define GPSP_CONFIG_FILENAME "SYSTEM/ndsgba.cfg"
 
@@ -4344,13 +4344,13 @@ int gui_init(u32 lang_id)
       char *endStr = strrchr(main_path, '/');
       *endStr = '\0';
 
-      //do a check to make sure the folder is a valid catsfc folder
+      //do a check to make sure the folder is a valid TempGBA folder
       char tempPath[MAX_PATH];
       strcpy(tempPath, main_path);
       strcat(tempPath, "/system/gui");
       DIR *testDir = opendir(tempPath);
       if(!testDir)
-        //not a valid catsfc install
+        //not a valid TempGBA install
         strcpy(main_path, "fat:/TEMPGBA");
       else//test was successful, do nothing
         closedir(testDir);

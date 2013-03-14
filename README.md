@@ -1,4 +1,4 @@
-TempGBA alpha version (that means it may or may not work)
+TempGBA alpha version 1 (that means it may or may not work)
 
 A Game Boy Advance emulator for the Supercard DSTWO.
 
@@ -13,13 +13,9 @@ Based on:
 (If you got the source code and want to compile it, see the `Compiling` section
  at the end of the file.)
 
-- - - - CUT HERE - - - - (Section invalid for now as there is no .plg release)
-
-To install the plugin to your storage card, copy `catsfc.plg`, `catsfc.ini` and
-`catsfc.bmp` from the release archive to the card's `_dstwoplug` directory.
-Then, copy the `CATSFC` subdirectory to the root of the card.
-
-- - - - CUT HERE - - - -
+To install the plugin to your storage card, copy `tempgba.plg`, `tempgba.ini`
+and `tempgba.bmp` from the release archive to the card's `_dstwoplug`
+directory. Then, copy the `TEMPGBA` subdirectory to the root of the card.
 
 # Improving game compatibility with game_config.txt
 
