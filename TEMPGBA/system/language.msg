@@ -262,11 +262,11 @@ STARTCHINESESIM
 #MSG_MAIN_MENU_EXIT
 退出模拟器
 #FMT_VIDEO_AUDIO_FLUIDITY_PREFERENCE
-Fluidity                     %s
+流畅度                     %s
 #MSG_VIDEO_AUDIO_FLUIDITY_PREFER_VIDEO
-Prefer fluid video
+视频优先
 #MSG_VIDEO_AUDIO_FLUIDITY_PREFER_AUDIO
-Prefer fluid audio
+音频优先
 #FMT_VIDEO_ASPECT_RATIO
 画面                         %s
 #FMT_VIDEO_FAST_FORWARD
@@ -290,9 +290,9 @@ Retro sound             %s
 #MSG_TOOLS_SCREENSHOT_GENERAL
 屏幕快照
 #MSG_TOOLS_GLOBAL_HOTKEY_GENERAL
-Global hotkeys...
+全局热键
 #MSG_TOOLS_GAME_HOTKEY_GENERAL
-Game-specific hotkey overrides...
+游戏专用覆盖性热键
 #FMT_OPTIONS_LANGUAGE
 语言                               %s
 #FMT_OPTIONS_CPU_FREQUENCY
@@ -320,23 +320,23 @@ CPU主频                          %s
 #MSG_SCREENSHOT_BROWSE
 浏览屏幕快照
 #MSG_HOTKEY_MAIN_MENU
-Go to main menu
+返回主菜单
 #MSG_HOTKEY_TEMPORARY_FAST_FORWARD
-Temporary fast-forward
+临时加速
 #MSG_HOTKEY_SOUND_TOGGLE
-Toggle sound
+音频开关
 #MSG_HOTKEY_QUICK_LOAD_STATE
-Load saved state 1
+读取即时存档 1
 #MSG_HOTKEY_QUICK_SAVE_STATE
-Create saved state 1
+保存即时存档 1
 #MSG_HOTKEY_FULL_SCREEN_TOGGLE
-Toggle full-screen
+全屏开关
 #MSG_PROGRESS_HOTKEY_WAITING_FOR_KEYS
-Press the buttons you wish to use to perform this action.
+按下你想要设置为这个效果的按钮
 #MSG_HOTKEY_DELETE_WITH_A
-*A Clear
+*A 清除
 #MSG_HOTKEY_CANCEL_WITH_B
-*B Cancel
+*B 取消
 #MSG_LOAD_GAME_RECENTLY_PLAYED
 最近玩过的游戏
 #MSG_LOAD_GAME_FROM_CARD
@@ -354,29 +354,29 @@ Press the buttons you wish to use to perform this action.
 #MSG_VIDEO_ASPECT_RATIO_4
 显示模式 4
 #MSG_VIDEO_FRAME_SKIPPING_AUTOMATIC
-[-] Keep up with the game
+[-] 和游戏同步
 #MSG_VIDEO_FRAME_SKIPPING_0
-[0] Show all frames
+[0] 不跳帧
 #MSG_VIDEO_FRAME_SKIPPING_1
-[1] Show 1 in 2 frames
+[1] 显示 1/2
 #MSG_VIDEO_FRAME_SKIPPING_2
-[2] Show 1 in 3 frames
+[2] 显示 1/3
 #MSG_VIDEO_FRAME_SKIPPING_3
-[3] Show 1 in 4 frames
+[3] 显示 1/4
 #MSG_VIDEO_FRAME_SKIPPING_4
-[4] Show 1 in 5 frames
+[4] 显示 1/5
 #MSG_VIDEO_FRAME_SKIPPING_5
-[5] Show 1 in 6 frames
+[5] 显示 1/6
 #MSG_VIDEO_FRAME_SKIPPING_6
-[6] Show 1 in 7 frames
+[6] 显示 1/7
 #MSG_VIDEO_FRAME_SKIPPING_7
-[7] Show 1 in 8 frames
+[7] 显示 1/8
 #MSG_VIDEO_FRAME_SKIPPING_8
-[8] Show 1 in 9 frames
+[8] 显示 1/9
 #MSG_VIDEO_FRAME_SKIPPING_9
-[9] Show 1 in 10 frames
+[9] 显示 1/10
 #MSG_VIDEO_FRAME_SKIPPING_10
-[10] Show 1 in 11 frames
+[10] 显示 1/11
 #MSG_GENERAL_OFF
 关
 #MSG_GENERAL_ON
@@ -443,11 +443,11 @@ Press the buttons you wish to use to perform this action.
 #MSG_PROGRESS_LOADING_GAME
 正在装载游戏...
 #MSG_EMULATOR_NAME
-SFC模拟器
+GBA模拟器
 #MSG_WORD_EMULATOR_VERSION
 版本
 #MSG_DIALOG_RESET
-确定将 SFC模拟器恢复为出厂设置吗?
+确定将 GBA模拟器恢复为出厂设置吗?
 #MSG_PROGRESS_RESETTING
 正在设置,请稍候...
 #MSG_UNCERTAIN
