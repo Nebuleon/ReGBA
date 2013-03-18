@@ -49,7 +49,7 @@ void ds2_main(void)
 	int err;
 	HighFrequencyCPU();
 	//Initial video and audio and other input and output
-	err = ds2io_initb(1024 /* buffer size */, 44100 /* sample rate */, 0, 0);
+	err = ds2io_initb(1024 /* buffer size in samples, matches sound.c's AUDIO_LEN */, 44100 /* sample rate */, 0, 0);
 	if(err) goto _failure;
 
 	//Initial file system
