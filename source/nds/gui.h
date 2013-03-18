@@ -54,8 +54,7 @@
 
 #define MAX_GAMEPAD_CONFIG_MAP 16
 
-
-//
+// Runtime settings for the emulator. Not persistent.
 typedef struct
 {
   u32 screen_ratio;
@@ -66,20 +65,27 @@ typedef struct
   u32 enable_home;
   u32 gamepad_config_map[MAX_GAMEPAD_CONFIG_MAP];
   u32 gamepad_config_home;
-  u32 language;
   u32 emulate_core;
   u32 debug_flag;
   u32 fake_fat;
   char rom_file[256];
   char rom_path[256];
-  char latest_file[5][512];
 } GPSP_CONFIG;
 
+// Persistent settings for the emulator.
+typedef struct
+{
+  u32 language;
+  char latest_file[5][512];
+  u32 Reserved0[128];
+} GPSP_CONFIG_FILE;
+
+// Runtime settings for the current game. Not persistent and reset between
+// games.
 typedef struct
 {
   u32 frameskip_type;
   u32 frameskip_value;
-  u32 clock_speed_number;
   u32 audio_buffer_size_number;
   u32 update_backup_flag;
 	// Disabled [Neb]
@@ -88,6 +94,19 @@ typedef struct
   u32 gamepad_config_home;
   u32 use_default_gamepad_map;
 } GAME_CONFIG;
+
+// Persistent settings for the current game.
+typedef struct
+{
+  /*
+   * This value differs from the frameskip_type and frameskip_value in
+   * GAME_CONFIG in that this one is just one value, for the GUI, and it's
+   * split into two for the runtime settings in GAME_CONFIG.
+   */
+  u32 frameskip_value;
+  u32 clock_speed_number;
+  u32 Reserved[128];
+} GAME_CONFIG_FILE;
 
 struct  FILE_LIST_INFO
 {
@@ -119,6 +138,9 @@ extern char main_path[MAX_PATH];
 
 extern GPSP_CONFIG gpsp_config;
 extern GAME_CONFIG game_config;
+
+extern GPSP_CONFIG_FILE gpsp_persistent_config;
+extern GAME_CONFIG_FILE game_persistent_config;
 
 #define SKIP_RATE (game_config.frameskip_value)
 #define AUTO_SKIP (game_config.frameskip_type)

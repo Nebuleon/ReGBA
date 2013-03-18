@@ -283,7 +283,7 @@ while(1);
 
 //  init_progress(7, "");
 
-    if(gui_init(gpsp_config.language) < 0)
+    if(gui_init(0) < 0)
         quit();
   // Initial path information
   initial_gpsp_config();

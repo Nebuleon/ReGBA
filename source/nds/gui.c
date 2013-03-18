@@ -74,18 +74,20 @@ char *language_options[] = { (char *) &lang[0], (char *) &lang[1], (char *) &lan
 
 // dsGBA的一套头文件
 // 标题 4字节
-#define GPSP_CONFIG_HEADER  "NGBA1.0"
+#define GPSP_CONFIG_HEADER  "NGBA1.1"
 #define GPSP_CONFIG_HEADER_SIZE 7
-const u32 gpsp_config_ver = 0x00010000;
+const u32 gpsp_config_ver = 0x00010001;
 GPSP_CONFIG gpsp_config;
+GPSP_CONFIG_FILE gpsp_persistent_config;
 
 // GAME的一套头文件
 // 标题 4字节
-#define GAME_CONFIG_HEADER     "GAME1.0"
+#define GAME_CONFIG_HEADER     "GAME1.1"
 #define GAME_CONFIG_HEADER_SIZE 7
-#define GAME_CONFIG_HEADER_U32 0x67666367
-const u32 game_config_ver = 0x00010000;
+// #define GAME_CONFIG_HEADER_U32 0x67666367
+const u32 game_config_ver = 0x00010001;
 GAME_CONFIG game_config;
+GAME_CONFIG_FILE game_persistent_config;
 
 //save state file map
 #define RTS_TIMESTAMP_POS   SVS_HEADER_SIZE
@@ -1403,7 +1405,7 @@ const u32 gamepad_config_map_init[MAX_GAMEPAD_CONFIG_MAP] =
     BUTTON_ID_L,        /* 9    [L] */
     BUTTON_ID_NONE,     /* 10   FA */
     BUTTON_ID_NONE,     /* 11   FB */
-    BUTTON_ID_X,        /* 12   MENU */
+    BUTTON_ID_TOUCH,    /* 12   MENU */
     BUTTON_ID_NONE,     /* 13   NONE */
     BUTTON_ID_NONE,     /* 14   NONE */
     BUTTON_ID_NONE      /* 15   NONE */
@@ -1423,9 +1425,8 @@ const u32 gamepad_config_map_init[MAX_GAMEPAD_CONFIG_MAP] =
 void init_game_config()
 {
     u32 i;
-    game_config.frameskip_type = 1;   //auto
-    game_config.frameskip_value = 2;
-    game_config.clock_speed_number = 3;
+    game_persistent_config.frameskip_value = 0; // default: keep up/automatic
+    game_persistent_config.clock_speed_number = 3;
     game_config.audio_buffer_size_number = 15;
     game_config.update_backup_flag = 0;
     for(i = 0; i < MAX_CHEATS; i++)
@@ -1438,7 +1439,7 @@ void init_game_config()
     }
     memcpy(game_config.gamepad_config_map, gamepad_config_map_init, sizeof(gamepad_config_map_init));
     game_config.use_default_gamepad_map = 1;
-    game_config.gamepad_config_home = BUTTON_ID_X;
+    game_config.gamepad_config_home = BUTTON_ID_TOUCH;
     memcpy(gamepad_config_map, game_config.gamepad_config_map, sizeof(game_config.gamepad_config_map));
     gamepad_config_home = game_config.gamepad_config_home;
 }
@@ -1456,18 +1457,18 @@ void init_default_gpsp_config()
   //keypad configure
   memcpy(gpsp_config.gamepad_config_map, gamepad_config_map_init, sizeof(gamepad_config_map_init));
   memcpy(gamepad_config_map, gamepad_config_map_init, sizeof(gamepad_config_map_init));
-  gpsp_config.language = 0;     //defalut language= English
+  gpsp_persistent_config.language = 0;     //defalut language= English
 #if 1
   gpsp_config.emulate_core = ASM_CORE;
 #else
   gpsp_config.emulate_core = C_CORE;
 #endif
-    gpsp_config.gamepad_config_home = BUTTON_ID_X;
+    gpsp_config.gamepad_config_home = BUTTON_ID_TOUCH;
   gpsp_config.debug_flag = NO;
   gpsp_config.fake_fat = NO;
   gpsp_config.rom_file[0]= 0;
   gpsp_config.rom_path[0]= 0;
-  memset(gpsp_config.latest_file, 0, sizeof(gpsp_config.latest_file));
+  memset(gpsp_persistent_config.latest_file, 0, sizeof(gpsp_persistent_config.latest_file));
 
   //Removing rom_path due to confusion
   //strcpy(rom_path, main_path);
@@ -1501,12 +1502,14 @@ void load_game_config_file(void)
 
         if (!strncmp(pt, NGBARTS_HEADERA, NGBARTS_HEADERA_SIZE))
         {
-            FILE_READ_VARIABLE(game_config_file, game_config);
-            memcpy(gamepad_config_map, game_config.gamepad_config_map, sizeof(game_config.gamepad_config_map));
-            gamepad_config_home = game_config.gamepad_config_home;
+            FILE_READ_VARIABLE(game_config_file, game_persistent_config);
         }
         FILE_CLOSE(game_config_file);
     }
+    // The gamepad config map is not persisted to file yet. [Neb]
+    memcpy(gamepad_config_map, game_config.gamepad_config_map, sizeof(game_config.gamepad_config_map));
+    gamepad_config_home = game_config.gamepad_config_home;
+    game_set_frameskip();
 }
 
 /*--------------------------------------------------------
@@ -1517,6 +1520,8 @@ s32 load_config_file()
     char gpsp_config_path[MAX_PATH];
     FILE_ID gpsp_config_file;
     char *pt;
+
+    init_default_gpsp_config();
 
     sprintf(gpsp_config_path, "%s/%s", main_path, GPSP_CONFIG_FILENAME);
     FILE_OPEN(gpsp_config_file, gpsp_config_path, READ);
@@ -1529,15 +1534,14 @@ s32 load_config_file()
         pt[GPSP_CONFIG_HEADER_SIZE]= 0;
         if(!strcmp(pt, GPSP_CONFIG_HEADER))
         {
-            FILE_READ_VARIABLE(gpsp_config_file, gpsp_config);
+            FILE_READ_VARIABLE(gpsp_config_file, gpsp_persistent_config);
             FILE_CLOSE(gpsp_config_file);
+            // The gamepad config map is not persistent yet. [Neb]
             memcpy(gamepad_config_map, gpsp_config.gamepad_config_map, sizeof(gpsp_config.gamepad_config_map));
             return 0;
         }
     }
 
-    // 如果无法读取配置文件，设置缺省值
-    init_default_gpsp_config();
     return -1;
 }
 
@@ -1582,8 +1586,8 @@ u32 menu(u16 *screen, int FirstInvocation)
     u16 *bg_screenp;
     u32 bg_screenp_color;
 
-    GAME_CONFIG PreviousGameConfig;  // Compared with current settings to
-    GPSP_CONFIG PreviousGpspConfig;  // determine if they need to be saved
+    GAME_CONFIG_FILE PreviousGameConfig; // Compared with current settings to
+    GPSP_CONFIG_FILE PreviousGpspConfig; // determine if they need to be saved
 
 	auto void choose_menu();
 	auto void menu_return();
@@ -1634,16 +1638,16 @@ u32 menu(u16 *screen, int FirstInvocation)
 
 	void SaveConfigsIfNeeded()
 	{
-		if (memcmp(&PreviousGameConfig, &game_config, sizeof(GAME_CONFIG)) != 0)
+		if (memcmp(&PreviousGameConfig, &game_persistent_config, sizeof(GAME_CONFIG)) != 0)
 			save_game_config_file();
-		if (memcmp(&PreviousGpspConfig, &gpsp_config, sizeof(GPSP_CONFIG)) != 0)
+		if (memcmp(&PreviousGpspConfig, &gpsp_persistent_config, sizeof(GPSP_CONFIG)) != 0)
 			save_config_file();
 	}
 
 	void PreserveConfigs()
 	{
-		memcpy(&PreviousGameConfig, &game_config, sizeof(GAME_CONFIG));
-		memcpy(&PreviousGpspConfig, &gpsp_config, sizeof(GPSP_CONFIG));
+		memcpy(&PreviousGameConfig, &game_persistent_config, sizeof(GAME_CONFIG));
+		memcpy(&PreviousGpspConfig, &gpsp_persistent_config, sizeof(GPSP_CONFIG));
 	}
 
   int LoadGameAndItsData(char *filename) {
@@ -2217,7 +2221,7 @@ u32 menu(u16 *screen, int FirstInvocation)
         {
             HighFrequencyCPU(); // crank it up
 
-            load_language_msg(LANGUAGE_PACK, gpsp_config.language);
+            load_language_msg(LANGUAGE_PACK, gpsp_persistent_config.language);
 
             if(first_load)
             {
@@ -2302,7 +2306,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 		&sound_on, 2, NULL, ACTION_TYPE, 2),
 
 	/* 03 */	STRING_SELECTION_OPTION(game_set_frameskip, NULL, &msg[FMT_VIDEO_FRAME_SKIPPING], frameskip_options,
-		&game_config.frameskip_value, 12 /* auto (0) and 0..10 (1..11) make 12 option values */, NULL, ACTION_TYPE, 3),
+		&game_persistent_config.frameskip_value, 12 /* auto (0) and 0..10 (1..11) make 12 option values */, NULL, ACTION_TYPE, 3),
 	};
 
 	MAKE_MENU(graphics, NULL, NULL, NULL, NULL, 0, 0);
@@ -2416,10 +2420,10 @@ u32 menu(u16 *screen, int FirstInvocation)
 
 	//CPU speed (string: shows MHz)
 	/* 01 */ STRING_SELECTION_OPTION(NULL, NULL, &msg[FMT_OPTIONS_CPU_FREQUENCY], cpu_frequency_options,
-        &game_config.clock_speed_number, 6, NULL, PASSIVE_TYPE, 1),
+        &game_persistent_config.clock_speed_number, 6, NULL, PASSIVE_TYPE, 1),
 
 	/* 02 */ STRING_SELECTION_OPTION(language_set, NULL, &msg[FMT_OPTIONS_LANGUAGE], language_options,
-        &gpsp_config.language, sizeof(language_options) / sizeof(language_options[0]) /* number of possible languages */, NULL, ACTION_TYPE, 2),
+        &gpsp_persistent_config.language, sizeof(language_options) / sizeof(language_options[0]) /* number of possible languages */, NULL, ACTION_TYPE, 2),
 
 #ifdef ENABLE_FREE_SPACE
 	/* 03 */ STRING_SELECTION_OPTION(NULL, show_card_space, &msg[MSG_OPTIONS_CARD_CAPACITY], NULL,
@@ -2669,7 +2673,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 
         for(k= 0; k < 5; k++)
         {
-            ext_pos= strrchr(gpsp_config.latest_file[k], '/');
+            ext_pos= strrchr(gpsp_persistent_config.latest_file[k], '/');
             if(ext_pos != NULL)
                 draw_hscroll_init(down_screen_addr, OPTION_TEXT_X, 40 + k*27, OPTION_TEXT_SX,
                     COLOR_TRANS, COLOR_INACTIVE_ITEM, ext_pos+1);
@@ -2714,7 +2718,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 		draw_string_vcenter(down_screen_addr, 0, 9, 256, COLOR_ACTIVE_ITEM, line_buffer);
 
 		for(k= 0; k<5; k++)
-        if(gpsp_config.latest_file[k][0] != '\0')
+        if(gpsp_persistent_config.latest_file[k][0] != '\0')
         {
             if(current_option_num != k+1)
                 draw_hscroll(k, 0);
@@ -2732,7 +2736,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 
         for(k= 0; k < 5; k++)
         {
-            if(gpsp_config.latest_file[k][0] != '\0')
+            if(gpsp_persistent_config.latest_file[k][0] != '\0')
                 draw_hscroll_over(k);
         }
     }
@@ -2748,7 +2752,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 				if(current_option_num != 0)
 				{
 					draw_hscroll_over(current_option_num-1);
-	            	ext_pos= strrchr(gpsp_config.latest_file[current_option_num-1], '/');
+	            	ext_pos= strrchr(gpsp_persistent_config.latest_file[current_option_num-1], '/');
                 	draw_hscroll_init(down_screen_addr, OPTION_TEXT_X, 40 + (current_option_num-1)*27, OPTION_TEXT_SX,
                 	    COLOR_TRANS, COLOR_INACTIVE_ITEM, ext_pos+1);
 				}
@@ -2762,7 +2766,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 				if(current_option_num != 0)
 				{
 					draw_hscroll_over(current_option_num-1);
-	            	ext_pos= strrchr(gpsp_config.latest_file[current_option_num-1], '/');
+	            	ext_pos= strrchr(gpsp_persistent_config.latest_file[current_option_num-1], '/');
                 	draw_hscroll_init(down_screen_addr, OPTION_TEXT_X, 40 + (current_option_num-1)*27, OPTION_TEXT_SX,
                 	    COLOR_TRANS, COLOR_ACTIVE_ITEM, ext_pos+1);
 				}
@@ -2774,7 +2778,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 				if(current_option_num != 0)
 				{
 					draw_hscroll_over(current_option_num-1);
-	            	ext_pos= strrchr(gpsp_config.latest_file[current_option_num-1], '/');
+	            	ext_pos= strrchr(gpsp_persistent_config.latest_file[current_option_num-1], '/');
                 	draw_hscroll_init(down_screen_addr, OPTION_TEXT_X, 40 + (current_option_num-1)*27, OPTION_TEXT_SX,
                 	    COLOR_TRANS, COLOR_INACTIVE_ITEM, ext_pos+1);
 				}
@@ -2787,7 +2791,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 				if(current_option_num != 0)
 				{
 					draw_hscroll_over(current_option_num-1);
-	            	ext_pos= strrchr(gpsp_config.latest_file[current_option_num-1], '/');
+	            	ext_pos= strrchr(gpsp_persistent_config.latest_file[current_option_num-1], '/');
                 	draw_hscroll_init(down_screen_addr, OPTION_TEXT_X, 40 + (current_option_num-1)*27, OPTION_TEXT_SX,
                 	    COLOR_TRANS, COLOR_ACTIVE_ITEM, ext_pos+1);
 				}
@@ -2817,13 +2821,13 @@ u32 menu(u16 *screen, int FirstInvocation)
 		else
 			bg_screenp_color = COLOR_BG;
 
-		ext_pos= strrchr(gpsp_config.latest_file[current_option_num -1], '/');
+		ext_pos= strrchr(gpsp_persistent_config.latest_file[current_option_num -1], '/');
 		*ext_pos= '\0';
     //Removing rom_path due to confusion, replacing with g_default_rom_dir
-		strcpy(g_default_rom_dir, gpsp_config.latest_file[current_option_num -1]);
+		strcpy(g_default_rom_dir, gpsp_persistent_config.latest_file[current_option_num -1]);
 		*ext_pos= '/';
 
-		ext_pos = gpsp_config.latest_file[current_option_num -1];
+		ext_pos = gpsp_persistent_config.latest_file[current_option_num -1];
 
 		LoadGameAndItsData(ext_pos);
 
@@ -3870,7 +3874,7 @@ void reorder_latest_file(void)
 
     for(i= 0; i < 5; i++)
     {
-        ext_pos= strrchr(gpsp_config.latest_file[i], '/');
+        ext_pos= strrchr(gpsp_persistent_config.latest_file[i], '/');
         if(ext_pos != NULL)
         {
             ext_pos1= strrchr(ext_pos + 1, '.');
@@ -3885,16 +3889,16 @@ void reorder_latest_file(void)
     {
         if(i < 4)
         {
-            strcpy(full_file, gpsp_config.latest_file[i]);
+            strcpy(full_file, gpsp_persistent_config.latest_file[i]);
             for(i+=1; i < 5; i++)
             {
-                if(gpsp_config.latest_file[i][0] != '\0')
-                    strcpy(gpsp_config.latest_file[i-1], gpsp_config.latest_file[i]);
+                if(gpsp_persistent_config.latest_file[i][0] != '\0')
+                    strcpy(gpsp_persistent_config.latest_file[i-1], gpsp_persistent_config.latest_file[i]);
                 else
                     break;
             }
 
-            strcpy(gpsp_config.latest_file[i-1], full_file);
+            strcpy(gpsp_persistent_config.latest_file[i-1], full_file);
         }
         return ;
     }
@@ -3902,10 +3906,10 @@ void reorder_latest_file(void)
     //none match
     for(i= 0; i < 5; i++)
     {
-        if(gpsp_config.latest_file[i][0] == '\0')
+        if(gpsp_persistent_config.latest_file[i][0] == '\0')
         {
             //Removing rom_path due to confusion, replacing with g_default_rom_dir
-            sprintf(gpsp_config.latest_file[i], "%s/%s", g_default_rom_dir, gamepak_filename);
+            sprintf(gpsp_persistent_config.latest_file[i], "%s/%s", g_default_rom_dir, gamepak_filename);
             break;
         }
     }
@@ -3914,10 +3918,10 @@ void reorder_latest_file(void)
 
     //queue full
     for(i=1; i < 5; i++)
-        strcpy(gpsp_config.latest_file[i-1], gpsp_config.latest_file[i]);
+        strcpy(gpsp_persistent_config.latest_file[i-1], gpsp_persistent_config.latest_file[i]);
 
     //Removing rom_path due to confusion, replacing with g_default_rom_dir
-    sprintf(gpsp_config.latest_file[i-1], "%s/%s", g_default_rom_dir, gamepak_filename);
+    sprintf(gpsp_persistent_config.latest_file[i-1], "%s/%s", g_default_rom_dir, gamepak_filename);
 }
 
 
@@ -4235,8 +4239,8 @@ void GameFrequencyCPU()
 {
 	u32 clock_speed_table[6] = {6, 9, 10, 11, 12, 13};	//240, 300, 336, 360, 384, 396
 
-	if(game_config.clock_speed_number <= 5)
-		ds2_setCPUclocklevel(clock_speed_table[game_config.clock_speed_number]);
+	if(game_persistent_config.clock_speed_number <= 5)
+		ds2_setCPUclocklevel(clock_speed_table[game_persistent_config.clock_speed_number]);
 }
 
 static u32 save_ss_bmp(u16 *image)
@@ -4287,9 +4291,22 @@ static u32 save_ss_bmp(u16 *image)
     return 1;
 }
 
-// Fill these in [Neb]
-void game_disableAudio() {}
-void game_set_frameskip() {}
+void game_disableAudio() {/* Nothing. sound_on applies immediately. */}
+void game_set_frameskip() {
+	// If the value for the persistent setting is 0 ('Keep up with game'),
+	// then we set auto frameskip and a value of 2 for now.
+	if (game_persistent_config.frameskip_value == 0)
+	{
+		AUTO_SKIP = 1;
+		SKIP_RATE = 2;
+	}
+	else
+	{
+		AUTO_SKIP = 0;
+		// Otherwise, values from 1..N map to frameskipping 0..N-1.
+		SKIP_RATE = game_persistent_config.frameskip_value - 1;
+	}
+}
 
 /*
 * GUI Initialize
@@ -4387,9 +4404,8 @@ int gui_init(u32 lang_id)
 	show_log(down_screen_addr);
 	ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
 
-  //should probably configure the language before using it
   load_config_file();
-  lang_id = gpsp_config.language;
+  lang_id = gpsp_persistent_config.language;
 
 	flag = icon_init(lang_id);
 	if(0 != flag)
