@@ -1633,16 +1633,16 @@ u32 menu(u16 *screen, int FirstInvocation)
 
 	void SaveConfigsIfNeeded()
 	{
-		if (memcmp(&PreviousGameConfig, &game_persistent_config, sizeof(GAME_CONFIG)) != 0)
+		if (memcmp(&PreviousGameConfig, &game_persistent_config, sizeof(GAME_CONFIG_FILE)) != 0)
 			save_game_config_file();
-		if (memcmp(&PreviousGpspConfig, &gpsp_persistent_config, sizeof(GPSP_CONFIG)) != 0)
+		if (memcmp(&PreviousGpspConfig, &gpsp_persistent_config, sizeof(GPSP_CONFIG_FILE)) != 0)
 			save_config_file();
 	}
 
 	void PreserveConfigs()
 	{
-		memcpy(&PreviousGameConfig, &game_persistent_config, sizeof(GAME_CONFIG));
-		memcpy(&PreviousGpspConfig, &gpsp_persistent_config, sizeof(GPSP_CONFIG));
+		memcpy(&PreviousGameConfig, &game_persistent_config, sizeof(GAME_CONFIG_FILE));
+		memcpy(&PreviousGpspConfig, &gpsp_persistent_config, sizeof(GPSP_CONFIG_FILE));
 	}
 
   int LoadGameAndItsData(char *filename) {
