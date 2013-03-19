@@ -1608,7 +1608,6 @@ u32 menu(u16 *screen, int FirstInvocation)
 	auto void latest_game_menu_key();
 	auto void latest_game_menu_end();
 	auto void language_set();
-	auto void game_fastforward();
 #ifdef ENABLE_FREE_SPACE
 	auto void show_card_space();
 #endif
@@ -2758,7 +2757,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 	{
 	/* 00 */ SUBMENU_OPTION(NULL, &msg[MSG_MAIN_MENU_VIDEO_AUDIO], NULL, 0),
 
-	/* 01 */ STRING_SELECTION_OPTION(game_fastforward, NULL, &msg[FMT_VIDEO_FAST_FORWARD], on_off_options,
+	/* 01 */ STRING_SELECTION_OPTION(game_set_frameskip, NULL, &msg[FMT_VIDEO_FAST_FORWARD], on_off_options,
 		&game_fast_forward, 2, NULL, ACTION_TYPE, 1),
 
 	/* 02 */	STRING_SELECTION_OPTION(game_disableAudio, NULL, &msg[FMT_AUDIO_SOUND], sound_seletion,
@@ -3294,10 +3293,6 @@ u32 menu(u16 *screen, int FirstInvocation)
 			FILE *fp = fopen(tmp_filename, "rb");
 			load_state(tmp_filename, fp);
 		}
-    }
-
-    void game_fastforward()
-    {
     }
 
 
@@ -4753,9 +4748,14 @@ static u32 save_ss_bmp(u16 *image)
 
 void game_disableAudio() {/* Nothing. sound_on applies immediately. */}
 void game_set_frameskip() {
+	// If fast-forward is active, force frameskipping to be 9.
+	if (game_fast_forward) {
+		AUTO_SKIP = 0;
+		SKIP_RATE = 9;
+	}
 	// If the value for the persistent setting is 0 ('Keep up with game'),
 	// then we set auto frameskip and a value of 2 for now.
-	if (game_persistent_config.frameskip_value == 0)
+	else if (game_persistent_config.frameskip_value == 0)
 	{
 		AUTO_SKIP = 1;
 		SKIP_RATE = 2;
