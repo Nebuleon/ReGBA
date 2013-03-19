@@ -2187,6 +2187,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 
             first_load= 1;
             init_default_gpsp_config();
+            language_set();
             init_game_config();
 
 			ds2_clearScreen(UP_SCREEN, 0);
