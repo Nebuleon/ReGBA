@@ -1431,11 +1431,8 @@ void init_game_config()
     game_config.update_backup_flag = 0;
     for(i = 0; i < MAX_CHEATS; i++)
     {
-	// Cheats are temporarily disabled [Neb]
-#if 0
         game_config.cheats_flag[i].cheat_active = NO;
         game_config.cheats_flag[i].cheat_name[0] = '\0';
-#endif
     }
     memcpy(game_config.gamepad_config_map, gamepad_config_map_init, sizeof(gamepad_config_map_init));
     game_config.use_default_gamepad_map = 1;
