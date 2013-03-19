@@ -3827,7 +3827,7 @@ s32 save_game_config_file()
     if(FILE_CHECK_VALID(game_config_file))
     {
         FILE_WRITE(game_config_file, NGBARTS_HEADERA, NGBARTS_HEADERA_SIZE);
-        FILE_WRITE_VARIABLE(game_config_file, game_config);
+        FILE_WRITE_VARIABLE(game_config_file, game_persistent_config);
         FILE_CLOSE(game_config_file);
         return 0;
     }
@@ -3852,7 +3852,7 @@ s32 save_config_file()
     if(FILE_CHECK_VALID(gpsp_config_file))
     {
         FILE_WRITE(gpsp_config_file, GPSP_CONFIG_HEADER, GPSP_CONFIG_HEADER_SIZE);
-        FILE_WRITE_VARIABLE(gpsp_config_file, gpsp_config);
+        FILE_WRITE_VARIABLE(gpsp_config_file, gpsp_persistent_config);
         FILE_CLOSE(gpsp_config_file);
         return 0;
     }
