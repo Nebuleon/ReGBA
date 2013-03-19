@@ -1424,8 +1424,8 @@ const u32 gamepad_config_map_init[MAX_GAMEPAD_CONFIG_MAP] =
 --------------------------------------------------------*/
 void init_game_config()
 {
-    memset(game_config, 0, sizeof(game_config));
-    memset(game_persistent_config, 0, sizeof(game_persistent_config));
+    memset(&game_config, 0, sizeof(game_config));
+    memset(&game_persistent_config, 0, sizeof(game_persistent_config));
 
     u32 i;
     game_persistent_config.frameskip_value = 0; // default: keep up/automatic
@@ -1449,8 +1449,8 @@ void init_game_config()
 --------------------------------------------------------*/
 void init_default_gpsp_config()
 {
-  memset(gpsp_config, 0, sizeof(gpsp_config));
-  memset(gpsp_persistent_config, 0, sizeof(gpsp_persistent_config));
+  memset(&gpsp_config, 0, sizeof(gpsp_config));
+  memset(&gpsp_persistent_config, 0, sizeof(gpsp_persistent_config));
 //  int temp;
   game_config.frameskip_type = 1;   //auto
   game_config.frameskip_value = 2;
