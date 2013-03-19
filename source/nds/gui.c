@@ -2187,6 +2187,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 
             first_load= 1;
             init_default_gpsp_config();
+            gui_action = CURSOR_RIGHT;
             language_set();
             init_game_config();
 
