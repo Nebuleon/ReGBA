@@ -27,6 +27,7 @@
 
 #include "ds2io.h"
 #include "bitmap.h"
+#include "cheats.h"
 
 #define UP_SCREEN_UPDATE_METHOD   0
 #define DOWN_SCREEN_UPDATE_METHOD 2
@@ -88,8 +89,7 @@ typedef struct
   u32 frameskip_value;
   u32 audio_buffer_size_number;
   u32 update_backup_flag;
-	// Disabled [Neb]
-  //CHEAT_TYPE cheats_flag[MAX_CHEATS];
+  CHEAT_TYPE cheats_flag[MAX_CHEATS];
   u32 gamepad_config_map[MAX_GAMEPAD_CONFIG_MAP];
   u32 gamepad_config_home;
   u32 use_default_gamepad_map;

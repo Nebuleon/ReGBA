@@ -148,13 +148,13 @@ const u8 HOTKEY_DOWN_DISPLAY[] = {0xE2, 0x86, 0x93, 0x00};
   action_function,                                                            \
   passive_function,                                                           \
   NULL,                                                                       \
-  &cheat_data_ptr[number],                                                    \
-  NULL /* enable_disable_options */,                                                     \
-  NULL,				                            	  \
+  &cheat_format_ptr[number],                                                  \
+  on_off_options,                                                     \
+  &(game_config.cheats_flag[number].cheat_active),                            \
   2,                                                                          \
   NULL,                                                                       \
   line_number,                                                                \
-  ACTION_TYPE                                         \
+  STRING_SELECTION_TYPE | ACTION_TYPE                                         \
 }                                                                             \
 
 #define ACTION_OPTION(action_function, passive_function, display_string,      \
@@ -1567,13 +1567,8 @@ u32 menu(u16 *screen, int FirstInvocation)
     u32 first_load = 0;
     char tmp_filename[MAX_FILE];
     char line_buffer[512];
-    char cheat_data_str[MAX_CHEATS][5];
-    // ^ Holds the index inside Cheat, as a number in an ASCIIZ string
-    char* cheat_data_ptr[MAX_CHEATS];
-
-	// For cheat groups
-	char* cheat_group_name_ptr[MAX_CHEATS + 1];
-	char cheat_group_names[MAX_CHEATS * CHEAT_NAME_LENGTH];
+    char cheat_format_str[MAX_CHEATS][41*4];
+    char *cheat_format_ptr[MAX_CHEATS];
 
     MENU_TYPE *current_menu = NULL;
     MENU_OPTION_TYPE *current_option = NULL;
@@ -2094,32 +2089,494 @@ u32 menu(u16 *screen, int FirstInvocation)
 	unsigned char **dynamic_cheat_pt = NULL;
 	unsigned int dynamic_cheat_active;
 	int dynamic_cheat_scroll_value= 0;
+	unsigned int dynamic_cheat_msg_start;
 
 	void cheat_menu_init()
 	{
-		// Currently disabled [Neb]
+	    for(i = 0; i < MAX_CHEATS; i++)
+		{
+			if(i >= g_num_cheats)
+			{
+				sprintf(cheat_format_str[i], msg[MSG_CHEAT_ELEMENT_NOT_LOADED], i);
+			}
+			else
+			{
+				sprintf(cheat_format_str[i], "%d. %s", i, game_config.cheats_flag[i].cheat_name);
+			}
+
+			cheat_format_ptr[i]= cheat_format_str[i];
+		}
+
+		reload_cheats_page();
+
+		if(dynamic_cheat_msg == NULL)
+		{
+			unsigned int nums;
+
+			nums = 0;
+			for(i = 0; i < g_num_cheats; i++)
+			{
+				if(game_config.cheats_flag[i].cheat_variant != CHEAT_TYPE_CHT)
+					continue;
+
+				nums += (game_config.cheats_flag[i].num_cheat_lines & 0xFFFF)+1;
+			}
+
+			dynamic_cheat_msg = (unsigned char*)malloc(8*1024);
+			if(dynamic_cheat_msg == NULL) return;
+
+			dynamic_cheat_pt = (unsigned char**)malloc((nums+g_num_cheats)*4);
+			if(dynamic_cheat_pt == NULL)
+			{
+				free((int)dynamic_cheat_msg);
+				dynamic_cheat_msg = NULL;
+				return;
+			}
+
+			if(load_cheats_name(dynamic_cheat_msg, dynamic_cheat_pt, nums) < 0)
+			{
+				free((int)dynamic_cheat_msg);
+				free((int)dynamic_cheat_pt);
+				dynamic_cheat_msg = NULL;
+				dynamic_cheat_pt = NULL;
+			}
+		}
 	}
 
 	void cheat_menu_end()
 	{
-		// Currently disabled [Neb]
+		// Don't know if a finalisation function is needed here [Neb]
+	}
+
+	void dynamic_cheat_scroll_realse()
+	{
+		unsigned int m, k;
+
+//		k = current_menu->num_options-1;
+
+		k = SUBMENU_ROW_NUM +1;
+		for(m= 0; m<k; m++)
+			draw_hscroll_over(m);
+	}
+
+	void dynamic_cheat_key()
+	{
+		unsigned int m, n; 
+
+		switch(gui_action)
+		{
+			case CURSOR_DOWN:
+				if(current_menu->screen_focus > 0 && (current_option_num+1) < current_menu->num_options)
+				{
+					if(bg_screenp != NULL)
+						drawboxfill((unsigned short*)bg_screenp, 0, 24, 255, 191, ((2<<10) + (3<<5) + 3));
+
+					if(current_menu->screen_focus < SUBMENU_ROW_NUM)
+					{
+						m= current_menu->screen_focus -1;
+						draw_hscroll_over(m+1);
+						draw_hscroll_init(down_screen_addr, 26, 37 + m*32, 200, 
+							COLOR_TRANS, COLOR_INACTIVE_ITEM, dynamic_cheat_pt[dynamic_cheat_msg_start + current_option_num]);
+					}
+					else
+					{
+						for(n= 0; n < SUBMENU_ROW_NUM; n++)
+							draw_hscroll_over(n+1);
+
+						m= current_menu->focus_option - current_menu->screen_focus+2;
+						for(n= 0; n < SUBMENU_ROW_NUM-1; n++)
+							draw_hscroll_init(down_screen_addr, 26, 37 + n*32, 200, 
+								COLOR_TRANS, COLOR_INACTIVE_ITEM, dynamic_cheat_pt[dynamic_cheat_msg_start + m + n]);
+					}
+				}
+
+				if(current_option_num == 0)
+				{
+					if(bg_screenp != NULL)
+					{
+						show_icon((unsigned short*)bg_screenp, &ICON_TITLE, 0, 0);
+						drawboxfill((unsigned short*)bg_screenp, 0, 24, 255, 191, ((2<<10) + (3<<5) + 3));
+					}
+					draw_hscroll_over(0);
+					draw_hscroll_init(down_screen_addr, 36, 5, 180, 
+						COLOR_TRANS, COLOR_ACTIVE_ITEM, dynamic_cheat_pt[dynamic_cheat_msg_start]);
+				}
+
+				current_option_num += 1;
+				if(current_option_num >= current_menu->num_options)
+					current_option_num -=1;
+				else
+				{
+					m= current_menu->screen_focus;
+					if(m >= SUBMENU_ROW_NUM) m -= 1;
+
+					if(bg_screenp != NULL)
+						show_icon((unsigned short*)bg_screenp, &ICON_SUBSELA, 3, 29 + m*32);
+
+					draw_hscroll_over(m+1);
+					draw_hscroll_init(down_screen_addr, 26, 37 + m*32, 200, 
+						COLOR_TRANS, COLOR_ACTIVE_ITEM, dynamic_cheat_pt[dynamic_cheat_msg_start + current_option_num]);
+				}
+
+				current_option = current_menu->options + current_option_num;
+				break;
+
+			case CURSOR_UP:
+				if(current_menu->screen_focus > 0)
+				{
+					if(bg_screenp != NULL)
+						drawboxfill((unsigned short*)bg_screenp, 0, 24, 255, 191, ((2<<10) + (3<<5) + 3));
+
+					if(current_menu->screen_focus > 1 || current_option_num < 2)
+					{
+						m = current_menu->screen_focus -1;
+						draw_hscroll_over(m+1);
+						draw_hscroll_init(down_screen_addr, 26, 37 + m*32, 200, 
+							COLOR_TRANS, COLOR_INACTIVE_ITEM, dynamic_cheat_pt[dynamic_cheat_msg_start + current_option_num]);
+					}
+					else
+					{
+						unsigned int k;
+
+						for(n= 1; n < SUBMENU_ROW_NUM; n++)
+							draw_hscroll_over(n+1);
+
+						m = current_option_num -1;
+						k = current_menu->num_options - m -1;
+						if(k > SUBMENU_ROW_NUM) k = SUBMENU_ROW_NUM;
+
+						for(n= 1; n < k; n++)
+							draw_hscroll_init(down_screen_addr, 26, 37 + n*32, 200, 
+								COLOR_TRANS, COLOR_INACTIVE_ITEM, dynamic_cheat_pt[dynamic_cheat_msg_start + m + n]);
+					}
+				}
+
+				if(current_option_num)
+				{
+					current_option_num--;
+
+					if(current_option_num == 0)
+					{
+						if(bg_screenp != NULL)
+						{
+							show_icon((unsigned short*)bg_screenp, &ICON_TITLE, 0, 0);
+							drawboxfill((unsigned short*)bg_screenp, 0, 24, 255, 191, ((2<<10) + (3<<5) + 3));
+						}
+						draw_hscroll_over(0);
+						draw_hscroll_init(down_screen_addr, 36, 5, 180, 
+							COLOR_TRANS, COLOR_ACTIVE_ITEM, dynamic_cheat_pt[dynamic_cheat_msg_start]);
+					}
+				}
+
+				current_option = current_menu->options + current_option_num;
+
+				if(current_option_num > 0)
+				{
+					if(current_menu->screen_focus > 1)
+						m = current_menu->screen_focus -2;
+					else
+						m = current_menu->screen_focus -1;
+
+					if(bg_screenp != NULL)
+						show_icon((unsigned short*)bg_screenp, &ICON_SUBSELA, 3, 29 + m*32);
+
+					draw_hscroll_over(m+1);
+					draw_hscroll_init(down_screen_addr, 26, 37 + m*32, 200, 
+						COLOR_TRANS, COLOR_ACTIVE_ITEM, dynamic_cheat_pt[dynamic_cheat_msg_start + current_option_num]);
+				}
+		        break;
+
+			case CURSOR_RIGHT:
+				dynamic_cheat_scroll_value= -5;
+				break;
+
+			case CURSOR_LEFT:
+				dynamic_cheat_scroll_value= 5;
+	        	break;
+		}
+	}
+
+	void dynamic_cheat_action()
+	{
+		dynamic_cheat_active &= 1;
+		dynamic_cheat_active |= (current_option_num -1) << 16;
+	}
+
+	void dynamic_cheat_menu_passive()
+	{
+		unsigned int m, n, k;
+		u32 line_num, screen_focus, focus_option;
+
+		line_num = current_option_num;
+		screen_focus = current_menu -> screen_focus;
+		focus_option = current_menu -> focus_option;
+
+		if(focus_option < line_num)	//focus next option
+		{
+			focus_option = line_num - focus_option;
+			screen_focus += focus_option;
+			if(screen_focus > SUBMENU_ROW_NUM)	//Reach max row numbers can display
+				screen_focus = SUBMENU_ROW_NUM;
+
+			current_menu -> screen_focus = screen_focus;
+			focus_option = line_num;
+		}
+		else if(focus_option > line_num)	//focus last option
+		{
+			focus_option = focus_option - line_num;
+			if(screen_focus > focus_option)
+				screen_focus -= focus_option;
+			else
+				screen_focus = 0;
+
+			if(screen_focus == 0 && line_num > 0)
+				screen_focus = 1;
+
+			current_menu -> screen_focus = screen_focus;
+			focus_option = line_num;
+		}
+		current_menu -> focus_option = focus_option;
+
+		show_icon((unsigned short*)down_screen_addr, &ICON_TITLE, 0, 0);
+		drawboxfill((unsigned short*)down_screen_addr, 0, 24, 255, 192, ((2<<10) + (3<<5) + 3));
+
+		if(current_menu -> screen_focus > 0)
+			show_icon(down_screen_addr, &ICON_SUBSELA, 3, 29 + (current_menu -> screen_focus-1)*32);
+
+		if(current_menu->screen_focus == 0)
+		{
+			draw_hscroll(0, dynamic_cheat_scroll_value);
+			dynamic_cheat_scroll_value = 0;
+			show_icon(down_screen_addr, &ICON_BACK, 229, 6);
+		}
+		else
+		{
+			draw_hscroll(0, 0);
+			show_icon(down_screen_addr, &ICON_NBACK, 229, 6);			
+		}
+
+		k = current_menu->num_options -1;
+		if(k > SUBMENU_ROW_NUM) k = SUBMENU_ROW_NUM;
+
+		m = (dynamic_cheat_active>>16) +1;
+		n = current_option_num - current_menu->screen_focus + 1;
+
+		for(i= 0; i < k; i++)
+		{
+			if((i+1) == current_menu->screen_focus)
+			{
+				draw_hscroll(i+1, dynamic_cheat_scroll_value);
+				dynamic_cheat_scroll_value = 0;
+			}
+			else
+				draw_hscroll(i+1, 0);
+
+			if(m == (n +i))
+			{
+				if(dynamic_cheat_active & 1)
+					show_icon((unsigned short*)down_screen_addr, &ICON_STATEFULL, 230, 37 + i*32);
+				else
+					show_icon((unsigned short*)down_screen_addr, &ICON_NSTATEFULL, 230, 37 + i*32);
+			}
+			else
+			{
+				if(dynamic_cheat_active & 1)
+					show_icon((unsigned short*)down_screen_addr, &ICON_STATEEMPTY, 230, 37 + i*32);
+				else
+					show_icon((unsigned short*)down_screen_addr, &ICON_NSTATEEMPTY, 230, 37 + i*32);
+			}		
+		}
 	}
 
 	void cheat_option_action()
 	{
-		// Currently disabled [Neb]
+		if(gui_action == CURSOR_SELECT)
+		if(game_config.cheats_flag[(CHEATS_PER_PAGE * menu_cheat_page) + current_option_num -1].cheat_variant == CHEAT_TYPE_CHT)
+		{
+			unsigned int nums, m;
+
+
+			nums = game_config.cheats_flag[(CHEATS_PER_PAGE * menu_cheat_page) + current_option_num -1].num_cheat_lines & 0xFFFF;
+
+			if(dynamic_cheat_options)
+			{
+				free((int)dynamic_cheat_options);
+				dynamic_cheat_options = NULL;
+			}
+
+			if(dynamic_cheat_menu)
+			{
+				free((int)dynamic_cheat_menu);
+				dynamic_cheat_menu = NULL;
+			}
+
+			dynamic_cheat_options = (MENU_OPTION_TYPE*)malloc(sizeof(MENU_OPTION_TYPE)*(nums+1));
+			if(dynamic_cheat_options == NULL)	return;
+
+			dynamic_cheat_menu = (MENU_TYPE*)malloc(sizeof(MENU_TYPE));
+			if(dynamic_cheat_menu == NULL)
+			{
+				free((int)dynamic_cheat_options);
+				dynamic_cheat_options = NULL;
+				return;
+			}
+
+			m = 0;
+			for(i= 0; i < ((CHEATS_PER_PAGE * menu_cheat_page) + current_option_num-1); i++)
+			{
+				if(game_config.cheats_flag[i].cheat_variant == CHEAT_TYPE_CHT)
+					m += (game_config.cheats_flag[i].num_cheat_lines & 0xFFFF) +1;
+			}
+
+			dynamic_cheat_msg_start = m;
+			//menu
+		    dynamic_cheat_menu->init_function = NULL;
+		    dynamic_cheat_menu->passive_function = dynamic_cheat_menu_passive;
+			dynamic_cheat_menu->key_function = dynamic_cheat_key;
+		    dynamic_cheat_menu->options = dynamic_cheat_options;
+		    dynamic_cheat_menu->num_options = nums+1;
+			dynamic_cheat_menu->focus_option = 0;
+			dynamic_cheat_menu->screen_focus = 0;
+			//back option
+			dynamic_cheat_options[0].action_function = NULL;
+			dynamic_cheat_options[0].passive_function = NULL;
+			dynamic_cheat_options[0].sub_menu = &cheats_menu;
+			dynamic_cheat_options[0].display_string = dynamic_cheat_pt + m++;
+			dynamic_cheat_options[0].options = NULL;
+			dynamic_cheat_options[0].current_option = NULL;
+			dynamic_cheat_options[0].num_options = 0;
+			dynamic_cheat_options[0].help_string = NULL;
+			dynamic_cheat_options[0].line_number = 0;
+			dynamic_cheat_options[0].option_type = SUBMENU_TYPE;
+
+			for(i= 0; i < nums; i++)
+			{
+				dynamic_cheat_options[i+1].action_function = dynamic_cheat_action;
+				dynamic_cheat_options[i+1].passive_function = NULL;
+				dynamic_cheat_options[i+1].sub_menu = NULL;
+				dynamic_cheat_options[i+1].display_string = dynamic_cheat_pt + m++;
+				dynamic_cheat_options[i+1].options = NULL;
+				dynamic_cheat_options[i+1].current_option = NULL;
+				dynamic_cheat_options[i+1].num_options = 2;
+				dynamic_cheat_options[i+1].help_string = NULL;
+				dynamic_cheat_options[i+1].line_number = i+1;
+				dynamic_cheat_options[i+1].option_type = ACTION_TYPE;
+			}
+
+			dynamic_cheat_active = game_config.cheats_flag[(CHEATS_PER_PAGE * menu_cheat_page) + 
+				current_option_num -1].num_cheat_lines & 0xFFFF0000;
+
+			dynamic_cheat_active |= game_config.cheats_flag[(CHEATS_PER_PAGE * menu_cheat_page) + 
+				current_option_num -1].cheat_active & 0x1;
+
+			//Initial srollable options
+			int k;
+
+			if(bg_screenp != NULL)
+			{
+				show_icon((unsigned short*)bg_screenp, &ICON_TITLE, 0, 0);
+				drawboxfill((unsigned short*)bg_screenp, 0, 24, 255, 191, ((2<<10) + (3<<5) + 3));
+			}
+
+			draw_hscroll_init(down_screen_addr, 36, 5, 180, 
+				COLOR_TRANS, COLOR_ACTIVE_ITEM, dynamic_cheat_pt[dynamic_cheat_msg_start]);
+
+			if(nums>5) nums = SUBMENU_ROW_NUM;
+			for(k= 0; k < nums; k++)
+			{
+				draw_hscroll_init(down_screen_addr, 26, 37 + k*32, 200, 
+					COLOR_TRANS, COLOR_INACTIVE_ITEM, dynamic_cheat_pt[dynamic_cheat_msg_start + 1+ k]);
+			}
+			dynamic_cheat_scroll_value= 0;
+
+			choose_menu(dynamic_cheat_menu);
+		}
 	}
 
 	void cheat_option_passive()
 	{
-		// Currently disabled [Neb]
+		unsigned short color;
+		unsigned char tmp_buf[512];
+		unsigned int len;
+		unsigned char *pt;
+
+		if(display_option == current_option)
+			color= COLOR_ACTIVE_ITEM;
+		else
+			color= COLOR_INACTIVE_ITEM;
+
+		//sprintf("%A") will have problem ?
+		strcpy(tmp_buf, *(display_option->display_string));
+		pt = strrchr(tmp_buf, ':');
+		if(pt != NULL)
+			sprintf(pt+1, "%s",	*((u32*)(((u32 *)display_option->options)[*(display_option->current_option)])));
+
+		strcpy(line_buffer, tmp_buf);
+		pt = strrchr(line_buffer, ')');
+		*pt = '\0';
+		pt = strchr(line_buffer, '(');
+
+		len = BDF_cut_string(pt+1, 0, 2);
+		if(len > 90)
+		{
+			len = BDF_cut_string(pt+1, 90, 1);
+			*(pt+1+len) = '\0';
+			strcat(line_buffer, "...");
+		}
+
+		pt = strrchr(tmp_buf, ')');
+		strcat(line_buffer, pt);
+
+		PRINT_STRING_BG_UTF8(down_screen_addr, line_buffer, color, COLOR_TRANS, 26, 37 + display_option-> line_number*32);
+	}
+
+	void destroy_dynamic_cheats()
+	{
+		if(dynamic_cheat_menu) free((int)dynamic_cheat_menu);
+		if(dynamic_cheat_options) free((int)dynamic_cheat_options);
+		if(dynamic_cheat_msg) free((int)dynamic_cheat_msg);
+		if(dynamic_cheat_pt) free((int)dynamic_cheat_pt);
+		dynamic_cheat_menu = NULL;
+		dynamic_cheat_options = NULL;
+		dynamic_cheat_msg = NULL;
+		dynamic_cheat_pt = NULL;
 	}
 
 	void menu_load_cheat_file()
 	{
-		// Currently disabled [Neb]
 		if (!first_load)
 		{
+        char *file_ext[] = { ".cht", NULL };
+        char load_filename[MAX_FILE];
+        u32 i;
+
+        if(load_file(file_ext, load_filename, DEFAULT_CHEAT_DIR) != -1)
+        {
+            add_cheats(load_filename);
+            for(i = 0; i < MAX_CHEATS; i++)
+            {
+                if(i >= g_num_cheats)
+                {
+                    sprintf(cheat_format_str[i], msg[MSG_CHEAT_ELEMENT_NOT_LOADED], i);
+                }
+                else
+                {
+                    sprintf(cheat_format_str[i], "%d. %s", i, 
+                        game_config.cheats_flag[i].cheat_name);
+                }
+            }
+//            choose_menu(current_menu);
+
+			menu_cheat_page = 0;
+			destroy_dynamic_cheats();
+			cheat_menu_init();
+        }
+//        else
+//        {
+//            choose_menu(current_menu);
+//        }
+
+		
 		}
 	}
 
@@ -2292,8 +2749,6 @@ u32 menu(u16 *screen, int FirstInvocation)
 
 //    char *snap_frame_options[] = { (char*)&msg[MSG_SNAP_FRAME_0], (char*)&msg[MSG_SNAP_FRAME_1] };
 
-//    char *enable_disable_options[] = { (char*)&msg[MSG_EN_DIS_ABLE_0], (char*)&msg[MSG_EN_DIS_ABLE_1] };
-
   /*--------------------------------------------------------
     Video & Audio
   --------------------------------------------------------*/
@@ -2355,8 +2810,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 	MENU_OPTION_TYPE cheats_options[] =
 	{
 	/* 00 */ SUBMENU_OPTION(NULL, &msg[MSG_MAIN_MENU_CHEATS], NULL,0),
-		// Currently disabled [Neb]
-#if 0
+
 	/* 01 */ CHEAT_OPTION(cheat_option_action, cheat_option_passive,
 		((CHEATS_PER_PAGE * menu_cheat_page) + 0), 1),
 	/* 02 */ CHEAT_OPTION(cheat_option_action, cheat_option_passive,
@@ -2371,7 +2825,6 @@ u32 menu(u16 *screen, int FirstInvocation)
 
 	/* 06 */ ACTION_OPTION(menu_load_cheat_file, NULL, &msg[MSG_CHEAT_LOAD_FROM_FILE],
         NULL, 6)
-#endif
 	};
 
 	INIT_MENU(cheats, cheat_menu_init, NULL, NULL, cheat_menu_end, 0, 0);
@@ -2851,7 +3304,8 @@ u32 menu(u16 *screen, int FirstInvocation)
 	{
 		for(i = 0; i < CHEATS_PER_PAGE; i++)
 		{
-			cheats_options[i+1].display_string = &cheat_data_ptr[(CHEATS_PER_PAGE * menu_cheat_page) + i];
+			cheats_options[i+1].display_string = &cheat_format_ptr[(CHEATS_PER_PAGE * menu_cheat_page) + i];
+			cheats_options[i+1].current_option = &(game_config.cheats_flag[(CHEATS_PER_PAGE * menu_cheat_page) + i].cheat_active);
 		}
 	}
 
@@ -3410,6 +3864,8 @@ u32 menu(u16 *screen, int FirstInvocation)
 
 	mdelay(100); // to prevent ds2_setBacklight() from crashing
 	ds2_setBacklight(2);
+
+	destroy_dynamic_cheats();
 
 	GameFrequencyCPU();
 

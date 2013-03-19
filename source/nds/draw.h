@@ -53,8 +53,8 @@
 #define PRINT_STRING_BG(screen, str, fg_color, bg_color, x, y)                 \
   BDF_render_mix(screen, SCREEN_WIDTH, x, y, 0, bg_color, fg_color, str)					   \
 
-// #define PRINT_STRING_BG_UTF8(screen, utf8, fg_color, bg_color, x, y)           \
-//   BDF_render_mix(screen, SCREEN_WIDTH, x, y, 0, bg_color, fg_color, utf8)	   \
+#define PRINT_STRING_BG_UTF8(screen, utf8, fg_color, bg_color, x, y)           \
+   BDF_render_mix(screen, SCREEN_WIDTH, x, y, 0, bg_color, fg_color, utf8)	   \
 
 
 //colors

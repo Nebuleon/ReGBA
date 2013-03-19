@@ -61,14 +61,197 @@ static void decrypt_gsa_code(int *address_ptr, int *value_ptr, CHEAT_VARIANT_ENU
   *value_ptr = value;
 }
 
+static unsigned char* check_is_cht(unsigned char *str)
+{
+	unsigned char *pt, *pt1;
+
+	if(*str == '\0') return NULL;
+
+	pt = str;
+	while(*pt == ' ') pt++;			//Skip leading space
+	if(*pt != '[') return NULL;		//valid entry should be:[string]
+
+	pt1 = strrchr(str, ']');
+	if(pt1 == NULL) return NULL;
+
+	while(*(--pt1) == ' ');
+	*(pt1+1) = '\0';					//Cut trailing space between string and ']'
+
+	while(*(++pt) == ' ');			//Cut space between '[' and string
+
+	return pt;
+}
+
+static unsigned char* sscanf_cht_value(unsigned char* str, unsigned int *value)
+{
+	unsigned char *pt;
+	unsigned int tmp;
+	unsigned char ch;
+
+	pt = str;
+	while(*pt == ' ') pt++;
+	
+	if(*pt == '\0') return NULL;
+	if(*pt == 0x0D || *pt == 0x0A) return NULL;
+
+	tmp = 0;
+	while(*pt)
+	{
+		ch = *pt;
+		if(ch >= 'a' && ch <= 'f') ch = ch - 'a' + 0xa;
+		else if(ch >= 'A' && ch <= 'F') ch = ch - 'A' + 0xa;
+		else if(ch >= '0' && ch <= '9') ch = ch - '0';
+		else break;
+
+		tmp = (tmp << 4) | ch;
+		pt++;
+	}
+
+	*value = tmp;
+	return pt;
+}
+
+int string2utf8(unsigned char *src, unsigned char* dst)
+{
+	unsigned char *pt;
+	unsigned char ch;
+	unsigned short ucode;
+	unsigned int type;
+	unsigned int len;
+
+	len = 0;
+	type = 0;
+	pt = src;
+	while(*pt)
+	{
+		pt = utf8decode(pt, &ucode);
+		if(ucode < 0x4e00)
+		{
+			if(ucode == 0 || ucode > 0x7F)
+			{
+				type = 1;
+				break;
+			}
+		}
+		else if(ucode > 0x9FCF)
+		{
+			type = 1;
+			break;
+		}
+		else
+			len++;
+
+		if(len >= 5) break;	//There is enough UTF8, so it is, to save time(>_*)
+	}
+
+	//UTF8
+	if(type == 0)	return 0;
+
+	//GBK to UTF8
+	while(*src)
+	{
+		ch = *src;
+		if(ch < 0x80)
+		{
+			*dst++= ch;
+			src ++;
+		} 
+		else
+		{
+			ucode = charsets_gbk_to_ucs(src);
+
+			if (ucode < 0x800) //two byte
+			{
+				*dst++ = 0xC0 | ((ucode >> 6) & 0x1F);
+				*dst++ = 0x80 | (ucode & 0x3F);
+			}
+			else if(ucode < 0x10000) //3 bytes
+			{
+				*dst++ = 0xE0 | (ucode >> 12);
+				*dst++ = 0x80 | ((ucode >>6) & 0x3F);
+				*dst++ = 0x80 | (ucode & 0x3F);
+			}
+
+			src += 2;
+		}
+	}
+	*dst = '\0';
+
+	return 1;
+}
+
+char cheat_path_loaded[MAX_PATH];
+int load_cheats_name(char* cheats_msg, char** cheats_msg_pt, unsigned int num)
+{
+	FILE *cheats_file;
+	char current_line[256];
+	char current_line_tmp[256];
+	int len, m;
+	unsigned char* pt;
+	unsigned char* name_ptr;
+
+	cheats_file = fopen(cheat_path_loaded, "r");
+	if(cheats_file == NULL)
+		return -1;
+
+	len = 0;
+	m= 0;
+	cheats_msg_pt[m] = cheats_msg;
+
+	while(fgets(current_line, 256, cheats_file))
+    {
+		if((name_ptr = check_is_cht(current_line)) != NULL)
+		if(strcasecmp(name_ptr, "gameinfo"))
+		{
+			pt = name_ptr;
+			if(string2utf8(pt, current_line_tmp) != 0)
+				pt = current_line_tmp;
+
+			len += strlen(pt) +1;
+			strcpy(cheats_msg_pt[m++], pt);
+			if(m >= num) break;
+			cheats_msg_pt[m] = cheats_msg + len;
+
+			while(fgets(current_line, 256, cheats_file))
+			{
+				if(strlen(current_line) < 3)
+					break;
+
+				pt = strchr(current_line, '=');
+				if(pt == NULL) continue;
+
+				while(*(--pt) == ' ');
+				*(pt+1) = '\0';
+
+				pt = current_line;
+				while(*pt == ' ') pt++;
+
+				if(string2utf8(pt, current_line_tmp) != 0)
+					pt = current_line_tmp;
+
+				len += strlen(pt) +1;
+				strcpy(cheats_msg_pt[m++], pt);
+
+				if(m >= num) break;
+				cheats_msg_pt[m] = cheats_msg + len;
+	        }
+
+			if(m >= num) break;
+		}
+    }
+
+    fclose(cheats_file);
+	return 0;
+}
+
+
 void add_cheats(char *cheats_filename)
 {
-	// Cheats are temporarily disabled [Neb]
-#if 0
   FILE *cheats_file;
   char current_line[256];
+  char current_line_tmp[256];
   char *name_ptr;
-  u32 *cheat_code_ptr;
+  unsigned int *cheat_code_ptr;
   int address = 0;
   int value = 0;
   u32 num_cheat_lines;
@@ -79,7 +262,7 @@ void add_cheats(char *cheats_filename)
   g_num_cheats = 0;
 
   if (DEFAULT_CHEAT_DIR != NULL) {
-    sprintf(cheat_path, "%s\\%s", DEFAULT_CHEAT_DIR, cheats_filename);
+    sprintf(cheat_path, "%s/%s", DEFAULT_CHEAT_DIR, cheats_filename);
   }
   else
   {
@@ -92,49 +275,57 @@ void add_cheats(char *cheats_filename)
   {
     while(fgets(current_line, 256, cheats_file))
     {
-      // Get the header line first
-      name_ptr = strchr(current_line, ' ');
-      if(name_ptr)
-      {
-        *name_ptr = 0;
-        name_ptr++;
-      }
+printf("current_line: \"%s\"\n", current_line);
+		if((name_ptr = check_is_cht(current_line)) != NULL)
+		{
+//printf("name_ptr:%s\n", name_ptr);
+			current_cheat_variant = CHEAT_TYPE_CHT;
+			if(!strcasecmp(name_ptr, "gameinfo"))
+				current_cheat_variant = CHEAT_TYPE_INVALID;
+		}
+		else
+		{
+			// Get the header line first
+			name_ptr = strchr(current_line, ' ');
+			if(name_ptr)
+			{
+				*name_ptr = 0;
+				name_ptr++;
+			}
 
-      if(!strcasecmp(current_line, "gameshark_v1") ||
-         !strcasecmp(current_line, "gameshark_v2") ||
-         !strcasecmp(current_line, "PAR_v1") ||
-         !strcasecmp(current_line, "PAR_v2"))
-      {
-        current_cheat_variant = CHEAT_TYPE_GAMESHARK_V1;
-      }
-      else
-
-      if(!strcasecmp(current_line, "gameshark_v3") ||
-       !strcasecmp(current_line, "PAR_v3"))
-      {
-        current_cheat_variant = CHEAT_TYPE_GAMESHARK_V3;
-      }
-      else
-
-      if(!strcasecmp(current_line, "direct_v1") ||
-        !strcasecmp(current_line, "direct_v2"))
-      {
-        current_cheat_variant = CHEAT_TYPE_DIRECT_V1;
-      }
-      else
-
-      if(!strcasecmp(current_line, "direct_v3"))
-      {
-        current_cheat_variant = CHEAT_TYPE_DIRECT_V3;
-      }
-
-      else
-      {
-        current_cheat_variant = CHEAT_TYPE_INVALID;
-      }
+			if(!strcasecmp(current_line, "gameshark_v1") ||
+				!strcasecmp(current_line, "gameshark_v2") ||
+				!strcasecmp(current_line, "PAR_v1") ||
+				!strcasecmp(current_line, "PAR_v2"))
+			{
+				current_cheat_variant = CHEAT_TYPE_GAMESHARK_V1;
+			}
+			else if(!strcasecmp(current_line, "gameshark_v3") ||
+				!strcasecmp(current_line, "PAR_v3"))
+			{
+				current_cheat_variant = CHEAT_TYPE_GAMESHARK_V3;
+			}
+			else if(!strcasecmp(current_line, "direct_v1") ||
+				!strcasecmp(current_line, "direct_v2"))
+			{
+				current_cheat_variant = CHEAT_TYPE_DIRECT_V1;
+			}
+			else if(!strcasecmp(current_line, "direct_v3"))
+			{
+				current_cheat_variant = CHEAT_TYPE_DIRECT_V3;
+			}
+			else
+			{
+				current_cheat_variant = CHEAT_TYPE_INVALID;
+			}
+		}
 
       if(current_cheat_variant != CHEAT_TYPE_INVALID)
       {
+printf("find a valid entrey\n");
+		if(string2utf8(name_ptr, current_line_tmp) != 0)
+			name_ptr = current_line_tmp;
+
         strncpy(game_config.cheats_flag[g_num_cheats].cheat_name, name_ptr, CHEAT_NAME_LENGTH - 1);
         game_config.cheats_flag[g_num_cheats].cheat_name[CHEAT_NAME_LENGTH - 1] = 0;
         cheat_name_length = strlen(game_config.cheats_flag[g_num_cheats].cheat_name);
@@ -149,40 +340,87 @@ void add_cheats(char *cheats_filename)
         if(cheat_name_length &&
          game_config.cheats_flag[g_num_cheats].cheat_name[cheat_name_length - 1] == '\r')
         {
-          game_config.cheats_flag[g_num_cheats].cheat_name[cheat_name_length - 1] = 0;
+			game_config.cheats_flag[g_num_cheats].cheat_name[cheat_name_length - 1] = 0;
         }
-
+//printf("cheat%d:%s\n", g_num_cheats, game_config.cheats_flag[g_num_cheats].cheat_name);
         game_config.cheats_flag[g_num_cheats].cheat_variant = current_cheat_variant;
         cheat_code_ptr = game_config.cheats_flag[g_num_cheats].cheat_codes;
         num_cheat_lines = 0;
 
-        while(fgets(current_line, 256, cheats_file))
-        {
-          if(strlen(current_line) < 3)
-              break;
+		if(current_cheat_variant != CHEAT_TYPE_CHT)
+		{
+			while(fgets(current_line, 256, cheats_file))
+			{
+			  if(strlen(current_line) < 3)
+				break;
 
-          sscanf(current_line, "%08x %08x", &address, &value);
+			  sscanf(current_line, "%08x %08x", &address, &value);
 
-          if((current_cheat_variant != CHEAT_TYPE_DIRECT_V1) && (current_cheat_variant != CHEAT_TYPE_DIRECT_V3))
-            decrypt_gsa_code(&address, &value, current_cheat_variant);
+    	      if((current_cheat_variant != CHEAT_TYPE_DIRECT_V1) && (current_cheat_variant != CHEAT_TYPE_DIRECT_V3))
+				decrypt_gsa_code(&address, &value, current_cheat_variant);
 
-          cheat_code_ptr[0] = address;
-          cheat_code_ptr[1] = value;
+    	      cheat_code_ptr[0] = address;
+    	      cheat_code_ptr[1] = value;
 
-          cheat_code_ptr += 2;
-          num_cheat_lines++;
-        }
+    	      cheat_code_ptr += 2;
+    	      num_cheat_lines++;
+	        }
+		}
+		else
+		{
+			while(fgets(current_line, 256, cheats_file))
+			{
+				if(strlen(current_line) < 3)
+					break;
+
+				unsigned char *pt;
+				unsigned int value;
+				unsigned char *var;
+				unsigned int var_len;
+
+				pt = strchr(current_line, '=');
+				if(pt == NULL) continue;
+
+				pt = sscanf_cht_value(pt+1, &value);
+				if(pt == NULL) continue;
+
+				if(value < 0x40000)
+					value += 0x2000000;
+				else
+					value += 0x3000000-0x40000;
+
+				cheat_code_ptr[0] = value;
+
+				var = (unsigned char*)(cheat_code_ptr+2);
+				var_len = 0;
+				do
+				{
+					pt = strchr(pt, ',');
+					if(pt == NULL) break;
+
+					pt = sscanf_cht_value(pt+1, &value);
+
+					*var = value;
+					var_len += 1;
+				} while(pt);
+
+				cheat_code_ptr[1] = var_len;
+				var_len = (var_len+3)/4 +2;
+				cheat_code_ptr += var_len;
+				num_cheat_lines++;
+	        }
+		}
 
         game_config.cheats_flag[g_num_cheats].num_cheat_lines = num_cheat_lines;
-
         g_num_cheats++;
+//printf("g_num_cheats: %d; num_cheat_lines: %d\n", g_num_cheats, num_cheat_lines);
         if (g_num_cheats == MAX_CHEATS) break;
       }
     }
 
+	strcpy(cheat_path_loaded, cheat_path);
     fclose(cheats_file);
   }
-#endif
 }
 
 static void process_cheat_gs1(CHEAT_TYPE *cheat)
@@ -398,10 +636,36 @@ static void process_cheat_gs3(CHEAT_TYPE *cheat)
   }
 }
 
+static void process_cheat_cht(CHEAT_TYPE *cheat)
+{
+	u32 i, n;
+	unsigned int cheat_num;
+	unsigned int avtive_cheat_line;
+	unsigned char *dst;
+	unsigned char *src;
+
+	avtive_cheat_line = (cheat->num_cheat_lines) >> 16;
+//printf("active_cheat_line:%d\n", avtive_cheat_line);
+//dump_mem((unsigned char*)(&cheat->cheat_codes[0]), 256);
+
+	n = 1;
+	for(i = 0; i < avtive_cheat_line; i++)
+	{
+		n += (cheat->cheat_codes[n]+3)/4 +2;
+	}
+
+	cheat_num = cheat->cheat_codes[n];
+	dst = (unsigned char*)cheat->cheat_codes[n-1];
+	src = (unsigned char*)(&cheat->cheat_codes[n+1]);
+
+//printf("dst:%08x; src:%08x; len:%d; n:%d\n", dst, src, cheat_num, n);
+//	memcpy(dst, src, cheat_num);
+	for(i= 0; i < cheat_num; i++)
+		write_memory8(dst++, src[i]);
+}
+
 void process_cheats()
 {
-	// Cheats are temporarily disabled [Neb]
-#if 0
   u32 i;
 
   for(i = 0; i < g_num_cheats; i++)
@@ -420,10 +684,14 @@ void process_cheats()
           process_cheat_gs3(game_config.cheats_flag + i);
           break;
 
+		case CHEAT_TYPE_CHT:
+//printf("cheat%d\n", i);
+			process_cheat_cht(game_config.cheats_flag + i);
+		  break;
+
         default:
           break;
       }
     }
   }
-#endif
 }
