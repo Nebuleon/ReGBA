@@ -528,7 +528,7 @@ u32 update_gba()
 //         {
 //              update_scanline();
 //          }
-          //if(to_skip >= SKIP_RATE)
+          if(to_skip >= SKIP_RATE)
             update_scanline();
 
           // If in visible area also fire HDMA
@@ -611,14 +611,14 @@ u32 update_gba()
 
 //          if(!skip_next_frame_flag)
 //            flip_gba_screen();
-            //if(to_skip >= SKIP_RATE)
+            if(to_skip >= SKIP_RATE)
             {
 				//clear_gba_screen(RGB15(255, 0, 0));
                 flip_gba_screen();
                 to_skip= 0;
             }
-            //else
-            //  to_skip ++;
+            else
+              to_skip ++;
 
 //printf("SKIP_RATE %d %d\n", SKIP_RATE, to_skip);
         } //(vcount == 228)
