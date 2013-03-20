@@ -22,7 +22,7 @@
 #include "common.h"
 
 #define ZIP_BUFFER_SIZE (320 * 1024) // 320KB
-unsigned char zip_buff[ZIP_BUFFER_SIZE];
+//unsigned char zip_buff[ZIP_BUFFER_SIZE];
 
 struct SZIPFileDataDescriptor
 {
@@ -72,16 +72,20 @@ s32 load_file_zip(char *filename)
   u32 write_tmp_flag = NO;
 
   zip_buffer_size = ZIP_BUFFER_SIZE;
-  cbuffer = zip_buff;
+//  cbuffer = zip_buff;
+  cbuffer = (unsigned char*)malloc(ZIP_BUFFER_SIZE);
+  if(cbuffer == NULL)
+	return -1;
 
-  //Removing rom_path due to confusion
-  //sprintf(tmp, "%s\\%s", rom_path, filename);
-  //uses full filepath now
-  strcpy(tmp, filename);
+//  sprintf(tmp, "%s/%s", rom_path, filename);
+  sprintf(tmp, "%s", filename);
   FILE_OPEN(fd, tmp, READ);
 
   if(!FILE_CHECK_VALID(fd))
+  {
+	free((int)cbuffer);
     return -1;
+  }
 
   {
     FILE_READ(fd, &data, sizeof(struct SZIPFileHeader));
@@ -113,7 +117,7 @@ s32 load_file_zip(char *filename)
     if(data.DataDescriptor.UncompressedSize > gamepak_ram_buffer_size)
       {
         write_tmp_flag = YES; // テンポラリを使用するフラグをONに
-        sprintf(tmp, "%s\\GAMEPAK\\%s", main_path, ZIP_TMP);
+        sprintf(tmp, "%s/GAMEPAK/%s", main_path, ZIP_TMP);
         FILE_OPEN(tmp_fd, tmp, WRITE);
       }
     else
@@ -204,14 +208,15 @@ s32 load_file_zip(char *filename)
       }
     }
   }
-
+   
 outcode:
   FILE_CLOSE(fd);
 
   if(write_tmp_flag == YES)
     FILE_CLOSE(tmp_fd);
 
-printf("Load ZIP over\n");
+//printf("Load ZIP over\n");
 
+	free((int)cbuffer);
   return retval;
 }

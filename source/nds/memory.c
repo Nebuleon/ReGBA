@@ -1933,26 +1933,27 @@ void write_rtc(u32 address, u32 value)
                   // 0x65
                   case RTC_COMMAND_OUTPUT_TIME_FULL:
                   {
-#if 0
-                    pspTime current_time;
-                    sceRtcGetCurrentClockLocalTime(&current_time);
+                    //pspTime current_time;
+                    //sceRtcGetCurrentClockLocalTime(&current_time);
+					struct rtc  current_time;
+				    ds2_getTime(&current_time);
 
-                    int day_of_week = sceRtcGetDayOfWeek(current_time.year, current_time.month , current_time.day);
-                    if(day_of_week == 0)
-                      day_of_week = 6;
-                    else
-                      day_of_week--;
+                    //int day_of_week = sceRtcGetDayOfWeek(current_time.year, current_time.month , current_time.day);
+                    //if(day_of_week == 0)
+                    //  day_of_week = 6;
+                    //else
+                    //  day_of_week--;
 
                     rtc_state = RTC_OUTPUT_DATA;
                     rtc_data_bytes = 7;
                     rtc_data[0] = encode_bcd(current_time.year % 100);
                     rtc_data[1] = encode_bcd(current_time.month);
                     rtc_data[2] = encode_bcd(current_time.day);
-                    rtc_data[3] = encode_bcd(day_of_week);
-                    rtc_data[4] = encode_bcd(current_time.hour);
+                    rtc_data[3] = encode_bcd(current_time.weekday);
+                    rtc_data[4] = encode_bcd(current_time.hours);
                     rtc_data[5] = encode_bcd(current_time.minutes);
                     rtc_data[6] = encode_bcd(current_time.seconds);
-#endif
+
                     break;
                   }
 
@@ -1960,16 +1961,17 @@ void write_rtc(u32 address, u32 value)
                   // 0x67
                   case RTC_COMMAND_OUTPUT_TIME:
                   {
-#if 0
-                    pspTime current_time;
-                    sceRtcGetCurrentClockLocalTime(&current_time);
+                    //pspTime current_time;
+                    //sceRtcGetCurrentClockLocalTime(&current_time);
+				    struct rtc  current_time;
+				    ds2_getTime(&current_time);
 
                     rtc_state = RTC_OUTPUT_DATA;
                     rtc_data_bytes = 3;
-                    rtc_data[0] = encode_bcd(current_time.hour);
+                    rtc_data[0] = encode_bcd(current_time.hours);
                     rtc_data[1] = encode_bcd(current_time.minutes);
                     rtc_data[2] = encode_bcd(current_time.seconds);
-#endif
+
                     break;
                   }
                 }
@@ -2511,7 +2513,7 @@ static s32 load_gamepak_raw(char *name_path)
 {
   FILE_ID gamepak_file;
 
-//dgprintf("rom file %s\n", name_path);
+printf("rom file %s\n", name_path);
   FILE_OPEN(gamepak_file, name_path, READ);
 
   if(FILE_CHECK_VALID(gamepak_file))

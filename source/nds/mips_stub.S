@@ -412,6 +412,14 @@ mips_update_gba:
 
   restore_registers
 
+#	addiu $sp, $sp, -4              # make room on the stack
+#	sw $ra,($sp)                    # save return address
+#	nop
+#	jal printf_reg
+#	nop
+#	lw $ra, ($sp)                   # restore return address
+#	addiu $sp, $sp, 4               # fix stack
+
 #  to_show_reg -42
 
   jr $ra                          # if not, go back to caller
@@ -3545,6 +3553,8 @@ lookup_pc_thumb:
   jal block_lookup_address_thumb  # get Thumb address
   nop
   restore_registers
+#	jal printf_reg
+#	nop
   jr $2                           # jump to result
   nop
 
@@ -3554,6 +3564,8 @@ lookup_pc_arm:
   jal block_lookup_address_arm    # get ARM address
   nop
   restore_registers
+#	jal printf_reg
+#	nop
   jr $2                           # jump to result
   nop
 

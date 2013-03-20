@@ -2802,7 +2802,7 @@ u32     recursion_level= 0;
   u32 block_tag;                                                              \
   u8 *block_address;                                                          \
                                                                               \
-/*printf("recursion in %d\n", recursion_level++);*/                                  \
+/*printf("recursion in %d: %08x\n", recursion_level++, pc);*/\
                                                                               \
   /* Starting at the beginning, we allow for one translation cache flush. */  \
   if(translation_recursion_level == 0)                                        \
@@ -2830,7 +2830,7 @@ u32     recursion_level= 0;
       block_lookup_translate(type, ram, 1);                                   \
       break;                                                                  \
                                                                               \
-    case 0x8 ... 0xD:                                                         \
+    case 0x8 ... 0xE:                                                         \
     {                                                                         \
       u32 hash_target = ((pc * 2654435761U) >> 16) &                          \
        (ROM_BRANCH_HASH_SIZE - 1);                                            \
@@ -2892,9 +2892,9 @@ u32     recursion_level= 0;
       if(translation_recursion_level == 0)                                    \
       {                                                                       \
         /*char buffer[256];                                                     \
-        video_resolution(FRAME_MENU);                                         \
-        sprintf(buffer, "bad jump %x (%x)\n", (int)pc, (int)reg[REG_PC]);     \
-        PRINT_STRING_BG(buffer, COLOR_WHITE, COLOR_BLACK, 0, 10);             \
+        video_resolution(FRAME_MENU);*/                                         \
+        printf("bad jump %x (%x)\n", (int)pc, (int)reg[REG_PC]);     \
+        /*PRINT_STRING_BG(buffer, COLOR_WHITE, COLOR_BLACK, 0, 10);             \
         flip_screen();                                                        \
         error_msg("");*/                                                        \
         __asm__ __volatile__("syscall 30\n\t");                                \
@@ -2904,11 +2904,11 @@ u32     recursion_level= 0;
       break;                                                                  \
   }                                                                           \
                                                                               \
-/*printf("recursion out %d\n", --recursion_level);*/                                  \
-if(recursion_level==0)\
+/*printf("recursion out %d\n", --recursion_level);*/\
+/*if(recursion_level==0)\
 {\
-    /*dump_translation_cache();*/ \
-}\
+    dump_translation_cache(); \
+}*/\
   return block_address;                                                       \
 }                                                                             \
 
@@ -2960,6 +2960,11 @@ block_lookup_address_body(dual);
                                                                               \
   opcode &= 0xFFFFFFF;                                                        \
                                                                               \
+  if(opcode >= 0x0F2B0000)\
+  {\
+	condition = 0xE;\
+	opcode = 0xE1A00000;\
+  }\
   block_end_pc += 4                                                           \
 
 #define arm_branch_target()                                                   \
@@ -3184,6 +3189,7 @@ block_exit_type block_exits[MAX_EXITS];
 {                                                                             \
   __label__ block_end;                                                        \
   /* Find the end of the block */                                             \
+/*printf("str: %08x\n", block_start_pc);*/\
   do                                                                          \
   {                                                                           \
     check_pc_region(block_end_pc);                                            \
@@ -3254,6 +3260,7 @@ block_exit_type block_exits[MAX_EXITS];
       break;                                                                  \
     }                                                                         \
   } while(1);                                                                 \
+/*printf("end: %08x\n", block_end_pc);*/\
                                                                               \
   block_end:;                                                                 \
 }                                                                             \
@@ -3475,7 +3482,7 @@ s32 translate_block_##type(u32 pc, TRANSLATION_REGION_TYPE                    \
   for(i = 0; i < external_block_exit_position; i++)                           \
   {                                                                           \
     branch_target = external_block_exits[i].branch_target;                    \
-/*printf("link %08x rom %08x\n", branch_target, translation_ptr);*/\
+/*printf("link %08x\n", branch_target);*/\
     type##_link_block();                                                      \
     if(translation_target == NULL)                                            \
       return -1;                                                              \
@@ -3576,31 +3583,40 @@ void flush_translation_cache_bios()
   memset(bios_rom + 0x4000, 0, 0x4000);
 }
 
+unsigned int last_ram= 0;
+unsigned int last_rom= 0;
+unsigned int last_bios= 0;
 void dump_translation_cache()
 {
-#ifndef NDS_LAYER
-  FILE *fp = fopen("mmc:\\ram_cache.bin", "wb");
-#else
-  FILE *fp = fopen("fat:/ram_cache.bin", "wb");
-#endif
+//  FILE_OPEN(FILE *fp, "fat:/ram_cache.bin", WRITE);
+	FILE *fp;
+if(last_ram != (ram_translation_ptr - ram_translation_cache))
+{
+  fp = fopen("fat:/ram_cache.bin", "wb");
   fwrite(ram_translation_cache, 1, ram_translation_ptr - ram_translation_cache, fp);
   fclose(fp);
-  
-#ifndef NDS_LAYER
-  fp = fopen("mmc:\\rom_cache.bin", "wb");
-#else
-  fp = fopen("fat:/rom_cache.bin", "wb");
-#endif
+
+  last_ram = ram_translation_ptr - ram_translation_cache;
+}
+
+if(last_rom != (rom_translation_ptr - rom_translation_cache))
+{
+  fp = fopen("fat1:/rom_cache.bin", "wb");
   fwrite(rom_translation_cache, 1, rom_translation_ptr - rom_translation_cache, fp);
   fclose(fp);
+
+  last_rom = rom_translation_ptr - rom_translation_cache;
+}
   
-#ifndef NDS_LAYER
-  fp = fopen("mmc:\\bios_cache.bin", "wb");
-#else
-  fp = fopen("fat:/bios_cache.bin", "wb");
-#endif
+if(last_bios != (bios_translation_ptr - bios_translation_cache))
+{
+  fp = fopen("fat1:/bios_cache.bin", "wb");
   fwrite(bios_translation_cache, bios_translation_ptr - bios_translation_cache, 1, fp);
   fclose(fp);
+
+  last_bios = bios_translation_ptr - bios_translation_cache;
+}
+
 /*  char print_buffer[256];
   sprintf(print_buffer, "RAM:%08X ROM:%08X BIOS:%08X", ram_translation_ptr - ram_translation_cache, rom_translation_ptr - rom_translation_cache, bios_translation_ptr - bios_translation_cache);
   PRINT_STRING_BG(print_buffer, 0xFFFF, 0x000, 0, 10);*/
