@@ -1419,6 +1419,19 @@ const u32 gamepad_config_map_init[MAX_GAMEPAD_CONFIG_MAP] =
 
 /* △ ○ × □ ↓ ← ↑ → */
 
+/*
+ * After loading a new game or resetting its configuration through the
+ * Options menu, calling this function is needed. It applies settings that
+ * aren't automatically tracked by gpSP variables.
+ * This is called by init_game_config and load_game_config, below. That's all
+ * that should be needed.
+ */
+void FixUpSettings()
+{
+  game_set_frameskip();
+  game_set_rewind();
+}
+
 /*--------------------------------------------------------
   game cfg的初始化
 --------------------------------------------------------*/
@@ -1428,6 +1441,7 @@ void init_game_config()
     memset(&game_persistent_config, 0, sizeof(game_persistent_config));
 
     u32 i;
+    game_fast_forward = 0;
     game_persistent_config.frameskip_value = 0; // default: keep up/automatic
     game_persistent_config.rewind_value = 6; // default: 10 seconds
     game_persistent_config.clock_speed_number = 3;
@@ -1443,6 +1457,8 @@ void init_game_config()
     game_config.gamepad_config_home = BUTTON_ID_TOUCH;
     memcpy(gamepad_config_map, game_config.gamepad_config_map, sizeof(game_config.gamepad_config_map));
     gamepad_config_home = game_config.gamepad_config_home;
+
+    FixUpSettings();
 }
 
 /*--------------------------------------------------------
@@ -1514,8 +1530,7 @@ void load_game_config_file(void)
     // The gamepad config map is not persisted to file yet. [Neb]
     memcpy(gamepad_config_map, game_config.gamepad_config_map, sizeof(game_config.gamepad_config_map));
     gamepad_config_home = game_config.gamepad_config_home;
-    game_set_frameskip();
-    game_set_rewind();
+    FixUpSettings();
 }
 
 /*--------------------------------------------------------
