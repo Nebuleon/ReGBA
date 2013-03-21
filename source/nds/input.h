@@ -110,5 +110,7 @@ extern u32 gamepad_config_map[MAX_GAMEPAD_CONFIG_MAP];
 extern u32 gamepad_config_home;
 extern TOUCH_SCREEN touch;
 
+extern u32 fast_backward;
+
 #endif
 

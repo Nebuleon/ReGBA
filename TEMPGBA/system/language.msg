@@ -62,8 +62,8 @@ Fast-forward     %s
 Frame skipping    %s
 #FMT_AUDIO_SOUND
 Sound                  %s
-#FMT_AUDIO_RETRO_SOUND
-Retro sound       %s
+#FMT_VIDEO_REWINDING
+Rewinding (*L*Y)       %s
 #FMT_SAVED_STATE_CREATE
 Create saved state      %d
 #FMT_SAVED_STATE_LOAD
@@ -164,6 +164,20 @@ New game
 [9] Show 1 in 10 frames
 #MSG_VIDEO_FRAME_SKIPPING_10
 [10] Show 1 in 11 frames
+#MSG_VIDEO_REWINDING_0
+Disabled
+#MSG_VIDEO_REWINDING_1
+0.25 s (3.5 s total)
+#MSG_VIDEO_REWINDING_2
+0.5 s (7 s total)
+#MSG_VIDEO_REWINDING_3
+1 s (14 s total)
+#MSG_VIDEO_REWINDING_4
+2 s (28 s total)
+#MSG_VIDEO_REWINDING_5
+5 s (1:10 mn total)
+#MSG_VIDEO_REWINDING_6
+10 s (2:20 mn total)
 #MSG_GENERAL_OFF
 Off
 #MSG_GENERAL_ON
@@ -275,8 +289,8 @@ STARTCHINESESIM
 跳帧方式                 %s
 #FMT_AUDIO_SOUND
 声音开关                 %s
-#FMT_AUDIO_RETRO_SOUND
-Retro sound             %s
+#FMT_VIDEO_REWINDING
+Rewinding (*L*Y)       %s
 #FMT_SAVED_STATE_CREATE
 写入存档                 %d
 #FMT_SAVED_STATE_LOAD
@@ -377,6 +391,20 @@ CPU主频                          %s
 [9] 显示 1/10
 #MSG_VIDEO_FRAME_SKIPPING_10
 [10] 显示 1/11
+#MSG_VIDEO_REWINDING_0
+Disabled
+#MSG_VIDEO_REWINDING_1
+0.25 s (3.5 s total)
+#MSG_VIDEO_REWINDING_2
+0.5 s (7 s total)
+#MSG_VIDEO_REWINDING_3
+1 s (14 s total)
+#MSG_VIDEO_REWINDING_4
+2 s (28 s total)
+#MSG_VIDEO_REWINDING_5
+5 s (1:10 mn total)
+#MSG_VIDEO_REWINDING_6
+10 s (2:20 mn total)
 #MSG_GENERAL_OFF
 关
 #MSG_GENERAL_ON
@@ -488,8 +516,8 @@ Avance rapide       %s
 Omission d'images  %s
 #FMT_AUDIO_SOUND
 Son                         %s
-#FMT_AUDIO_RETRO_SOUND
-Son rétro               %s
+#FMT_VIDEO_REWINDING
+Rembobinage (*L*Y)       %s
 #FMT_SAVED_STATE_CREATE
 Créer la sauvegarde       %d
 #FMT_SAVED_STATE_LOAD
@@ -590,6 +618,20 @@ Nouveau jeu
 [9] Montrer 1 image sur 10
 #MSG_VIDEO_FRAME_SKIPPING_10
 [10] Montrer 1 image sur 11
+#MSG_VIDEO_REWINDING_0
+Hors fonction
+#MSG_VIDEO_REWINDING_1
+0.25 s (3.5 s au total)
+#MSG_VIDEO_REWINDING_2
+0.5 s (7 s au total)
+#MSG_VIDEO_REWINDING_3
+1 s (14 s au total)
+#MSG_VIDEO_REWINDING_4
+2 s (28 s au total)
+#MSG_VIDEO_REWINDING_5
+5 s (1:10 mn au total)
+#MSG_VIDEO_REWINDING_6
+10 s (2:20 mn au total)
 #MSG_GENERAL_OFF
 Hors fonction
 #MSG_GENERAL_ON
@@ -702,8 +744,8 @@ Schnellvorlauf   %s
 Frames übersp.  %s
 #FMT_AUDIO_SOUND
 Ton                     %s
-#FMT_AUDIO_RETRO_SOUND
-Retro-Ton          %s
+#FMT_VIDEO_REWINDING
+Rewinding (*L*Y)       %s
 #FMT_SAVED_STATE_CREATE
 Speicherstand erstellen      %d
 #FMT_SAVED_STATE_LOAD
@@ -804,6 +846,20 @@ Neues Spiel
 [9] Zeige 1 von 10 Frames
 #MSG_VIDEO_FRAME_SKIPPING_10
 [10] Zeige 1 von 11 Frames
+#MSG_VIDEO_REWINDING_0
+Disabled
+#MSG_VIDEO_REWINDING_1
+0.25 s (3.5 s total)
+#MSG_VIDEO_REWINDING_2
+0.5 s (7 s total)
+#MSG_VIDEO_REWINDING_3
+1 s (14 s total)
+#MSG_VIDEO_REWINDING_4
+2 s (28 s total)
+#MSG_VIDEO_REWINDING_5
+5 s (1:10 mn total)
+#MSG_VIDEO_REWINDING_6
+10 s (2:20 mn total)
 #MSG_GENERAL_OFF
 Aus
 #MSG_GENERAL_ON
@@ -916,8 +972,8 @@ Vooruitspoelen     %s
 Beeld overslaan   %s
 #FMT_AUDIO_SOUND
 Geluid                    %s
-#FMT_AUDIO_RETRO_SOUND
-Retro geluid         %s
+#FMT_VIDEO_REWINDING
+Rewinding (*L*Y)       %s
 #FMT_SAVED_STATE_CREATE
 Creëer spelstaat       %d
 #FMT_SAVED_STATE_LOAD
@@ -1018,6 +1074,20 @@ Nieuw spel
 [9] 1 uit 10 beelden tonen
 #MSG_VIDEO_FRAME_SKIPPING_10
 [10] 1 uit 11 beelden tonen
+#MSG_VIDEO_REWINDING_0
+Disabled
+#MSG_VIDEO_REWINDING_1
+0.25 s (3.5 s total)
+#MSG_VIDEO_REWINDING_2
+0.5 s (7 s total)
+#MSG_VIDEO_REWINDING_3
+1 s (14 s total)
+#MSG_VIDEO_REWINDING_4
+2 s (28 s total)
+#MSG_VIDEO_REWINDING_5
+5 s (1:10 mn total)
+#MSG_VIDEO_REWINDING_6
+10 s (2:20 mn total)
 #MSG_GENERAL_OFF
 Uit
 #MSG_GENERAL_ON
@@ -1130,8 +1200,8 @@ Modo avance rápido   %s
 Salto de fotogramas  %s
 #FMT_AUDIO_SOUND
 Sonido                         %s
-#FMT_AUDIO_RETRO_SOUND
-Sonido retro               %s
+#FMT_VIDEO_REWINDING
+Rewinding (*L*Y)       %s
 #FMT_SAVED_STATE_CREATE
 Grabar partida  %d
 #FMT_SAVED_STATE_LOAD
@@ -1232,6 +1302,20 @@ Nuevo juego
 [9] Mostrar 1/10
 #MSG_VIDEO_FRAME_SKIPPING_10
 [10] Mostrar 1/11
+#MSG_VIDEO_REWINDING_0
+Disabled
+#MSG_VIDEO_REWINDING_1
+0.25 s (3.5 s total)
+#MSG_VIDEO_REWINDING_2
+0.5 s (7 s total)
+#MSG_VIDEO_REWINDING_3
+1 s (14 s total)
+#MSG_VIDEO_REWINDING_4
+2 s (28 s total)
+#MSG_VIDEO_REWINDING_5
+5 s (1:10 mn total)
+#MSG_VIDEO_REWINDING_6
+10 s (2:20 mn total)
 #MSG_GENERAL_OFF
 Apagado
 #MSG_GENERAL_ON
@@ -1343,8 +1427,8 @@ Avanzamento rapido   %s
 Salto fotogrammi %s
 #FMT_AUDIO_SOUND
 Audio                       %s
-#FMT_AUDIO_RETRO_SOUND
-Audio retro             %s
+#FMT_VIDEO_REWINDING
+Rewinding (*L*Y)       %s
 #FMT_SAVED_STATE_CREATE
 Crea salvataggio      %d
 #FMT_SAVED_STATE_LOAD
@@ -1445,6 +1529,20 @@ Nuovo gioco
 [9] Mostra 1 su 10 fotogrammi
 #MSG_VIDEO_FRAME_SKIPPING_10
 [10] Mostra 1 su 11 fotogrammi
+#MSG_VIDEO_REWINDING_0
+Disabled
+#MSG_VIDEO_REWINDING_1
+0.25 s (3.5 s total)
+#MSG_VIDEO_REWINDING_2
+0.5 s (7 s total)
+#MSG_VIDEO_REWINDING_3
+1 s (14 s total)
+#MSG_VIDEO_REWINDING_4
+2 s (28 s total)
+#MSG_VIDEO_REWINDING_5
+5 s (1:10 mn total)
+#MSG_VIDEO_REWINDING_6
+10 s (2:20 mn total)
 #MSG_GENERAL_OFF
 Disabilita
 #MSG_GENERAL_ON
@@ -1556,8 +1654,8 @@ Avanço de quadro  %s
 Pulo de quadros   %s
 #FMT_AUDIO_SOUND
 Som                       %s
-#FMT_AUDIO_RETRO_SOUND
-Som retrô             %s
+#FMT_VIDEO_REWINDING
+Rewinding (*L*Y)       %s
 #FMT_SAVED_STATE_CREATE
 Criar estado         %d
 #FMT_SAVED_STATE_LOAD
@@ -1658,6 +1756,20 @@ Novo jogo
 [9] Mostrar 1 em 10 frames
 #MSG_VIDEO_FRAME_SKIPPING_10
 [10] Mostrar 1 em 11 frames
+#MSG_VIDEO_REWINDING_0
+Disabled
+#MSG_VIDEO_REWINDING_1
+0.25 s (3.5 s total)
+#MSG_VIDEO_REWINDING_2
+0.5 s (7 s total)
+#MSG_VIDEO_REWINDING_3
+1 s (14 s total)
+#MSG_VIDEO_REWINDING_4
+2 s (28 s total)
+#MSG_VIDEO_REWINDING_5
+5 s (1:10 mn total)
+#MSG_VIDEO_REWINDING_6
+10 s (2:20 mn total)
 #MSG_GENERAL_OFF
 Desligado
 #MSG_GENERAL_ON

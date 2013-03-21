@@ -293,6 +293,7 @@ u32 button_input_to_gba[] =
 
 u32 rapidfire_flag = 1;
 
+u32 fast_backward= 0;
 // 仿真过程输入
 u32 update_input()
 {
@@ -312,6 +313,12 @@ u32 update_input()
         u32 ret_val = menu(screen_copy, 0 /* first invocation: no */);
 
         return ret_val;
+    }
+
+	if((buttons & (BUTTON_ID_Y | BUTTON_ID_L)) == (BUTTON_ID_Y | BUTTON_ID_L)) //Fast backward
+    {
+		fast_backward= 1;
+		return 0;
     }
 
     for(i = 0; i < 13; i++)

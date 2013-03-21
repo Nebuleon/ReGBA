@@ -180,6 +180,8 @@ extern volatile u32 real_frame_count;
 extern u32 virtual_frame_count;
 extern int date_format;
 extern const MODEL_TYPE psp_model;
+extern u32 frame_ticks;
+extern unsigned int frame_interval; // For in-memory saved states used in rewinding
 
 //used for other sofware call the GBA emulator
 extern int plug_valid;

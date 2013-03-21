@@ -1503,9 +1503,9 @@ void load_game_config_file(void)
     {
         //Check file header
         pt= game_config_filename;
-        FILE_READ(game_config_file, pt, NGBARTS_HEADERA_SIZE);
+        FILE_READ(game_config_file, pt, GAME_CONFIG_HEADER_SIZE);
 
-        if (!strncmp(pt, NGBARTS_HEADERA, NGBARTS_HEADERA_SIZE))
+        if (!strncmp(pt, GAME_CONFIG_HEADER, GAME_CONFIG_HEADER_SIZE))
         {
             FILE_READ_VARIABLE(game_config_file, game_persistent_config);
         }
@@ -2746,6 +2746,8 @@ u32 menu(u16 *screen, int FirstInvocation)
 
     char *frameskip_options[] = { (char*)&msg[MSG_VIDEO_FRAME_SKIPPING_AUTOMATIC], (char*)&msg[MSG_VIDEO_FRAME_SKIPPING_0], (char*)&msg[MSG_VIDEO_FRAME_SKIPPING_1], (char*)&msg[MSG_VIDEO_FRAME_SKIPPING_2], (char*)&msg[MSG_VIDEO_FRAME_SKIPPING_3], (char*)&msg[MSG_VIDEO_FRAME_SKIPPING_4], (char*)&msg[MSG_VIDEO_FRAME_SKIPPING_5], (char*)&msg[MSG_VIDEO_FRAME_SKIPPING_6], (char*)&msg[MSG_VIDEO_FRAME_SKIPPING_7], (char*)&msg[MSG_VIDEO_FRAME_SKIPPING_8], (char*)&msg[MSG_VIDEO_FRAME_SKIPPING_9], (char*)&msg[MSG_VIDEO_FRAME_SKIPPING_10] };
 
+    char *rewinding_options[] = { (char*)&msg[MSG_VIDEO_REWINDING_0], (char*)&msg[MSG_VIDEO_REWINDING_1], (char*)&msg[MSG_VIDEO_REWINDING_2], (char*)&msg[MSG_VIDEO_REWINDING_3], (char*)&msg[MSG_VIDEO_REWINDING_4], (char*)&msg[MSG_VIDEO_REWINDING_5], (char*)&msg[MSG_VIDEO_REWINDING_6] };
+
     char *cpu_frequency_options[] = { (char*)&msg[MSG_OPTIONS_CPU_FREQUENCY_0], (char*)&msg[MSG_OPTIONS_CPU_FREQUENCY_1], (char*)&msg[MSG_OPTIONS_CPU_FREQUENCY_2], (char*)&msg[MSG_OPTIONS_CPU_FREQUENCY_3], (char*)&msg[MSG_OPTIONS_CPU_FREQUENCY_4], (char*)&msg[MSG_OPTIONS_CPU_FREQUENCY_5] };
 
     char *on_off_options[] = { (char*)&msg[MSG_GENERAL_OFF], (char*)&msg[MSG_GENERAL_ON] };
@@ -2861,11 +2863,8 @@ u32 menu(u16 *screen, int FirstInvocation)
 
 //	/* 02 */ SUBMENU_OPTION(&tools_keyremap_menu, &msg[MSG_SUB_MENU_31], NULL, 2),
 
-//	/* 03 */ STRING_SELECTION_OPTION(time_backward_action, NULL, &msg[MSG_SUB_MENU_302], on_off_options,
-//			&game_config.backward, 2, NULL, ACTION_TYPE, 3),
-
-//	/* 04 */ NUMERIC_SELECTION_ACTION_OPTION(time_period_action, time_period_passive, &msg[MSG_SUB_MENU_32],
-//		&game_config.backward_time, 6, NULL, 4)
+		/* 02 */ STRING_SELECTION_OPTION(game_set_rewind, NULL, &msg[FMT_VIDEO_REWINDING], rewinding_options,
+			&game_persistent_config.rewind_value, 7, NULL, ACTION_TYPE, 2)
     };
 
     INIT_MENU(tools, tools_menu_init, NULL, NULL, NULL, 0, 0);
@@ -3114,15 +3113,12 @@ u32 menu(u16 *screen, int FirstInvocation)
 
 	void tools_menu_init()
 	{
-		/* if(game_config.backward)
-			tools_options[4].option_type &= ~HIDEN_TYPE;
-		else
-			tools_options[4].option_type |= HIDEN_TYPE; */
-		// OUT OF BOUNDS MEMORY ACCESS, REENABLE IF NEEDED [NEB]
+#if 0
 		if (first_load)
 			tools_options[3] /* game hotkeys */.option_type |= HIDEN_TYPE;
 		else
 			tools_options[3] /* game hotkeys */.option_type &= ~HIDEN_TYPE;
+#endif
 	}
 
 	int lastest_game_menu_scroll_value;
@@ -4784,12 +4780,12 @@ void game_set_rewind() {
 		savefast_int();
 		switch(game_config.backward_time)
 		{
-			case 1 : frame_interval = 15; break;
-			case 2 : frame_interval = 30; break;
-			case 3 : frame_interval = 60; break;
-			case 4 : frame_interval = 120; break;
-			case 5 : frame_interval = 300; break;
-			case 6 : frame_interval = 600; break;
+			case 0 : frame_interval = 15; break;
+			case 1 : frame_interval = 30; break;
+			case 2 : frame_interval = 60; break;
+			case 3 : frame_interval = 120; break;
+			case 4 : frame_interval = 300; break;
+			case 5 : frame_interval = 600; break;
 			default: frame_interval = 60; break;
 		}
 	}

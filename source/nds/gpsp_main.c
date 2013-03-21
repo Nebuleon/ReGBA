@@ -74,6 +74,9 @@ vu32 vblank_count = 0;
 u32 num_skipped_frames = 0;
 u32 frames;
 
+unsigned int pen = 0;
+unsigned int frame_interval = 60; // For in-memory saved states used in rewinding
+
 int date_format= 2;
 
 u32 prescale_table[] = { 0, 6, 8, 10 };
@@ -580,11 +583,43 @@ u32 update_gba()
           // Transition from vblank to next screen
           dispstat &= ~0x01;
           frame_ticks++;
+          	frame_ticks++;
+			if(frame_ticks >= frame_interval)
+				frame_ticks = 0;
 
 //          sceKernelDelayThread(10);
 
           if(update_input() != 0)
             continue;
+
+			if(game_config.backward)
+			{
+				if(fast_backward) // Rewinding requested
+				{
+					fast_backward = 0;
+					if(savefast_queue_len > 0)
+					{
+						if(frame_ticks > 3)
+						{
+							if(pen)
+								mdelay(500);
+
+							loadstate_fast();
+							pen = 1;
+							frame_ticks = 0;
+							continue;
+						}
+					}
+					else if(frame_ticks > 3)
+					{
+						while(readkey() & (BUTTON_ID_Y | BUTTON_ID_L));
+					}
+				}
+				else if(frame_ticks ==0)
+				{
+					savestate_fast();
+				}
+			}
 #if 0
           if((power_flag == 1) && (into_suspend() != 0))
             continue;

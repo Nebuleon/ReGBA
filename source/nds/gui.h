@@ -175,6 +175,9 @@ void initial_gpsp_config();
 void init_game_config();
 extern void reorder_latest_file(void);
 
+extern void game_set_frameskip(void);
+extern void game_set_rewind(void);
+
 extern void LowFrequencyCPU();
 extern void HighFrequencyCPU();
 extern void GameFrequencyCPU();
