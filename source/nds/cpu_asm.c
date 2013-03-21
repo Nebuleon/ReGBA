@@ -2830,7 +2830,7 @@ u32     recursion_level= 0;
       block_lookup_translate(type, ram, 1);                                   \
       break;                                                                  \
                                                                               \
-    case 0x8 ... 0xE:                                                         \
+    case 0x8 ... 0xD:                                                         \
     {                                                                         \
       u32 hash_target = ((pc * 2654435761U) >> 16) &                          \
        (ROM_BRANCH_HASH_SIZE - 1);                                            \
