@@ -1429,6 +1429,7 @@ void init_game_config()
 
     u32 i;
     game_persistent_config.frameskip_value = 0; // default: keep up/automatic
+    game_persistent_config.rewind_value = 6; // default: 10 seconds
     game_persistent_config.clock_speed_number = 3;
     game_config.audio_buffer_size_number = 15;
     game_config.update_backup_flag = 0;
@@ -1454,6 +1455,8 @@ void init_default_gpsp_config()
 //  int temp;
   game_config.frameskip_type = 1;   //auto
   game_config.frameskip_value = 2;
+  game_config.backward = 0;	//time backward disable
+  game_config.backward_time = 2;	//time backward granularity 1s
   gpsp_config.screen_ratio = 1; //orignal
   gpsp_config.enable_audio = 1; //on
   //keypad configure
@@ -1512,6 +1515,7 @@ void load_game_config_file(void)
     memcpy(gamepad_config_map, game_config.gamepad_config_map, sizeof(game_config.gamepad_config_map));
     gamepad_config_home = game_config.gamepad_config_home;
     game_set_frameskip();
+    game_set_rewind();
 }
 
 /*--------------------------------------------------------
@@ -4765,6 +4769,29 @@ void game_set_frameskip() {
 		AUTO_SKIP = 0;
 		// Otherwise, values from 1..N map to frameskipping 0..N-1.
 		SKIP_RATE = game_persistent_config.frameskip_value - 1;
+	}
+}
+
+void game_set_rewind() {
+	if(game_persistent_config.rewind_value == 0)
+	{
+		game_config.backward = 0;
+	}
+	else
+	{
+		game_config.backward = 1;
+		game_config.backward_time = game_persistent_config.rewind_value - 1;
+		savefast_int();
+		switch(game_config.backward_time)
+		{
+			case 1 : frame_interval = 15; break;
+			case 2 : frame_interval = 30; break;
+			case 3 : frame_interval = 60; break;
+			case 4 : frame_interval = 120; break;
+			case 5 : frame_interval = 300; break;
+			case 6 : frame_interval = 600; break;
+			default: frame_interval = 60; break;
+		}
 	}
 }
 

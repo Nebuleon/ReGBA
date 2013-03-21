@@ -93,6 +93,8 @@ typedef struct
   u32 gamepad_config_map[MAX_GAMEPAD_CONFIG_MAP];
   u32 gamepad_config_home;
   u32 use_default_gamepad_map;
+  u32 backward;
+  u32 backward_time;
 } GAME_CONFIG;
 
 // Persistent settings for the current game.
@@ -105,7 +107,13 @@ typedef struct
    */
   u32 frameskip_value;
   u32 clock_speed_number;
-  u32 Reserved[128];
+  /*
+   * This value differs from the backward and backward_time values in
+   * GAME_CONFIG in that this one is just one value, for the GUI, and it's
+   * split into two for the runtime settings in GAME_CONFIG.
+   */
+  u32 rewind_value;
+  u32 Reserved[127];
 } GAME_CONFIG_FILE;
 
 struct  FILE_LIST_INFO

@@ -18,7 +18,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "common.h"
+#include "common.h" 
 
 // TODO:PSP-1000はフレームバッファは256KBあれば足りるので、VRAMを使用する
 u8 savestate_write_buffer[SAVESTATE_SIZE];
@@ -27,6 +27,12 @@ u8 *g_state_buffer_ptr;
 //#define PACKROM_MEM_SIZE (19*1024*1024)     //20MB
 //u8 PACKROM_MEM[ PACKROM_MEM_SIZE ] __attribute__ ((aligned (4))) ;
 //u8 PACKROM_MEM_MAP[ PACKROM_MEM_SIZE/(32*1024)*8 ];
+
+#define SAVESTATE_FAST_SIZE (SAVESTATE_FAST_LEN*SAVESTATE_FAST_NUM)	//~6MB
+//fast save state length: 0x68e3f
+#define SAVESTATE_FAST_LEN (0x68e40)
+#define SAVESTATE_FAST_NUM (14)
+u8 SAVEFAST_MEM[ SAVESTATE_FAST_SIZE ] __attribute__ ((aligned (4))) ;
 
 typedef enum
 {
@@ -2589,7 +2595,10 @@ s32 load_gamepak(char *file_path)
   }
   update_progress();
 
-//dgprintf("file_size %d\n", file_size);
+printf("file_size %d\n", file_size);
+
+	frame_ticks = 0;
+	savefast_int();					//Initial savefast
 
   if(file_size != -1)
   {
@@ -3602,6 +3611,70 @@ void bios_region_read_protect()
   video_##type##_savestate();                                                 \
   update_progress();                                                          \
 
+#define savestate_block_fast(type)											  \
+  cpu_##type##_savestate();                                                   \
+  input_##type##_savestate();                                                 \
+  main_##type##_savestate();                                                  \
+  memory_##type##_fast_savestate();                                           \
+  sound_##type##_savestate();                                                 \
+  video_##type##_savestate();                                                 \
+
+static unsigned int savefast_queue_wr_len;
+unsigned int savefast_queue_len;
+void savefast_int(void)
+{
+	savefast_queue_wr_len = 0;
+	savefast_queue_len = 0;
+}
+
+void savestate_fast(void)
+{
+	int len0, len1;
+
+	g_state_buffer_ptr = SAVEFAST_MEM + savefast_queue_wr_len * SAVESTATE_FAST_LEN;
+	savestate_block_fast(write_mem);
+
+	savefast_queue_wr_len += 1;
+	if(savefast_queue_wr_len >= SAVESTATE_FAST_NUM)
+		savefast_queue_wr_len = 0;
+
+	if(savefast_queue_len < SAVESTATE_FAST_NUM)
+		savefast_queue_len += 1;
+}
+
+void loadstate_fast(void)
+{
+	int i;
+
+	if(savefast_queue_len == 0)		//There's no fast save state
+		return;
+
+	//Load latest recently
+	savefast_queue_len -= 1;
+	if(savefast_queue_wr_len == 0)
+		savefast_queue_wr_len = SAVESTATE_FAST_NUM -1;
+	else
+		savefast_queue_wr_len -= 1;
+
+	g_state_buffer_ptr = SAVEFAST_MEM + savefast_queue_wr_len * SAVESTATE_FAST_LEN;
+	savestate_block_fast(read_mem);
+
+	flush_translation_cache_ram();
+	flush_translation_cache_rom();
+	flush_translation_cache_bios();
+
+	oam_update = 1;
+	gbc_sound_update = 1;
+
+	// Oops, these contain raw pointers
+	for(i = 0; i < 4; i++)
+	{
+		gbc_sound_channel[i].sample_data = square_pattern_duty[2];
+	}
+
+	reg[CHANGED_PC_STATUS] = 1;
+}
+
 /*--------------------------------------------------------
   ステートロード
   input
@@ -3919,6 +3992,59 @@ memory_savestate_body(READ_MEM);
 
 void memory_write_mem_savestate()
 memory_savestate_body(WRITE_MEM);
+
+
+#define memory_fast_savestate_body(type)									  \
+{                                                                             \
+  u32 i;                                                                      \
+                                                                              \
+  FILE_##type##_VARIABLE(g_state_buffer_ptr, backup_type);					  \
+  FILE_##type##_VARIABLE(g_state_buffer_ptr, sram_size);					  \
+  FILE_##type##_VARIABLE(g_state_buffer_ptr, flash_mode);					  \
+  FILE_##type##_VARIABLE(g_state_buffer_ptr, flash_command_position);		  \
+  FILE_##type##_VARIABLE(g_state_buffer_ptr, flash_bank_ptr);				  \
+  FILE_##type##_VARIABLE(g_state_buffer_ptr, flash_device_id);				  \
+  FILE_##type##_VARIABLE(g_state_buffer_ptr, flash_manufacturer_id);		  \
+  FILE_##type##_VARIABLE(g_state_buffer_ptr, flash_size);					  \
+  FILE_##type##_VARIABLE(g_state_buffer_ptr, eeprom_size);					  \
+  FILE_##type##_VARIABLE(g_state_buffer_ptr, eeprom_mode);					  \
+  FILE_##type##_VARIABLE(g_state_buffer_ptr, eeprom_address_length);		  \
+  FILE_##type##_VARIABLE(g_state_buffer_ptr, eeprom_address);				  \
+  FILE_##type##_VARIABLE(g_state_buffer_ptr, eeprom_counter);				  \
+  FILE_##type##_VARIABLE(g_state_buffer_ptr, rtc_state);					  \
+  FILE_##type##_VARIABLE(g_state_buffer_ptr, rtc_write_mode);				  \
+  FILE_##type##_ARRAY(g_state_buffer_ptr, rtc_registers);					  \
+  FILE_##type##_VARIABLE(g_state_buffer_ptr, rtc_command);					  \
+  FILE_##type##_ARRAY(g_state_buffer_ptr, rtc_data);						  \
+  FILE_##type##_VARIABLE(g_state_buffer_ptr, rtc_status);					  \
+  FILE_##type##_VARIABLE(g_state_buffer_ptr, rtc_data_bytes);				  \
+  FILE_##type##_VARIABLE(g_state_buffer_ptr, rtc_bit_count);				  \
+  FILE_##type##_ARRAY(g_state_buffer_ptr, eeprom_buffer);					  \
+  FILE_##type##_ARRAY(g_state_buffer_ptr, dma);								  \
+                                                                              \
+  FILE_##type(g_state_buffer_ptr, iwram + 0x8000, 0x8000);					  \
+  for(i = 0; i < 8; i++)                                                      \
+  {                                                                           \
+    FILE_##type(g_state_buffer_ptr, ewram + (i * 0x10000) + 0x8000, 0x8000);  \
+  }                                                                           \
+  FILE_##type(g_state_buffer_ptr, vram, 0x18000);							  \
+  FILE_##type(g_state_buffer_ptr, oam_ram, 0x400);							  \
+  FILE_##type(g_state_buffer_ptr, palette_ram, 0x400);						  \
+  FILE_##type(g_state_buffer_ptr, io_registers, 0x8000);					  \
+                                                                              \
+  /* This is a hack, for now. */                                              \
+  if((flash_bank_ptr < gamepak_backup) ||                                     \
+   (flash_bank_ptr > (gamepak_backup + (1024 * 64))))                         \
+  {                                                                           \
+    flash_bank_ptr = gamepak_backup;                                          \
+  }                                                                           \
+}                                                                             \
+
+void memory_read_mem_fast_savestate()
+memory_fast_savestate_body(READ_MEM);
+
+void memory_write_mem_fast_savestate()
+memory_fast_savestate_body(WRITE_MEM);
 
 u32 get_sio_mode(u16 io1, u16 io2)
 {

@@ -240,5 +240,10 @@ extern void bios_region_read_protect();
 //extern u32 load_state(char *savestate_filename, u32 slot_num);
 extern u32 load_state(char *savestate_filename, FILE *fp);
 extern u32 save_state(char *savestate_filename, u16 *screen_capture);
+extern void savefast_int(void);
+extern void savestate_fast(void);
+extern void loadstate_fast(void);
+
+extern unsigned int savefast_queue_len;
 
 #endif
