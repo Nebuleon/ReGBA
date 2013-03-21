@@ -2133,15 +2133,15 @@ u32 menu(u16 *screen, int FirstInvocation)
 			dynamic_cheat_pt = (unsigned char**)malloc((nums+g_num_cheats)*4);
 			if(dynamic_cheat_pt == NULL)
 			{
-				free((int)dynamic_cheat_msg);
+				free(dynamic_cheat_msg);
 				dynamic_cheat_msg = NULL;
 				return;
 			}
 
 			if(load_cheats_name(dynamic_cheat_msg, dynamic_cheat_pt, nums) < 0)
 			{
-				free((int)dynamic_cheat_msg);
-				free((int)dynamic_cheat_pt);
+				free(dynamic_cheat_msg);
+				free(dynamic_cheat_pt);
 				dynamic_cheat_msg = NULL;
 				dynamic_cheat_pt = NULL;
 			}
@@ -2405,13 +2405,13 @@ u32 menu(u16 *screen, int FirstInvocation)
 
 			if(dynamic_cheat_options)
 			{
-				free((int)dynamic_cheat_options);
+				free(dynamic_cheat_options);
 				dynamic_cheat_options = NULL;
 			}
 
 			if(dynamic_cheat_menu)
 			{
-				free((int)dynamic_cheat_menu);
+				free(dynamic_cheat_menu);
 				dynamic_cheat_menu = NULL;
 			}
 
@@ -2421,7 +2421,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 			dynamic_cheat_menu = (MENU_TYPE*)malloc(sizeof(MENU_TYPE));
 			if(dynamic_cheat_menu == NULL)
 			{
-				free((int)dynamic_cheat_options);
+				free(dynamic_cheat_options);
 				dynamic_cheat_options = NULL;
 				return;
 			}
@@ -2537,10 +2537,10 @@ u32 menu(u16 *screen, int FirstInvocation)
 
 	void destroy_dynamic_cheats()
 	{
-		if(dynamic_cheat_menu) free((int)dynamic_cheat_menu);
-		if(dynamic_cheat_options) free((int)dynamic_cheat_options);
-		if(dynamic_cheat_msg) free((int)dynamic_cheat_msg);
-		if(dynamic_cheat_pt) free((int)dynamic_cheat_pt);
+		if(dynamic_cheat_menu) free(dynamic_cheat_menu);
+		if(dynamic_cheat_options) free(dynamic_cheat_options);
+		if(dynamic_cheat_msg) free(dynamic_cheat_msg);
+		if(dynamic_cheat_pt) free(dynamic_cheat_pt);
 		dynamic_cheat_menu = NULL;
 		dynamic_cheat_options = NULL;
 		dynamic_cheat_msg = NULL;
