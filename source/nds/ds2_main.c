@@ -17,6 +17,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "common.h"
 #include <stdio.h>
 #include "console.h"
 #include "fs_api.h"
@@ -25,6 +26,7 @@
 #include "ds2_timer.h"
 #include "ds2_malloc.h"
 #include "gui.h"
+#include "sound.h"
 
 #define BLACK_COLOR		RGB15(0, 0, 0)
 #define WHITE_COLOR		RGB15(31, 31, 31)
@@ -49,7 +51,7 @@ void ds2_main(void)
 	int err;
 	HighFrequencyCPU();
 	//Initial video and audio and other input and output
-	err = ds2io_initb(1024 /* buffer size in samples, matches sound.c's AUDIO_LEN */, 44100 /* sample rate */, 0, 0);
+	err = ds2io_initb(AUDIO_LEN, (int) SOUND_FREQUENCY, 0, 0);
 	if(err) goto _failure;
 
 	//Initial file system

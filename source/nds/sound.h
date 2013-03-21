@@ -98,6 +98,10 @@ typedef struct
 
 #define BUFFER_SIZE (0xffff)                        // バッファのバイト数。変更しないこと
 
+#ifdef NDS_LAYER
+#define AUDIO_LEN 512
+#endif
+
 #define SOUND_FREQUENCY (44100.0)
 
 #define GBC_SOUND_TONE_CONTROL_LOW(channel, address)                          \

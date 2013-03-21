@@ -32,9 +32,6 @@
 #define TASK_SOUND_STK_SIZE 1024		//1024words= 4KB
 
 //extern u32 SKIP_RATE;
-#ifdef NDS_LAYER
-#define AUDIO_LEN   1024
-#endif
 
 /******************************************************************************
  * 宏定义
@@ -899,7 +896,7 @@ if(AUTO_SKIP)
                 pp += 1;
         }
 
-        while(ds2_checkAudiobuff() > AUDIO_BUFFER_COUNT);
+        while(ds2_checkAudiobuff() >= AUDIO_BUFFER_COUNT);
             //OSTimeDly(1);
     }
 
@@ -915,10 +912,21 @@ if(AUTO_SKIP)
         }
     }
 }
+else if (game_fast_forward)
+{
+    if (ds2_checkAudiobuff() >= AUDIO_BUFFER_COUNT)
+    {
+        // Drain the buffer, then exit.
+        while (CHECK_BUFFER() > 0) {
+            sound_buffer[sound_read_offset] = 0;
+            sound_read_offset = (sound_read_offset +1) & BUFFER_SIZE;
+        }
+        return;
+    }
+}
 else
 {
-    while(ds2_checkAudiobuff() > AUDIO_BUFFER_COUNT)
-            mdelay(1);
+    while(ds2_checkAudiobuff() >= AUDIO_BUFFER_COUNT);
 }
 
     audio_buff = ds2_getAudiobuff();
