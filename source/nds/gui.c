@@ -2850,12 +2850,16 @@ u32 menu(u16 *screen, int FirstInvocation)
 		((CHEATS_PER_PAGE * menu_cheat_page) + 2), 3),
 	/* 04 */ CHEAT_OPTION(cheat_option_action, cheat_option_passive,
 		((CHEATS_PER_PAGE * menu_cheat_page) + 3), 4),
+	/* 05 */ CHEAT_OPTION(cheat_option_action, cheat_option_passive,
+		((CHEATS_PER_PAGE * menu_cheat_page) + 4), 5),
+	/* 06 */ CHEAT_OPTION(cheat_option_action, cheat_option_passive,
+		((CHEATS_PER_PAGE * menu_cheat_page) + 5), 6),
 
-	/* 05 */ NUMERIC_SELECTION_ACTION_OPTION(reload_cheats_page, NULL, &msg[FMT_CHEAT_PAGE],
-        &menu_cheat_page, MAX_CHEATS_PAGE, NULL, 5),
+	/* 07 */ NUMERIC_SELECTION_ACTION_OPTION(reload_cheats_page, NULL, &msg[FMT_CHEAT_PAGE],
+        &menu_cheat_page, MAX_CHEATS_PAGE, NULL, 7),
 
-	/* 06 */ ACTION_OPTION(menu_load_cheat_file, NULL, &msg[MSG_CHEAT_LOAD_FROM_FILE],
-        NULL, 6)
+	/* 08 */ ACTION_OPTION(menu_load_cheat_file, NULL, &msg[MSG_CHEAT_LOAD_FROM_FILE],
+        NULL, 8)
 	};
 
 	INIT_MENU(cheats, cheat_menu_init, NULL, NULL, cheat_menu_end, 0, 0);

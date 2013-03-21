@@ -22,8 +22,8 @@
 #define CHEATS_H
 
 #define CHEAT_NAME_LENGTH (40*4)
-#define MAX_CHEATS_PAGE 200
-#define CHEATS_PER_PAGE 4
+#define MAX_CHEATS_PAGE 133
+#define CHEATS_PER_PAGE 6
 #define MAX_CHEATS (MAX_CHEATS_PAGE * CHEATS_PER_PAGE)
 
 typedef enum
