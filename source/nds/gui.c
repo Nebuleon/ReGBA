@@ -328,6 +328,15 @@ static char s_font[MAX_PATH];
 static u32 menu_cheat_page = 0;
 static u32 gamepad_config_line_to_button[] = { 8, 6, 7, 9, 1, 2, 3, 0, 4, 5, 11, 10 };
 
+
+
+static void dbg_Color(unsigned short color){
+  ds2_clearScreen(UP_SCREEN, color);
+  ds2_flipScreen(UP_SCREEN, 2);
+  wait_Allkey_release(0);
+  wait_Anykey_press(0);
+}
+
 /******************************************************************************
  * 本地函数的声明
  ******************************************************************************/
@@ -2126,9 +2135,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 
 			cheat_format_ptr[i]= cheat_format_str[i];
 		}
-
 		reload_cheats_page();
-
 		if(dynamic_cheat_msg == NULL)
 		{
 			unsigned int nums;
@@ -2141,7 +2148,6 @@ u32 menu(u16 *screen, int FirstInvocation)
 
 				nums += (game_config.cheats_flag[i].num_cheat_lines & 0xFFFF)+1;
 			}
-
 			dynamic_cheat_msg = (unsigned char*)malloc(8*1024);
 			if(dynamic_cheat_msg == NULL) return;
 
@@ -2152,7 +2158,6 @@ u32 menu(u16 *screen, int FirstInvocation)
 				dynamic_cheat_msg = NULL;
 				return;
 			}
-
 			if(load_cheats_name(dynamic_cheat_msg, dynamic_cheat_pt, nums) < 0)
 			{
 				free(dynamic_cheat_msg);
@@ -2181,7 +2186,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 
 	void dynamic_cheat_key()
 	{
-		unsigned int m, n; 
+		unsigned int m, n;
 
 		switch(gui_action)
 		{
@@ -2195,7 +2200,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 					{
 						m= current_menu->screen_focus -1;
 						draw_hscroll_over(m+1);
-						draw_hscroll_init(down_screen_addr, 26, 37 + m*32, 200, 
+						draw_hscroll_init(down_screen_addr, 26, 37 + m*32, 200,
 							COLOR_TRANS, COLOR_INACTIVE_ITEM, dynamic_cheat_pt[dynamic_cheat_msg_start + current_option_num]);
 					}
 					else
@@ -2205,7 +2210,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 
 						m= current_menu->focus_option - current_menu->screen_focus+2;
 						for(n= 0; n < SUBMENU_ROW_NUM-1; n++)
-							draw_hscroll_init(down_screen_addr, 26, 37 + n*32, 200, 
+							draw_hscroll_init(down_screen_addr, 26, 37 + n*32, 200,
 								COLOR_TRANS, COLOR_INACTIVE_ITEM, dynamic_cheat_pt[dynamic_cheat_msg_start + m + n]);
 					}
 				}
@@ -2218,7 +2223,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 						drawboxfill((unsigned short*)bg_screenp, 0, 24, 255, 191, ((2<<10) + (3<<5) + 3));
 					}
 					draw_hscroll_over(0);
-					draw_hscroll_init(down_screen_addr, 36, 5, 180, 
+					draw_hscroll_init(down_screen_addr, 36, 5, 180,
 						COLOR_TRANS, COLOR_ACTIVE_ITEM, dynamic_cheat_pt[dynamic_cheat_msg_start]);
 				}
 
@@ -2234,7 +2239,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 						show_icon((unsigned short*)bg_screenp, &ICON_SUBSELA, 3, 29 + m*32);
 
 					draw_hscroll_over(m+1);
-					draw_hscroll_init(down_screen_addr, 26, 37 + m*32, 200, 
+					draw_hscroll_init(down_screen_addr, 26, 37 + m*32, 200,
 						COLOR_TRANS, COLOR_ACTIVE_ITEM, dynamic_cheat_pt[dynamic_cheat_msg_start + current_option_num]);
 				}
 
@@ -2251,7 +2256,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 					{
 						m = current_menu->screen_focus -1;
 						draw_hscroll_over(m+1);
-						draw_hscroll_init(down_screen_addr, 26, 37 + m*32, 200, 
+						draw_hscroll_init(down_screen_addr, 26, 37 + m*32, 200,
 							COLOR_TRANS, COLOR_INACTIVE_ITEM, dynamic_cheat_pt[dynamic_cheat_msg_start + current_option_num]);
 					}
 					else
@@ -2266,7 +2271,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 						if(k > SUBMENU_ROW_NUM) k = SUBMENU_ROW_NUM;
 
 						for(n= 1; n < k; n++)
-							draw_hscroll_init(down_screen_addr, 26, 37 + n*32, 200, 
+							draw_hscroll_init(down_screen_addr, 26, 37 + n*32, 200,
 								COLOR_TRANS, COLOR_INACTIVE_ITEM, dynamic_cheat_pt[dynamic_cheat_msg_start + m + n]);
 					}
 				}
@@ -2283,7 +2288,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 							drawboxfill((unsigned short*)bg_screenp, 0, 24, 255, 191, ((2<<10) + (3<<5) + 3));
 						}
 						draw_hscroll_over(0);
-						draw_hscroll_init(down_screen_addr, 36, 5, 180, 
+						draw_hscroll_init(down_screen_addr, 36, 5, 180,
 							COLOR_TRANS, COLOR_ACTIVE_ITEM, dynamic_cheat_pt[dynamic_cheat_msg_start]);
 					}
 				}
@@ -2301,7 +2306,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 						show_icon((unsigned short*)bg_screenp, &ICON_SUBSELA, 3, 29 + m*32);
 
 					draw_hscroll_over(m+1);
-					draw_hscroll_init(down_screen_addr, 26, 37 + m*32, 200, 
+					draw_hscroll_init(down_screen_addr, 26, 37 + m*32, 200,
 						COLOR_TRANS, COLOR_ACTIVE_ITEM, dynamic_cheat_pt[dynamic_cheat_msg_start + current_option_num]);
 				}
 		        break;
@@ -2372,7 +2377,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 		else
 		{
 			draw_hscroll(0, 0);
-			show_icon(down_screen_addr, &ICON_NBACK, 229, 6);			
+			show_icon(down_screen_addr, &ICON_NBACK, 229, 6);
 		}
 
 		k = current_menu->num_options -1;
@@ -2404,7 +2409,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 					show_icon((unsigned short*)down_screen_addr, &ICON_STATEEMPTY, 230, 37 + i*32);
 				else
 					show_icon((unsigned short*)down_screen_addr, &ICON_NSTATEEMPTY, 230, 37 + i*32);
-			}		
+			}
 		}
 	}
 
@@ -2483,10 +2488,10 @@ u32 menu(u16 *screen, int FirstInvocation)
 				dynamic_cheat_options[i+1].option_type = ACTION_TYPE;
 			}
 
-			dynamic_cheat_active = game_config.cheats_flag[(CHEATS_PER_PAGE * menu_cheat_page) + 
+			dynamic_cheat_active = game_config.cheats_flag[(CHEATS_PER_PAGE * menu_cheat_page) +
 				current_option_num -1].num_cheat_lines & 0xFFFF0000;
 
-			dynamic_cheat_active |= game_config.cheats_flag[(CHEATS_PER_PAGE * menu_cheat_page) + 
+			dynamic_cheat_active |= game_config.cheats_flag[(CHEATS_PER_PAGE * menu_cheat_page) +
 				current_option_num -1].cheat_active & 0x1;
 
 			//Initial srollable options
@@ -2498,13 +2503,13 @@ u32 menu(u16 *screen, int FirstInvocation)
 				drawboxfill((unsigned short*)bg_screenp, 0, 24, 255, 191, ((2<<10) + (3<<5) + 3));
 			}
 
-			draw_hscroll_init(down_screen_addr, 36, 5, 180, 
+			draw_hscroll_init(down_screen_addr, 36, 5, 180,
 				COLOR_TRANS, COLOR_ACTIVE_ITEM, dynamic_cheat_pt[dynamic_cheat_msg_start]);
 
 			if(nums>5) nums = SUBMENU_ROW_NUM;
 			for(k= 0; k < nums; k++)
 			{
-				draw_hscroll_init(down_screen_addr, 26, 37 + k*32, 200, 
+				draw_hscroll_init(down_screen_addr, 26, 37 + k*32, 200,
 					COLOR_TRANS, COLOR_INACTIVE_ITEM, dynamic_cheat_pt[dynamic_cheat_msg_start + 1+ k]);
 			}
 			dynamic_cheat_scroll_value= 0;
@@ -2520,6 +2525,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 		unsigned int len;
 		unsigned char *pt;
 
+    //dbg_Color(RGB15(0,0,31));
 		if(display_option == current_option)
 			color= COLOR_ACTIVE_ITEM;
 		else
@@ -2531,23 +2537,26 @@ u32 menu(u16 *screen, int FirstInvocation)
 		if(pt != NULL)
 			sprintf(pt+1, "%s",	*((u32*)(((u32 *)display_option->options)[*(display_option->current_option)])));
 
+    //dbg_Color(RGB15(31,0,31));
 		strcpy(line_buffer, tmp_buf);
-		pt = strrchr(line_buffer, ')');
-		*pt = '\0';
-		pt = strchr(line_buffer, '(');
+		//pt = strrchr(line_buffer, ')');
+		//*pt = '\0';
+		//pt = strchr(line_buffer, '(');
 
-		len = BDF_cut_string(pt+1, 0, 2);
+    //dbg_Color(RGB15(0,31,0));
+		/*len = BDF_cut_string(pt+1, 0, 2);
 		if(len > 90)
 		{
 			len = BDF_cut_string(pt+1, 90, 1);
 			*(pt+1+len) = '\0';
 			strcat(line_buffer, "...");
-		}
+		}*/
 
-		pt = strrchr(tmp_buf, ')');
-		strcat(line_buffer, pt);
-
+		//pt = strrchr(tmp_buf, ')');
+		//strcat(line_buffer, pt);
+    //dbg_Color(RGB15(0,31,31));
 		PRINT_STRING_BG_UTF8(down_screen_addr, line_buffer, color, COLOR_TRANS, 26, 37 + display_option-> line_number*32);
+    //dbg_Color(RGB15(31,0,0));
 	}
 
 	void destroy_dynamic_cheats()
@@ -2581,7 +2590,7 @@ u32 menu(u16 *screen, int FirstInvocation)
                 }
                 else
                 {
-                    sprintf(cheat_format_str[i], "%d. %s", i, 
+                    sprintf(cheat_format_str[i], "%d. %s", i,
                         game_config.cheats_flag[i].cheat_name);
                 }
             }
@@ -2596,7 +2605,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 //            choose_menu(current_menu);
 //        }
 
-		
+
 		}
 	}
 
