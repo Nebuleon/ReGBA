@@ -571,9 +571,10 @@ void update_gbc_sound(u32 cpu_ticks)
         {
 //            start_flag= 1;
 //            OSSemPost(sound_sem);
-            if(game_fast_forward)
-                sound_skip();
-            else
+//            if(game_fast_forward)  // [Neb] Enable sound while
+                                     //       fast-forwarding, 2013-03-20
+//                sound_skip();
+//            else
                 sound_update();
         }
 //    }
