@@ -37,14 +37,14 @@
 #define OPTION_TEXT_SX            236
 
 // For option rows
-#define GUI_ROW1_Y                33
-#define GUI_ROW_SY                27
+#define GUI_ROW1_Y                36
+#define GUI_ROW_SY                19
 // The following offset is added to the row's Y coordinate to provide
 // the Y coordinate for its text.
-#define TEXT_OFFSET_Y             7
+#define TEXT_OFFSET_Y             2
 // The following offset is added to the row's Y coordinate to provide
 // the Y coordinate for its ICON_SUBSELA (sub-screen selection type A).
-#define SUBSELA_OFFSET_Y          2
+#define SUBSELA_OFFSET_Y          -2
 #define SUBSELA_X                 ((NDS_SCREEN_WIDTH - ICON_SUBSELA.x) / 2)
 
 // For message boxes

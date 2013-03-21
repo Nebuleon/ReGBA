@@ -64,7 +64,7 @@ char *language_options[] = { (char *) &lang[0], (char *) &lang[1], (char *) &lan
 #define DIR_LIST_POSITION 130
 #define PAGE_SCROLL_NUM SUBMENU_ROW_NUM
 
-#define SUBMENU_ROW_NUM	6
+#define SUBMENU_ROW_NUM	8
 
 #define SAVE_STATE_SLOT_NUM 16
 
