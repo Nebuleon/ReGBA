@@ -4722,7 +4722,7 @@ s32 save_game_config_file()
     FILE_OPEN(game_config_file, game_config_filename, WRITE);
     if(FILE_CHECK_VALID(game_config_file))
     {
-        FILE_WRITE(game_config_file, NGBARTS_HEADERA, NGBARTS_HEADERA_SIZE);
+        FILE_WRITE(game_config_file, GAME_CONFIG_HEADER, GAME_CONFIG_HEADER_SIZE);
         FILE_WRITE_VARIABLE(game_config_file, game_persistent_config);
         FILE_CLOSE(game_config_file);
         return 0;
