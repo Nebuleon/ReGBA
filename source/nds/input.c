@@ -315,7 +315,9 @@ u32 update_input()
         return ret_val;
     }
 
-	if((buttons & (BUTTON_ID_Y | BUTTON_ID_L)) == (BUTTON_ID_Y | BUTTON_ID_L)) //Fast backward
+	u32 HotkeyRewind = game_persistent_config.HotkeyRewind != 0 ? game_persistent_config.HotkeyRewind : gpsp_persistent_config.HotkeyRewind;
+
+	if(HotkeyRewind && (buttons & HotkeyRewind) == HotkeyRewind) // Rewind requested
     {
 		fast_backward= 1;
 		return 0;

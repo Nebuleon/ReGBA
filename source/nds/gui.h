@@ -90,7 +90,8 @@ typedef struct
 {
   u32 language;
   char latest_file[5][512];
-  u32 Reserved0[128];
+  u32 HotkeyRewind;
+  u32 Reserved0[127];
 } GPSP_CONFIG_FILE;
 
 // Runtime settings for the current game. Not persistent and reset between
@@ -125,7 +126,8 @@ typedef struct
    * split into two for the runtime settings in GAME_CONFIG.
    */
   u32 rewind_value;
-  u32 Reserved[127];
+  u32 HotkeyRewind;
+  u32 Reserved[126];
 } GAME_CONFIG_FILE;
 
 struct  FILE_LIST_INFO

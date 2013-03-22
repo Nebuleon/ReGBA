@@ -1488,6 +1488,8 @@ void init_default_gpsp_config()
   memcpy(gpsp_config.gamepad_config_map, gamepad_config_map_init, sizeof(gamepad_config_map_init));
   memcpy(gamepad_config_map, gamepad_config_map_init, sizeof(gamepad_config_map_init));
   gpsp_persistent_config.language = 0;     //defalut language= English
+  // By default, allow L+Y (DS side) to rewind in all games.
+  gpsp_persistent_config.HotkeyRewind = BUTTON_ID_L | BUTTON_ID_Y;
 #if 1
   gpsp_config.emulate_core = ASM_CORE;
 #else
@@ -1628,6 +1630,10 @@ u32 menu(u16 *screen, int FirstInvocation)
 	auto void save_screen_snapshot();
 	auto void browse_screen_snapshot();
 	auto void tools_menu_init();
+	auto void set_global_hotkey_rewind();
+	auto void set_game_specific_hotkey_rewind();
+	auto void global_hotkey_rewind_passive();
+	auto void game_specific_hotkey_rewind_passive();
 	auto void load_default_setting();
 	auto void check_gbaemu_version();
 	auto void load_lastest_played();
@@ -2864,10 +2870,35 @@ u32 menu(u16 *screen, int FirstInvocation)
 
 	INIT_MENU(cheats, cheat_menu_init, NULL, NULL, cheat_menu_end, 0, 0);
 
+    MENU_TYPE tools_menu;
+
+  /*--------------------------------------------------------
+     Tools - Global hotkeys
+  --------------------------------------------------------*/
+    MENU_OPTION_TYPE tools_global_hotkeys_options[] =
+    {
+	/* 00 */ SUBMENU_OPTION(&tools_menu, &msg[MSG_TOOLS_GLOBAL_HOTKEY_GENERAL], NULL, 0),
+
+	/* 01 */ ACTION_OPTION(set_global_hotkey_rewind, global_hotkey_rewind_passive, &msg[MSG_HOTKEY_REWIND], NULL, 1)
+    };
+
+    MAKE_MENU(tools_global_hotkeys, NULL, NULL, NULL, NULL, 0, 0);
+
+  /*--------------------------------------------------------
+     Tools - Game-specific hotkey overrides
+  --------------------------------------------------------*/
+    MENU_OPTION_TYPE tools_game_specific_hotkeys_options[] =
+    {
+	/* 00 */ SUBMENU_OPTION(&tools_menu, &msg[MSG_TOOLS_GAME_HOTKEY_GENERAL], NULL, 0),
+
+	/* 01 */ ACTION_OPTION(set_game_specific_hotkey_rewind, game_specific_hotkey_rewind_passive, &msg[MSG_HOTKEY_REWIND], NULL, 1)
+    };
+
+    MAKE_MENU(tools_game_specific_hotkeys, NULL, NULL, NULL, NULL, 0, 0);
+
   /*--------------------------------------------------------
      Tools-screensanp
   --------------------------------------------------------*/
-    MENU_TYPE tools_menu;
 
     MENU_OPTION_TYPE tools_screensnap_options[] =
     {
@@ -2889,10 +2920,14 @@ u32 menu(u16 *screen, int FirstInvocation)
 
 	/* 01 */ SUBMENU_OPTION(&tools_screensnap_menu, &msg[MSG_TOOLS_SCREENSHOT_GENERAL], NULL, 1),
 
+	/* 02 */ SUBMENU_OPTION(&tools_global_hotkeys_menu, &msg[MSG_TOOLS_GLOBAL_HOTKEY_GENERAL], NULL, 2),
+
+	/* 03 */ SUBMENU_OPTION(&tools_game_specific_hotkeys_menu, &msg[MSG_TOOLS_GAME_HOTKEY_GENERAL], NULL, 3),
+
 //	/* 02 */ SUBMENU_OPTION(&tools_keyremap_menu, &msg[MSG_SUB_MENU_31], NULL, 2),
 
-		/* 02 */ STRING_SELECTION_OPTION(game_set_rewind, NULL, &msg[FMT_VIDEO_REWINDING], rewinding_options,
-			&game_persistent_config.rewind_value, 7, NULL, ACTION_TYPE, 2)
+		/* 04 */ STRING_SELECTION_OPTION(game_set_rewind, NULL, &msg[FMT_VIDEO_REWINDING], rewinding_options,
+			&game_persistent_config.rewind_value, 7, NULL, ACTION_TYPE, 4)
     };
 
     INIT_MENU(tools, tools_menu_init, NULL, NULL, NULL, 0, 0);
@@ -3147,6 +3182,74 @@ u32 menu(u16 *screen, int FirstInvocation)
 		else
 			tools_options[3] /* game hotkeys */.option_type &= ~HIDEN_TYPE;
 #endif
+	}
+
+	void obtain_hotkey (u32 *HotkeyBitfield)
+	{
+		draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
+		draw_string_vcenter(down_screen_addr, MESSAGE_BOX_TEXT_X, MESSAGE_BOX_TEXT_Y, MESSAGE_BOX_TEXT_SX, COLOR_MSSG, msg[MSG_PROGRESS_HOTKEY_WAITING_FOR_KEYS]);
+
+		u32 Keys = draw_hotkey_dialog(DOWN_SCREEN, 115, msg[MSG_HOTKEY_DELETE_WITH_A], msg[MSG_HOTKEY_CANCEL_WITH_B]);
+		if (Keys == KEY_B)
+			; // unmodified
+		else if (Keys == KEY_A)
+			*HotkeyBitfield = 0; // clear
+		else
+			*HotkeyBitfield = Keys; // set
+	}
+
+	void set_global_hotkey_rewind()
+	{
+		obtain_hotkey(&gpsp_persistent_config.HotkeyRewind);
+	}
+
+	void set_game_specific_hotkey_rewind()
+	{
+		obtain_hotkey(&game_persistent_config.HotkeyRewind);
+	}
+
+#define HOTKEY_CONTENT_X 156
+	void hotkey_option_passive_common(u32 HotkeyBitfield)
+	{
+		unsigned short color;
+		char tmp_buf[512];
+		unsigned int len;
+
+		if(display_option == current_option)
+			color= COLOR_ACTIVE_ITEM;
+		else
+			color= COLOR_INACTIVE_ITEM;
+
+		strcpy(tmp_buf, *(display_option->display_string));
+		PRINT_STRING_BG(down_screen_addr, tmp_buf, color, COLOR_TRANS, OPTION_TEXT_X, GUI_ROW1_Y + display_option-> line_number * GUI_ROW_SY + TEXT_OFFSET_Y);
+
+		// Construct a UTF-8 string showing the buttons in the
+		// bitfield.
+		tmp_buf[0] = '\0';
+		if (HotkeyBitfield & KEY_L)      strcpy(tmp_buf, HOTKEY_L_DISPLAY);
+		if (HotkeyBitfield & KEY_R)      strcat(tmp_buf, HOTKEY_R_DISPLAY);
+		if (HotkeyBitfield & KEY_A)      strcat(tmp_buf, HOTKEY_A_DISPLAY);
+		if (HotkeyBitfield & KEY_B)      strcat(tmp_buf, HOTKEY_B_DISPLAY);
+		if (HotkeyBitfield & KEY_Y)      strcat(tmp_buf, HOTKEY_Y_DISPLAY);
+		if (HotkeyBitfield & KEY_X)      strcat(tmp_buf, HOTKEY_X_DISPLAY);
+		if (HotkeyBitfield & KEY_START)  strcat(tmp_buf, HOTKEY_START_DISPLAY);
+		if (HotkeyBitfield & KEY_SELECT) strcat(tmp_buf, HOTKEY_SELECT_DISPLAY);
+		if (HotkeyBitfield & KEY_UP)     strcat(tmp_buf, HOTKEY_UP_DISPLAY);
+		if (HotkeyBitfield & KEY_DOWN)   strcat(tmp_buf, HOTKEY_DOWN_DISPLAY);
+		if (HotkeyBitfield & KEY_LEFT)   strcat(tmp_buf, HOTKEY_LEFT_DISPLAY);
+		if (HotkeyBitfield & KEY_RIGHT)  strcat(tmp_buf, HOTKEY_RIGHT_DISPLAY);
+
+		PRINT_STRING_BG(down_screen_addr, tmp_buf, color, COLOR_TRANS, HOTKEY_CONTENT_X, GUI_ROW1_Y + display_option-> line_number * GUI_ROW_SY + TEXT_OFFSET_Y);
+	}
+
+	void global_hotkey_rewind_passive()
+	{
+		hotkey_option_passive_common(gpsp_persistent_config.HotkeyRewind);
+	}
+
+	void game_specific_hotkey_rewind_passive()
+	{
+		hotkey_option_passive_common(game_persistent_config.HotkeyRewind);
 	}
 
 	int lastest_game_menu_scroll_value;

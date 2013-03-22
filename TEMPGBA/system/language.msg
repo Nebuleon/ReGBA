@@ -63,7 +63,7 @@ Frame skipping    %s
 #FMT_AUDIO_SOUND
 Sound                  %s
 #FMT_VIDEO_REWINDING
-Rewinding (*L*Y)       %s
+Rewinding       %s
 #FMT_SAVED_STATE_CREATE
 Create saved state      %d
 #FMT_SAVED_STATE_LOAD
@@ -106,6 +106,8 @@ Version information
 Save a screenshot
 #MSG_SCREENSHOT_BROWSE
 Screenshot slideshow
+#MSG_HOTKEY_REWIND
+Rewind
 #MSG_HOTKEY_MAIN_MENU
 Go to main menu
 #MSG_HOTKEY_TEMPORARY_FAST_FORWARD
@@ -290,7 +292,7 @@ STARTCHINESESIM
 #FMT_AUDIO_SOUND
 声音开关                 %s
 #FMT_VIDEO_REWINDING
-Rewinding (*L*Y)       %s
+Rewinding       %s
 #FMT_SAVED_STATE_CREATE
 写入存档                 %d
 #FMT_SAVED_STATE_LOAD
@@ -333,6 +335,8 @@ CPU主频                          %s
 保存屏幕快照
 #MSG_SCREENSHOT_BROWSE
 浏览屏幕快照
+#MSG_HOTKEY_REWIND
+Rewind
 #MSG_HOTKEY_MAIN_MENU
 返回主菜单
 #MSG_HOTKEY_TEMPORARY_FAST_FORWARD
@@ -517,7 +521,7 @@ Omission d'images  %s
 #FMT_AUDIO_SOUND
 Son                         %s
 #FMT_VIDEO_REWINDING
-Rembobinage (*L*Y)       %s
+Rembobinage       %s
 #FMT_SAVED_STATE_CREATE
 Créer la sauvegarde       %d
 #FMT_SAVED_STATE_LOAD
@@ -560,6 +564,8 @@ Version
 Créer une capture d'écran
 #MSG_SCREENSHOT_BROWSE
 Diaporama de captures d'écran
+#MSG_HOTKEY_REWIND
+Rembobiner
 #MSG_HOTKEY_MAIN_MENU
 Menu principal
 #MSG_HOTKEY_TEMPORARY_FAST_FORWARD
@@ -745,7 +751,7 @@ Frames übersp.  %s
 #FMT_AUDIO_SOUND
 Ton                     %s
 #FMT_VIDEO_REWINDING
-Rewinding (*L*Y)       %s
+Rewinding       %s
 #FMT_SAVED_STATE_CREATE
 Speicherstand erstellen      %d
 #FMT_SAVED_STATE_LOAD
@@ -788,6 +794,8 @@ Versionsinformation
 Screenshot speichern
 #MSG_SCREENSHOT_BROWSE
 Screenshots durchsuchen
+#MSG_HOTKEY_REWIND
+Rewind
 #MSG_HOTKEY_MAIN_MENU
 Hauptmenü
 #MSG_HOTKEY_TEMPORARY_FAST_FORWARD
@@ -973,7 +981,7 @@ Beeld overslaan   %s
 #FMT_AUDIO_SOUND
 Geluid                    %s
 #FMT_VIDEO_REWINDING
-Rewinding (*L*Y)       %s
+Rewinding       %s
 #FMT_SAVED_STATE_CREATE
 Creëer spelstaat       %d
 #FMT_SAVED_STATE_LOAD
@@ -1016,6 +1024,8 @@ Versie-informatie
 Maak beeldschermafdruk
 #MSG_SCREENSHOT_BROWSE
 Diavoorstelling
+#MSG_HOTKEY_REWIND
+Rewind
 #MSG_HOTKEY_MAIN_MENU
 Ga naar het hoofdmenu
 #MSG_HOTKEY_TEMPORARY_FAST_FORWARD
@@ -1201,7 +1211,7 @@ Salto de fotogramas  %s
 #FMT_AUDIO_SOUND
 Sonido                         %s
 #FMT_VIDEO_REWINDING
-Rewinding (*L*Y)       %s
+Rewinding       %s
 #FMT_SAVED_STATE_CREATE
 Grabar partida  %d
 #FMT_SAVED_STATE_LOAD
@@ -1244,6 +1254,8 @@ Información de versión
 Salvar captura
 #MSG_SCREENSHOT_BROWSE
 Mostrar capturas
+#MSG_HOTKEY_REWIND
+Rewind
 #MSG_HOTKEY_MAIN_MENU
 Ir al menú principal
 #MSG_HOTKEY_TEMPORARY_FAST_FORWARD
@@ -1428,7 +1440,7 @@ Salto fotogrammi %s
 #FMT_AUDIO_SOUND
 Audio                       %s
 #FMT_VIDEO_REWINDING
-Rewinding (*L*Y)       %s
+Rewinding       %s
 #FMT_SAVED_STATE_CREATE
 Crea salvataggio      %d
 #FMT_SAVED_STATE_LOAD
@@ -1471,6 +1483,8 @@ Informazioni sulla versione
 Salva schermata
 #MSG_SCREENSHOT_BROWSE
 Sfoglia schermate
+#MSG_HOTKEY_REWIND
+Rewind
 #MSG_HOTKEY_MAIN_MENU
 Vai al menu principale
 #MSG_HOTKEY_TEMPORARY_FAST_FORWARD
@@ -1655,7 +1669,7 @@ Pulo de quadros   %s
 #FMT_AUDIO_SOUND
 Som                       %s
 #FMT_VIDEO_REWINDING
-Rewinding (*L*Y)       %s
+Rewinding       %s
 #FMT_SAVED_STATE_CREATE
 Criar estado         %d
 #FMT_SAVED_STATE_LOAD
@@ -1698,6 +1712,8 @@ Informações desta versão
 Tirar uma foto
 #MSG_SCREENSHOT_BROWSE
 Slideshow de fotos
+#MSG_HOTKEY_REWIND
+Rewind
 #MSG_HOTKEY_MAIN_MENU
 Voltar ao menu principal
 #MSG_HOTKEY_TEMPORARY_FAST_FORWARD
