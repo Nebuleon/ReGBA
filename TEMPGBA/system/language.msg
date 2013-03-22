@@ -80,6 +80,10 @@ Screenshots...
 Global hotkeys...
 #MSG_TOOLS_GAME_HOTKEY_GENERAL
 Game-specific hotkey overrides...
+#MSG_TOOLS_GLOBAL_BUTTON_MAPPING_GENERAL
+Global button mappings...
+#MSG_TOOLS_GAME_BUTTON_MAPPING_GENERAL
+Game-specific button mappings...
 #FMT_OPTIONS_LANGUAGE
 Language                          %s
 #FMT_OPTIONS_CPU_FREQUENCY
@@ -120,8 +124,30 @@ Load saved state 1
 Create saved state 1
 #MSG_HOTKEY_FULL_SCREEN_TOGGLE
 Toggle full-screen
+#MSG_BUTTON_MAPPING_A
+GBA key *A
+#MSG_BUTTON_MAPPING_B
+GBA key *B
+#MSG_BUTTON_MAPPING_SELECT
+GBA key *s
+#MSG_BUTTON_MAPPING_START
+GBA key *S
+#MSG_BUTTON_MAPPING_R
+GBA key *R
+#MSG_BUTTON_MAPPING_L
+GBA key *L
+#MSG_BUTTON_MAPPING_RAPID_A
+Rapid-fire *A
+#MSG_BUTTON_MAPPING_RAPID_B
+Rapid-fire *B
 #MSG_PROGRESS_HOTKEY_WAITING_FOR_KEYS
 Press the buttons you wish to use to perform this action.
+#MSG_PROGRESS_MAPPING_WAITING_FOR_KEY
+Press the DS button you wish to map to this GBA button.
+#MSG_PROGRESS_MAPPING_WAITING_FOR_KEY_OR_CLEAR
+Press the DS button you wish to map to this GBA button.\n
+\n
+You can press two buttons at once to delete this mapping.
 #MSG_HOTKEY_DELETE_WITH_A
 *A Clear
 #MSG_HOTKEY_CANCEL_WITH_B
@@ -309,6 +335,10 @@ Rewinding       %s
 全局热键
 #MSG_TOOLS_GAME_HOTKEY_GENERAL
 游戏专用覆盖性热键
+#MSG_TOOLS_GLOBAL_BUTTON_MAPPING_GENERAL
+Global button mappings...
+#MSG_TOOLS_GAME_BUTTON_MAPPING_GENERAL
+Game-specific button mappings...
 #FMT_OPTIONS_LANGUAGE
 语言                               %s
 #FMT_OPTIONS_CPU_FREQUENCY
@@ -349,8 +379,30 @@ Rewind
 保存即时存档 1
 #MSG_HOTKEY_FULL_SCREEN_TOGGLE
 全屏开关
+#MSG_BUTTON_MAPPING_A
+GBA key *A
+#MSG_BUTTON_MAPPING_B
+GBA key *B
+#MSG_BUTTON_MAPPING_SELECT
+GBA key *s
+#MSG_BUTTON_MAPPING_START
+GBA key *S
+#MSG_BUTTON_MAPPING_R
+GBA key *R
+#MSG_BUTTON_MAPPING_L
+GBA key *L
+#MSG_BUTTON_MAPPING_RAPID_A
+Rapid-fire *A
+#MSG_BUTTON_MAPPING_RAPID_B
+Rapid-fire *B
 #MSG_PROGRESS_HOTKEY_WAITING_FOR_KEYS
 按下你想要设置为这个效果的按钮
+#MSG_PROGRESS_MAPPING_WAITING_FOR_KEY
+Press the DS button you wish to map to this GBA button.
+#MSG_PROGRESS_MAPPING_WAITING_FOR_KEY_OR_CLEAR
+Press the DS button you wish to map to this GBA button.\n
+\n
+You can press two buttons at once to delete this mapping.
 #MSG_HOTKEY_DELETE_WITH_A
 *A 清除
 #MSG_HOTKEY_CANCEL_WITH_B
@@ -537,7 +589,11 @@ Captures d'écran...
 #MSG_TOOLS_GLOBAL_HOTKEY_GENERAL
 Raccourcis globaux...
 #MSG_TOOLS_GAME_HOTKEY_GENERAL
-Raccourcis pour le jeu actuel...
+Raccourcis pour ce jeu...
+#MSG_TOOLS_GLOBAL_BUTTON_MAPPING_GENERAL
+Affectations de boutons globales...
+#MSG_TOOLS_GAME_BUTTON_MAPPING_GENERAL
+Affectations de boutous pour ce jeu...
 #FMT_OPTIONS_LANGUAGE
 Langue                              %s
 #FMT_OPTIONS_CPU_FREQUENCY
@@ -578,8 +634,30 @@ Charger la sauvegarde 1
 Créer la sauvegarde 1
 #MSG_HOTKEY_FULL_SCREEN_TOGGLE
 (Dés)activer le plein écran
+#MSG_BUTTON_MAPPING_A
+Touche GBA *A
+#MSG_BUTTON_MAPPING_B
+Touche GBA *B
+#MSG_BUTTON_MAPPING_SELECT
+Touche GBA *s
+#MSG_BUTTON_MAPPING_START
+Touche GBA *S
+#MSG_BUTTON_MAPPING_R
+Touche GBA *R
+#MSG_BUTTON_MAPPING_L
+Touche GBA *L
+#MSG_BUTTON_MAPPING_RAPID_A
+Tir rapide *A
+#MSG_BUTTON_MAPPING_RAPID_B
+Tir rapide *B
 #MSG_PROGRESS_HOTKEY_WAITING_FOR_KEYS
 Appuyez sur les boutons que vous voulez utiliser pour effectuer cette action.
+#MSG_PROGRESS_MAPPING_WAITING_FOR_KEY
+Appuyez sur le bouton DS que vous voulez affecter à ce bouton GBA.
+#MSG_PROGRESS_MAPPING_WAITING_FOR_KEY_OR_CLEAR
+Appuyez sur le bouton DS que vous voulez affecter à ce bouton GBA.\n
+\n
+Vous pouvez appuyer sur deux boutons à la fois pour supprimer cette affectation.
 #MSG_HOTKEY_DELETE_WITH_A
 *A Effacer
 #MSG_HOTKEY_CANCEL_WITH_B
@@ -768,6 +846,10 @@ Screenshots...
 Globale Hotkeys...
 #MSG_TOOLS_GAME_HOTKEY_GENERAL
 Spielspezifische Hotkeys...
+#MSG_TOOLS_GLOBAL_BUTTON_MAPPING_GENERAL
+Global button mappings...
+#MSG_TOOLS_GAME_BUTTON_MAPPING_GENERAL
+Game-specific button mappings...
 #FMT_OPTIONS_LANGUAGE
 Sprache                          %s
 #FMT_OPTIONS_CPU_FREQUENCY
@@ -808,8 +890,30 @@ Speicherstand 1 laden
 Speicherstand 1 erstellen
 #MSG_HOTKEY_FULL_SCREEN_TOGGLE
 Vollbild umschalten
+#MSG_BUTTON_MAPPING_A
+GBA key *A
+#MSG_BUTTON_MAPPING_B
+GBA key *B
+#MSG_BUTTON_MAPPING_SELECT
+GBA key *s
+#MSG_BUTTON_MAPPING_START
+GBA key *S
+#MSG_BUTTON_MAPPING_R
+GBA key *R
+#MSG_BUTTON_MAPPING_L
+GBA key *L
+#MSG_BUTTON_MAPPING_RAPID_A
+Rapid-fire *A
+#MSG_BUTTON_MAPPING_RAPID_B
+Rapid-fire *B
 #MSG_PROGRESS_HOTKEY_WAITING_FOR_KEYS
 Knöpfe für dieses Ereignis drücken.
+#MSG_PROGRESS_MAPPING_WAITING_FOR_KEY
+Press the DS button you wish to map to this GBA button.
+#MSG_PROGRESS_MAPPING_WAITING_FOR_KEY_OR_CLEAR
+Press the DS button you wish to map to this GBA button.\n
+\n
+You can press two buttons at once to delete this mapping.
 #MSG_HOTKEY_DELETE_WITH_A
 *A Löschen
 #MSG_HOTKEY_CANCEL_WITH_B
@@ -998,6 +1102,10 @@ Beeldschermafdrukken...
 Globale sneltoetsen...
 #MSG_TOOLS_GAME_HOTKEY_GENERAL
 Spel-specifieke sneltoetsen...
+#MSG_TOOLS_GLOBAL_BUTTON_MAPPING_GENERAL
+Global button mappings...
+#MSG_TOOLS_GAME_BUTTON_MAPPING_GENERAL
+Game-specific button mappings...
 #FMT_OPTIONS_LANGUAGE
 Taal                                  %s
 #FMT_OPTIONS_CPU_FREQUENCY
@@ -1038,8 +1146,30 @@ Laad spelstaat 1
 Sla spelstaat 1 op
 #MSG_HOTKEY_FULL_SCREEN_TOGGLE
 Schakel naar volledig scherm
+#MSG_BUTTON_MAPPING_A
+GBA key *A
+#MSG_BUTTON_MAPPING_B
+GBA key *B
+#MSG_BUTTON_MAPPING_SELECT
+GBA key *s
+#MSG_BUTTON_MAPPING_START
+GBA key *S
+#MSG_BUTTON_MAPPING_R
+GBA key *R
+#MSG_BUTTON_MAPPING_L
+GBA key *L
+#MSG_BUTTON_MAPPING_RAPID_A
+Rapid-fire *A
+#MSG_BUTTON_MAPPING_RAPID_B
+Rapid-fire *B
 #MSG_PROGRESS_HOTKEY_WAITING_FOR_KEYS
 Druk op de gewenste knoppencombinatie.
+#MSG_PROGRESS_MAPPING_WAITING_FOR_KEY
+Press the DS button you wish to map to this GBA button.
+#MSG_PROGRESS_MAPPING_WAITING_FOR_KEY_OR_CLEAR
+Press the DS button you wish to map to this GBA button.\n
+\n
+You can press two buttons at once to delete this mapping.
 #MSG_HOTKEY_DELETE_WITH_A
 *A Wissen
 #MSG_HOTKEY_CANCEL_WITH_B
@@ -1228,6 +1358,10 @@ Capturas de pantalla...
 Teclas de atajo globales...
 #MSG_TOOLS_GAME_HOTKEY_GENERAL
 Teclas de atajo en juego...
+#MSG_TOOLS_GLOBAL_BUTTON_MAPPING_GENERAL
+Global button mappings...
+#MSG_TOOLS_GAME_BUTTON_MAPPING_GENERAL
+Game-specific button mappings...
 #FMT_OPTIONS_LANGUAGE
 Idioma                                %s
 #FMT_OPTIONS_CPU_FREQUENCY
@@ -1268,8 +1402,30 @@ Cargar partida 1
 Grabar partida 1
 #MSG_HOTKEY_FULL_SCREEN_TOGGLE
 Alternar pantalla completa
+#MSG_BUTTON_MAPPING_A
+GBA key *A
+#MSG_BUTTON_MAPPING_B
+GBA key *B
+#MSG_BUTTON_MAPPING_SELECT
+GBA key *s
+#MSG_BUTTON_MAPPING_START
+GBA key *S
+#MSG_BUTTON_MAPPING_R
+GBA key *R
+#MSG_BUTTON_MAPPING_L
+GBA key *L
+#MSG_BUTTON_MAPPING_RAPID_A
+Rapid-fire *A
+#MSG_BUTTON_MAPPING_RAPID_B
+Rapid-fire *B
 #MSG_PROGRESS_HOTKEY_WAITING_FOR_KEYS
 Presione la tecla para esta acción.
+#MSG_PROGRESS_MAPPING_WAITING_FOR_KEY
+Press the DS button you wish to map to this GBA button.
+#MSG_PROGRESS_MAPPING_WAITING_FOR_KEY_OR_CLEAR
+Press the DS button you wish to map to this GBA button.\n
+\n
+You can press two buttons at once to delete this mapping.
 #MSG_HOTKEY_DELETE_WITH_A
 *A Borrar
 #MSG_HOTKEY_CANCEL_WITH_B
@@ -1457,6 +1613,10 @@ Cattura schermata...
 Tasti di scelta rapida globali...
 #MSG_TOOLS_GAME_HOTKEY_GENERAL
 Tasti di scelta rapida del gioco...
+#MSG_TOOLS_GLOBAL_BUTTON_MAPPING_GENERAL
+Global button mappings...
+#MSG_TOOLS_GAME_BUTTON_MAPPING_GENERAL
+Game-specific button mappings...
 #FMT_OPTIONS_LANGUAGE
 Lingua                               %s
 #FMT_OPTIONS_CPU_FREQUENCY
@@ -1497,8 +1657,30 @@ Carica salvataggio 1
 Crea salvataggio 1
 #MSG_HOTKEY_FULL_SCREEN_TOGGLE
 (Dis)attiva schermo intero
+#MSG_BUTTON_MAPPING_A
+GBA key *A
+#MSG_BUTTON_MAPPING_B
+GBA key *B
+#MSG_BUTTON_MAPPING_SELECT
+GBA key *s
+#MSG_BUTTON_MAPPING_START
+GBA key *S
+#MSG_BUTTON_MAPPING_R
+GBA key *R
+#MSG_BUTTON_MAPPING_L
+GBA key *L
+#MSG_BUTTON_MAPPING_RAPID_A
+Rapid-fire *A
+#MSG_BUTTON_MAPPING_RAPID_B
+Rapid-fire *B
 #MSG_PROGRESS_HOTKEY_WAITING_FOR_KEYS
 Premi il pulsante che vuoi utilizzare per questa azione.
+#MSG_PROGRESS_MAPPING_WAITING_FOR_KEY
+Press the DS button you wish to map to this GBA button.
+#MSG_PROGRESS_MAPPING_WAITING_FOR_KEY_OR_CLEAR
+Press the DS button you wish to map to this GBA button.\n
+\n
+You can press two buttons at once to delete this mapping.
 #MSG_HOTKEY_DELETE_WITH_A
 *A Elimina
 #MSG_HOTKEY_CANCEL_WITH_B
@@ -1686,6 +1868,10 @@ Foto...
 Atalhos de tecla globais...
 #MSG_TOOLS_GAME_HOTKEY_GENERAL
 Atalhos de tecla do jogo atual...
+#MSG_TOOLS_GLOBAL_BUTTON_MAPPING_GENERAL
+Global button mappings...
+#MSG_TOOLS_GAME_BUTTON_MAPPING_GENERAL
+Game-specific button mappings...
 #FMT_OPTIONS_LANGUAGE
 Idioma                              %s
 #FMT_OPTIONS_CPU_FREQUENCY
@@ -1726,8 +1912,30 @@ Carregar estado 1
 Criar estado 1
 #MSG_HOTKEY_FULL_SCREEN_TOGGLE
 Ativar tela-cheia
+#MSG_BUTTON_MAPPING_A
+GBA key *A
+#MSG_BUTTON_MAPPING_B
+GBA key *B
+#MSG_BUTTON_MAPPING_SELECT
+GBA key *s
+#MSG_BUTTON_MAPPING_START
+GBA key *S
+#MSG_BUTTON_MAPPING_R
+GBA key *R
+#MSG_BUTTON_MAPPING_L
+GBA key *L
+#MSG_BUTTON_MAPPING_RAPID_A
+Rapid-fire *A
+#MSG_BUTTON_MAPPING_RAPID_B
+Rapid-fire *B
 #MSG_PROGRESS_HOTKEY_WAITING_FOR_KEYS
 Aperte os botões que você deseja para realizar esta ação.
+#MSG_PROGRESS_MAPPING_WAITING_FOR_KEY
+Press the DS button you wish to map to this GBA button.
+#MSG_PROGRESS_MAPPING_WAITING_FOR_KEY_OR_CLEAR
+Press the DS button you wish to map to this GBA button.\n
+\n
+You can press two buttons at once to delete this mapping.
 #MSG_HOTKEY_DELETE_WITH_A
 *A Limpar
 #MSG_HOTKEY_CANCEL_WITH_B

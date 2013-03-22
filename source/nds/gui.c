@@ -1402,29 +1402,24 @@ int search_dir(char *directory, char* directory_path)
 //标准按键
 const u32 gamepad_config_map_init[MAX_GAMEPAD_CONFIG_MAP] =
 {
-    BUTTON_ID_A,        /* 0    A */
-    BUTTON_ID_B,        /* 1    B */
-    BUTTON_ID_SELECT,   /* 2    [SELECT] */
-    BUTTON_ID_START,    /* 3    [START] */
-    BUTTON_ID_RIGHT,    /* 4    → */
-    BUTTON_ID_LEFT,     /* 5    ← */
-    BUTTON_ID_UP,       /* 6    ↑ */
-    BUTTON_ID_DOWN,     /* 7    ↓ */
-    BUTTON_ID_R,        /* 8    [R] */
-    BUTTON_ID_L,        /* 9    [L] */
-    BUTTON_ID_NONE,     /* 10   FA */
-    BUTTON_ID_NONE,     /* 11   FB */
-    BUTTON_ID_TOUCH,    /* 12   MENU */
-    BUTTON_ID_NONE,     /* 13   NONE */
-    BUTTON_ID_NONE,     /* 14   NONE */
-    BUTTON_ID_NONE      /* 15   NONE */
+/*  DS            -> GBA    */
+    KEY_A,        /* 0    A */
+    KEY_B,        /* 1    B */
+    KEY_SELECT,   /* 2    [SELECT] */
+    KEY_START,    /* 3    [START] */
+    KEY_RIGHT,    /* 4    → */
+    KEY_LEFT,     /* 5    ← */
+    KEY_UP,       /* 6    ↑ */
+    KEY_DOWN,     /* 7    ↓ */
+    KEY_R,        /* 8    [R] */
+    KEY_L,        /* 9    [L] */
+    0,            /* 10   FA */
+    0,            /* 11   FB */
+    KEY_TOUCH,    /* 12   MENU */
+    0,            /* 13   NONE */
+    0,            /* 14   NONE */
+    0             /* 15   NONE */
 };
-
-#define BUTTON_MAP_A    gamepad_config_map[0]
-#define BUTTON_MAP_B    gamepad_config_map[1]
-#define BUTTON_MAP_FA   gamepad_config_map[10]
-#define BUTTON_MAP_FB   gamepad_config_map[11]
-#define BUTTON_MAP_MENU gamepad_config_map[12]
 
 /* △ ○ × □ ↓ ← ↑ → */
 
@@ -1439,6 +1434,7 @@ void FixUpSettings()
 {
   game_set_frameskip();
   game_set_rewind();
+  set_button_map();
 }
 
 /*--------------------------------------------------------
@@ -1461,11 +1457,6 @@ void init_game_config()
         game_config.cheats_flag[i].cheat_active = NO;
         game_config.cheats_flag[i].cheat_name[0] = '\0';
     }
-    memcpy(game_config.gamepad_config_map, gamepad_config_map_init, sizeof(gamepad_config_map_init));
-    game_config.use_default_gamepad_map = 1;
-    game_config.gamepad_config_home = BUTTON_ID_TOUCH;
-    memcpy(gamepad_config_map, game_config.gamepad_config_map, sizeof(game_config.gamepad_config_map));
-    gamepad_config_home = game_config.gamepad_config_home;
 
     FixUpSettings();
 }
@@ -1481,21 +1472,24 @@ void init_default_gpsp_config()
   game_config.frameskip_type = 1;   //auto
   game_config.frameskip_value = 2;
   game_config.backward = 0;	//time backward disable
-  game_config.backward_time = 2;	//time backward granularity 1s
+  game_config.backward_time = 5;	//time backward granularity 10s
   gpsp_config.screen_ratio = 1; //orignal
   gpsp_config.enable_audio = 1; //on
-  //keypad configure
-  memcpy(gpsp_config.gamepad_config_map, gamepad_config_map_init, sizeof(gamepad_config_map_init));
-  memcpy(gamepad_config_map, gamepad_config_map_init, sizeof(gamepad_config_map_init));
   gpsp_persistent_config.language = 0;     //defalut language= English
   // By default, allow L+Y (DS side) to rewind in all games.
-  gpsp_persistent_config.HotkeyRewind = BUTTON_ID_L | BUTTON_ID_Y;
+  gpsp_persistent_config.HotkeyRewind = KEY_L | KEY_Y;
+  // Default button mapping.
+  gpsp_persistent_config.ButtonMappings[0] /* GBA A */ = KEY_A;
+  gpsp_persistent_config.ButtonMappings[1] /* GBA B */ = KEY_B;
+  gpsp_persistent_config.ButtonMappings[2] /* GBA SELECT */ = KEY_SELECT;
+  gpsp_persistent_config.ButtonMappings[3] /* GBA START */ = KEY_START;
+  gpsp_persistent_config.ButtonMappings[4] /* GBA R */ = KEY_R;
+  gpsp_persistent_config.ButtonMappings[5] /* GBA L */ = KEY_L;
 #if 1
   gpsp_config.emulate_core = ASM_CORE;
 #else
   gpsp_config.emulate_core = C_CORE;
 #endif
-    gpsp_config.gamepad_config_home = BUTTON_ID_TOUCH;
   gpsp_config.debug_flag = NO;
   gpsp_config.fake_fat = NO;
   gpsp_config.rom_file[0]= 0;
@@ -1538,9 +1532,6 @@ void load_game_config_file(void)
         }
         FILE_CLOSE(game_config_file);
     }
-    // The gamepad config map is not persisted to file yet. [Neb]
-    memcpy(gamepad_config_map, game_config.gamepad_config_map, sizeof(game_config.gamepad_config_map));
-    gamepad_config_home = game_config.gamepad_config_home;
     FixUpSettings();
 }
 
@@ -1568,8 +1559,6 @@ s32 load_config_file()
         {
             FILE_READ_VARIABLE(gpsp_config_file, gpsp_persistent_config);
             FILE_CLOSE(gpsp_config_file);
-            // The gamepad config map is not persistent yet. [Neb]
-            memcpy(gamepad_config_map, gpsp_config.gamepad_config_map, sizeof(gpsp_config.gamepad_config_map));
             return 0;
         }
     }
@@ -1630,10 +1619,46 @@ u32 menu(u16 *screen, int FirstInvocation)
 	auto void save_screen_snapshot();
 	auto void browse_screen_snapshot();
 	auto void tools_menu_init();
+
 	auto void set_global_hotkey_rewind();
 	auto void set_game_specific_hotkey_rewind();
 	auto void global_hotkey_rewind_passive();
 	auto void game_specific_hotkey_rewind_passive();
+
+	auto void set_global_button_a();
+	auto void set_global_button_b();
+	auto void set_global_button_select();
+	auto void set_global_button_start();
+	auto void set_global_button_r();
+	auto void set_global_button_l();
+	auto void set_global_button_rapid_a();
+	auto void set_global_button_rapid_b();
+	auto void set_game_specific_button_a();
+	auto void set_game_specific_button_b();
+	auto void set_game_specific_button_select();
+	auto void set_game_specific_button_start();
+	auto void set_game_specific_button_r();
+	auto void set_game_specific_button_l();
+	auto void set_game_specific_button_rapid_a();
+	auto void set_game_specific_button_rapid_b();
+
+	auto void global_button_a_passive();
+	auto void global_button_b_passive();
+	auto void global_button_select_passive();
+	auto void global_button_start_passive();
+	auto void global_button_r_passive();
+	auto void global_button_l_passive();
+	auto void global_button_rapid_a_passive();
+	auto void global_button_rapid_b_passive();
+	auto void game_specific_button_a_passive();
+	auto void game_specific_button_b_passive();
+	auto void game_specific_button_select_passive();
+	auto void game_specific_button_start_passive();
+	auto void game_specific_button_r_passive();
+	auto void game_specific_button_l_passive();
+	auto void game_specific_button_rapid_a_passive();
+	auto void game_specific_button_rapid_b_passive();
+
 	auto void load_default_setting();
 	auto void check_gbaemu_version();
 	auto void load_lastest_played();
@@ -2897,6 +2922,58 @@ u32 menu(u16 *screen, int FirstInvocation)
     MAKE_MENU(tools_game_specific_hotkeys, NULL, NULL, NULL, NULL, 0, 0);
 
   /*--------------------------------------------------------
+     Tools - Global button mappings
+  --------------------------------------------------------*/
+    MENU_OPTION_TYPE tools_global_button_mappings_options[] =
+    {
+	/* 00 */ SUBMENU_OPTION(&tools_menu, &msg[MSG_TOOLS_GLOBAL_BUTTON_MAPPING_GENERAL], NULL, 0),
+
+	/* 01 */ ACTION_OPTION(set_global_button_a, global_button_a_passive, &msg[MSG_BUTTON_MAPPING_A], NULL, 1),
+
+	/* 02 */ ACTION_OPTION(set_global_button_b, global_button_b_passive, &msg[MSG_BUTTON_MAPPING_B], NULL, 2),
+
+	/* 03 */ ACTION_OPTION(set_global_button_start, global_button_start_passive, &msg[MSG_BUTTON_MAPPING_START], NULL, 3),
+
+	/* 04 */ ACTION_OPTION(set_global_button_select, global_button_select_passive, &msg[MSG_BUTTON_MAPPING_SELECT], NULL, 4),
+
+	/* 05 */ ACTION_OPTION(set_global_button_l, global_button_l_passive, &msg[MSG_BUTTON_MAPPING_L], NULL, 5),
+
+	/* 06 */ ACTION_OPTION(set_global_button_r, global_button_r_passive, &msg[MSG_BUTTON_MAPPING_R], NULL, 6),
+
+	/* 07 */ ACTION_OPTION(set_global_button_rapid_a, global_button_rapid_a_passive, &msg[MSG_BUTTON_MAPPING_RAPID_A], NULL, 7),
+
+	/* 08 */ ACTION_OPTION(set_global_button_rapid_b, global_button_rapid_b_passive, &msg[MSG_BUTTON_MAPPING_RAPID_B], NULL, 8)
+    };
+
+    MAKE_MENU(tools_global_button_mappings, NULL, NULL, NULL, NULL, 0, 0);
+
+  /*--------------------------------------------------------
+     Tools - Game-specific button mappings
+  --------------------------------------------------------*/
+    MENU_OPTION_TYPE tools_game_specific_button_mappings_options[] =
+    {
+	/* 00 */ SUBMENU_OPTION(&tools_menu, &msg[MSG_TOOLS_GAME_BUTTON_MAPPING_GENERAL], NULL, 0),
+
+	/* 01 */ ACTION_OPTION(set_game_specific_button_a, game_specific_button_a_passive, &msg[MSG_BUTTON_MAPPING_A], NULL, 1),
+
+	/* 02 */ ACTION_OPTION(set_game_specific_button_b, game_specific_button_b_passive, &msg[MSG_BUTTON_MAPPING_B], NULL, 2),
+
+	/* 03 */ ACTION_OPTION(set_game_specific_button_start, game_specific_button_start_passive, &msg[MSG_BUTTON_MAPPING_START], NULL, 3),
+
+	/* 04 */ ACTION_OPTION(set_game_specific_button_select, game_specific_button_select_passive, &msg[MSG_BUTTON_MAPPING_SELECT], NULL, 4),
+
+	/* 05 */ ACTION_OPTION(set_game_specific_button_l, game_specific_button_l_passive, &msg[MSG_BUTTON_MAPPING_L], NULL, 5),
+
+	/* 06 */ ACTION_OPTION(set_game_specific_button_r, game_specific_button_r_passive, &msg[MSG_BUTTON_MAPPING_R], NULL, 6),
+
+	/* 07 */ ACTION_OPTION(set_game_specific_button_rapid_a, game_specific_button_rapid_a_passive, &msg[MSG_BUTTON_MAPPING_RAPID_A], NULL, 7),
+
+	/* 08 */ ACTION_OPTION(set_game_specific_button_rapid_b, game_specific_button_rapid_b_passive, &msg[MSG_BUTTON_MAPPING_RAPID_B], NULL, 8)
+    };
+
+    MAKE_MENU(tools_game_specific_button_mappings, NULL, NULL, NULL, NULL, 0, 0);
+
+  /*--------------------------------------------------------
      Tools-screensanp
   --------------------------------------------------------*/
 
@@ -2924,10 +3001,12 @@ u32 menu(u16 *screen, int FirstInvocation)
 
 	/* 03 */ SUBMENU_OPTION(&tools_game_specific_hotkeys_menu, &msg[MSG_TOOLS_GAME_HOTKEY_GENERAL], NULL, 3),
 
-//	/* 02 */ SUBMENU_OPTION(&tools_keyremap_menu, &msg[MSG_SUB_MENU_31], NULL, 2),
+	/* 04 */ SUBMENU_OPTION(&tools_global_button_mappings_menu, &msg[MSG_TOOLS_GLOBAL_BUTTON_MAPPING_GENERAL], NULL, 4),
 
-		/* 04 */ STRING_SELECTION_OPTION(game_set_rewind, NULL, &msg[FMT_VIDEO_REWINDING], rewinding_options,
-			&game_persistent_config.rewind_value, 7, NULL, ACTION_TYPE, 4)
+	/* 05 */ SUBMENU_OPTION(&tools_game_specific_button_mappings_menu, &msg[MSG_TOOLS_GAME_BUTTON_MAPPING_GENERAL], NULL, 5),
+
+	/* 06 */ STRING_SELECTION_OPTION(game_set_rewind, NULL, &msg[FMT_VIDEO_REWINDING], rewinding_options,
+		&game_persistent_config.rewind_value, 7, NULL, ACTION_TYPE, 6)
     };
 
     INIT_MENU(tools, tools_menu_init, NULL, NULL, NULL, 0, 0);
@@ -3186,6 +3265,14 @@ u32 menu(u16 *screen, int FirstInvocation)
 
 	void obtain_hotkey (u32 *HotkeyBitfield)
 	{
+		if(bg_screenp != NULL)
+		{
+			bg_screenp_color = COLOR16(43, 11, 11);
+			memcpy(bg_screenp, down_screen_addr, 256*192*2);
+		}
+		else
+			bg_screenp_color = COLOR_BG;
+
 		draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
 		draw_string_vcenter(down_screen_addr, MESSAGE_BOX_TEXT_X, MESSAGE_BOX_TEXT_Y, MESSAGE_BOX_TEXT_SX, COLOR_MSSG, msg[MSG_PROGRESS_HOTKEY_WAITING_FOR_KEYS]);
 
@@ -3250,6 +3337,232 @@ u32 menu(u16 *screen, int FirstInvocation)
 	void game_specific_hotkey_rewind_passive()
 	{
 		hotkey_option_passive_common(game_persistent_config.HotkeyRewind);
+	}
+
+	void obtain_key (u32 *KeyBitfield)
+	{
+		if(bg_screenp != NULL)
+		{
+			bg_screenp_color = COLOR16(43, 11, 11);
+			memcpy(bg_screenp, down_screen_addr, 256*192*2);
+		}
+		else
+			bg_screenp_color = COLOR_BG;
+
+		draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
+		draw_string_vcenter(down_screen_addr, MESSAGE_BOX_TEXT_X, MESSAGE_BOX_TEXT_Y, MESSAGE_BOX_TEXT_SX, COLOR_MSSG, msg[MSG_PROGRESS_MAPPING_WAITING_FOR_KEY]);
+		ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
+
+		wait_Allkey_release(0); // Originate from a keypress
+		struct key_buf inputdata;
+		do { // Wait for a key to become pressed
+			ds2_getrawInput(&inputdata);
+		} while ((inputdata.key & (KEY_A | KEY_B | KEY_X | KEY_Y | KEY_START | KEY_SELECT | KEY_L | KEY_R)) == 0);
+		*KeyBitfield = inputdata.key;
+		wait_Allkey_release(0); // And for that key to become unpressed
+		set_button_map();
+	}
+
+	void obtain_key_or_clear (u32 *KeyBitfield)
+	{
+		if(bg_screenp != NULL)
+		{
+			bg_screenp_color = COLOR16(43, 11, 11);
+			memcpy(bg_screenp, down_screen_addr, 256*192*2);
+		}
+		else
+			bg_screenp_color = COLOR_BG;
+
+		draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
+		draw_string_vcenter(down_screen_addr, MESSAGE_BOX_TEXT_X, MESSAGE_BOX_TEXT_Y, MESSAGE_BOX_TEXT_SX, COLOR_MSSG, msg[MSG_PROGRESS_MAPPING_WAITING_FOR_KEY_OR_CLEAR]);
+		ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
+
+		wait_Allkey_release(0); // Originate from a keypress
+		struct key_buf inputdata;
+		do { // Wait for keys to become pressed
+			ds2_getrawInput(&inputdata);
+		} while (inputdata.key == 0);
+		u32 Key = 0;
+		while (true) { // Until a valid key is pressed
+			do { // Accumulate keys while they're pressed
+				Key |= inputdata.key;
+				ds2_getrawInput(&inputdata);
+			} while (inputdata.key != 0);
+			u8 i;
+			u8 KeyCount = 0; // 2 or more keys = clear
+			for (i = 0; i < 32; i++)
+				if (Key & (1 << i)) KeyCount++;
+			if (KeyCount > 1) {
+				*KeyBitfield = 0;
+				break;
+			}
+			else {
+				*KeyBitfield = (Key & (KEY_A | KEY_B | KEY_X | KEY_Y | KEY_START | KEY_SELECT | KEY_L | KEY_R));
+				if (*KeyBitfield != 0)
+					break;
+			}
+		}
+		set_button_map();
+	}
+
+	void set_global_button_a()
+	{ // Mandatory
+		obtain_key(&gpsp_persistent_config.ButtonMappings[0]);
+	}
+
+	void set_global_button_b()
+	{ // Mandatory
+		obtain_key(&gpsp_persistent_config.ButtonMappings[1]);
+	}
+
+	void set_global_button_select()
+	{ // Mandatory
+		obtain_key(&gpsp_persistent_config.ButtonMappings[2]);
+	}
+
+	void set_global_button_start()
+	{ // Mandatory
+		obtain_key(&gpsp_persistent_config.ButtonMappings[3]);
+	}
+
+	void set_global_button_r()
+	{ // Mandatory
+		obtain_key(&gpsp_persistent_config.ButtonMappings[4]);
+	}
+
+	void set_global_button_l()
+	{ // Mandatory
+		obtain_key(&gpsp_persistent_config.ButtonMappings[5]);
+	}
+
+	void set_global_button_rapid_a()
+	{ // Optional
+		obtain_key_or_clear(&gpsp_persistent_config.ButtonMappings[6]);
+	}
+
+	void set_global_button_rapid_b()
+	{ // Optional
+		obtain_key_or_clear(&gpsp_persistent_config.ButtonMappings[7]);
+	}
+
+	void set_game_specific_button_a()
+	{ // Optional
+		obtain_key_or_clear(&game_persistent_config.ButtonMappings[0]);
+	}
+
+	void set_game_specific_button_b()
+	{ // Optional
+		obtain_key_or_clear(&game_persistent_config.ButtonMappings[1]);
+	}
+
+	void set_game_specific_button_select()
+	{ // Optional
+		obtain_key_or_clear(&game_persistent_config.ButtonMappings[2]);
+	}
+
+	void set_game_specific_button_start()
+	{ // Optional
+		obtain_key_or_clear(&game_persistent_config.ButtonMappings[3]);
+	}
+
+	void set_game_specific_button_r()
+	{ // Optional
+		obtain_key_or_clear(&game_persistent_config.ButtonMappings[4]);
+	}
+
+	void set_game_specific_button_l()
+	{ // Optional
+		obtain_key_or_clear(&game_persistent_config.ButtonMappings[5]);
+	}
+
+	void set_game_specific_button_rapid_a()
+	{ // Optional
+		obtain_key_or_clear(&game_persistent_config.ButtonMappings[6]);
+	}
+
+	void set_game_specific_button_rapid_b()
+	{ // Optional
+		obtain_key_or_clear(&game_persistent_config.ButtonMappings[7]);
+	}
+
+	void global_button_a_passive()
+	{
+		hotkey_option_passive_common(gpsp_persistent_config.ButtonMappings[0]);
+	}
+
+	void global_button_b_passive()
+	{
+		hotkey_option_passive_common(gpsp_persistent_config.ButtonMappings[1]);
+	}
+
+	void global_button_select_passive()
+	{
+		hotkey_option_passive_common(gpsp_persistent_config.ButtonMappings[2]);
+	}
+
+	void global_button_start_passive()
+	{
+		hotkey_option_passive_common(gpsp_persistent_config.ButtonMappings[3]);
+	}
+
+	void global_button_r_passive()
+	{
+		hotkey_option_passive_common(gpsp_persistent_config.ButtonMappings[4]);
+	}
+
+	void global_button_l_passive()
+	{
+		hotkey_option_passive_common(gpsp_persistent_config.ButtonMappings[5]);
+	}
+
+	void global_button_rapid_a_passive()
+	{
+		hotkey_option_passive_common(gpsp_persistent_config.ButtonMappings[6]);
+	}
+
+	void global_button_rapid_b_passive()
+	{
+		hotkey_option_passive_common(gpsp_persistent_config.ButtonMappings[7]);
+	}
+
+	void game_specific_button_a_passive()
+	{
+		hotkey_option_passive_common(game_persistent_config.ButtonMappings[0]);
+	}
+
+	void game_specific_button_b_passive()
+	{
+		hotkey_option_passive_common(game_persistent_config.ButtonMappings[1]);
+	}
+
+	void game_specific_button_select_passive()
+	{
+		hotkey_option_passive_common(game_persistent_config.ButtonMappings[2]);
+	}
+
+	void game_specific_button_start_passive()
+	{
+		hotkey_option_passive_common(game_persistent_config.ButtonMappings[3]);
+	}
+
+	void game_specific_button_r_passive()
+	{
+		hotkey_option_passive_common(game_persistent_config.ButtonMappings[4]);
+	}
+
+	void game_specific_button_l_passive()
+	{
+		hotkey_option_passive_common(game_persistent_config.ButtonMappings[5]);
+	}
+
+	void game_specific_button_rapid_a_passive()
+	{
+		hotkey_option_passive_common(game_persistent_config.ButtonMappings[6]);
+	}
+
+	void game_specific_button_rapid_b_passive()
+	{
+		hotkey_option_passive_common(game_persistent_config.ButtonMappings[7]);
 	}
 
 	int lastest_game_menu_scroll_value;
@@ -4401,9 +4714,6 @@ s32 save_game_config_file()
 
     if(gamepak_filename[0] == 0) return -1;
 
-    memcpy(game_config.gamepad_config_map, gamepad_config_map, sizeof(game_config.gamepad_config_map));
-    game_config.gamepad_config_home = gamepad_config_home;
-
     sprintf(game_config_filename, "%s/%s", DEFAULT_CFG_DIR, gamepak_filename);
     pt = strrchr(game_config_filename, '.');
     *pt = '\0';
@@ -4430,9 +4740,6 @@ s32 save_config_file()
     FILE_ID gpsp_config_file;
 
     sprintf(gpsp_config_path, "%s/%s", main_path, GPSP_CONFIG_FILENAME);
-
-    if(game_config.use_default_gamepad_map == 1)
-        memcpy(gpsp_config.gamepad_config_map, gamepad_config_map, sizeof(gpsp_config.gamepad_config_map));
 
     FILE_OPEN(gpsp_config_file, gpsp_config_path, WRITE);
     if(FILE_CHECK_VALID(gpsp_config_file))
@@ -4897,6 +5204,33 @@ void game_set_frameskip() {
 		// Otherwise, values from 1..N map to frameskipping 0..N-1.
 		SKIP_RATE = game_persistent_config.frameskip_value - 1;
 	}
+}
+
+void set_button_map() {
+  memcpy(game_config.gamepad_config_map, gamepad_config_map_init, sizeof(gamepad_config_map_init));
+  {
+    int i;
+    for (i = 0; i < 6; i++) {
+      if (gpsp_persistent_config.ButtonMappings[i] == 0) {
+        gpsp_persistent_config.ButtonMappings[0] = KEY_A;
+        gpsp_persistent_config.ButtonMappings[1] = KEY_B;
+        gpsp_persistent_config.ButtonMappings[2] = KEY_SELECT;
+        gpsp_persistent_config.ButtonMappings[3] = KEY_START;
+        gpsp_persistent_config.ButtonMappings[4] = KEY_R;
+        gpsp_persistent_config.ButtonMappings[5] = KEY_L;
+        break;
+      }
+    }
+  }
+
+  /* GBA A */ game_config.gamepad_config_map[0] = game_persistent_config.ButtonMappings[0] != 0 ? game_persistent_config.ButtonMappings[0] : gpsp_persistent_config.ButtonMappings[0];
+  /* GBA B */ game_config.gamepad_config_map[1] = game_persistent_config.ButtonMappings[1] != 0 ? game_persistent_config.ButtonMappings[1] : gpsp_persistent_config.ButtonMappings[1];
+  /* GBA SELECT */ game_config.gamepad_config_map[2] = game_persistent_config.ButtonMappings[2] != 0 ? game_persistent_config.ButtonMappings[2] : gpsp_persistent_config.ButtonMappings[2];
+  /* GBA START */ game_config.gamepad_config_map[3] = game_persistent_config.ButtonMappings[3] != 0 ? game_persistent_config.ButtonMappings[3] : gpsp_persistent_config.ButtonMappings[3];
+  /* GBA R */ game_config.gamepad_config_map[8] = game_persistent_config.ButtonMappings[4] != 0 ? game_persistent_config.ButtonMappings[4] : gpsp_persistent_config.ButtonMappings[4];
+  /* GBA L */ game_config.gamepad_config_map[9] = game_persistent_config.ButtonMappings[5] != 0 ? game_persistent_config.ButtonMappings[5] : gpsp_persistent_config.ButtonMappings[5];
+  /* Rapid fire A */ game_config.gamepad_config_map[10] = game_persistent_config.ButtonMappings[6] != 0 ? game_persistent_config.ButtonMappings[6] : gpsp_persistent_config.ButtonMappings[6];
+  /* Rapid fire B */ game_config.gamepad_config_map[11] = game_persistent_config.ButtonMappings[7] != 0 ? game_persistent_config.ButtonMappings[7] : gpsp_persistent_config.ButtonMappings[7];
 }
 
 void game_set_rewind() {

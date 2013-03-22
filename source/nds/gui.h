@@ -76,8 +76,6 @@ typedef struct
   u32 auto_help;
   u32 analog_sensitivity_level;
   u32 enable_home;
-  u32 gamepad_config_map[MAX_GAMEPAD_CONFIG_MAP];
-  u32 gamepad_config_home;
   u32 emulate_core;
   u32 debug_flag;
   u32 fake_fat;
@@ -91,7 +89,16 @@ typedef struct
   u32 language;
   char latest_file[5][512];
   u32 HotkeyRewind;
-  u32 Reserved0[127];
+  u32 Reserved0[5];
+  /*
+   * These contain DS button bitfields, each having 1 bit set,
+   * corresponding to the 6 remappable GBA buttons and 2 specials:
+   * [0] = A          [1] = B          [2] = SELECT
+   * [3] = START      [4] = R          [5] = L
+   * [6] = Rapid A    [7] = Rapid B    (6 and 7 can be unset)
+   */
+  u32 ButtonMappings[8];
+  u32 Reserved1[114];
 } GPSP_CONFIG_FILE;
 
 // Runtime settings for the current game. Not persistent and reset between
@@ -104,8 +111,6 @@ typedef struct
   u32 update_backup_flag;
   CHEAT_TYPE cheats_flag[MAX_CHEATS];
   u32 gamepad_config_map[MAX_GAMEPAD_CONFIG_MAP];
-  u32 gamepad_config_home;
-  u32 use_default_gamepad_map;
   u32 backward;
   u32 backward_time;
 } GAME_CONFIG;
@@ -127,7 +132,16 @@ typedef struct
    */
   u32 rewind_value;
   u32 HotkeyRewind;
-  u32 Reserved[126];
+  u32 Reserved0[5];
+  /*
+   * These contain DS button bitfields, each having 1 or no bits set,
+   * corresponding to the 6 remappable GBA buttons and 2 specials:
+   * [0] = A          [1] = B          [2] = SELECT
+   * [3] = START      [4] = R          [5] = L
+   * [6] = Rapid A    [7] = Rapid B
+   */
+  u32 ButtonMappings[8];
+  u32 Reserved1[113];
 } GAME_CONFIG_FILE;
 
 struct  FILE_LIST_INFO
@@ -191,6 +205,7 @@ extern void reorder_latest_file(void);
 
 extern void game_set_frameskip(void);
 extern void game_set_rewind(void);
+extern void set_button_map(void);
 
 extern void LowFrequencyCPU();
 extern void HighFrequencyCPU();

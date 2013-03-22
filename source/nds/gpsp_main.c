@@ -612,7 +612,9 @@ u32 update_gba()
 					}
 					else if(frame_ticks > 3)
 					{
-						while(readkey() & (BUTTON_ID_Y | BUTTON_ID_L));
+						u32 HotkeyRewind = game_persistent_config.HotkeyRewind != 0 ? game_persistent_config.HotkeyRewind : gpsp_persistent_config.HotkeyRewind;
+
+						while(readkey() & HotkeyRewind);
 					}
 				}
 				else if(frame_ticks ==0)

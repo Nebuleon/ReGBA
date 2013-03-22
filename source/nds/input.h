@@ -38,6 +38,7 @@ typedef enum
   BUTTON_NONE = 0x00
 } input_buttons_type;
 
+/*
 typedef enum
 {
   BUTTON_ID_A   = 0x01,
@@ -58,21 +59,7 @@ typedef enum
   BUTTON_ID_FB      = 0x8000,
   BUTTON_ID_NONE    = 0
 } input_buttons_id_type;
-
-#define  KEY_ID_0   KEY_A       //!< Keypad A button.
-#define  KEY_ID_1   KEY_B       //!< Keypad B button.
-#define  KEY_ID_2   KEY_SELECT  //!< Keypad SELECT button.
-#define  KEY_ID_3   KEY_START   //!< Keypad START button.
-#define  KEY_ID_4   KEY_RIGHT   //!< Keypad RIGHT button.
-#define  KEY_ID_5   KEY_LEFT    //!< Keypad LEFT button.
-#define  KEY_ID_6   KEY_UP      //!< Keypad UP button.
-#define  KEY_ID_7   KEY_DOWN    //!< Keypad DOWN button.
-#define  KEY_ID_8   KEY_R       //!< Right shoulder button.
-#define  KEY_ID_9   KEY_L       //!< Left shoulder button.
-#define  KEY_ID_10  KEY_X       //!< Keypad X button.
-#define  KEY_ID_11  KEY_Y       //!< Keypad Y button.
-#define  KEY_ID_12  KEY_TOUCH   //!< Touchscreen pendown.
-#define  KEY_ID_13  KEY_LID     //!< Lid state.
+*/
 
 typedef enum
 {
@@ -106,8 +93,6 @@ void wait_Allkey_release();
 extern u32 tilt_sensor_x;
 extern u32 tilt_sensor_y;
 extern u32 sensorR;
-extern u32 gamepad_config_map[MAX_GAMEPAD_CONFIG_MAP];
-extern u32 gamepad_config_home;
 extern TOUCH_SCREEN touch;
 
 extern u32 fast_backward;
