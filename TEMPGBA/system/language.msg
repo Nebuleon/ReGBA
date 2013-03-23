@@ -1341,7 +1341,7 @@ Salto de fotogramas  %s
 #FMT_AUDIO_SOUND
 Sonido                         %s
 #FMT_VIDEO_REWINDING
-Rewinding       %s
+Retroceso                              %s
 #FMT_SAVED_STATE_CREATE
 Grabar partida  %d
 #FMT_SAVED_STATE_LOAD
@@ -1357,11 +1357,11 @@ Capturas de pantalla...
 #MSG_TOOLS_GLOBAL_HOTKEY_GENERAL
 Teclas de atajo globales...
 #MSG_TOOLS_GAME_HOTKEY_GENERAL
-Teclas de atajo en juego...
+Teclas de atajo para el juego...
 #MSG_TOOLS_GLOBAL_BUTTON_MAPPING_GENERAL
-Global button mappings...
+Teclas globales...
 #MSG_TOOLS_GAME_BUTTON_MAPPING_GENERAL
-Game-specific button mappings...
+Teclas para el juego...
 #FMT_OPTIONS_LANGUAGE
 Idioma                                %s
 #FMT_OPTIONS_CPU_FREQUENCY
@@ -1389,7 +1389,7 @@ Salvar captura
 #MSG_SCREENSHOT_BROWSE
 Mostrar capturas
 #MSG_HOTKEY_REWIND
-Rewind
+Retroceder
 #MSG_HOTKEY_MAIN_MENU
 Ir al menú principal
 #MSG_HOTKEY_TEMPORARY_FAST_FORWARD
@@ -1403,37 +1403,37 @@ Grabar partida 1
 #MSG_HOTKEY_FULL_SCREEN_TOGGLE
 Alternar pantalla completa
 #MSG_BUTTON_MAPPING_A
-GBA key *A
+Tecla GBA *A
 #MSG_BUTTON_MAPPING_B
-GBA key *B
+Tecla GBA *B
 #MSG_BUTTON_MAPPING_SELECT
-GBA key *s
+Tecla GBA *s
 #MSG_BUTTON_MAPPING_START
-GBA key *S
+Tecla GBA *S
 #MSG_BUTTON_MAPPING_R
-GBA key *R
+Tecla GBA *R
 #MSG_BUTTON_MAPPING_L
-GBA key *L
+Tecla GBA *L
 #MSG_BUTTON_MAPPING_RAPID_A
-Rapid-fire *A
+Disparo rápido *A
 #MSG_BUTTON_MAPPING_RAPID_B
-Rapid-fire *B
+Disparo rápido *B
 #MSG_PROGRESS_HOTKEY_WAITING_FOR_KEYS
 Presione la tecla para esta acción.
 #MSG_PROGRESS_MAPPING_WAITING_FOR_KEY
-Press the DS button you wish to map to this GBA button.
+Presione la tecla DS que desea usar para ésta tecla GBA.
 #MSG_PROGRESS_MAPPING_WAITING_FOR_KEY_OR_CLEAR
-Press the DS button you wish to map to this GBA button.\n
+Presione la tecla DS que desea usar para ésta tecla GBA.\n
 \n
-You can press two buttons at once to delete this mapping.
+Presione dos teclas a la vez para dejar sin asignar.
 #MSG_HOTKEY_DELETE_WITH_A
 *A Borrar
 #MSG_HOTKEY_CANCEL_WITH_B
 *B Cancelar
 #MSG_LOAD_GAME_RECENTLY_PLAYED
-Recientemente jugados...
+Jugados recientemente  >>
 #MSG_LOAD_GAME_FROM_CARD
-Seleccionar un juego...
+Seleccionar un juego  >>
 #MSG_LOAD_GAME_MENU_TITLE
 Nuevo juego
 #MSG_VIDEO_ASPECT_RATIO_0
@@ -1471,19 +1471,19 @@ Nuevo juego
 #MSG_VIDEO_FRAME_SKIPPING_10
 [10] Mostrar 1/11
 #MSG_VIDEO_REWINDING_0
-Disabled
+Desactivado
 #MSG_VIDEO_REWINDING_1
-0.25 s (3.5 s total)
+0.25 s (total 3.5 s)
 #MSG_VIDEO_REWINDING_2
-0.5 s (7 s total)
+0.5 s (total 7 s)
 #MSG_VIDEO_REWINDING_3
-1 s (14 s total)
+1 s (total 14 s)
 #MSG_VIDEO_REWINDING_4
-2 s (28 s total)
+2 s (total 28 s)
 #MSG_VIDEO_REWINDING_5
-5 s (1:10 mn total)
+5 s (total 1:10 min)
 #MSG_VIDEO_REWINDING_6
-10 s (2:20 mn total)
+10 s (total 2:20 min)
 #MSG_GENERAL_OFF
 Apagado
 #MSG_GENERAL_ON
