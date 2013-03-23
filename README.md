@@ -1,4 +1,4 @@
-TempGBA alpha version 2 (that means it may or may not work)
+TempGBA alpha version 3 (that means it may or may not work)
 
 A Game Boy Advance emulator for the Supercard DSTWO.
 
