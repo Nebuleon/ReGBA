@@ -2038,6 +2038,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 				{
 					draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
 					draw_string_vcenter(down_screen_addr, MESSAGE_BOX_TEXT_X, MESSAGE_BOX_TEXT_Y, MESSAGE_BOX_TEXT_SX, COLOR_MSSG, msg[MSG_PROGRESS_SAVED_STATE_LOADING]);
+					ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
 
 					HighFrequencyCPU();
 					int flag = load_state(tmp_filename, fp);
@@ -2046,11 +2047,15 @@ u32 menu(u16 *screen, int FirstInvocation)
 					{
 						return_value = 1;
 						repeat = 0;
+						draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
 						draw_string_vcenter(down_screen_addr, MESSAGE_BOX_TEXT_X, MESSAGE_BOX_TEXT_Y, MESSAGE_BOX_TEXT_SX, COLOR_MSSG, msg[MSG_PROGRESS_SAVED_STATE_LOAD_SUCCEEDED]);
+						ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
 					}
 					else
 					{
+						draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
 						draw_string_vcenter(down_screen_addr, MESSAGE_BOX_TEXT_X, MESSAGE_BOX_TEXT_Y, MESSAGE_BOX_TEXT_SX, COLOR_MSSG, msg[MSG_PROGRESS_SAVED_STATE_LOAD_FAILED]);
+						ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
 						mdelay(500); // let the failure show
 					}
 				}
@@ -2657,10 +2662,14 @@ u32 menu(u16 *screen, int FirstInvocation)
             {
                 draw_string_vcenter(down_screen_addr, MESSAGE_BOX_TEXT_X, MESSAGE_BOX_TEXT_Y, MESSAGE_BOX_TEXT_SX, COLOR_MSSG, msg[MSG_PROGRESS_SCREENSHOT_CREATING]);
                 ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
-                if(save_ss_bmp(screen))
+                if(save_ss_bmp(screen)) {
+                    draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
                     draw_string_vcenter(down_screen_addr, MESSAGE_BOX_TEXT_X, MESSAGE_BOX_TEXT_Y, MESSAGE_BOX_TEXT_SX, COLOR_MSSG, msg[MSG_PROGRESS_SCREENSHOT_CREATION_SUCCEEDED]);
-                else
+                }
+                else {
+                    draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
                     draw_string_vcenter(down_screen_addr, MESSAGE_BOX_TEXT_X, MESSAGE_BOX_TEXT_Y, MESSAGE_BOX_TEXT_SX, COLOR_MSSG, msg[MSG_PROGRESS_SCREENSHOT_CREATION_FAILED]);
+                }
                 ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
 				mdelay(500);
             }
