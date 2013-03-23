@@ -2016,7 +2016,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 			{
 				get_savestate_filename(savestate_index, tmp_filename);
 				sprintf(line_buffer, "%s/%s", DEFAULT_SAVE_DIR, tmp_filename);
-				fp= fopen(line_buffer, "r");
+				fp= fopen(line_buffer, "rb");
 
 				//file error
 				if(fp == NULL)

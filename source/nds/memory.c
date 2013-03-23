@@ -34,6 +34,9 @@ u8 *g_state_buffer_ptr;
 #define SAVESTATE_FAST_NUM (14)
 u8 SAVEFAST_MEM[ SAVESTATE_FAST_SIZE ] __attribute__ ((aligned (4))) ;
 
+const u8 SVS_HEADER[SVS_HEADER_SIZE] = {'N', 'G', 'B', 'A', 'R', 'T', 'S', '1', '.', '0',
+  'c'};
+
 typedef enum
 {
   FLASH_DEVICE_MACRONIX_64KB   = 0x1C,
@@ -171,7 +174,7 @@ u8 vram[1024 * 96 * 2];
 
 // SRAM/flash/EEPROM 128kb
 u8 gamepak_backup[1024 * 128];
-u8 *flash_bank_ptr = gamepak_backup;
+u32 flash_bank_offset = 0;
 
 u32 bios_read_protect;
 
@@ -328,7 +331,7 @@ u8 read_backup(u32 address)
   }
   else
   {
-    value = flash_bank_ptr[address];
+    value = gamepak_backup[flash_bank_offset + address];
   }
   return value;
 }
@@ -1737,7 +1740,7 @@ void write_backup(u32 address, u32 value)
      (flash_mode == FLASH_ERASE_MODE) && (value == 0x30))
     {
       // Erase sector
-      memset(flash_bank_ptr + (address & 0xF000), 0xFF, 1024 * 4);
+      memset(gamepak_backup + flash_bank_offset + (address & 0xF000), 0xFF, 1024 * 4);
       backup_update = write_backup_delay;
       flash_mode = FLASH_BASE_MODE;
       flash_command_position = 0;
@@ -1748,7 +1751,7 @@ void write_backup(u32 address, u32 value)
      (flash_mode == FLASH_BANKSWITCH_MODE) && (address == 0x0000) &&
      (flash_size == FLASH_SIZE_128KB))
     {
-      flash_bank_ptr = gamepak_backup + ((value & 0x01) * (1024 * 64));
+      flash_bank_offset = ((value & 0x01) * (1024 * 64));
       flash_mode = FLASH_BASE_MODE;
     }
     else
@@ -1757,7 +1760,7 @@ void write_backup(u32 address, u32 value)
     {
       // Write value to flash ROM
       backup_update = write_backup_delay;
-      flash_bank_ptr[address] = value;
+      gamepak_backup[flash_bank_offset + address] = value;
       flash_mode = FLASH_BASE_MODE;
     }
     else
@@ -3569,7 +3572,7 @@ void init_memory()
   sram_size = SRAM_SIZE_32KB;
   flash_size = FLASH_SIZE_64KB;
 
-  flash_bank_ptr = gamepak_backup;
+  flash_bank_offset = 0;
   flash_command_position = 0;
   eeprom_size = EEPROM_512_BYTE;
   eeprom_mode = EEPROM_BASE_MODE;
@@ -3822,13 +3825,13 @@ u32 load_state(char *savestate_filename, FILE *fp)
 
     if(fp != NULL)
     {
-	// Skip SVS_HEADER, whose size is SVS_HEADER_SIZE.
-	{
-		u8 ignored[SVS_HEADER_SIZE];
-		i = fread(ignored, 1, SVS_HEADER_SIZE, fp);
-		if (i < SVS_HEADER_SIZE)
-			return 1; // Failed to fully read the file
-	}
+	u8 header[SVS_HEADER_SIZE];
+	i = fread(header, 1, SVS_HEADER_SIZE, fp);
+	if (i < SVS_HEADER_SIZE)
+		return 1; // Failed to fully read the file
+	if (memcmp(header, SVS_HEADER, SVS_HEADER_SIZE) != 0)
+		return 2; // Bad saved state format
+
         i= fread(savestate_write_buffer, 1, SAVESTATE_SIZE, fp);
 printf("fread %d\n", i);
 	if (i < SAVESTATE_SIZE)
@@ -3932,22 +3935,19 @@ u32 save_state(char *savestate_filename, u16 *screen_capture)
     FILE_READ_MEM_ARRAY(g_state_buffer_ptr, name);                            \
 
 #define SAVESTATE_WRITE_MEM_FILENAME(name)                                    \
-    /* // Removing rom_path due to confusion                                      \
-    sprintf(fullname, "%s/%s", rom_path, name);                            \
-    // using full filepath here */                                               \
-    strcpy(fullname, name);                                                   \
-    FILE_WRITE_MEM_ARRAY(g_state_buffer_ptr, fullname);                       \
+    FILE_WRITE_MEM_ARRAY(g_state_buffer_ptr, name);                       \
 
 #define memory_savestate_body(type)                                           \
 {                                                                             \
   u32 i;                                                                      \
   char fullname[MAX_FILE];                                                    \
+  memset(fullname, 0, sizeof(fullname));                                      \
                                                                               \
   FILE_##type##_VARIABLE(g_state_buffer_ptr, backup_type);                \
   FILE_##type##_VARIABLE(g_state_buffer_ptr, sram_size);                  \
   FILE_##type##_VARIABLE(g_state_buffer_ptr, flash_mode);                 \
   FILE_##type##_VARIABLE(g_state_buffer_ptr, flash_command_position);     \
-  FILE_##type##_VARIABLE(g_state_buffer_ptr, flash_bank_ptr);             \
+  FILE_##type##_VARIABLE(g_state_buffer_ptr, flash_bank_offset);          \
   FILE_##type##_VARIABLE(g_state_buffer_ptr, flash_device_id);            \
   FILE_##type##_VARIABLE(g_state_buffer_ptr, flash_manufacturer_id);      \
   FILE_##type##_VARIABLE(g_state_buffer_ptr, flash_size);                 \
@@ -3965,7 +3965,7 @@ u32 save_state(char *savestate_filename, u16 *screen_capture)
   FILE_##type##_VARIABLE(g_state_buffer_ptr, rtc_data_bytes);             \
   FILE_##type##_VARIABLE(g_state_buffer_ptr, rtc_bit_count);              \
   FILE_##type##_ARRAY(g_state_buffer_ptr, eeprom_buffer);                 \
-  SAVESTATE_##type##_FILENAME(gamepak_filename);                          \
+  SAVESTATE_##type##_FILENAME(fullname);                                  \
   /*FILE_##type##_ARRAY(g_state_buffer_ptr, gamepak_filename);*/          \
   FILE_##type##_ARRAY(g_state_buffer_ptr, dma);                           \
                                                                               \
@@ -3978,13 +3978,6 @@ u32 save_state(char *savestate_filename, u16 *screen_capture)
   FILE_##type(g_state_buffer_ptr, oam_ram, 0x400);                        \
   FILE_##type(g_state_buffer_ptr, palette_ram, 0x400);                    \
   FILE_##type(g_state_buffer_ptr, io_registers, 0x8000);                  \
-                                                                              \
-  /* This is a hack, for now. */                                              \
-  if((flash_bank_ptr < gamepak_backup) ||                                     \
-   (flash_bank_ptr > (gamepak_backup + (1024 * 64))))                         \
-  {                                                                           \
-    flash_bank_ptr = gamepak_backup;                                          \
-  }                                                                           \
 }                                                                             \
 
 void memory_read_mem_savestate()
@@ -4002,7 +3995,7 @@ memory_savestate_body(WRITE_MEM);
   FILE_##type##_VARIABLE(g_state_buffer_ptr, sram_size);					  \
   FILE_##type##_VARIABLE(g_state_buffer_ptr, flash_mode);					  \
   FILE_##type##_VARIABLE(g_state_buffer_ptr, flash_command_position);		  \
-  FILE_##type##_VARIABLE(g_state_buffer_ptr, flash_bank_ptr);				  \
+  FILE_##type##_VARIABLE(g_state_buffer_ptr, flash_bank_offset);				  \
   FILE_##type##_VARIABLE(g_state_buffer_ptr, flash_device_id);				  \
   FILE_##type##_VARIABLE(g_state_buffer_ptr, flash_manufacturer_id);		  \
   FILE_##type##_VARIABLE(g_state_buffer_ptr, flash_size);					  \
@@ -4031,13 +4024,6 @@ memory_savestate_body(WRITE_MEM);
   FILE_##type(g_state_buffer_ptr, oam_ram, 0x400);							  \
   FILE_##type(g_state_buffer_ptr, palette_ram, 0x400);						  \
   FILE_##type(g_state_buffer_ptr, io_registers, 0x8000);					  \
-                                                                              \
-  /* This is a hack, for now. */                                              \
-  if((flash_bank_ptr < gamepak_backup) ||                                     \
-   (flash_bank_ptr > (gamepak_backup + (1024 * 64))))                         \
-  {                                                                           \
-    flash_bank_ptr = gamepak_backup;                                          \
-  }                                                                           \
 }                                                                             \
 
 void memory_read_mem_fast_savestate()
