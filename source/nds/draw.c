@@ -1202,6 +1202,6 @@ void show_log(void* screen_addr)
 void err_msg(enum SCREEN_ID screen, char *msg)
 {
 	// A wild console appeared!
-	ConsoleInit(RGB15(31, 31, 31), RGB15(0, 0, 0), UP_SCREEN, 512);
+	ConsoleInit(RGB15(31, 31, 31), RGB15(0, 0, 0), UP_SCREEN, 2);
 	printf(msg);
 }
