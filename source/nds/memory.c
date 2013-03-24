@@ -3812,7 +3812,8 @@ printf("D %s\n", dot_position);
 
 /*
  * Loads a saved state, given its file name and a file handle already opened
- * in at least mode "rb" to the same file.
+ * in at least mode "rb" to the same file. This function is responsible for
+ * closing that file handle.
  * Assumes the gamepak used to save the state is the one that is currently
  * loaded.
  * Returns 0 on success, non-zero on failure.
@@ -3827,13 +3828,18 @@ u32 load_state(char *savestate_filename, FILE *fp)
     {
 	u8 header[SVS_HEADER_SIZE];
 	i = fread(header, 1, SVS_HEADER_SIZE, fp);
-	if (i < SVS_HEADER_SIZE)
+	if (i < SVS_HEADER_SIZE) {
+		fclose(fp);
 		return 1; // Failed to fully read the file
-	if (memcmp(header, SVS_HEADER, SVS_HEADER_SIZE) != 0)
+	}
+	if (memcmp(header, SVS_HEADER, SVS_HEADER_SIZE) != 0) {
+		fclose(fp);
 		return 2; // Bad saved state format
+	}
 
         i= fread(savestate_write_buffer, 1, SAVESTATE_SIZE, fp);
 printf("fread %d\n", i);
+	fclose(fp);
 	if (i < SAVESTATE_SIZE)
 		return 1; // Failed to fully read the file
 
