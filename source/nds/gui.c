@@ -1561,6 +1561,8 @@ s32 load_config_file()
             FILE_CLOSE(gpsp_config_file);
             return 0;
         }
+        else
+            FILE_CLOSE(gpsp_config_file);
     }
 
     return -1;
