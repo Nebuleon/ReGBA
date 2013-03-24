@@ -583,7 +583,6 @@ u32 update_gba()
           // Transition from vblank to next screen
           dispstat &= ~0x01;
           frame_ticks++;
-          	frame_ticks++;
 			if(frame_ticks >= frame_interval)
 				frame_ticks = 0;
 
