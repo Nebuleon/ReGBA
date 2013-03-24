@@ -103,7 +103,7 @@ typedef u32 FIXED8_24;     // 整数部 8bit 小数部24bit 的定点数
 #define PSP_FILE_OPEN_READ ("rb")
 
 //#define PSP_FILE_OPEN_WRITE (PSP_O_CREAT | PSP_O_WRONLY | PSP_O_TRUNC)
-#define PSP_FILE_OPEN_WRITE ("w")
+#define PSP_FILE_OPEN_WRITE ("wb")
 
 #define FILE_OPEN(filename_tag, filename, mode)                             \
   filename_tag = fopen(filename, PSP_FILE_OPEN_##mode)						\
