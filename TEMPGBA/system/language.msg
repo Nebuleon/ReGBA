@@ -203,9 +203,9 @@ Disabled
 #MSG_VIDEO_REWINDING_4
 2 s (28 s total)
 #MSG_VIDEO_REWINDING_5
-5 s (1:10 mn total)
+5 s (1:10 min total)
 #MSG_VIDEO_REWINDING_6
-10 s (2:20 mn total)
+10 s (2:20 min total)
 #MSG_GENERAL_OFF
 Off
 #MSG_GENERAL_ON
@@ -458,9 +458,9 @@ Disabled
 #MSG_VIDEO_REWINDING_4
 2 s (28 s total)
 #MSG_VIDEO_REWINDING_5
-5 s (1:10 mn total)
+5 s (1:10 min total)
 #MSG_VIDEO_REWINDING_6
-10 s (2:20 mn total)
+10 s (2:20 min total)
 #MSG_GENERAL_OFF
 关
 #MSG_GENERAL_ON
@@ -713,9 +713,9 @@ Hors fonction
 #MSG_VIDEO_REWINDING_4
 2 s (28 s au total)
 #MSG_VIDEO_REWINDING_5
-5 s (1:10 mn au total)
+5 s (1:10 min au total)
 #MSG_VIDEO_REWINDING_6
-10 s (2:20 mn au total)
+10 s (2:20 min au total)
 #MSG_GENERAL_OFF
 Hors fonction
 #MSG_GENERAL_ON
@@ -969,9 +969,9 @@ Disabled
 #MSG_VIDEO_REWINDING_4
 2 s (28 s total)
 #MSG_VIDEO_REWINDING_5
-5 s (1:10 mn total)
+5 s (1:10 min total)
 #MSG_VIDEO_REWINDING_6
-10 s (2:20 mn total)
+10 s (2:20 min total)
 #MSG_GENERAL_OFF
 Aus
 #MSG_GENERAL_ON
@@ -1225,9 +1225,9 @@ Disabled
 #MSG_VIDEO_REWINDING_4
 2 s (28 s total)
 #MSG_VIDEO_REWINDING_5
-5 s (1:10 mn total)
+5 s (1:10 min total)
 #MSG_VIDEO_REWINDING_6
-10 s (2:20 mn total)
+10 s (2:20 min total)
 #MSG_GENERAL_OFF
 Uit
 #MSG_GENERAL_ON
@@ -1736,9 +1736,9 @@ Disabled
 #MSG_VIDEO_REWINDING_4
 2 s (28 s total)
 #MSG_VIDEO_REWINDING_5
-5 s (1:10 mn total)
+5 s (1:10 min total)
 #MSG_VIDEO_REWINDING_6
-10 s (2:20 mn total)
+10 s (2:20 min total)
 #MSG_GENERAL_OFF
 Disabilita
 #MSG_GENERAL_ON
@@ -1991,9 +1991,9 @@ Disabled
 #MSG_VIDEO_REWINDING_4
 2 s (28 s total)
 #MSG_VIDEO_REWINDING_5
-5 s (1:10 mn total)
+5 s (1:10 min total)
 #MSG_VIDEO_REWINDING_6
-10 s (2:20 mn total)
+10 s (2:20 min total)
 #MSG_GENERAL_OFF
 Desligado
 #MSG_GENERAL_ON
