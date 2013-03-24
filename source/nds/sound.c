@@ -882,7 +882,7 @@ static int pp= 0;
 
 if(AUTO_SKIP)
 {
-    if(n > 1)
+    if(n >= 2)
     {
         if(CHECK_BUFFER() < AUDIO_LEN*4)
             break;
@@ -902,8 +902,7 @@ if(AUTO_SKIP)
     }
 
     n= ds2_checkAudiobuff();
-    if(n<1)
-    if(CHECK_BUFFER() < AUDIO_LEN*4)
+    if(n<2 && CHECK_BUFFER() < AUDIO_LEN*4)
     {
         if(pp <2)
         {
@@ -917,8 +916,13 @@ else if (game_fast_forward)
 {
     if (ds2_checkAudiobuff() >= AUDIO_BUFFER_COUNT)
     {
-        // Drain the buffer, then exit.
-        while (CHECK_BUFFER() > 0) {
+        // Drain the buffer down to a manageable size, then exit.
+        // This needs to be high to avoid audible crackling/bubbling,
+        // but not so high as to require all of the sound to be emitted.
+        // gpSP synchronises on the sound, after all. -Neb, 2013-03-23
+        while (CHECK_BUFFER() > AUDIO_LEN * 8) {
+            sound_buffer[sound_read_offset] = 0;
+            sound_read_offset = (sound_read_offset +1) & BUFFER_SIZE;
             sound_buffer[sound_read_offset] = 0;
             sound_read_offset = (sound_read_offset +1) & BUFFER_SIZE;
         }
