@@ -946,14 +946,14 @@ else
         sample = sound_buffer[sound_read_offset];
         if(sample > 1023) sample= 1023;
         if(sample < -1024) sample= -1024;
-        *dst_ptr++ = sample <<4;
+        *dst_ptr++ = sample << 5;
         sound_buffer[sound_read_offset] = 0;
         sound_read_offset = (sound_read_offset +1) & BUFFER_SIZE;
 
         sample = sound_buffer[sound_read_offset];
         if(sample > 1023) sample= 1023;
         if(sample < -1024) sample= -1024;
-        *dst_ptr1++ = sample <<4;
+        *dst_ptr1++ = sample << 5;
         sound_buffer[sound_read_offset] = 0;
         sound_read_offset = (sound_read_offset +1) & BUFFER_SIZE;
     }
