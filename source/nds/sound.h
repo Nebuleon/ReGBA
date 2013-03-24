@@ -99,7 +99,7 @@ typedef struct
 #define BUFFER_SIZE (0xffff)                        // バッファのバイト数。変更しないこと
 
 #ifdef NDS_LAYER
-#define AUDIO_LEN 512
+#define AUDIO_LEN 1024
 #endif
 
 #define SOUND_FREQUENCY (44100.0)
