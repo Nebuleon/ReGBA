@@ -35,17 +35,110 @@ For the latest version, see:
 
 # Cheats
 
-There is currently no cheat support in TempGBA, pending the discovery of a
-large enough cheat pack in a decent user-editable format.
+The cheat support in TempGBA is untested, but should be equivalent to that of
+the official NDSGBA, version 1.21.
+
+# Rewinding
+
+You can rewind the game up to 14 steps of a user-defined duration, ranging from
+a quarter of second to 10 seconds. You are granted 140 seconds of rewinding by
+default, in steps of 10 seconds, using the button combination L+Y. This allows
+you to quickly back out of a dangerous situation in a game.
+
+You can adjust the step time for rewinding in the Tools menu.
+
+You can adjust the hotkey used for rewinding in the Tools menu's hotkey
+submenus. See the `Hotkeys` section below for more information about these.
 
 # Frame skipping
-
-- - - - CUT HERE - - - - (Section invalid for now as frame skip doesn't work)
 
 In the Video & audio menu, the **Frame skipping** option allows you to select
 a number of frames to skip between rendered frames.
 
-- - - - CUT HERE - - - -
+For some games, you may need to adjust frame skipping.
+* If a game runs at about 10 frames per second, setting frame skipping
+  to 1 will allow you to jump, move or shoot at the right times.
+* If you want to show more frames per second in a game that already shows 20,
+  setting frame skipping to 1 or 0 will cause more frames to appear,
+  but your DS button input may stop responding for 2 entire seconds every so
+  often. The audio may also stop suddenly, be broken multiple times per second
+  or simply crackle more often.
+* Setting this to 10 will skip 10 frames and render one. You will find yourself
+  unable to perform actions during the correct frame with the DS buttons. It is
+  advised to set frame skipping to the lowest value with which you can play a
+  game.
+
+# Hotkeys
+
+**Important: Hotkeys are resolved as DS keys, not remapped GBA keys.**
+You can set hotkeys to use buttons that are left over from button remapping if
+you don't use the rapid fire A and B buttons.
+
+You can set buttons to press to perform certain actions. For each action,
+there is a *global hotkey* and a *game-specific override hotkey*. You might,
+for example, want to have the DS R button bound to Rewind, but a specific game
+uses a button mapped to it (see the section `Button mapping` below for more
+information) for something important. In that case, you can set the
+global hotkey to R and make an override with X for that game.
+
+Hotkeys are sent to the current game, after being remapped, as well as
+to their corresponding action. The criterion for a hotkey is met when
+**at least** all of its buttons are held. Additional keys are sent to the game
+and can trigger another hotkey. For example, setting a hotkey to L and another
+to R+X, then pressing L+R+X+Y will trigger both and send all GBA buttons mapped
+to L, R, X and Y to the game.
+
+Available actions are:
+* Rewind. A hotkey needs to be set here if you want to use the rewind feature
+  in a game. See the `Rewinding` section above for more information.
+
+# Button mapping
+
+A Nintendo DS has more buttons than a Game Boy Advance. This emulator allows
+you to remap your GBA buttons to different DS buttons as well as use rapid fire
+A and B buttons that trigger at 30 Hz (held for one frame, released the next).
+
+You can find the button mapping configuration in the Tools menu. For each
+mapping, there is a *global mapping* and a *game-specific mapping override*.
+This allows you to keep your usual mapping, but change it if you are more
+comfortable with another mapping for another game; for example, a platformer
+which is best played with Y and B, or a re-release of a game from the SFC/SNES
+which you would like to play with the original controller arrangement.
+
+Buttons are sent to the GBA after mappings are applied.
+
+The default is to map DS buttons to the like-named GBA buttons:
+A to A, B to B, L to L, R to R, Start to Start and Select to Select. The DS
+buttons X and Y are unused; you can set them to be rapid fire buttons or use
+them as hotkeys.
+
+When a game-specific mapping is present, it cancels a global mapping for the
+same GBA button, *not* the same DS button.
+
+Here's an example:
+`Global mappings                        Game-specific overrides`
+`GBA key A        DS key A              GBA key A       DS key B`
+`GBA key B        DS key B              GBA key B       DS key Y`
+`GBA key Start    DS key Start          GBA key Start   No override`
+`GBA key Select   DS key Select         GBA key Select  No override`
+`GBA key L        DS key L              GBA key L       DS key R`
+`GBA key R        DS key R              GBA key R       No override`
+`Rapid fire A     DS key X              Rapid fire A    No override`
+`Rapid fire B     DS key Y              Rapid fire B    No override`
+
+Here's what each DS button would do in this example:
+
+* DS button A would not send any GBA buttons.
+* DS button B would send GBA button A.
+* DS button X would send GBA button A in rapid fire mode.
+* DS button Y would send GBA button B **and** GBA button B in rapid fire mode.
+  The behavior is undefined in this case; it may decide to send button B always
+  or only in rapid fire mode. The solution is to override *Rapid fire B*.
+* DS button L would not send any GBA buttons.
+* DS button R would send GBA buttons L **and** R. You may want to do this, but
+  if you didn't, the solution would be to map DS button L to GBA button R or
+  remove the override on GBA button L.
+* Select and Start behave as expected.
 
 # The font
 
