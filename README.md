@@ -90,7 +90,8 @@ to L, R, X and Y to the game.
 
 Available actions are:
 * Rewind. A hotkey needs to be set here if you want to use the rewind feature
-  in a game. See the `Rewinding` section above for more information.
+  in a game. After each second the hotkey is held, the game will rewind one
+  step. See the `Rewinding` section above for more information.
 
 # Button mapping
 
