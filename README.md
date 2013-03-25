@@ -116,23 +116,24 @@ When a game-specific mapping is present, it cancels a global mapping for the
 same GBA button, *not* the same DS button.
 
 Here's an example:
-`Global mappings                        Game-specific overrides`
 
-`GBA key A        DS key A              GBA key A       DS key B`
+`Global mappings                     |  Game-specific overrides`
 
-`GBA key B        DS key B              GBA key B       DS key Y`
+`GBA key A      = DS key A           |  GBA key A      = DS key B`
 
-`GBA key Start    DS key Start          GBA key Start   No override`
+`GBA key B      = DS key B           |  GBA key B      = DS key Y`
 
-`GBA key Select   DS key Select         GBA key Select  No override`
+`GBA key Start  = DS key Start       |  GBA key Start  = No override`
 
-`GBA key L        DS key L              GBA key L       DS key R`
+`GBA key Select = DS key Select      |  GBA key Select = No override`
 
-`GBA key R        DS key R              GBA key R       No override`
+`GBA key L      = DS key L           |  GBA key L      = DS key R`
 
-`Rapid fire A     DS key X              Rapid fire A    No override`
+`GBA key R      = DS key R           |  GBA key R      = No override`
 
-`Rapid fire B     DS key Y              Rapid fire B    No override`
+`Rapid fire A   = DS key X           |  Rapid fire A   = No override`
+
+`Rapid fire B   = DS key Y           |  Rapid fire B   = No override`
 
 Here's what each DS button would do in this example:
 
