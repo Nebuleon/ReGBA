@@ -870,7 +870,7 @@ static int sound_update()
   s16 sample;
   s16* audio_buff;
   s16 *dst_ptr, *dst_ptr1;
-  u32 m, n;
+  u32 n;
   int ret;
 static int pp= 0;
 
@@ -940,7 +940,6 @@ else
     dst_ptr = audio_buff; // left (stereo)
     dst_ptr1 = dst_ptr + (int) (AUDIO_LEN / OUTPUT_FREQUENCY_DIVISOR); // right (stereo)
 
-    m= sound_read_offset;
     for(i= 0; i<AUDIO_LEN; i += OUTPUT_FREQUENCY_DIVISOR)
     {
         s16 left = 0, right = 0;
