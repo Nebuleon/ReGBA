@@ -3745,7 +3745,8 @@ u32 menu(u16 *screen, int FirstInvocation)
 		get_newest_savestate(tmp_filename);
 		if(tmp_filename[0] != '\0')
 		{
-			FILE *fp = fopen(tmp_filename, "rb");
+			sprintf(line_buffer, "%s/%s", DEFAULT_SAVE_DIR, tmp_filename);
+			FILE *fp = fopen(line_buffer, "rb");
 			load_state(tmp_filename, fp);
 		}
     }
