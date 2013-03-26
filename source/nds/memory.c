@@ -2587,8 +2587,9 @@ s32 load_gamepak(char *file_path)
     file_size = load_file_zip(file_path);
     if(file_size == -2)
     {
-      sprintf(file_path, "%s/GAMEPAK/%s", main_path, ZIP_TMP);
-      file_size = load_gamepak_raw(file_path);
+      char extracted_file[MAX_FILE];
+      sprintf(extracted_file, "%s/GAMEPAK/%s", main_path, ZIP_TMP);
+      file_size = load_gamepak_raw(extracted_file);
     }
   }
   else

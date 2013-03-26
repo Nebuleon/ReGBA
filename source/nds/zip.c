@@ -21,7 +21,7 @@
 
 #include "common.h"
 
-#define ZIP_BUFFER_SIZE (320 * 1024) // 320KB
+#define ZIP_BUFFER_SIZE (64 * 1024) // 64KB
 //unsigned char zip_buff[ZIP_BUFFER_SIZE];
 
 struct SZIPFileDataDescriptor
