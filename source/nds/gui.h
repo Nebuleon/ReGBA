@@ -68,6 +68,9 @@
 // Back button
 #define BACK_BUTTON_X             229
 #define BACK_BUTTON_Y             10
+// Title icon
+#define TITLE_ICON_X              12
+#define TITLE_ICON_Y              9
 
 #define MAX_GAMEPAD_CONFIG_MAP 16
 
