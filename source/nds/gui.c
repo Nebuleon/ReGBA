@@ -4324,6 +4324,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 	return return_value;
 }
 
+#ifndef NDS_LAYER
 u32 load_dircfg(char *file_name)  // TODO: Working directory configure
 {
   int loop;
@@ -4471,6 +4472,7 @@ printf("current_str %s\n", current_str);
   fclose(msg_file);
   return -1;
 }
+#endif // !NDS_LAYER
 
 /*--------------------------------------------------------
 	Load language message
@@ -4996,6 +4998,7 @@ void get_newest_savestate(char *name_buffer)
     get_savestate_filename(latest_save, name_buffer);
 }
 
+#ifndef NDS_LAYER
 static u32 parse_line(char *current_line, char *current_str)
 {
   char *line_ptr;
@@ -5033,6 +5036,7 @@ static u32 parse_line(char *current_line, char *current_str)
   strcpy(current_str, line_ptr);
   return 0;
 }
+#endif // !NDS_LAYER
 
 static void print_status(u32 mode)
 {
