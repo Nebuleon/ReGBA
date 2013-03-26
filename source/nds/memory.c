@@ -35,7 +35,7 @@ u8 *g_state_buffer_ptr;
 u8 SAVEFAST_MEM[ SAVESTATE_FAST_SIZE ] __attribute__ ((aligned (4))) ;
 
 const u8 SVS_HEADER[SVS_HEADER_SIZE] = {'N', 'G', 'B', 'A', 'R', 'T', 'S', '1', '.', '0',
-  'c'};
+  'd'};
 
 typedef enum
 {

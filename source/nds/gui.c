@@ -4894,7 +4894,8 @@ static void get_savestate_filelist(void)
 	char postdrix[8];
 	char *pt;
 	FILE *fp;
-	unsigned int n, m;
+	unsigned int read;
+	u8 header[SVS_HEADER_SIZE];
 	// Which is the latest?
 	/* global */ latest_save = -1;
 	struct rtc latest_save_time, current_time;
@@ -4911,15 +4912,14 @@ static void get_savestate_filelist(void)
 		if (fp != NULL)
 		{
 			SavedStateExistenceCache [i] = TRUE;
-			m = fread((void*)&n, 1, 4, fp);
-			if(m < 4) {
+			read = fread(header, 1, SVS_HEADER_SIZE, fp);
+			if(read < SVS_HEADER_SIZE || memcmp(header, SVS_HEADER, SVS_HEADER_SIZE) != 0) {
 				fclose(fp);
 				continue;
 			}
 
-			fseek(fp, n, SEEK_SET);
 			/* Read back the time stamp */
-			fread((char*)&current_time, 1, sizeof(struct rtc), fp);
+			fread(&current_time, 1, sizeof(struct rtc), fp);
 			if (rtc_time_cmp (&current_time, &latest_save_time) > 0)
 			{
 				latest_save = i;

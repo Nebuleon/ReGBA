@@ -51,7 +51,7 @@ void ds2_main(void)
 	int err;
 	HighFrequencyCPU();
 	//Initial video and audio and other input and output
-	err = ds2io_initb(AUDIO_LEN, (int) SOUND_FREQUENCY, 0, 0);
+	err = ds2io_initb((int) (AUDIO_LEN / OUTPUT_FREQUENCY_DIVISOR), OUTPUT_SOUND_FREQUENCY, 0, 0);
 	if(err) goto _failure;
 
 	//Initial file system

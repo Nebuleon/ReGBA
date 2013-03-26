@@ -866,7 +866,7 @@ extern struct main_buf *pmain_buf;
 
 static int sound_update()
 {
-  u32 i;
+  u32 i, j;
   s16 sample;
   s16* audio_buff;
   s16 *dst_ptr, *dst_ptr1;
@@ -937,25 +937,30 @@ else
     audio_buff = ds2_getAudiobuff();
     if(audio_buff != NULL)
     {
-    dst_ptr = audio_buff;
-    dst_ptr1 = dst_ptr + AUDIO_LEN;
+    dst_ptr = audio_buff; // left (stereo)
+    dst_ptr1 = dst_ptr + (int) (AUDIO_LEN / OUTPUT_FREQUENCY_DIVISOR); // right (stereo)
 
     m= sound_read_offset;
-    for(i= 0; i<AUDIO_LEN; i++)
+    for(i= 0; i<AUDIO_LEN; i += OUTPUT_FREQUENCY_DIVISOR)
     {
-        sample = sound_buffer[sound_read_offset];
-        if(sample > 1023) sample= 1023;
-        if(sample < -1024) sample= -1024;
-        *dst_ptr++ = sample << 5;
-        sound_buffer[sound_read_offset] = 0;
-        sound_read_offset = (sound_read_offset +1) & BUFFER_SIZE;
+        s16 left = 0, right = 0;
+        for (j = 0; j < OUTPUT_FREQUENCY_DIVISOR; j++) {
+            sample = sound_buffer[sound_read_offset];
+            if(sample > 1023) sample= 1023;
+            if(sample < -1024) sample= -1024;
+            left += (sample << 5) / OUTPUT_FREQUENCY_DIVISOR;
+            sound_buffer[sound_read_offset] = 0;
+            sound_read_offset = (sound_read_offset + 1) & BUFFER_SIZE;
 
-        sample = sound_buffer[sound_read_offset];
-        if(sample > 1023) sample= 1023;
-        if(sample < -1024) sample= -1024;
-        *dst_ptr1++ = sample << 5;
-        sound_buffer[sound_read_offset] = 0;
-        sound_read_offset = (sound_read_offset +1) & BUFFER_SIZE;
+            sample = sound_buffer[sound_read_offset];
+            if(sample > 1023) sample= 1023;
+            if(sample < -1024) sample= -1024;
+            right += (sample << 5) / OUTPUT_FREQUENCY_DIVISOR;
+            sound_buffer[sound_read_offset] = 0;
+            sound_read_offset = (sound_read_offset + 1) & BUFFER_SIZE;
+        }
+        *dst_ptr++ = left;
+        *dst_ptr1++ = right;
     }
     ds2_updateAudio();
     ret = 0;
