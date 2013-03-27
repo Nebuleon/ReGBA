@@ -1,4 +1,4 @@
-TempGBA alpha version 8 (that means it may or may not work)
+TempGBA beta version 1, 2013-03-27
 
 A Game Boy Advance emulator for the Supercard DSTWO.
 
