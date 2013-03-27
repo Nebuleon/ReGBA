@@ -168,9 +168,8 @@ u8 iwram[1024 * 32 * 2];
 // VRAM 192kb
 u8 vram[1024 * 96 * 2];
 
-// BIOS ROM 32kb
-#include "bios_array.h"
-//u8 bios_rom[1024 * 32];
+// BIOS ROM 32kb - only the first 16 KiB are used, but 32 KiB is needed [Neb]
+u8 bios_rom[0x8000];
 
 // SRAM/flash/EEPROM 128kb
 u8 gamepak_backup[1024 * 128];
@@ -2660,7 +2659,6 @@ printf("file_size %d\n", file_size);
 
 // BIOS的加载
 // 返回值: MD5编码正常为0，否则 -2/-1
-#if 0
 s32 load_bios(char *name)
 {
 //  u8 md5[16];
@@ -2684,7 +2682,6 @@ printf("BIOS not opened\n");
 
   return -1;
 }
-#endif
 
 // DMA memory regions can be one of the following:
 // IWRAM - 32kb offset from the contiguous iwram region.

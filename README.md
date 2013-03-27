@@ -17,6 +17,24 @@ To install the plugin to your storage card, copy `tempgba.plg`, `tempgba.ini`
 and `tempgba.bmp` from the release archive to the card's `_dstwoplug`
 directory. Then, copy the `TEMPGBA` subdirectory to the root of the card.
 
+## The GBA BIOS
+
+To function properly, TempGBA needs a dump of the GBA's BIOS. It is **not**
+distributed in the release archive because of legal issues. Do not ask the
+author where to find this file; any questions regarding the BIOS will be
+quickly ignored. You, the user, are responsible for your use of the BIOS.
+
+The file you dump or find should be 16 KiB (16384 bytes) and have the following
+checksums:
+* CRC32: `81977335`;
+* MD5: `a860e8c0b6d573d191e4ec7db1b1e4f6`;
+* SHA-1: `300c20df6731a33952ded8c436f7f186d25d3492`.
+
+Once dumped or found, name the file `gba_bios.bin`, and place it in the
+`TEMPGBA` directory of your storage card. So the path should look like this:
+`/media/Your-Card/TEMPGBA/gba_bios.bin` on Linux; `E:\TempGBA\gba_bios.bin`
+on Windows.
+
 # Improving game compatibility with game_config.txt
 
 Included with this release is a file called game_config.txt. The file is the

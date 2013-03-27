@@ -342,20 +342,24 @@ while(1);
   gamepak_filename[0] = 0;
 
   // BIOS的读入
-#if 0
-  u32 bios_ret = load_bios("mmc:\\NDSGBA\\bios.bin");
+  char bios_filename[MAX_FILE];
+  sprintf(bios_filename, "%s/%s", main_path, "gba_bios.bin");
+  u32 bios_ret = load_bios(bios_filename);
   if(bios_ret == -1) // 当读取失败
   {
-    error_msg("Load bios failure\n");
+    err_msg(DOWN_SCREEN, "The GBA BIOS is not present\nPlease see README.md for\nmore information\n\nLe BIOS GBA n'est pas present\nLisez README.md pour plus\nd'information (en anglais)");
+    ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
+    wait_Anykey_press(0);
     quit();
   }
 //  update_progress();
+#if 0
   if(bios_ret == -2) // MD5校验不符
   {
     error_msg("MD5 check not match\n");
   }
-//  update_progress();
 #endif
+//  update_progress();
 
 //  show_progress(msg[MSG_INIT_END]);
     //OSTimeDly(OS_TICKS_PER_SEC*2);

@@ -179,7 +179,7 @@ extern u16 io_registers[1024 * 16];
 extern u8 ewram[1024 * 256 * 2];
 extern u8 iwram[1024 * 32 * 2];
 extern u8 vram[1024 * 96 * 2];
-extern u8 bios_rom[1024 * 32];
+extern u8 bios_rom[0x8000];
 #else
 extern u16 *palette_ram;
 extern u16 *oam_ram;
