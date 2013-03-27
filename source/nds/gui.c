@@ -2957,7 +2957,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 		&game_persistent_config.frameskip_value, 12 /* auto (0) and 0..10 (1..11) make 12 option values */, NULL, ACTION_TYPE, 3),
 	};
 
-	MAKE_MENU(graphics, NULL, NULL, NULL, NULL, 0, 0);
+	MAKE_MENU(graphics, NULL, NULL, NULL, NULL, 1, 1);
 
   /*--------------------------------------------------------
      Game state -- delette
@@ -2974,7 +2974,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 	/* 02 */ ACTION_OPTION(delette_savestate, NULL, &msg[MSG_SAVED_STATE_DELETE_ALL], NULL, 2)
 	};
 
-	MAKE_MENU(gamestate_delette, gamestate_delette_menu_init, gamestate_delette_menu_passive, NULL, gamestate_delette_menu_end, 0, 0);
+	MAKE_MENU(gamestate_delette, gamestate_delette_menu_init, gamestate_delette_menu_passive, NULL, gamestate_delette_menu_end, 1, 1);
 
   /*--------------------------------------------------------
      Game state
@@ -2993,7 +2993,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 	/* 03 */ SUBMENU_OPTION(&gamestate_delette_menu, &msg[MSG_SAVED_STATE_DELETE_GENERAL], NULL, 5),
 	};
 
-	INIT_MENU(game_state, game_state_menu_init, game_state_menu_passive, NULL, game_state_menu_end, 0, 0);
+	INIT_MENU(game_state, game_state_menu_init, game_state_menu_passive, NULL, game_state_menu_end, 1, 1);
 
   /*--------------------------------------------------------
      Cheat options
@@ -3022,7 +3022,7 @@ u32 menu(u16 *screen, int FirstInvocation)
         NULL, 8)
 	};
 
-	INIT_MENU(cheats, cheat_menu_init, NULL, NULL, cheat_menu_end, 0, 0);
+	INIT_MENU(cheats, cheat_menu_init, NULL, NULL, cheat_menu_end, 1, 1);
 
     MENU_TYPE tools_menu;
 
@@ -3036,7 +3036,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 	/* 01 */ ACTION_OPTION(set_global_hotkey_rewind, global_hotkey_rewind_passive, &msg[MSG_HOTKEY_REWIND], NULL, 1)
     };
 
-    MAKE_MENU(tools_global_hotkeys, NULL, NULL, NULL, NULL, 0, 0);
+    MAKE_MENU(tools_global_hotkeys, NULL, NULL, NULL, NULL, 1, 1);
 
   /*--------------------------------------------------------
      Tools - Game-specific hotkey overrides
@@ -3048,7 +3048,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 	/* 01 */ ACTION_OPTION(set_game_specific_hotkey_rewind, game_specific_hotkey_rewind_passive, &msg[MSG_HOTKEY_REWIND], NULL, 1)
     };
 
-    MAKE_MENU(tools_game_specific_hotkeys, NULL, NULL, NULL, NULL, 0, 0);
+    MAKE_MENU(tools_game_specific_hotkeys, NULL, NULL, NULL, NULL, 1, 1);
 
   /*--------------------------------------------------------
      Tools - Global button mappings
@@ -3074,7 +3074,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 	/* 08 */ ACTION_OPTION(set_global_button_rapid_b, global_button_rapid_b_passive, &msg[MSG_BUTTON_MAPPING_RAPID_B], NULL, 8)
     };
 
-    MAKE_MENU(tools_global_button_mappings, NULL, NULL, NULL, NULL, 0, 0);
+    MAKE_MENU(tools_global_button_mappings, NULL, NULL, NULL, NULL, 1, 1);
 
   /*--------------------------------------------------------
      Tools - Game-specific button mappings
@@ -3100,7 +3100,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 	/* 08 */ ACTION_OPTION(set_game_specific_button_rapid_b, game_specific_button_rapid_b_passive, &msg[MSG_BUTTON_MAPPING_RAPID_B], NULL, 8)
     };
 
-    MAKE_MENU(tools_game_specific_button_mappings, NULL, NULL, NULL, NULL, 0, 0);
+    MAKE_MENU(tools_game_specific_button_mappings, NULL, NULL, NULL, NULL, 1, 1);
 
   /*--------------------------------------------------------
      Tools-screensanp
@@ -3115,7 +3115,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 	/* 02 */ ACTION_OPTION(browse_screen_snapshot, NULL, &msg[MSG_SCREENSHOT_BROWSE], NULL, 2)
     };
 
-    MAKE_MENU(tools_screensnap, NULL, NULL, NULL, NULL, 0, 0);
+    MAKE_MENU(tools_screensnap, NULL, NULL, NULL, NULL, 1, 1);
 
   /*--------------------------------------------------------
      Tools
@@ -3138,7 +3138,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 		&game_persistent_config.rewind_value, 7, NULL, ACTION_TYPE, 6)
     };
 
-    INIT_MENU(tools, tools_menu_init, NULL, NULL, NULL, 0, 0);
+    INIT_MENU(tools, tools_menu_init, NULL, NULL, NULL, 1, 1);
 
   /*--------------------------------------------------------
      Others
