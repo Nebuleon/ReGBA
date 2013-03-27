@@ -68,7 +68,7 @@ char *language_options[] = { (char *) &lang[0], (char *) &lang[1], (char *) &lan
 
 #define SAVE_STATE_SLOT_NUM 16
 
-#define NDSGBA_VERSION "beta 1"
+#define NDSGBA_VERSION "beta 2"
 
 #define GPSP_CONFIG_FILENAME "SYSTEM/ndsgba.cfg"
 
@@ -1571,11 +1571,11 @@ s32 load_config_file()
 void initial_gpsp_config()
 {
     //Initial directory path
-    sprintf(g_default_rom_dir, "%s/GAMEPAK", main_path);
-    sprintf(DEFAULT_SAVE_DIR, "%s/GAMERTS", main_path);
-    sprintf(DEFAULT_CFG_DIR, "%s/GAMERTS", main_path);
-    sprintf(DEFAULT_SS_DIR, "%s/GAMEPIC", main_path);
-    sprintf(DEFAULT_CHEAT_DIR, "%s/GAMECHT", main_path);
+    sprintf(g_default_rom_dir, "%s/GAMES", main_path);
+    sprintf(DEFAULT_SAVE_DIR, "%s/SAVES", main_path);
+    sprintf(DEFAULT_CFG_DIR, "%s/SAVES", main_path);
+    sprintf(DEFAULT_SS_DIR, "%s/PICS", main_path);
+    sprintf(DEFAULT_CHEAT_DIR, "%s/CHEATS", main_path);
 }
 
 /*--------------------------------------------------------
