@@ -117,7 +117,7 @@ s32 load_file_zip(char *filename)
     if(data.DataDescriptor.UncompressedSize > gamepak_ram_buffer_size)
       {
         write_tmp_flag = YES; // テンポラリを使用するフラグをONに
-        sprintf(tmp, "%s/GAMEPAK/%s", main_path, ZIP_TMP);
+        sprintf(tmp, "%s/%s", main_path, ZIP_TMP);
         FILE_OPEN(tmp_fd, tmp, WRITE);
       }
     else
