@@ -4999,7 +4999,7 @@ int load_game_stat_snapshot(char* file)
 	char date_str[32];
 
 	fread(&save_time, 1, sizeof(save_time), fp);
-    sprintf(date_str, "%02d-%02d %02d:%02d:%02d",
+    sprintf(date_str, "%02d-%02d %02d:%02d:%02d        ",
 		save_time.month, save_time.day, save_time.hours, save_time.minutes, save_time.seconds);
 
 	PRINT_STRING_BG(up_screen_addr, date_str, COLOR_WHITE, COLOR_BLACK, 1, 1);
