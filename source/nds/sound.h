@@ -99,15 +99,15 @@ typedef struct
 #define BUFFER_SIZE (0xffff)                        // バッファのバイト数。変更しないこと
 
 #ifdef NDS_LAYER
-#define AUDIO_LEN 3072
+#define AUDIO_LEN 1536
 #endif
 
 // This is the frequency of sound output by the GBA. It is stored in a
 // buffer containing BUFFER_SIZE bytes, and AUDIO_LEN refers to samples
 // at this frequency.
 // The value should technically be 32768, but at least the GBA Video ROMs and
-// Golden Sun - The Lost Age require this to be 4 times that.
-#define SOUND_FREQUENCY (131072.0)
+// Golden Sun - The Lost Age require this to be 2 times that.
+#define SOUND_FREQUENCY (65536.0)
 
 // OUTPUT_SOUND_FREQUENCY should be a power-of-2 fraction of SOUND_FREQUENCY;
 // if not, sound.c's sound_update() needs to resample the output.
