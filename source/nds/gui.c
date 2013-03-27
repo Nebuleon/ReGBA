@@ -2077,6 +2077,13 @@ u32 menu(u16 *screen, int FirstInvocation)
 				SavedStateCacheInvalidate ();
 
 				mdelay(500); // let the progress message linger
+
+				// Now show the screen of what we just wrote.
+				get_savestate_filename(savestate_index, tmp_filename);
+				sprintf(line_buffer, "%s/%s", DEFAULT_SAVE_DIR, tmp_filename);
+				HighFrequencyCPU();
+				load_game_stat_snapshot(tmp_filename);
+				LowFrequencyCPU();
 			}
 			else	//load screen snapshot
 			{
