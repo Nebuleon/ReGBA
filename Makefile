@@ -99,10 +99,10 @@ $(START_O): $(START_ASM)
 	$(CC) $(CFLAGS) $(INCLUDE) -o $@ -c $<
 
 makedirs:
-	-mkdir $(PLUGIN_DIR)/gamepak
-	-mkdir $(PLUGIN_DIR)/gamecht
-	-mkdir $(PLUGIN_DIR)/gamerts
-	-mkdir $(PLUGIN_DIR)/gamepic
+	-mkdir $(PLUGIN_DIR)/GAMES
+	-mkdir $(PLUGIN_DIR)/CHEATS
+	-mkdir $(PLUGIN_DIR)/SAVES
+	-mkdir $(PLUGIN_DIR)/PICS
 
 clean:
 	-rm -rf $(OUTPUT).plg $(OUTPUT).dat $(OUTPUT).elf depend $(OBJECTS) $(START_O)
