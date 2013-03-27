@@ -1673,8 +1673,12 @@ u32 menu(u16 *screen, int FirstInvocation)
 	auto void show_card_space();
 #endif
 	auto void savestate_selitem(u32 sel, u32 y_pos);
+	auto void game_state_menu_init();
 	auto void game_state_menu_passive();
+	auto void game_state_menu_end();
+	auto void gamestate_delette_menu_init();
 	auto void gamestate_delette_menu_passive();
+	auto void gamestate_delette_menu_end();
 	auto void cheat_menu_init();
 	auto void cheat_menu_end();
 	auto void reload_cheats_page();
@@ -1838,6 +1842,44 @@ u32 menu(u16 *screen, int FirstInvocation)
         }
     }
 
+	void game_state_menu_init()
+	{
+		if(first_load)
+		{
+			ds2_clearScreen(UP_SCREEN, 0);
+            draw_string_vcenter(up_screen_addr, 0, 88, 256, COLOR_WHITE, msg[MSG_TOP_SCREEN_NO_GAME_LOADED]);
+			ds2_flipScreen(UP_SCREEN, 1);
+		}
+		else if(SavedStateFileExists(savestate_index))
+		{
+			get_savestate_filename(savestate_index, tmp_filename);
+			sprintf(line_buffer, "%s/%s", DEFAULT_SAVE_DIR, tmp_filename);
+			load_game_stat_snapshot(tmp_filename);
+		}
+		else
+		{
+			ds2_clearScreen(UP_SCREEN, COLOR_BLACK);
+			draw_string_vcenter(up_screen_addr, 0, 88, 256, COLOR_WHITE, msg[MSG_TOP_SCREEN_NO_SAVED_STATE_IN_SLOT]);
+			ds2_flipScreen(UP_SCREEN, UP_SCREEN_UPDATE_METHOD);
+		}
+	}
+
+	void game_state_menu_end()
+	{
+		if (!first_load)
+		{
+			ds2_clearScreen(UP_SCREEN, RGB15(0, 0, 0));
+			copy_screen(screen);
+			ds2_flipScreen(UP_SCREEN, UP_SCREEN_UPDATE_METHOD);
+		}
+		else
+		{
+			ds2_clearScreen(UP_SCREEN, 0);
+            draw_string_vcenter(up_screen_addr, 0, 88, 256, COLOR_WHITE, msg[MSG_TOP_SCREEN_NO_GAME_LOADED]);
+			ds2_flipScreen(UP_SCREEN, 1);
+		}
+	}
+
 	void game_state_menu_passive()
 	{
 		unsigned int line[3] = {0, 2, 4};
@@ -1901,9 +1943,48 @@ u32 menu(u16 *screen, int FirstInvocation)
 	}
 
     u32 delette_savestate_num= 0;
+
+	void gamestate_delette_menu_init()
+	{
+		if(first_load)
+		{
+			ds2_clearScreen(UP_SCREEN, 0);
+            draw_string_vcenter(up_screen_addr, 0, 88, 256, COLOR_WHITE, msg[MSG_TOP_SCREEN_NO_GAME_LOADED]);
+			ds2_flipScreen(UP_SCREEN, 1);
+		}
+		else if(SavedStateFileExists(delette_savestate_num))
+		{
+			get_savestate_filename(delette_savestate_num, tmp_filename);
+			sprintf(line_buffer, "%s/%s", DEFAULT_SAVE_DIR, tmp_filename);
+			load_game_stat_snapshot(tmp_filename);
+		}
+		else
+		{
+			ds2_clearScreen(UP_SCREEN, COLOR_BLACK);
+			draw_string_vcenter(up_screen_addr, 0, 88, 256, COLOR_WHITE, msg[MSG_TOP_SCREEN_NO_SAVED_STATE_IN_SLOT]);
+			ds2_flipScreen(UP_SCREEN, UP_SCREEN_UPDATE_METHOD);
+		}
+	}
+
+	void gamestate_delette_menu_end()
+	{
+		if (!first_load)
+		{
+			ds2_clearScreen(UP_SCREEN, RGB15(0, 0, 0));
+			copy_screen(screen);
+			ds2_flipScreen(UP_SCREEN, UP_SCREEN_UPDATE_METHOD);
+		}
+		else
+		{
+			ds2_clearScreen(UP_SCREEN, 0);
+            draw_string_vcenter(up_screen_addr, 0, 88, 256, COLOR_WHITE, msg[MSG_TOP_SCREEN_NO_GAME_LOADED]);
+			ds2_flipScreen(UP_SCREEN, 1);
+		}
+	}
+
 	void gamestate_delette_menu_passive()
 	{
-		unsigned int line[2] = {0, 1};
+		unsigned int line[2] = {0, 2};
 
 		//draw background
 		show_icon(down_screen_addr, &ICON_SUBBG, 0, 0);
@@ -1949,17 +2030,17 @@ u32 menu(u16 *screen, int FirstInvocation)
 			PRINT_STRING_BG(down_screen_addr, line_buffer, color, COLOR_TRANS, OPTION_TEXT_X, GUI_ROW1_Y + line[i] * GUI_ROW_SY + TEXT_OFFSET_Y);
         }
 
-		if(current_option_num == 2)
-			savestate_selitem(delette_savestate_num, GUI_ROW1_Y + 2 * GUI_ROW_SY + (GUI_ROW_SY - ICON_STATEFULL.y) / 2);
+		if(current_option_num == 1)
+			savestate_selitem(delette_savestate_num, GUI_ROW1_Y + 1 * GUI_ROW_SY + (GUI_ROW_SY - ICON_STATEFULL.y) / 2);
         else
-            savestate_selitem(-1, GUI_ROW1_Y + 2 * GUI_ROW_SY + (GUI_ROW_SY - ICON_STATEFULL.y) / 2);
+            savestate_selitem(-1, GUI_ROW1_Y + 1 * GUI_ROW_SY + (GUI_ROW_SY - ICON_STATEFULL.y) / 2);
 	}
 
 	void menu_save_state()
 	{
-		if(gui_action == CURSOR_SELECT)
+		if(!first_load)
 		{
-			if(!first_load)
+			if(gui_action == CURSOR_SELECT)
 			{
 				if (SavedStateFileExists (savestate_index))
 				{
@@ -1996,6 +2077,23 @@ u32 menu(u16 *screen, int FirstInvocation)
 				SavedStateCacheInvalidate ();
 
 				mdelay(500); // let the progress message linger
+			}
+			else	//load screen snapshot
+			{
+				if(SavedStateFileExists(savestate_index))
+				{
+					get_savestate_filename(savestate_index, tmp_filename);
+					sprintf(line_buffer, "%s/%s", DEFAULT_SAVE_DIR, tmp_filename);
+					HighFrequencyCPU();
+					load_game_stat_snapshot(tmp_filename);
+					LowFrequencyCPU();
+				}
+				else
+				{
+					ds2_clearScreen(UP_SCREEN, COLOR_BLACK);
+					draw_string_vcenter(up_screen_addr, 0, 88, 256, COLOR_WHITE, msg[MSG_TOP_SCREEN_NO_SAVED_STATE_IN_SLOT]);
+					ds2_flipScreen(UP_SCREEN, UP_SCREEN_UPDATE_METHOD);
+				}
 			}
 		}
 	}
@@ -2079,71 +2177,91 @@ u32 menu(u16 *screen, int FirstInvocation)
 
 	void delette_savestate()
 	{
-		if(!first_load && (gui_action == CURSOR_SELECT))
+		if(!first_load)
 		{
-			if(bg_screenp != NULL)
+			if (gui_action == CURSOR_SELECT)
 			{
-				bg_screenp_color = COLOR16(43, 11, 11);
-				memcpy(bg_screenp, down_screen_addr, 256*192*2);
-			}
-			else
-				bg_screenp_color = COLOR_BG;
-
-			wait_Allkey_release(0);
-			if(current_option_num == 1)         //delette all
-			{
-				u32 i, flag;
-
-				draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
-				draw_string_vcenter(down_screen_addr, MESSAGE_BOX_TEXT_X, MESSAGE_BOX_TEXT_Y, MESSAGE_BOX_TEXT_SX, COLOR_MSSG, msg[MSG_DIALOG_SAVED_STATE_DELETE_ALL]);
-
-				flag= 0;
-				for(i= 0; i < SAVE_STATE_SLOT_NUM; i++)
-					if (SavedStateFileExists (i))
-					{flag= 1; break;}
-
-				if(flag)
+				if(bg_screenp != NULL)
 				{
-					if(draw_yesno_dialog(DOWN_SCREEN, 115, msg[MSG_GENERAL_CONFIRM_WITH_A], msg[MSG_GENERAL_CANCEL_WITH_B]))
+					bg_screenp_color = COLOR16(43, 11, 11);
+					memcpy(bg_screenp, down_screen_addr, 256*192*2);
+				}
+				else
+					bg_screenp_color = COLOR_BG;
+
+				wait_Allkey_release(0);
+				if(current_option_num == 1)         //delette all
+				{
+					u32 i, flag;
+
+					draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
+					draw_string_vcenter(down_screen_addr, MESSAGE_BOX_TEXT_X, MESSAGE_BOX_TEXT_Y, MESSAGE_BOX_TEXT_SX, COLOR_MSSG, msg[MSG_DIALOG_SAVED_STATE_DELETE_ALL]);
+
+					flag= 0;
+					for(i= 0; i < SAVE_STATE_SLOT_NUM; i++)
+						if (SavedStateFileExists (i))
+						{flag= 1; break;}
+
+					if(flag)
 					{
-						wait_Allkey_release(0);
-						for(i= 0; i < SAVE_STATE_SLOT_NUM; i++)
+						if(draw_yesno_dialog(DOWN_SCREEN, 115, msg[MSG_GENERAL_CONFIRM_WITH_A], msg[MSG_GENERAL_CANCEL_WITH_B]))
 						{
-							get_savestate_filename(i, tmp_filename);
-							sprintf(line_buffer, "%s/%s", DEFAULT_SAVE_DIR, tmp_filename);
-							remove(line_buffer);
-							SavedStateCacheInvalidate ();
+							wait_Allkey_release(0);
+							for(i= 0; i < SAVE_STATE_SLOT_NUM; i++)
+							{
+								get_savestate_filename(i, tmp_filename);
+								sprintf(line_buffer, "%s/%s", DEFAULT_SAVE_DIR, tmp_filename);
+								remove(line_buffer);
+								SavedStateCacheInvalidate ();
+							}
+							savestate_index= 0;
 						}
-						savestate_index= 0;
+					}
+					else
+					{
+						draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
+						draw_string_vcenter(down_screen_addr, MESSAGE_BOX_TEXT_X, MESSAGE_BOX_TEXT_Y, MESSAGE_BOX_TEXT_SX, COLOR_MSSG, msg[MSG_PROGRESS_SAVED_STATE_ALREADY_EMPTY]);
+						ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
+						mdelay(500);
 					}
 				}
-				else
+				else if(current_option_num == 2)    //delette single
 				{
 					draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
-					draw_string_vcenter(down_screen_addr, MESSAGE_BOX_TEXT_X, MESSAGE_BOX_TEXT_Y, MESSAGE_BOX_TEXT_SX, COLOR_MSSG, msg[MSG_PROGRESS_SAVED_STATE_ALREADY_EMPTY]);
-					ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
-					mdelay(500);
+
+					if(SavedStateFileExists(delette_savestate_num))
+					{
+						sprintf(line_buffer, msg[FMT_DIALOG_SAVED_STATE_DELETE_ONE], delette_savestate_num + 1);
+						draw_string_vcenter(down_screen_addr, MESSAGE_BOX_TEXT_X, MESSAGE_BOX_TEXT_Y, MESSAGE_BOX_TEXT_SX, COLOR_MSSG, line_buffer);
+
+						if(draw_yesno_dialog(DOWN_SCREEN, 115, msg[MSG_GENERAL_CONFIRM_WITH_A], msg[MSG_GENERAL_CANCEL_WITH_B])) {
+							wait_Allkey_release(0);
+							clear_savestate_slot(delette_savestate_num);
+	}
+					}
+					else
+					{
+						draw_string_vcenter(down_screen_addr, MESSAGE_BOX_TEXT_X, MESSAGE_BOX_TEXT_Y, MESSAGE_BOX_TEXT_SX, COLOR_MSSG, msg[MSG_PROGRESS_SAVED_STATE_ALREADY_EMPTY]);
+						ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
+						mdelay(500);
+					}
 				}
 			}
-			else if(current_option_num == 2)    //delette single
+			else	//load screen snapshot
 			{
-				draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
-
 				if(SavedStateFileExists(delette_savestate_num))
 				{
-					sprintf(line_buffer, msg[FMT_DIALOG_SAVED_STATE_DELETE_ONE], delette_savestate_num + 1);
-					draw_string_vcenter(down_screen_addr, MESSAGE_BOX_TEXT_X, MESSAGE_BOX_TEXT_Y, MESSAGE_BOX_TEXT_SX, COLOR_MSSG, line_buffer);
-
-					if(draw_yesno_dialog(DOWN_SCREEN, 115, msg[MSG_GENERAL_CONFIRM_WITH_A], msg[MSG_GENERAL_CANCEL_WITH_B])) {
-						wait_Allkey_release(0);
-						clear_savestate_slot(delette_savestate_num);
-}
+					get_savestate_filename(delette_savestate_num, tmp_filename);
+					sprintf(line_buffer, "%s/%s", DEFAULT_SAVE_DIR, tmp_filename);
+					HighFrequencyCPU();
+					load_game_stat_snapshot(tmp_filename);
+					LowFrequencyCPU();
 				}
 				else
 				{
-					draw_string_vcenter(down_screen_addr, MESSAGE_BOX_TEXT_X, MESSAGE_BOX_TEXT_Y, MESSAGE_BOX_TEXT_SX, COLOR_MSSG, msg[MSG_PROGRESS_SAVED_STATE_ALREADY_EMPTY]);
-					ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
-					mdelay(500);
+					ds2_clearScreen(UP_SCREEN, COLOR_BLACK);
+					draw_string_vcenter(up_screen_addr, 0, 88, 256, COLOR_WHITE, msg[MSG_TOP_SCREEN_NO_SAVED_STATE_IN_SLOT]);
+					ds2_flipScreen(UP_SCREEN, UP_SCREEN_UPDATE_METHOD);
 				}
 			}
 		}
@@ -2850,13 +2968,13 @@ u32 menu(u16 *screen, int FirstInvocation)
 	{
 	/* 00 */ SUBMENU_OPTION(&game_state_menu, &msg[MSG_SAVED_STATE_DELETE_GENERAL], NULL, 0),
 
-	/* 01 */ ACTION_OPTION(delette_savestate, NULL, &msg[MSG_SAVED_STATE_DELETE_ALL], NULL, 1),
+	/* 01 */ NUMERIC_SELECTION_ACTION_OPTION(delette_savestate, NULL,
+		&msg[FMT_SAVED_STATE_DELETE_ONE], &delette_savestate_num, SAVE_STATE_SLOT_NUM, NULL, 1),
 
-	/* 02 */ NUMERIC_SELECTION_ACTION_OPTION(delette_savestate, NULL,
-		&msg[FMT_SAVED_STATE_DELETE_ONE], &delette_savestate_num, SAVE_STATE_SLOT_NUM, NULL, 2)
+	/* 02 */ ACTION_OPTION(delette_savestate, NULL, &msg[MSG_SAVED_STATE_DELETE_ALL], NULL, 2)
 	};
 
-	MAKE_MENU(gamestate_delette, NULL, gamestate_delette_menu_passive, NULL, NULL, 0, 0);
+	MAKE_MENU(gamestate_delette, gamestate_delette_menu_init, gamestate_delette_menu_passive, NULL, gamestate_delette_menu_end, 0, 0);
 
   /*--------------------------------------------------------
      Game state
@@ -2875,7 +2993,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 	/* 03 */ SUBMENU_OPTION(&gamestate_delette_menu, &msg[MSG_SAVED_STATE_DELETE_GENERAL], NULL, 5),
 	};
 
-	INIT_MENU(game_state, NULL, game_state_menu_passive, NULL, NULL, 0, 0);
+	INIT_MENU(game_state, game_state_menu_init, game_state_menu_passive, NULL, game_state_menu_end, 0, 0);
 
   /*--------------------------------------------------------
      Cheat options
