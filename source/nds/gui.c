@@ -1848,7 +1848,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 		{
 			ds2_clearScreen(UP_SCREEN, 0);
             draw_string_vcenter(up_screen_addr, 0, 88, 256, COLOR_WHITE, msg[MSG_TOP_SCREEN_NO_GAME_LOADED]);
-			ds2_flipScreen(UP_SCREEN, 1);
+			ds2_flipScreen(UP_SCREEN, UP_SCREEN_UPDATE_METHOD);
 		}
 		else if(SavedStateFileExists(savestate_index))
 		{
@@ -1869,14 +1869,14 @@ u32 menu(u16 *screen, int FirstInvocation)
 		if (!first_load)
 		{
 			ds2_clearScreen(UP_SCREEN, RGB15(0, 0, 0));
-			copy_screen(screen);
+			blit_to_screen(screen, GBA_SCREEN_WIDTH, GBA_SCREEN_HEIGHT, -1, -1);
 			ds2_flipScreen(UP_SCREEN, UP_SCREEN_UPDATE_METHOD);
 		}
 		else
 		{
 			ds2_clearScreen(UP_SCREEN, 0);
             draw_string_vcenter(up_screen_addr, 0, 88, 256, COLOR_WHITE, msg[MSG_TOP_SCREEN_NO_GAME_LOADED]);
-			ds2_flipScreen(UP_SCREEN, 1);
+			ds2_flipScreen(UP_SCREEN, UP_SCREEN_UPDATE_METHOD);
 		}
 	}
 
@@ -1950,7 +1950,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 		{
 			ds2_clearScreen(UP_SCREEN, 0);
             draw_string_vcenter(up_screen_addr, 0, 88, 256, COLOR_WHITE, msg[MSG_TOP_SCREEN_NO_GAME_LOADED]);
-			ds2_flipScreen(UP_SCREEN, 1);
+			ds2_flipScreen(UP_SCREEN, UP_SCREEN_UPDATE_METHOD);
 		}
 		else if(SavedStateFileExists(delette_savestate_num))
 		{
@@ -1971,14 +1971,14 @@ u32 menu(u16 *screen, int FirstInvocation)
 		if (!first_load)
 		{
 			ds2_clearScreen(UP_SCREEN, RGB15(0, 0, 0));
-			copy_screen(screen);
+			blit_to_screen(screen, GBA_SCREEN_WIDTH, GBA_SCREEN_HEIGHT, -1, -1);
 			ds2_flipScreen(UP_SCREEN, UP_SCREEN_UPDATE_METHOD);
 		}
 		else
 		{
 			ds2_clearScreen(UP_SCREEN, 0);
             draw_string_vcenter(up_screen_addr, 0, 88, 256, COLOR_WHITE, msg[MSG_TOP_SCREEN_NO_GAME_LOADED]);
-			ds2_flipScreen(UP_SCREEN, 1);
+			ds2_flipScreen(UP_SCREEN, UP_SCREEN_UPDATE_METHOD);
 		}
 	}
 
@@ -2839,7 +2839,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 
 			ds2_clearScreen(UP_SCREEN, 0);
             draw_string_vcenter(up_screen_addr, 0, 88, 256, COLOR_WHITE, msg[MSG_TOP_SCREEN_NO_GAME_LOADED]);
-			ds2_flipScreen(UP_SCREEN, 1);
+			ds2_flipScreen(UP_SCREEN, UP_SCREEN_UPDATE_METHOD);
 
 			// mdelay(500); // Delete this delay
         }
@@ -2875,7 +2875,7 @@ u32 menu(u16 *screen, int FirstInvocation)
             {
 				ds2_clearScreen(UP_SCREEN, 0);
                 draw_string_vcenter(up_screen_addr, 0, 88, 256, COLOR_WHITE, msg[MSG_TOP_SCREEN_NO_GAME_LOADED]);
-				ds2_flipScreen(UP_SCREEN, 1);
+				ds2_flipScreen(UP_SCREEN, UP_SCREEN_UPDATE_METHOD);
             }
 
             LowFrequencyCPU(); // and back down
@@ -3935,7 +3935,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 		{
 			ds2_clearScreen(UP_SCREEN, COLOR_BLACK);
 			draw_string_vcenter(up_screen_addr, 0, 88, 256, COLOR_WHITE, msg[MSG_TOP_SCREEN_NO_GAME_LOADED]);
-			ds2_flipScreen(UP_SCREEN, 1);
+			ds2_flipScreen(UP_SCREEN, UP_SCREEN_UPDATE_METHOD);
 		}
 	}
 	else
@@ -4429,7 +4429,11 @@ u32 menu(u16 *screen, int FirstInvocation)
 
 	ds2_clearScreen(DOWN_SCREEN, 0);
 	ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
-	copy_screen(screen);
+	ds2_clearScreen(UP_SCREEN, RGB15(0, 0, 0));
+	blit_to_screen(screen, GBA_SCREEN_WIDTH, GBA_SCREEN_HEIGHT, -1, -1);
+	ds2_flipScreen(UP_SCREEN, UP_SCREEN_UPDATE_METHOD);
+	ds2_clearScreen(UP_SCREEN, RGB15(0, 0, 0));
+	blit_to_screen(screen, GBA_SCREEN_WIDTH, GBA_SCREEN_HEIGHT, -1, -1);
 	ds2_flipScreen(UP_SCREEN, UP_SCREEN_UPDATE_METHOD);
 	wait_Allkey_release(0);
 

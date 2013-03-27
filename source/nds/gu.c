@@ -249,7 +249,7 @@ void copy_screen(u16 *buffer)
 
     for(y= 0; y < GBA_SCREEN_HEIGHT; y++)
     {
-        ptr= gba_screen_address + y*256;
+        ptr= (u16*)up_screen_addr + (y+16)*256 + 8;
         for(x= 0; x < GBA_SCREEN_WIDTH; x++)
             *buffer++ = *ptr++;
     }
@@ -268,7 +268,7 @@ void blit_to_screen(u16 *src, u32 w, u32 h, u32 dest_x, u32 dest_y)
     if(dest_y == -1)
         dest_y= (NDS_SCREEN_HEIGHT - h)/2;
 
-    screenp= gba_screen_address -16*256 -8;
+    screenp= up_screen_addr;
     for(y= 0; y < h; y++)
     {
         dst= screenp + (y+dest_y)*256 + dest_x;
