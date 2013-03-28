@@ -2631,7 +2631,7 @@ u8 swi_hle_handle[0x2B][2] =
 { /* use bios , emu bios */
   { 0x0, 0x0 },    // SWI 0:  SoftReset
   { 0x0, 0x0 },    // SWI 1:  RegisterRAMReset
-  { 0x0, 0x0 },    // SWI 2:  Halt
+  { 0x0, 0x1 },    // SWI 2:  Halt
   { 0x0, 0x0 },    // SWI 3:  Stop/Sleep
   { 0x0, 0x0 },    // SWI 4:  IntrWait
   { 0x0, 0x0 },    // SWI 5:  VBlankIntrWait
@@ -2642,7 +2642,7 @@ u8 swi_hle_handle[0x2B][2] =
   { 0x0, 0x0 },    // SWI A:  ArcTan2
   { 0x0, 0x1 },    // SWI B:  CpuSet
   { 0x0, 0x1 },    // SWI C:  CpuFastSet
-  { 0x0, 0x0 },    // SWI D:  GetBIOSCheckSum
+  { 0x0, 0x1 },    // SWI D:  GetBIOSCheckSum
   { 0x0, 0x1 },    // SWI E:  BgAffineSet
   { 0x0, 0x1 },    // SWI F:  ObjAffineSet
   { 0x0, 0x0 },    // SWI 10: BitUnpack
