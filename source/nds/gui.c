@@ -2778,45 +2778,41 @@ u32 menu(u16 *screen, int FirstInvocation)
 
     void save_screen_snapshot()
     {
-        if(gui_action == CURSOR_SELECT)
+        if(bg_screenp != NULL)
         {
-            if(bg_screenp != NULL)
-            {
-                bg_screenp_color = COLOR16(43, 11, 11);
-                memcpy(bg_screenp, down_screen_addr, 256*192*2);
-            }
-            else
-                bg_screenp_color = COLOR_BG;
+            bg_screenp_color = COLOR16(43, 11, 11);
+            memcpy(bg_screenp, down_screen_addr, 256*192*2);
+        }
+        else
+            bg_screenp_color = COLOR_BG;
 
-            draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
-            if(!first_load)
-            {
-                draw_string_vcenter(down_screen_addr, MESSAGE_BOX_TEXT_X, MESSAGE_BOX_TEXT_Y, MESSAGE_BOX_TEXT_SX, COLOR_MSSG, msg[MSG_PROGRESS_SCREENSHOT_CREATING]);
-                ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
-                if(save_ss_bmp(screen)) {
-                    draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
-                    draw_string_vcenter(down_screen_addr, MESSAGE_BOX_TEXT_X, MESSAGE_BOX_TEXT_Y, MESSAGE_BOX_TEXT_SX, COLOR_MSSG, msg[MSG_PROGRESS_SCREENSHOT_CREATION_SUCCEEDED]);
-                }
-                else {
-                    draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
-                    draw_string_vcenter(down_screen_addr, MESSAGE_BOX_TEXT_X, MESSAGE_BOX_TEXT_Y, MESSAGE_BOX_TEXT_SX, COLOR_MSSG, msg[MSG_PROGRESS_SCREENSHOT_CREATION_FAILED]);
-                }
-                ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
-				mdelay(500);
+        draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
+        if(!first_load)
+        {
+            draw_string_vcenter(down_screen_addr, MESSAGE_BOX_TEXT_X, MESSAGE_BOX_TEXT_Y, MESSAGE_BOX_TEXT_SX, COLOR_MSSG, msg[MSG_PROGRESS_SCREENSHOT_CREATING]);
+            ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
+            if(save_ss_bmp(screen)) {
+                draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
+                draw_string_vcenter(down_screen_addr, MESSAGE_BOX_TEXT_X, MESSAGE_BOX_TEXT_Y, MESSAGE_BOX_TEXT_SX, COLOR_MSSG, msg[MSG_PROGRESS_SCREENSHOT_CREATION_SUCCEEDED]);
             }
-            else
-            {
-                draw_string_vcenter(down_screen_addr, MESSAGE_BOX_TEXT_X, MESSAGE_BOX_TEXT_Y, MESSAGE_BOX_TEXT_SX, COLOR_MSSG, msg[MSG_TOP_SCREEN_NO_SAVED_STATE_IN_SLOT]);
-                ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
-				mdelay(500);
+            else {
+                draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
+                draw_string_vcenter(down_screen_addr, MESSAGE_BOX_TEXT_X, MESSAGE_BOX_TEXT_Y, MESSAGE_BOX_TEXT_SX, COLOR_MSSG, msg[MSG_PROGRESS_SCREENSHOT_CREATION_FAILED]);
             }
+            ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
+			mdelay(500);
+        }
+        else
+        {
+            draw_string_vcenter(down_screen_addr, MESSAGE_BOX_TEXT_X, MESSAGE_BOX_TEXT_Y, MESSAGE_BOX_TEXT_SX, COLOR_MSSG, msg[MSG_TOP_SCREEN_NO_SAVED_STATE_IN_SLOT]);
+            ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
+			mdelay(500);
         }
     }
 
     void browse_screen_snapshot()
     {
-        if(current_option_num == 2)
-            play_screen_snapshot();
+        play_screen_snapshot();
     }
 
     void load_default_setting()
