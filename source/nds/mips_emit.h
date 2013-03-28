@@ -2627,7 +2627,7 @@ u32 execute_store_cpsr_body(u32 _cpsr, u32 store_mask, u32 address)
    block_exits[block_exit_position].branch_target);                           \
   block_exit_position++                                                       \
 
-u8 swi_hle_handle[256][2] =
+u8 swi_hle_handle[0x2B][2] =
 { /* use bios , emu bios */
   { 0x0, 0x0 },    // SWI 0:  SoftReset
   { 0x0, 0x0 },    // SWI 1:  RegisterRAMReset
