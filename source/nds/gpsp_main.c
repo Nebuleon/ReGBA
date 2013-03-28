@@ -198,7 +198,7 @@ void init_main()
   execute_cycles = 960;
   video_count = 960;
 
-  bios_mode = USE_BIOS;
+  bios_mode = EMU_BIOS;
 
   flush_translation_cache_rom();
   flush_translation_cache_ram();
