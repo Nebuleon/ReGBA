@@ -2840,7 +2840,6 @@ u32 menu(u16 *screen, int FirstInvocation)
 
             first_load= 1;
             init_default_gpsp_config();
-            gui_action = CURSOR_RIGHT;
             language_set();
             init_game_config();
 
@@ -2872,21 +2871,18 @@ u32 menu(u16 *screen, int FirstInvocation)
 
     void language_set()
     {
-        if(gui_action == CURSOR_LEFT || gui_action == CURSOR_RIGHT)
+        HighFrequencyCPU(); // crank it up
+
+        load_language_msg(LANGUAGE_PACK, gpsp_persistent_config.language);
+
+        if(first_load)
         {
-            HighFrequencyCPU(); // crank it up
-
-            load_language_msg(LANGUAGE_PACK, gpsp_persistent_config.language);
-
-            if(first_load)
-            {
-				ds2_clearScreen(UP_SCREEN, 0);
-                draw_string_vcenter(up_screen_addr, 0, 88, 256, COLOR_WHITE, msg[MSG_TOP_SCREEN_NO_GAME_LOADED]);
-				ds2_flipScreen(UP_SCREEN, UP_SCREEN_UPDATE_METHOD);
-            }
-
-            LowFrequencyCPU(); // and back down
+			ds2_clearScreen(UP_SCREEN, 0);
+            draw_string_vcenter(up_screen_addr, 0, 88, 256, COLOR_WHITE, msg[MSG_TOP_SCREEN_NO_GAME_LOADED]);
+			ds2_flipScreen(UP_SCREEN, UP_SCREEN_UPDATE_METHOD);
         }
+
+        LowFrequencyCPU(); // and back down
     }
 
 #ifdef ENABLE_FREE_SPACE
