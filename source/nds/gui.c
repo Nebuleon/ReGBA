@@ -4077,7 +4077,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 				ds2_getrawInput(&inputdata);
 				wait_Allkey_release(0);
 				/* Back button at the top of every menu but the main one */
-				if(current_menu != &main_menu && inputdata.x > 231 && inputdata.y <= 25)
+				if(current_menu != &main_menu && inputdata.x >= BACK_BUTTON_X && inputdata.y < BACK_BUTTON_Y + ICON_BACK.y)
 				{
 					choose_menu(current_menu->options->sub_menu);
 					break;
