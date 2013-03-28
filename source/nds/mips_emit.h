@@ -2631,7 +2631,7 @@ u8 swi_hle_handle[0x2B][2] =
 { /* use bios , emu bios */
   { 0x0, 0x0 },    // SWI 0:  SoftReset
   { 0x0, 0x0 },    // SWI 1:  RegisterRAMReset
-  { 0x0, 0x1 },    // SWI 2:  Halt
+  { 0x0, 0x0 },    // SWI 2:  Halt
   { 0x0, 0x0 },    // SWI 3:  Stop/Sleep
   { 0x0, 0x0 },    // SWI 4:  IntrWait
   { 0x0, 0x0 },    // SWI 5:  VBlankIntrWait
