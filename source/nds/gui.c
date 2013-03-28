@@ -4121,14 +4121,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 					current_option_num = next_option_num;
 					current_option = current_menu->options + current_option_num;
 
-					if(current_option->option_type & ACTION_TYPE)
-						current_option->action_function();
-					else if(current_menu->key_function)
-					{
-						gui_action = CURSOR_RIGHT;
-						current_menu->key_function();
-					}
-					else if(current_option->option_type & (NUMBER_SELECTION_TYPE | STRING_SELECTION_TYPE))
+					if(current_option->option_type & (NUMBER_SELECTION_TYPE | STRING_SELECTION_TYPE))
 					{
 						gui_action = CURSOR_RIGHT;
 						u32 current_option_val = *(current_option->current_option);
@@ -4141,6 +4134,13 @@ u32 menu(u16 *screen, int FirstInvocation)
 
 						if(current_option->action_function)
 							current_option->action_function();
+					}
+					else if(current_option->option_type & ACTION_TYPE)
+						current_option->action_function();
+					else if(current_menu->key_function)
+					{
+						gui_action = CURSOR_RIGHT;
+						current_menu->key_function();
 					}
 					else if(current_option->option_type & SUBMENU_TYPE)
 						choose_menu(current_option->sub_menu);
