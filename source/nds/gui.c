@@ -1096,7 +1096,11 @@ s32 load_file(char **wildcards, char *result, char *default_dir_name)
 		//Path auto scroll
 		unsigned int m = path_scroll & 0xFF;
 		if(m < 20) //pause 0.5sec
+		{
+			draw_hscroll(0, 0);
+			// ^ but prevent flashing with non-scrolling paths
 			path_scroll += 1;
+		}
 		else {
 			show_icon(down_screen_addr, &ICON_TITLE, 0, 0);
 			show_icon(down_screen_addr, &ICON_TITLEICON, TITLE_ICON_X, TITLE_ICON_Y);
@@ -3391,12 +3395,16 @@ u32 menu(u16 *screen, int FirstInvocation)
 
 	void tools_menu_init()
 	{
-#if 0
 		if (first_load)
+		{
 			tools_options[3] /* game hotkeys */.option_type |= HIDEN_TYPE;
+			tools_options[5] /* game button mappings */.option_type |= HIDEN_TYPE;
+		}
 		else
+		{
 			tools_options[3] /* game hotkeys */.option_type &= ~HIDEN_TYPE;
-#endif
+			tools_options[5] /* game button mappings */.option_type &= ~HIDEN_TYPE;
+		}
 	}
 
 	void obtain_hotkey (u32 *HotkeyBitfield)
