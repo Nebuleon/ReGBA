@@ -107,6 +107,8 @@ to R+X, then pressing L+R+X+Y will trigger both and send all GBA buttons mapped
 to L, R, X and Y to the game.
 
 Available actions are:
+* Go to main menu. In addition to tapping the Touch Screen to return to
+  the main menu, you can set a hotkey to do the same.
 * Rewind. A hotkey needs to be set here if you want to use the rewind feature
   in a game. After each second the hotkey is held, the game will rewind one
   step. See the `Rewinding` section above for more information.

@@ -300,7 +300,10 @@ u32 update_input()
     non_repeat_buttons = (last_buttons ^ buttons) & buttons;
     last_buttons = buttons;
 
-    if(non_repeat_buttons & game_config.gamepad_config_map[12] /* MENU */)
+	u32 HotkeyReturnToMenu = game_persistent_config.HotkeyReturnToMenu != 0 ? game_persistent_config.HotkeyReturnToMenu : gpsp_persistent_config.HotkeyReturnToMenu;
+
+    if(non_repeat_buttons & game_config.gamepad_config_map[12] /* MENU */
+        || HotkeyReturnToMenu && (buttons & HotkeyReturnToMenu) == HotkeyReturnToMenu)
     {
         u16 screen_copy[GBA_SCREEN_BUFF_SIZE];
         copy_screen(screen_copy);

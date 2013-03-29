@@ -1627,9 +1627,13 @@ u32 menu(u16 *screen, int FirstInvocation)
 	auto void tools_menu_init();
 
 	auto void set_global_hotkey_rewind();
+	auto void set_global_hotkey_return_to_menu();
 	auto void set_game_specific_hotkey_rewind();
+	auto void set_game_specific_hotkey_return_to_menu();
 	auto void global_hotkey_rewind_passive();
+	auto void global_hotkey_return_to_menu_passive();
 	auto void game_specific_hotkey_rewind_passive();
+	auto void game_specific_hotkey_return_to_menu_passive();
 
 	auto void set_global_button_a();
 	auto void set_global_button_b();
@@ -3036,7 +3040,9 @@ u32 menu(u16 *screen, int FirstInvocation)
     {
 	/* 00 */ SUBMENU_OPTION(&tools_menu, &msg[MSG_TOOLS_GLOBAL_HOTKEY_GENERAL], NULL, 0),
 
-	/* 01 */ ACTION_OPTION(set_global_hotkey_rewind, global_hotkey_rewind_passive, &msg[MSG_HOTKEY_REWIND], NULL, 1)
+	/* 01 */ ACTION_OPTION(set_global_hotkey_return_to_menu, global_hotkey_return_to_menu_passive, &msg[MSG_HOTKEY_MAIN_MENU], NULL, 1),
+
+	/* 02 */ ACTION_OPTION(set_global_hotkey_rewind, global_hotkey_rewind_passive, &msg[MSG_HOTKEY_REWIND], NULL, 2)
     };
 
     MAKE_MENU(tools_global_hotkeys, NULL, NULL, NULL, NULL, 1, 1);
@@ -3048,7 +3054,9 @@ u32 menu(u16 *screen, int FirstInvocation)
     {
 	/* 00 */ SUBMENU_OPTION(&tools_menu, &msg[MSG_TOOLS_GAME_HOTKEY_GENERAL], NULL, 0),
 
-	/* 01 */ ACTION_OPTION(set_game_specific_hotkey_rewind, game_specific_hotkey_rewind_passive, &msg[MSG_HOTKEY_REWIND], NULL, 1)
+	/* 01 */ ACTION_OPTION(set_game_specific_hotkey_return_to_menu, game_specific_hotkey_return_to_menu_passive, &msg[MSG_HOTKEY_MAIN_MENU], NULL, 1),
+
+	/* 02 */ ACTION_OPTION(set_game_specific_hotkey_rewind, game_specific_hotkey_rewind_passive, &msg[MSG_HOTKEY_REWIND], NULL, 2)
     };
 
     MAKE_MENU(tools_game_specific_hotkeys, NULL, NULL, NULL, NULL, 1, 1);
@@ -3426,9 +3434,19 @@ u32 menu(u16 *screen, int FirstInvocation)
 		obtain_hotkey(&gpsp_persistent_config.HotkeyRewind);
 	}
 
+	void set_global_hotkey_return_to_menu()
+	{
+		obtain_hotkey(&gpsp_persistent_config.HotkeyReturnToMenu);
+	}
+
 	void set_game_specific_hotkey_rewind()
 	{
 		obtain_hotkey(&game_persistent_config.HotkeyRewind);
+	}
+
+	void set_game_specific_hotkey_return_to_menu()
+	{
+		obtain_hotkey(&game_persistent_config.HotkeyReturnToMenu);
 	}
 
 #define HOTKEY_CONTENT_X 156
@@ -3470,9 +3488,19 @@ u32 menu(u16 *screen, int FirstInvocation)
 		hotkey_option_passive_common(gpsp_persistent_config.HotkeyRewind);
 	}
 
+	void global_hotkey_return_to_menu_passive()
+	{
+		hotkey_option_passive_common(gpsp_persistent_config.HotkeyReturnToMenu);
+	}
+
 	void game_specific_hotkey_rewind_passive()
 	{
 		hotkey_option_passive_common(game_persistent_config.HotkeyRewind);
+	}
+
+	void game_specific_hotkey_return_to_menu_passive()
+	{
+		hotkey_option_passive_common(game_persistent_config.HotkeyReturnToMenu);
 	}
 
 	void obtain_key (u32 *KeyBitfield)
