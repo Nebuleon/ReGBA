@@ -3818,7 +3818,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 				{
 					draw_hscroll_over(current_option_num-1);
 	            	ext_pos= strrchr(gpsp_persistent_config.latest_file[current_option_num-1], '/');
-                	draw_hscroll_init(down_screen_addr, OPTION_TEXT_X, GUI_ROW1_Y + (current_option_num-1) * GUI_ROW_SY + TEXT_OFFSET_Y, OPTION_TEXT_SX,
+                	hscroll_init(down_screen_addr, OPTION_TEXT_X, GUI_ROW1_Y + (current_option_num-1) * GUI_ROW_SY + TEXT_OFFSET_Y, OPTION_TEXT_SX,
                 	    COLOR_TRANS, COLOR_INACTIVE_ITEM, ext_pos+1);
 				}
 
@@ -3832,7 +3832,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 				{
 					draw_hscroll_over(current_option_num-1);
 	            	ext_pos= strrchr(gpsp_persistent_config.latest_file[current_option_num-1], '/');
-                	draw_hscroll_init(down_screen_addr, OPTION_TEXT_X, GUI_ROW1_Y + (current_option_num-1) * GUI_ROW_SY + TEXT_OFFSET_Y, OPTION_TEXT_SX,
+                	hscroll_init(down_screen_addr, OPTION_TEXT_X, GUI_ROW1_Y + (current_option_num-1) * GUI_ROW_SY + TEXT_OFFSET_Y, OPTION_TEXT_SX,
                 	    COLOR_TRANS, COLOR_ACTIVE_ITEM, ext_pos+1);
 				}
 
@@ -3844,7 +3844,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 				{
 					draw_hscroll_over(current_option_num-1);
 	            	ext_pos= strrchr(gpsp_persistent_config.latest_file[current_option_num-1], '/');
-                	draw_hscroll_init(down_screen_addr, OPTION_TEXT_X, GUI_ROW1_Y + (current_option_num-1) * GUI_ROW_SY + TEXT_OFFSET_Y, OPTION_TEXT_SX,
+                	hscroll_init(down_screen_addr, OPTION_TEXT_X, GUI_ROW1_Y + (current_option_num-1) * GUI_ROW_SY + TEXT_OFFSET_Y, OPTION_TEXT_SX,
                 	    COLOR_TRANS, COLOR_INACTIVE_ITEM, ext_pos+1);
 				}
 
@@ -3857,7 +3857,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 				{
 					draw_hscroll_over(current_option_num-1);
 	            	ext_pos= strrchr(gpsp_persistent_config.latest_file[current_option_num-1], '/');
-                	draw_hscroll_init(down_screen_addr, OPTION_TEXT_X, GUI_ROW1_Y + (current_option_num-1) * GUI_ROW_SY + TEXT_OFFSET_Y, OPTION_TEXT_SX,
+                	hscroll_init(down_screen_addr, OPTION_TEXT_X, GUI_ROW1_Y + (current_option_num-1) * GUI_ROW_SY + TEXT_OFFSET_Y, OPTION_TEXT_SX,
                 	    COLOR_TRANS, COLOR_ACTIVE_ITEM, ext_pos+1);
 				}
 

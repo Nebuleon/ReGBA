@@ -162,6 +162,8 @@ extern void draw_string_vcenter(void* screen_address, u32 sx, u32 sy, u32 width,
         u32 color_fg, char *string);
 
 #define MAX_SCROLL_STRING   16
+extern u32 hscroll_init(void* screen_address, u32 sx, u32 sy, u32 width, 
+        u32 color_bg, u32 color_fg, char *string);
 extern u32 draw_hscroll_init(void* screen_address, u32 sx, u32 sy, u32 width, 
         u32 color_bg, u32 color_fg, char *string);
 extern u32 draw_hscroll(u32 index, s32 scroll_val);

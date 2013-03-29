@@ -420,7 +420,7 @@ static u32  scroll_string_num= 0;
  * Output: the scroller's handle, to be used to scroll the text in
  *   draw_hscroll.
  */
-u32 draw_hscroll_init(void* screen_addr, u32 sx, u32 sy, u32 width, 
+u32 hscroll_init(void* screen_addr, u32 sx, u32 sy, u32 width, 
         u32 color_bg, u32 color_fg, char *string)
 {
     u32 index, x, textWidth, num, len, i;
@@ -499,10 +499,17 @@ u32 draw_hscroll_init(void* screen_addr, u32 sx, u32 sy, u32 width,
         x += BDF_render16_ucs(screenp + x, textWidth, 0, color_bg, color_fg, unicode[i++]);
     }
 
-    // 5. Draw text to the screen at its initial position (left justified).
-    draw_hscroll(index, 0 /* stay on the left */);
-
     return index; // (1. Which scroller?)
+}
+
+u32 draw_hscroll_init(void* screen_addr, u32 sx, u32 sy, u32 width, 
+        u32 color_bg, u32 color_fg, char *string)
+{
+	u32 ret = hscroll_init(screen_addr, sx, sy, width, color_bg, color_fg, string);
+
+	draw_hscroll(index, 0 /* stay on the left */);
+
+	return ret;
 }
 
 /*
