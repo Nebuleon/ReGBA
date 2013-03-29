@@ -507,7 +507,7 @@ u32 draw_hscroll_init(void* screen_addr, u32 sx, u32 sy, u32 width,
 {
 	u32 ret = hscroll_init(screen_addr, sx, sy, width, color_bg, color_fg, string);
 
-	draw_hscroll(index, 0 /* stay on the left */);
+	draw_hscroll(ret, 0 /* stay on the left */);
 
 	return ret;
 }
