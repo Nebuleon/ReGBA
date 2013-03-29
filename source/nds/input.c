@@ -176,9 +176,21 @@ void trigger_key(u32 key)
 }
 
 u32 key = 0;
+
+u32 tilt_sensor_x;
+u32 tilt_sensor_y;
+
+#ifndef NDS_LAYER
 TOUCH_SCREEN last_touch= {0, 0};
 
 #define PSP_ALL_BUTTON_MASK 0x1FFFF
+u32 button_repeat = 0;
+u32 sensorR;
+
+static u32 button_circle;
+static u32 button_cross;
+
+#endif
 
 u32 last_buttons = 0;
 //u64 button_repeat_timestamp;
@@ -192,34 +204,57 @@ typedef enum
 } button_repeat_state_type;
 
 button_repeat_state_type button_repeat_state = BUTTON_NOT_HELD;
-u32 button_repeat = 0;
+#ifndef NDS_LAYER
 gui_action_type cursor_repeat = CURSOR_NONE;
-
-u32 tilt_sensor_x;
-u32 tilt_sensor_y;
-u32 sensorR;
-
-static u32 button_circle;
-static u32 button_cross;
+#else
+unsigned int gui_button_repeat = 0;
+#endif
 
 //#define BUTTON_REPEAT_START    200000
 //#define BUTTON_REPEAT_CONTINUE 50000
+#ifndef NDS_LAYER
 #define BUTTON_REPEAT_START    (200)    // Not sure what this 200 is
 				// Just avoiding a compiler error [Neb]
 #define BUTTON_REPEAT_CONTINUE (0)                        //之后重复间隔 0
+#else
+#define BUTTON_REPEAT_START (21428 / 2)
+#define BUTTON_REPEAT_CONTINUE (21428 / 20)
+#endif
 
 // GUI输入处理
+
+gui_action_type key_to_cursor(unsigned int key)
+{
+	switch (key)
+	{
+		case KEY_UP:	return CURSOR_UP;
+		case KEY_DOWN:	return CURSOR_DOWN;
+		case KEY_LEFT:	return CURSOR_LEFT;
+		case KEY_RIGHT:	return CURSOR_RIGHT;
+		case KEY_L:	return CURSOR_LTRIGGER;
+		case KEY_R:	return CURSOR_RTRIGGER;
+		case KEY_A:	return CURSOR_SELECT;
+		case KEY_B:	return CURSOR_BACK;
+		case KEY_X:	return CURSOR_EXIT;
+		case KEY_TOUCH:	return CURSOR_TOUCH;
+		default:	return CURSOR_NONE;
+	}
+}
+
+static unsigned int gui_keys[] = {
+	KEY_A, KEY_B, KEY_X, KEY_L, KEY_R, KEY_TOUCH, KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT
+};
+
 gui_action_type get_gui_input(void)
 {
-	unsigned int key;
 	gui_action_type	ret;
 
-	key = getKey();
+	struct key_buf inputdata;
+	ds2_getrawInput(&inputdata);
 
-	if (key & KEY_LID)
+	if (inputdata.key & KEY_LID)
 	{
 		ds2_setSupend();
-		struct key_buf inputdata;
 		do {
 			ds2_getrawInput(&inputdata);
 			mdelay(1);
@@ -231,44 +266,63 @@ gui_action_type get_gui_input(void)
 		// ds2_setBacklight(3);
 	}
 
-	switch(key)
+	unsigned int i;
+	while (1)
 	{
-		case KEY_UP:
-			ret = CURSOR_UP;
-			break;
-		case KEY_DOWN:
-			ret = CURSOR_DOWN;
-			break;
-		case KEY_LEFT:
-			ret = CURSOR_LEFT;
-			break;
-		case KEY_RIGHT:
-			ret = CURSOR_RIGHT;
-			break;
-		case KEY_L:
-			ret = CURSOR_LTRIGGER;
-			break;
-		case KEY_R:
-			ret = CURSOR_RTRIGGER;
-			break;
-		case KEY_A:
-			ret = CURSOR_SELECT;
-			break;
-		case KEY_B:
-			ret = CURSOR_BACK;
-			break;
-		case KEY_X:
-			ret = CURSOR_EXIT;
-			break;
-		case KEY_TOUCH:
-			ret = CURSOR_TOUCH;
-			break;
-		default:
-			ret = CURSOR_NONE;
-			break;
+		switch (button_repeat_state)
+		{
+		case BUTTON_NOT_HELD:
+			// Pick the first pressed button out of the gui_keys array.
+			for (i = 0; i < sizeof(gui_keys) / sizeof(gui_keys[0]); i++)
+			{
+				if (inputdata.key & gui_keys[i])
+				{
+					button_repeat_state = BUTTON_HELD_INITIAL;
+					button_repeat_timestamp = getSysTime();
+					gui_button_repeat = gui_keys[i];
+					return key_to_cursor(gui_keys[i]);
+				}
+			}
+			return CURSOR_NONE;
+		case BUTTON_HELD_INITIAL:
+		case BUTTON_HELD_REPEAT:
+			// If the key that was being held isn't anymore...
+			if (!(inputdata.key & gui_button_repeat))
+			{
+				button_repeat_state = BUTTON_NOT_HELD;
+				// Go see if another key is held (try #2)
+				break;
+			}
+			else
+			{
+				unsigned int IsRepeatReady = getSysTime() - button_repeat_timestamp >= (button_repeat_state == BUTTON_HELD_INITIAL ? BUTTON_REPEAT_START : BUTTON_REPEAT_CONTINUE);
+				if (!IsRepeatReady)
+				{
+					// Temporarily turn off the key.
+					// It's not its turn to be repeated.
+					inputdata.key &= ~gui_button_repeat;
+				}
+				
+				// Pick the first pressed button out of the gui_keys array.
+				for (i = 0; i < sizeof(gui_keys) / sizeof(gui_keys[0]); i++)
+				{
+					if (inputdata.key & gui_keys[i])
+					{
+						// If it's the held key,
+						// it's now repeating quickly.
+						button_repeat_state = gui_keys[i] == gui_button_repeat ? BUTTON_HELD_REPEAT : BUTTON_HELD_INITIAL;
+						button_repeat_timestamp = getSysTime();
+						gui_button_repeat = gui_keys[i];
+						return key_to_cursor(gui_keys[i]);
+					}
+				}
+				// If it was time for the repeat but it
+				// didn't occur, stop repeating.
+				if (IsRepeatReady) button_repeat_state = BUTTON_NOT_HELD;
+				return CURSOR_NONE;
+			}
+		}
 	}
-
-	return ret;
 }
 
 u32 button_input_to_gba[] =
@@ -381,8 +435,10 @@ void init_input()
 
 void init_input()
 {
+#ifndef NDS_LAYER
     button_circle = CURSOR_SELECT;
     button_cross  = CURSOR_EXIT;
+#endif
 }
 
 // type = READ / WRITE_MEM
