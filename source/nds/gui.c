@@ -2845,7 +2845,7 @@ u32 menu(u16 *screen, int FirstInvocation)
             remove(line_buffer);
 
             first_load= 1;
-            latest_game_menu.focus_option = 0;
+            latest_game_menu.focus_option = latest_game_menu.screen_focus = 0;
             init_default_gpsp_config();
             language_set();
             init_game_config();
