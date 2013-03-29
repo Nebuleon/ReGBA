@@ -1120,16 +1120,24 @@ void show_icon(void* screen, struct gui_iconlist* icon, u32 x, u32 y)
     dst = (unsigned short*)screen + y*NDS_SCREEN_WIDTH + x;
 	if(NULL == src) return;	//The icon may initialized failure
 
-    for(i= 0; i < icon->y; i++)
-    {
-		for(k= 0; k < icon->x; k++)
+	if (icon->x == NDS_SCREEN_WIDTH && icon->y == NDS_SCREEN_HEIGHT && x == 0 && y == 0)
+	{
+		// Don't support transparency for a background.
+		memcpy(dst, src, NDS_SCREEN_WIDTH * NDS_SCREEN_HEIGHT * sizeof(u16));
+	}
+	else
+	{
+		for(i= 0; i < icon->y; i++)
 		{
-			if(0x03E0 != *src) dst[k]= *src;
-			src++;
-		}
+			for(k= 0; k < icon->x; k++)
+			{
+				if(0x03E0 != *src) dst[k]= *src;
+				src++;
+			}
 
-        dst += NDS_SCREEN_WIDTH;
-    }
+			dst += NDS_SCREEN_WIDTH;
+		}
+	}
 }
 
 /*************************************************************/
