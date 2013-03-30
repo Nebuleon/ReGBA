@@ -2873,7 +2873,9 @@ u32 menu(u16 *screen, int FirstInvocation)
         draw_string_vcenter(down_screen_addr, MESSAGE_BOX_TEXT_X, MESSAGE_BOX_TEXT_Y, MESSAGE_BOX_TEXT_SX, COLOR_MSSG, line_buffer);
         ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
 
-		wait_Anykey_press(0);
+		wait_Allkey_release(0); // invoked from the menu
+		wait_Anykey_press(0); // wait until the user presses something
+		wait_Allkey_release(0); // don't give that button to the menu
     }
 
     void language_set()
