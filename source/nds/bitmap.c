@@ -20,6 +20,7 @@
 
 #include "fs_api.h"
 #include "bitmap.h"
+#include "ds2_malloc.h"
 
 int BMP_read(char* filename, char *buf, unsigned int width, unsigned int height, unsigned int* type)
 {
@@ -59,16 +60,22 @@ int BMP_read(char* filename, char *buf, unsigned int width, unsigned int height,
 	bmp_header.bfImghead.imColnum= st[23] | (st[24]<<16);
 	bmp_header.bfImghead.imImcolnum= st[25] | (st[26]<<16);
 
-	if(bmp_header.bfType != 0x4D42)	//"BM"
+	if(bmp_header.bfType != 0x4D42) {	//"BM"
+		fclose(fp);
 		return BMP_ERR_FORMATE;
+	}
 
 	if(bmp_header.bfImghead.imCompess != BI_RGB && 
-		bmp_header.bfImghead.imCompess != BI_BITFIELDS)
+		bmp_header.bfImghead.imCompess != BI_BITFIELDS) {
+		fclose(fp);
 		return BMP_ERR_NEED_GO_ON;		//This funciton now not support...
+	}
 
 	bytepixel= bmp_header.bfImghead.imBitpixel >> 3;
-	if(bytepixel < 2)					//byte per pixel >= 2
+	if(bytepixel < 2) {				//byte per pixel >= 2
+		fclose(fp);
 		return BMP_ERR_NEED_GO_ON;		//This funciton now not support...
+	}
 
 	*type = bytepixel;
 
@@ -81,16 +88,29 @@ int BMP_read(char* filename, char *buf, unsigned int width, unsigned int height,
 	if(y > sy)
 		y= sy;
 
-	//BMP scan from down to up
-	fpos= (s32)bmp_header.bfImgoffst;
-	dest= (unsigned char*)buf+(y-1)*x*bytepixel;
-	for(m= 0; m < y; m++) {
-		fseek(fp, fpos, SEEK_SET);
-		fread(dest, 1, x*bytepixel, fp);
-		fpos += ((sx*bytepixel+3)>>2)<<2;
-		dest -= x*bytepixel;
+	// Expect a certain amount of bytes and read them all at once.
+	unsigned int BytesPerLine = (sx * bytepixel + 3) & ~3;
+	char* FileBuffer = (char*) malloc(BytesPerLine * (sy - 1) + sx * bytepixel);
+	if (FileBuffer == NULL) {
+		fclose(fp);
+		return BMP_ERR_NEED_GO_ON; // Memory allocation error
 	}
 
+	fseek(fp, (s32) bmp_header.bfImgoffst, SEEK_SET);
+	m = fread(FileBuffer, 1, BytesPerLine * (sy - 1) + sx * bytepixel, fp);
+
+	if (m < BytesPerLine * (sy - 1) + sx * bytepixel) {
+		free(FileBuffer);
+		fclose(fp);
+		return BMP_ERR_FORMATE; // incomplete file
+	}
+
+	// Reorder all the bytes, because scanlines are from bottom to top.
+	for (m = 0; m < y; m++) {
+		memcpy(buf + m * x * bytepixel, FileBuffer + (sy - m - 1) * BytesPerLine, x * bytepixel);
+	}
+
+	free(FileBuffer);
 	fclose(fp);
 
 	return BMP_OK;
