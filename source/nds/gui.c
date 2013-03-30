@@ -3740,8 +3740,8 @@ u32 menu(u16 *screen, int FirstInvocation)
         {
             ext_pos= strrchr(gpsp_persistent_config.latest_file[k], '/');
             if(ext_pos != NULL)
-                draw_hscroll_init(down_screen_addr, OPTION_TEXT_X, GUI_ROW1_Y + k * GUI_ROW_SY + TEXT_OFFSET_Y, OPTION_TEXT_SX,
-                    COLOR_TRANS, COLOR_INACTIVE_ITEM, ext_pos+1);
+                hscroll_init(down_screen_addr, OPTION_TEXT_X, GUI_ROW1_Y + k * GUI_ROW_SY + TEXT_OFFSET_Y, OPTION_TEXT_SX,
+                    COLOR_TRANS, k + 1 == latest_game_menu.focus_option ? COLOR_ACTIVE_ITEM : COLOR_INACTIVE_ITEM, ext_pos+1);
 			else
 				break;
         }
