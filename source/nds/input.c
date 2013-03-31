@@ -339,6 +339,8 @@ u32 button_input_to_gba[] =
     BUTTON_L
 };
 
+extern u32 temporary_fast_forward;
+
 u32 rapidfire_flag = 1;
 u32 SoundHotkeyWasHeld = 0;
 
@@ -355,15 +357,28 @@ u32 update_input()
     non_repeat_buttons = (last_buttons ^ buttons) & buttons;
     last_buttons = buttons;
 
+	// Update sound toggle.
 	u32 HotkeyToggleSound = game_persistent_config.HotkeyToggleSound != 0 ? game_persistent_config.HotkeyToggleSound : gpsp_persistent_config.HotkeyToggleSound;
 
 	u32 SoundHotkeyIsHeld = HotkeyToggleSound && (buttons & HotkeyToggleSound) == HotkeyToggleSound;
 	if (!SoundHotkeyWasHeld && SoundHotkeyIsHeld)
 	{
-		sound_on = ~sound_on & 1;
+		sound_on ^= 1;
 	}
 	SoundHotkeyWasHeld = SoundHotkeyIsHeld;
 
+	// Update fast-forwarding.
+	u32 HotkeyTemporaryFastForward = game_persistent_config.HotkeyTemporaryFastForward != 0 ? game_persistent_config.HotkeyTemporaryFastForward : gpsp_persistent_config.HotkeyTemporaryFastForward;
+
+	u32 WasFastForwarding = temporary_fast_forward;
+	temporary_fast_forward = HotkeyTemporaryFastForward && (buttons & HotkeyTemporaryFastForward) == HotkeyTemporaryFastForward;
+	if (WasFastForwarding != temporary_fast_forward)
+		// update the frameskip value only if we were fast-forwarding
+		// but now are not, or if we were not and now are
+		game_set_frameskip();
+
+	// Go to the menu if the globally configured key is pressed
+	// (on the DS, that's the Touch Screen) or the hotkey.
 	u32 HotkeyReturnToMenu = game_persistent_config.HotkeyReturnToMenu != 0 ? game_persistent_config.HotkeyReturnToMenu : gpsp_persistent_config.HotkeyReturnToMenu;
 
     if(non_repeat_buttons & game_config.gamepad_config_map[12] /* MENU */
@@ -376,6 +391,7 @@ u32 update_input()
         return ret_val;
     }
 
+	// Request rewinding in gpsp_main.c if the hotkey is pressed.
 	u32 HotkeyRewind = game_persistent_config.HotkeyRewind != 0 ? game_persistent_config.HotkeyRewind : gpsp_persistent_config.HotkeyRewind;
 
 	if(HotkeyRewind && (buttons & HotkeyRewind) == HotkeyRewind) // Rewind requested
@@ -384,6 +400,7 @@ u32 update_input()
 		return 0;
     }
 
+	// Now update GBA keys.
     for(i = 0; i < 10; i++)
     {
         if( buttons & game_config.gamepad_config_map[i] ) // PSP/DS side

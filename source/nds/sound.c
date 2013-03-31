@@ -466,6 +466,7 @@ u32 gbc_sound_master_volume;
 #ifdef NDS_LAYER
 //u32 start_flag= 0;
 extern u32 game_fast_forward;
+extern u32 temporary_fast_forward;
 #endif
 void update_gbc_sound(u32 cpu_ticks)
   {
@@ -912,7 +913,7 @@ if(AUTO_SKIP)
         }
     }
 }
-else if (game_fast_forward)
+else if (game_fast_forward || temporary_fast_forward)
 {
     if (ds2_checkAudiobuff() >= AUDIO_BUFFER_COUNT)
     {

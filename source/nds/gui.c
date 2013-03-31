@@ -317,6 +317,7 @@ char DEFAULT_CFG_DIR[MAX_PATH];
 char DEFAULT_SS_DIR[MAX_PATH];
 char DEFAULT_CHEAT_DIR[MAX_PATH];
 u32 game_fast_forward= 0;   //OFF
+u32 temporary_fast_forward= 0;   // also off, controlled by the hotkey
 u32 SAVESTATE_SLOT = 0;
 
 
@@ -1629,15 +1630,19 @@ u32 menu(u16 *screen, int FirstInvocation)
 	auto void set_global_hotkey_rewind();
 	auto void set_global_hotkey_return_to_menu();
 	auto void set_global_hotkey_toggle_sound();
+	auto void set_global_hotkey_fast_forward();
 	auto void set_game_specific_hotkey_rewind();
 	auto void set_game_specific_hotkey_return_to_menu();
 	auto void set_game_specific_hotkey_toggle_sound();
+	auto void set_game_specific_hotkey_fast_forward();
 	auto void global_hotkey_rewind_passive();
 	auto void global_hotkey_return_to_menu_passive();
 	auto void global_hotkey_toggle_sound_passive();
+	auto void global_hotkey_fast_forward_passive();
 	auto void game_specific_hotkey_rewind_passive();
 	auto void game_specific_hotkey_return_to_menu_passive();
 	auto void game_specific_hotkey_toggle_sound_passive();
+	auto void game_specific_hotkey_fast_forward_passive();
 
 	auto void set_global_button_a();
 	auto void set_global_button_b();
@@ -3051,9 +3056,11 @@ u32 menu(u16 *screen, int FirstInvocation)
 
 	/* 01 */ ACTION_OPTION(set_global_hotkey_return_to_menu, global_hotkey_return_to_menu_passive, &msg[MSG_HOTKEY_MAIN_MENU], NULL, 1),
 
-	/* 02 */ ACTION_OPTION(set_global_hotkey_rewind, global_hotkey_rewind_passive, &msg[MSG_HOTKEY_REWIND], NULL, 2),
+	/* 02 */ ACTION_OPTION(set_global_hotkey_fast_forward, global_hotkey_fast_forward_passive, &msg[MSG_HOTKEY_TEMPORARY_FAST_FORWARD], NULL, 2),
 
-	/* 03 */ ACTION_OPTION(set_global_hotkey_toggle_sound, global_hotkey_toggle_sound_passive, &msg[MSG_HOTKEY_SOUND_TOGGLE], NULL, 3)
+	/* 03 */ ACTION_OPTION(set_global_hotkey_rewind, global_hotkey_rewind_passive, &msg[MSG_HOTKEY_REWIND], NULL, 3),
+
+	/* 04 */ ACTION_OPTION(set_global_hotkey_toggle_sound, global_hotkey_toggle_sound_passive, &msg[MSG_HOTKEY_SOUND_TOGGLE], NULL, 4)
     };
 
     MAKE_MENU(tools_global_hotkeys, NULL, NULL, NULL, NULL, 1, 1);
@@ -3067,9 +3074,11 @@ u32 menu(u16 *screen, int FirstInvocation)
 
 	/* 01 */ ACTION_OPTION(set_game_specific_hotkey_return_to_menu, game_specific_hotkey_return_to_menu_passive, &msg[MSG_HOTKEY_MAIN_MENU], NULL, 1),
 
-	/* 02 */ ACTION_OPTION(set_game_specific_hotkey_rewind, game_specific_hotkey_rewind_passive, &msg[MSG_HOTKEY_REWIND], NULL, 2),
+	/* 02 */ ACTION_OPTION(set_game_specific_hotkey_fast_forward, game_specific_hotkey_fast_forward_passive, &msg[MSG_HOTKEY_TEMPORARY_FAST_FORWARD], NULL, 2),
 
-	/* 03 */ ACTION_OPTION(set_game_specific_hotkey_toggle_sound, game_specific_hotkey_toggle_sound_passive, &msg[MSG_HOTKEY_SOUND_TOGGLE], NULL, 3)
+	/* 03 */ ACTION_OPTION(set_game_specific_hotkey_rewind, game_specific_hotkey_rewind_passive, &msg[MSG_HOTKEY_REWIND], NULL, 3),
+
+	/* 04 */ ACTION_OPTION(set_game_specific_hotkey_toggle_sound, game_specific_hotkey_toggle_sound_passive, &msg[MSG_HOTKEY_SOUND_TOGGLE], NULL, 4)
     };
 
     MAKE_MENU(tools_game_specific_hotkeys, NULL, NULL, NULL, NULL, 1, 1);
@@ -3455,6 +3464,11 @@ u32 menu(u16 *screen, int FirstInvocation)
 		obtain_hotkey(&gpsp_persistent_config.HotkeyToggleSound);
 	}
 
+	void set_global_hotkey_fast_forward()
+	{
+		obtain_hotkey(&gpsp_persistent_config.HotkeyTemporaryFastForward);
+	}
+
 	void set_game_specific_hotkey_rewind()
 	{
 		obtain_hotkey(&game_persistent_config.HotkeyRewind);
@@ -3468,6 +3482,11 @@ u32 menu(u16 *screen, int FirstInvocation)
 	void set_game_specific_hotkey_toggle_sound()
 	{
 		obtain_hotkey(&game_persistent_config.HotkeyToggleSound);
+	}
+
+	void set_game_specific_hotkey_fast_forward()
+	{
+		obtain_hotkey(&game_persistent_config.HotkeyTemporaryFastForward);
 	}
 
 #define HOTKEY_CONTENT_X 156
@@ -3519,6 +3538,11 @@ u32 menu(u16 *screen, int FirstInvocation)
 		hotkey_option_passive_common(gpsp_persistent_config.HotkeyToggleSound);
 	}
 
+	void global_hotkey_fast_forward_passive()
+	{
+		hotkey_option_passive_common(gpsp_persistent_config.HotkeyTemporaryFastForward);
+	}
+
 	void game_specific_hotkey_rewind_passive()
 	{
 		hotkey_option_passive_common(game_persistent_config.HotkeyRewind);
@@ -3532,6 +3556,11 @@ u32 menu(u16 *screen, int FirstInvocation)
 	void game_specific_hotkey_toggle_sound_passive()
 	{
 		hotkey_option_passive_common(game_persistent_config.HotkeyToggleSound);
+	}
+
+	void game_specific_hotkey_fast_forward_passive()
+	{
+		hotkey_option_passive_common(game_persistent_config.HotkeyTemporaryFastForward);
 	}
 
 	void obtain_key (u32 *KeyBitfield)
@@ -5369,7 +5398,7 @@ static u32 save_ss_bmp(u16 *image)
 void game_disableAudio() {/* Nothing. sound_on applies immediately. */}
 void game_set_frameskip() {
 	// If fast-forward is active, force frameskipping to be 9.
-	if (game_fast_forward) {
+	if (game_fast_forward || temporary_fast_forward) {
 		AUTO_SKIP = 0;
 		SKIP_RATE = 9;
 	}
