@@ -531,12 +531,10 @@ u32 update_gba()
         if((dispstat & 0x01) == 0)
         { // 非 V BLANK
           // 无跳帧时
-//          if(!skip_next_frame_flag)
-//         {
-//              update_scanline();
-//          }
-          if(to_skip >= SKIP_RATE)
-            update_scanline();
+          if(!skip_next_frame_flag)
+         {
+              update_scanline();
+          }
 
           // If in visible area also fire HDMA
           if(dma[0].start_type == DMA_START_HBLANK)
@@ -651,7 +649,7 @@ u32 update_gba()
 
 //          if(!skip_next_frame_flag)
 //            flip_gba_screen();
-            if(to_skip >= SKIP_RATE)
+            if(!skip_next_frame_flag)
             {
 				//clear_gba_screen(RGB15(255, 0, 0));
                 flip_gba_screen();
@@ -659,6 +657,8 @@ u32 update_gba()
             }
             else
               to_skip ++;
+
+		skip_next_frame_flag = to_skip < SKIP_RATE;
 
 //printf("SKIP_RATE %d %d\n", SKIP_RATE, to_skip);
         } //(vcount == 228)
