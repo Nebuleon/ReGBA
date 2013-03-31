@@ -97,7 +97,8 @@ typedef struct
   char latest_file[5][512];
   u32 HotkeyRewind;
   u32 HotkeyReturnToMenu;
-  u32 Reserved0[4];
+  u32 HotkeyToggleSound;
+  u32 Reserved0[3];
   /*
    * These contain DS button bitfields, each having 1 bit set,
    * corresponding to the 6 remappable GBA buttons and 2 specials:
@@ -141,7 +142,8 @@ typedef struct
   u32 rewind_value;
   u32 HotkeyRewind;
   u32 HotkeyReturnToMenu;
-  u32 Reserved0[4];
+  u32 HotkeyToggleSound;
+  u32 Reserved0[3];
   /*
    * These contain DS button bitfields, each having 1 or no bits set,
    * corresponding to the 6 remappable GBA buttons and 2 specials:

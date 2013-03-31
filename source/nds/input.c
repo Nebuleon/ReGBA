@@ -340,6 +340,7 @@ u32 button_input_to_gba[] =
 };
 
 u32 rapidfire_flag = 1;
+u32 SoundHotkeyWasHeld = 0;
 
 u32 fast_backward= 0;
 // 仿真过程输入
@@ -354,10 +355,19 @@ u32 update_input()
     non_repeat_buttons = (last_buttons ^ buttons) & buttons;
     last_buttons = buttons;
 
+	u32 HotkeyToggleSound = game_persistent_config.HotkeyToggleSound != 0 ? game_persistent_config.HotkeyToggleSound : gpsp_persistent_config.HotkeyToggleSound;
+
+	u32 SoundHotkeyIsHeld = HotkeyToggleSound && (buttons & HotkeyToggleSound) == HotkeyToggleSound;
+	if (!SoundHotkeyWasHeld && SoundHotkeyIsHeld)
+	{
+		sound_on = ~sound_on & 1;
+	}
+	SoundHotkeyWasHeld = SoundHotkeyIsHeld;
+
 	u32 HotkeyReturnToMenu = game_persistent_config.HotkeyReturnToMenu != 0 ? game_persistent_config.HotkeyReturnToMenu : gpsp_persistent_config.HotkeyReturnToMenu;
 
     if(non_repeat_buttons & game_config.gamepad_config_map[12] /* MENU */
-        || HotkeyReturnToMenu && (buttons & HotkeyReturnToMenu) == HotkeyReturnToMenu)
+        || (HotkeyReturnToMenu && (buttons & HotkeyReturnToMenu) == HotkeyReturnToMenu))
     {
         u16 screen_copy[GBA_SCREEN_BUFF_SIZE];
         copy_screen(screen_copy);
