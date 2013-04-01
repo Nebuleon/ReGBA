@@ -111,8 +111,10 @@ typedef enum
   mips_special_multu     = 0x19,
   mips_special_div       = 0x1A,
   mips_special_divu      = 0x1B,
+#ifndef NDS_LAYER
   mips_special_madd      = 0x1C,
   mips_special_maddu     = 0x1D,
+#endif
   mips_special_add       = 0x20,
   mips_special_addu      = 0x21,
   mips_special_sub       = 0x22,
@@ -124,6 +126,14 @@ typedef enum
   mips_special_slt       = 0x2A,
   mips_special_sltu      = 0x2B
 } mips_function_special;
+
+#ifdef NDS_LAYER
+typedef enum
+{
+  mips_special2_madd     = 0x00,
+  mips_special2_maddu    = 0x01
+} mips_function_special2;
+#endif
 
 typedef enum
 {
@@ -192,6 +202,15 @@ typedef enum
    mips_special_##function;                                                   \
   translation_ptr += 4                                                        \
 
+#ifdef NDS_LAYER
+#define mips_emit_special2(function, rs, rt, rd, imm)                         \
+  *((u32 *)translation_ptr) = (mips_opcode_special2 << 26) |                  \
+   (rs << 21) | (rt << 16) | (rd << 11) | (imm << 6) |                        \
+   mips_special2_##function;                                                  \
+  translation_ptr += 4                                                        \
+
+#endif
+
 #define mips_emit_special3(function, rs, rt, imm_a, imm_b)                    \
   *((u32 *)translation_ptr) = (mips_opcode_special3 << 26) |                  \
    (rs << 21) | (rt << 16) | (imm_a << 11) | (imm_b << 6) |                   \
@@ -259,8 +278,11 @@ typedef enum
 #define mips_emit_srav(rd, rt, rs)                                            \
   mips_emit_special(srav, rs, rt, rd, 0)                                      \
 
+#ifndef NDS_LAYER
 #define mips_emit_rotrv(rd, rt, rs)                                           \
   mips_emit_special(srlv, rs, rt, rd, 1)                                      \
+
+#endif
 
 #define mips_emit_sll(rd, rt, shift)                                          \
   mips_emit_special(sll, 0, rt, rd, shift)                                    \
@@ -298,11 +320,22 @@ typedef enum
 #define mips_emit_divu(rs, rt)                                                \
   mips_emit_special(divu, rs, rt, 0, 0)                                       \
 
+#ifndef NDS_LAYER
 #define mips_emit_madd(rs, rt)                                                \
   mips_emit_special(madd, rs, rt, 0, 0)                                       \
 
 #define mips_emit_maddu(rs, rt)                                               \
   mips_emit_special(maddu, rs, rt, 0, 0)                                      \
+
+#else
+
+#define mips_emit_madd(rs, rt)                                                \
+  mips_emit_special2(madd, rs, rt, 0, 0)                                       \
+
+#define mips_emit_maddu(rs, rt)                                               \
+  mips_emit_special2(maddu, rs, rt, 0, 0)                                      \
+
+#endif
 
 #define mips_emit_movn(rd, rs, rt)                                            \
   mips_emit_special(movn, rs, rt, rd, 0)                                      \
@@ -355,11 +388,14 @@ typedef enum
 #define mips_emit_sltiu(rt, rs, imm)                                          \
   mips_emit_imm(sltiu, rs, rt, imm)                                           \
 
+#ifndef NDS_LAYER
 #define mips_emit_ext(rt, rs, pos, size)                                      \
   mips_emit_special3(ext, rs, rt, (size - 1), pos)                            \
 
 #define mips_emit_ins(rt, rs, pos, size)                                      \
   mips_emit_special3(ins, rs, rt, (pos + size - 1), pos)                      \
+
+#endif
 
 // Breaks down if the backpatch offset is greater than 16bits, take care
 // when using (should be okay if limited to conditional instructions)
@@ -653,6 +689,7 @@ u32 arm_to_mips_reg[] =
   mips_emit_j(mips_absolute_offset(mips_indirect_branch_##type));             \
   mips_emit_nop()                                                             \
 
+#ifndef NDS_LAYER
 #define generate_block_prologue()                                             \
   update_trampoline = translation_ptr;                                        \
   __asm__                                                                     \
@@ -664,6 +701,16 @@ u32 arm_to_mips_reg[] =
   mips_emit_j(mips_absolute_offset(mips_update_gba));                         \
   mips_emit_nop();                                                            \
   generate_load_imm(reg_pc, stored_pc)                                        \
+
+#else
+#define generate_block_prologue()                                             \
+  update_trampoline = translation_ptr;                                        \
+                                                                              \
+  mips_emit_j(mips_absolute_offset(mips_update_gba));                         \
+  mips_emit_nop();                                                            \
+  generate_load_imm(reg_pc, stored_pc)                                        \
+
+#endif
 
 #ifndef NDS_LAYER
 #define translate_invalidate_dcache()                                         \
@@ -751,6 +798,7 @@ u32 arm_to_mips_reg[] =
   }                                                                           \
   _rm = arm_reg                                                               \
 
+#ifndef NDS_LAYER
 #define generate_shift_imm_ror_no_flags(arm_reg, _rm, _shift)                 \
   check_load_reg_pc(arm_reg, _rm, 8);                                         \
   if(_shift != 0)                                                             \
@@ -764,6 +812,26 @@ u32 arm_to_mips_reg[] =
   }                                                                           \
   _rm = arm_reg                                                               \
 
+#else
+#define generate_shift_imm_ror_no_flags(arm_reg, _rm, _shift)                 \
+  check_load_reg_pc(arm_reg, _rm, 8);                                         \
+  if(_shift != 0)                                                             \
+  {                                                                           \
+    mips_emit_srl(reg_temp, arm_to_mips_reg[_rm], _shift);                    \
+    mips_emit_sll(arm_to_mips_reg[arm_reg], arm_to_mips_reg[_rm], (32 - _shift));\
+    mips_emit_or(arm_to_mips_reg[arm_reg], arm_to_mips_reg[arm_reg], reg_temp);\
+  }                                                                           \
+  else                                                                        \
+  {                                                                           \
+    mips_emit_srl(arm_to_mips_reg[arm_reg], arm_to_mips_reg[_rm], 1);         \
+    mips_emit_sll(reg_temp, reg_c_cache, 31);                                 \
+    mips_emit_or(arm_to_mips_reg[arm_reg], arm_to_mips_reg[arm_reg], reg_temp);\
+  }                                                                           \
+  _rm = arm_reg                                                               \
+
+#endif
+
+#ifndef NDS_LAYER
 #define generate_shift_imm_lsl_flags(arm_reg, _rm, _shift)                    \
   check_load_reg_pc(arm_reg, _rm, 8);                                         \
   if(_shift != 0)                                                             \
@@ -773,6 +841,20 @@ u32 arm_to_mips_reg[] =
     _rm = arm_reg;                                                            \
   }                                                                           \
 
+#else
+#define generate_shift_imm_lsl_flags(arm_reg, _rm, _shift)                    \
+  check_load_reg_pc(arm_reg, _rm, 8);                                         \
+  if(_shift != 0)                                                             \
+  {                                                                           \
+    mips_emit_sll(arm_to_mips_reg[arm_reg], arm_to_mips_reg[_rm], (_shift - 1));\
+    mips_emit_srl(reg_c_cache, arm_to_mips_reg[arm_reg], 31);                \
+    mips_emit_sll(arm_to_mips_reg[arm_reg], arm_to_mips_reg[arm_reg], 1);     \
+    _rm = arm_reg;                                                            \
+  }                                                                           \
+
+#endif
+
+#ifndef NDS_LAYER
 #define generate_shift_imm_lsr_flags(arm_reg, _rm, _shift)                    \
   check_load_reg_pc(arm_reg, _rm, 8);                                         \
   if(_shift != 0)                                                             \
@@ -787,6 +869,25 @@ u32 arm_to_mips_reg[] =
   }                                                                           \
   _rm = arm_reg                                                               \
 
+#else
+#define generate_shift_imm_lsr_flags(arm_reg, _rm, _shift)                    \
+  check_load_reg_pc(arm_reg, _rm, 8);                                         \
+  if(_shift != 0)                                                             \
+  {                                                                           \
+    mips_emit_srl(arm_to_mips_reg[arm_reg], arm_to_mips_reg[_rm], (_shift - 1));\
+    mips_emit_andi(reg_c_cache, arm_to_mips_reg[arm_reg], 0x1);               \
+    mips_emit_srl(arm_to_mips_reg[arm_reg], arm_to_mips_reg[arm_reg], 1);     \
+  }                                                                           \
+  else                                                                        \
+  {                                                                           \
+    mips_emit_srl(reg_c_cache, arm_to_mips_reg[_rm], 31);                     \
+    mips_emit_addu(arm_to_mips_reg[arm_reg], reg_zero, reg_zero);             \
+  }                                                                           \
+  _rm = arm_reg                                                               \
+
+#endif
+
+#ifndef NDS_LAYER
 #define generate_shift_imm_asr_flags(arm_reg, _rm, _shift)                    \
   check_load_reg_pc(arm_reg, _rm, 8);                                         \
   if(_shift != 0)                                                             \
@@ -801,6 +902,25 @@ u32 arm_to_mips_reg[] =
   }                                                                           \
   _rm = arm_reg                                                               \
 
+#else
+#define generate_shift_imm_asr_flags(arm_reg, _rm, _shift)                    \
+  check_load_reg_pc(arm_reg, _rm, 8);                                         \
+  if(_shift != 0)                                                             \
+  {                                                                           \
+    mips_emit_sra(arm_to_mips_reg[arm_reg], arm_to_mips_reg[_rm], (_shift - 1));\
+    mips_emit_andi(reg_c_cache, arm_to_mips_reg[arm_reg], 0x1);               \
+    mips_emit_sra(arm_to_mips_reg[arm_reg], arm_to_mips_reg[arm_reg], 1);     \
+  }                                                                           \
+  else                                                                        \
+  {                                                                           \
+    mips_emit_sra(arm_to_mips_reg[arm_reg], arm_to_mips_reg[_rm], 31);        \
+    mips_emit_andi(reg_c_cache, arm_to_mips_reg[arm_reg], 1);                 \
+  }                                                                           \
+  _rm = arm_reg                                                               \
+
+#endif
+
+#ifndef NDS_LAYER
 #define generate_shift_imm_ror_flags(arm_reg, _rm, _shift)                    \
   check_load_reg_pc(arm_reg, _rm, 8);                                         \
   if(_shift != 0)                                                             \
@@ -816,6 +936,27 @@ u32 arm_to_mips_reg[] =
     mips_emit_addu(reg_c_cache, reg_temp, reg_zero);                          \
   }                                                                           \
   _rm = arm_reg                                                               \
+
+#else
+#define generate_shift_imm_ror_flags(arm_reg, _rm, _shift)                    \
+  check_load_reg_pc(arm_reg, _rm, 8);                                         \
+  if(_shift != 0)                                                             \
+  {                                                                           \
+    mips_emit_srl(reg_temp, arm_to_mips_reg[_rm], _shift);                    \
+    mips_emit_sll(arm_to_mips_reg[arm_reg], arm_to_mips_reg[_rm], (32 - _shift));\
+    mips_emit_or(arm_to_mips_reg[arm_reg], arm_to_mips_reg[arm_reg], reg_temp);\
+    mips_emit_srl(reg_c_cache, arm_to_mips_reg[arm_reg], 31);                 \
+  }                                                                           \
+  else                                                                        \
+  {                                                                           \
+    mips_emit_sll(reg_temp, reg_c_cache, 31);                                 \
+    mips_emit_andi(reg_c_cache, arm_to_mips_reg[_rm], 0x1);                   \
+    mips_emit_srl(arm_to_mips_reg[arm_reg], arm_to_mips_reg[_rm], 1);         \
+    mips_emit_or(arm_to_mips_reg[arm_reg], arm_to_mips_reg[arm_reg], reg_temp);\
+  }                                                                           \
+  _rm = arm_reg                                                               \
+
+#endif
 
 #define generate_shift_reg_lsl_no_flags(_rm, _rs)                             \
   mips_emit_sltiu(reg_temp, arm_to_mips_reg[_rs], 32);                        \
@@ -833,8 +974,20 @@ u32 arm_to_mips_reg[] =
   mips_emit_srav(reg_a0, arm_to_mips_reg[_rm], arm_to_mips_reg[_rs]);         \
   mips_emit_sra(reg_a0, reg_a0, 31)                                           \
 
+#ifndef NDS_LAYER
 #define generate_shift_reg_ror_no_flags(_rm, _rs)                             \
   mips_emit_rotrv(reg_a0, arm_to_mips_reg[_rm], arm_to_mips_reg[_rs])         \
+
+#else
+#define generate_shift_reg_ror_no_flags(_rm, _rs)                             \
+  mips_emit_andi(reg_temp, arm_to_mips_reg[_rs], 0x1f);                       \
+  mips_emit_srlv(reg_a0, arm_to_mips_reg[_rm], reg_temp);                     \
+  mips_emit_subu(reg_temp, reg_zero, reg_temp);                               \
+  mips_emit_addiu(reg_temp, reg_temp, 32);                                    \
+  mips_emit_sllv(reg_temp, arm_to_mips_reg[_rm], reg_temp);                   \
+  mips_emit_or(reg_a0, reg_a0, reg_temp);                                     \
+
+#endif
 
 #define generate_shift_reg_lsl_flags(_rm, _rs)                                \
   generate_load_reg_pc(reg_a0, _rm, 12);                                      \
@@ -851,12 +1004,28 @@ u32 arm_to_mips_reg[] =
   generate_load_reg_pc(reg_a1, _rs, 8);                                       \
   generate_function_call_swap_delay(execute_asr_flags_reg)                    \
 
+#ifndef NDS_LAYER
 #define generate_shift_reg_ror_flags(_rm, _rs)                                \
   mips_emit_b(beq, arm_to_mips_reg[_rs], reg_zero, 3);                        \
   mips_emit_addiu(reg_temp, arm_to_mips_reg[_rs], -1);                        \
   mips_emit_srlv(reg_temp, arm_to_mips_reg[_rm], reg_temp);                   \
   mips_emit_andi(reg_c_cache, reg_temp, 1);                                   \
   mips_emit_rotrv(reg_a0, arm_to_mips_reg[_rm], arm_to_mips_reg[_rs])         \
+
+#else
+#define generate_shift_reg_ror_flags(_rm, _rs)                                \
+  mips_emit_b(beq, arm_to_mips_reg[_rs], reg_zero, 3);                        \
+  mips_emit_addiu(reg_temp, arm_to_mips_reg[_rs], -1);                        \
+  mips_emit_srlv(reg_temp, arm_to_mips_reg[_rm], reg_temp);                   \
+  mips_emit_andi(reg_c_cache, reg_temp, 1);                                   \
+  mips_emit_andi(reg_temp, arm_to_mips_reg[_rs], 0x1f);                       \
+  mips_emit_srlv(reg_a0, arm_to_mips_reg[_rm], reg_temp);                     \
+  mips_emit_subu(reg_temp, reg_zero, reg_temp);                               \
+  mips_emit_addiu(reg_temp, reg_temp, 32);                                    \
+  mips_emit_sllv(reg_temp, arm_to_mips_reg[_rm], reg_temp);                   \
+  mips_emit_or(reg_a0, reg_a0, reg_temp);                                     \
+
+#endif
 
 #define generate_shift_imm(arm_reg, name, flags_op)                           \
   u32 shift = (opcode >> 7) & 0x1F;                                           \
@@ -1957,6 +2126,7 @@ u32 execute_store_cpsr_body(u32 _cpsr, u32 store_mask, u32 address)
 #define arm_block_memory_writeback_store(writeback_type)                      \
   arm_block_memory_writeback_##writeback_type()                               \
 
+#ifndef NDS_LAYER
 #define arm_block_memory(access_type, offset_type, writeback_type, s_bit)     \
 {                                                                             \
   arm_decode_block_trans();                                                   \
@@ -2011,6 +2181,64 @@ u32 execute_store_cpsr_body(u32 _cpsr, u32 store_mask, u32 address)
   }                                                                           \
 }                                                                             \
 
+#else
+#define arm_block_memory(access_type, offset_type, writeback_type, s_bit)     \
+{                                                                             \
+  arm_decode_block_trans();                                                   \
+  u32 i;                                                                      \
+  u32 offset = 0;                                                             \
+  u32 base_reg = arm_to_mips_reg[rn];                                         \
+                                                                              \
+  arm_block_memory_offset_##offset_type();                                    \
+  arm_block_memory_writeback_##access_type(writeback_type);                   \
+                                                                              \
+  if((rn == REG_SP) && iwram_stack_optimize)                                  \
+  {                                                                           \
+    mips_emit_andi(reg_a1, reg_a2, 0x7FFC);                                   \
+    generate_load_imm(reg_a0, ((u32)(iwram + 0x8000)));                       \
+    mips_emit_addu(reg_a1, reg_a1, reg_a0);                                   \
+                                                                              \
+    for(i = 0; i < 16; i++)                                                   \
+    {                                                                         \
+      if((reg_list >> i) & 0x01)                                              \
+      {                                                                       \
+        cycle_count++;                                                        \
+        arm_block_memory_sp_##access_type();                                  \
+        offset += 4;                                                          \
+      }                                                                       \
+    }                                                                         \
+                                                                              \
+    arm_block_memory_sp_adjust_pc_##access_type();                            \
+  }                                                                           \
+  else                                                                        \
+  {                                                                           \
+    mips_emit_srl(reg_a2, reg_a2, 2);                                         \
+    mips_emit_sll(reg_a2, reg_a2, 2);                                         \
+                                                                              \
+    for(i = 0; i < 16; i++)                                                   \
+    {                                                                         \
+      if((reg_list >> i) & 0x01)                                              \
+      {                                                                       \
+        cycle_count++;                                                        \
+        mips_emit_addiu(reg_a0, reg_a2, offset);                              \
+        if(reg_list & ~((2 << i) - 1))                                        \
+        {                                                                     \
+          arm_block_memory_##access_type();                                   \
+          offset += 4;                                                        \
+        }                                                                     \
+        else                                                                  \
+        {                                                                     \
+          arm_block_memory_final_##access_type();                             \
+          break;                                                              \
+        }                                                                     \
+      }                                                                       \
+    }                                                                         \
+                                                                              \
+    arm_block_memory_adjust_pc_##access_type();                               \
+  }                                                                           \
+}                                                                             \
+
+#endif
 
 // This isn't really a correct implementation, may have to fix later.
 
@@ -2372,6 +2600,7 @@ u32 execute_store_cpsr_body(u32 _cpsr, u32 store_mask, u32 address)
 #define cycle_thumb_block_memory_store()                                      \
   cycle_count++                                                               \
 
+#ifndef NDS_LAYER
 #define thumb_block_memory(access_type, pre_op, post_op, base_reg)            \
 {                                                                             \
   thumb_decode_rlist();                                                       \
@@ -2426,6 +2655,65 @@ u32 execute_store_cpsr_body(u32 _cpsr, u32 store_mask, u32 address)
     thumb_block_memory_extra_##post_op();                                     \
   }                                                                           \
 }                                                                             \
+
+#else
+#define thumb_block_memory(access_type, pre_op, post_op, base_reg)            \
+{                                                                             \
+  thumb_decode_rlist();                                                       \
+  u32 i;                                                                      \
+  u32 offset = 0;                                                             \
+                                                                              \
+  thumb_block_address_preadjust_##pre_op(base_reg);                           \
+  thumb_block_address_postadjust_##post_op(base_reg);                         \
+                                                                              \
+  cycle_thumb_block_memory_##access_type();                                   \
+                                                                              \
+  if((base_reg == REG_SP) && iwram_stack_optimize)                            \
+  {                                                                           \
+    mips_emit_andi(reg_a1, reg_a2, 0x7FFC);                                   \
+    generate_load_imm(reg_a0, ((u32)(iwram + 0x8000)));                       \
+    generate_add(reg_a1, reg_a0);                                             \
+                                                                              \
+    for(i = 0; i < 8; i++)                                                    \
+    {                                                                         \
+      if((reg_list >> i) & 0x01)                                              \
+      {                                                                       \
+        cycle_count++;                                                        \
+        thumb_block_memory_sp_##access_type();                                \
+        offset += 4;                                                          \
+      }                                                                       \
+    }                                                                         \
+                                                                              \
+    thumb_block_memory_sp_extra_##post_op();                                  \
+  }                                                                           \
+  else                                                                        \
+  {                                                                           \
+    mips_emit_srl(reg_a2, reg_a2, 2);                                         \
+    mips_emit_sll(reg_a2, reg_a2, 2);                                         \
+                                                                              \
+    for(i = 0; i < 8; i++)                                                    \
+    {                                                                         \
+      if((reg_list >> i) & 0x01)                                              \
+      {                                                                       \
+        mips_emit_addiu(reg_a0, reg_a2, offset);                              \
+        if(reg_list & ~((2 << i) - 1))                                        \
+        {                                                                     \
+          thumb_block_memory_##access_type();                                 \
+          offset += 4;                                                        \
+        }                                                                     \
+        else                                                                  \
+        {                                                                     \
+          thumb_block_memory_final_##post_op(access_type);                    \
+          break;                                                              \
+        }                                                                     \
+      }                                                                       \
+    }                                                                         \
+                                                                              \
+    thumb_block_memory_extra_##post_op();                                     \
+  }                                                                           \
+}                                                                             \
+
+#endif
 
 #define thumb_conditional_branch(condition)                                   \
 {                                                                             \
