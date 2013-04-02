@@ -99,7 +99,8 @@ typedef struct
   u32 HotkeyReturnToMenu;
   u32 HotkeyToggleSound;
   u32 HotkeyTemporaryFastForward;
-  u32 Reserved0[2];
+  u32 HotkeyQuickLoadState;
+  u32 HotkeyQuickSaveState;
   /*
    * These contain DS button bitfields, each having 1 bit set,
    * corresponding to the 6 remappable GBA buttons and 2 specials:
@@ -145,7 +146,8 @@ typedef struct
   u32 HotkeyReturnToMenu;
   u32 HotkeyToggleSound;
   u32 HotkeyTemporaryFastForward;
-  u32 Reserved0[2];
+  u32 HotkeyQuickLoadState;
+  u32 HotkeyQuickSaveState;
   /*
    * These contain DS button bitfields, each having 1 or no bits set,
    * corresponding to the 6 remappable GBA buttons and 2 specials:
@@ -223,6 +225,9 @@ extern void set_button_map(void);
 extern void LowFrequencyCPU();
 extern void HighFrequencyCPU();
 extern void GameFrequencyCPU();
+
+extern void QuickSaveState();
+extern void QuickLoadState();
 
 #endif
 

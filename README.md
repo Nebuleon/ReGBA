@@ -116,6 +116,9 @@ Available actions are:
   step. See the `Rewinding` section above for more information.
 * Toggle sound. Each time this hotkey is held, the sound will be disabled if
   it's currently enabled, and vice-versa.
+* Save state #1. Each time this hotkey is held, saved state #1 will be written,
+  without confirmation if it exists.
+* Load state #1. Each time this hotkey is held, saved state #1 will be loaded.
 
 # Button mapping
 

@@ -343,6 +343,8 @@ extern u32 temporary_fast_forward;
 
 u32 rapidfire_flag = 1;
 u32 SoundHotkeyWasHeld = 0;
+u32 LoadStateWasHeld = 0;
+u32 SaveStateWasHeld = 0;
 
 u32 fast_backward= 0;
 // 仿真过程输入
@@ -399,6 +401,25 @@ u32 update_input()
 		fast_backward= 1;
 		return 0;
     }
+
+	// Process saved state requests.
+	u32 HotkeyQuickLoadState = game_persistent_config.HotkeyQuickLoadState != 0 ? game_persistent_config.HotkeyQuickLoadState : gpsp_persistent_config.HotkeyQuickLoadState;
+
+	u32 LoadStateIsHeld = HotkeyQuickLoadState && (buttons & HotkeyQuickLoadState) == HotkeyQuickLoadState;
+	if (!LoadStateWasHeld && LoadStateIsHeld)
+	{
+		QuickLoadState();
+	}
+	LoadStateWasHeld = LoadStateIsHeld;
+
+	u32 HotkeyQuickSaveState = game_persistent_config.HotkeyQuickSaveState != 0 ? game_persistent_config.HotkeyQuickSaveState : gpsp_persistent_config.HotkeyQuickSaveState;
+
+	u32 SaveStateIsHeld = HotkeyQuickSaveState && (buttons & HotkeyQuickSaveState) == HotkeyQuickSaveState;
+	if (!SaveStateWasHeld && SaveStateIsHeld)
+	{
+		QuickSaveState();
+	}
+	SaveStateWasHeld = SaveStateIsHeld;
 
 	// Now update GBA keys.
     for(i = 0; i < 10; i++)
