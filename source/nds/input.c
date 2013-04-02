@@ -359,6 +359,26 @@ u32 update_input()
     non_repeat_buttons = (last_buttons ^ buttons) & buttons;
     last_buttons = buttons;
 
+#ifdef NDS_LAYER
+	// Lid closed? (DS)
+	if (buttons & KEY_LID)
+	{
+		LowFrequencyCPU();
+		ds2_setSupend();
+		struct key_buf inputdata;
+		do {
+			ds2_getrawInput(&inputdata);
+			mdelay(1);
+		} while (inputdata.key & KEY_LID);
+		ds2_wakeup();
+		// Before starting to emulate again, turn off the lower
+		// screen's backlight.
+		mdelay(100); // needed to avoid ds2_setBacklight crashing
+		ds2_setBacklight(2);
+		GameFrequencyCPU();
+	}
+#endif
+
 	// Update sound toggle.
 	u32 HotkeyToggleSound = game_persistent_config.HotkeyToggleSound != 0 ? game_persistent_config.HotkeyToggleSound : gpsp_persistent_config.HotkeyToggleSound;
 
