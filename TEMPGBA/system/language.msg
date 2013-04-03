@@ -1369,7 +1369,7 @@ Modo avance rápido   %s
 #FMT_VIDEO_FRAME_SKIPPING
 Salto de fotogramas  %s
 #FMT_VIDEO_FRAMES_PER_SECOND_COUNTER
-FPS counter        %s
+Contador de FPS         %s
 #FMT_AUDIO_SOUND
 Sonido                         %s
 #FMT_VIDEO_REWINDING
@@ -1395,7 +1395,7 @@ Teclas globales...
 #MSG_TOOLS_GAME_BUTTON_MAPPING_GENERAL
 Teclas para el juego...
 #MSG_TOOLS_DEBUG_MENU_ENGLISH
-Debugging (in English)...
+Depuración (en inglés)...
 #FMT_OPTIONS_LANGUAGE
 Idioma                                %s
 #FMT_OPTIONS_CPU_FREQUENCY
@@ -1465,9 +1465,9 @@ Presione dos teclas a la vez para dejar sin asignar.
 #MSG_HOTKEY_CANCEL_WITH_B
 *B Cancelar
 #MSG_LOAD_GAME_RECENTLY_PLAYED
-Jugados recientemente  >>
+Jugados recientemente...
 #MSG_LOAD_GAME_FROM_CARD
-Seleccionar un juego  >>
+Seleccionar un juego...
 #MSG_LOAD_GAME_MENU_TITLE
 Nuevo juego
 #MSG_VIDEO_ASPECT_RATIO_0
@@ -1553,7 +1553,7 @@ Cargando...
 #MSG_PROGRESS_SAVED_STATE_LOAD_SUCCEEDED
 ¡Carga correcta!
 #FMT_STATUS_FRAMES_PER_SECOND
-FPS: %d rendered, %d/60 emulated
+FPS: %d reproducidos, %d/60 emulados
 #MSG_SAVED_STATE_DELETE_ALL
 Borrar todas las partidas
 #FMT_SAVED_STATE_DELETE_ONE
