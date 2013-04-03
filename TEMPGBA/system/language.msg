@@ -1895,7 +1895,7 @@ FPS counter        %s
 #FMT_AUDIO_SOUND
 Som                       %s
 #FMT_VIDEO_REWINDING
-Rewinding       %s
+Retroceder     %s
 #FMT_SAVED_STATE_CREATE
 Criar estado         %d
 #FMT_SAVED_STATE_LOAD
@@ -1909,15 +1909,15 @@ Carregar arquivo de trapaça
 #MSG_TOOLS_SCREENSHOT_GENERAL
 Foto...
 #MSG_TOOLS_GLOBAL_HOTKEY_GENERAL
-Atalhos de tecla globais...
+Atalhos de botões globais...
 #MSG_TOOLS_GAME_HOTKEY_GENERAL
-Atalhos de tecla do jogo atual...
+Atalhos de botões do jogo atual...
 #MSG_TOOLS_GLOBAL_BUTTON_MAPPING_GENERAL
-Global button mappings...
+Mapeamentos de botões globais...
 #MSG_TOOLS_GAME_BUTTON_MAPPING_GENERAL
-Game-specific button mappings...
+Mapeamentos de botões do jogo atual...
 #MSG_TOOLS_DEBUG_MENU_ENGLISH
-Debugging (in English)...
+Depuração (em inglês)...
 #FMT_OPTIONS_LANGUAGE
 Idioma                              %s
 #FMT_OPTIONS_CPU_FREQUENCY
@@ -1935,9 +1935,9 @@ Frequência da CPU          %s
 #MSG_OPTIONS_CPU_FREQUENCY_5
 [5] 396 MHz
 #MSG_OPTIONS_CARD_CAPACITY
-Capacidade do SD
+Capacidade do cartão SD
 #MSG_OPTIONS_RESET
-Restaurar configurações padrão
+Restaurar configuração padrão
 #MSG_OPTIONS_VERSION
 Informações desta versão
 #MSG_SCREENSHOT_CREATE
@@ -1945,7 +1945,7 @@ Tirar uma foto
 #MSG_SCREENSHOT_BROWSE
 Slideshow de fotos
 #MSG_HOTKEY_REWIND
-Rewind
+Retroceder
 #MSG_HOTKEY_MAIN_MENU
 Voltar ao menu principal
 #MSG_HOTKEY_TEMPORARY_FAST_FORWARD
@@ -1959,29 +1959,29 @@ Criar estado 1
 #MSG_HOTKEY_FULL_SCREEN_TOGGLE
 Ativar tela-cheia
 #MSG_BUTTON_MAPPING_A
-GBA key *A
+Botão do GBA *A
 #MSG_BUTTON_MAPPING_B
-GBA key *B
+Botão do GBA *B
 #MSG_BUTTON_MAPPING_SELECT
-GBA key *s
+Botão do GBA *s
 #MSG_BUTTON_MAPPING_START
-GBA key *S
+Botão do GBA *S
 #MSG_BUTTON_MAPPING_R
-GBA key *R
+Botão do GBA *R
 #MSG_BUTTON_MAPPING_L
-GBA key *L
+Botão do GBA *L
 #MSG_BUTTON_MAPPING_RAPID_A
-Rapid-fire *A
+Disparo rápido do botão *A
 #MSG_BUTTON_MAPPING_RAPID_B
-Rapid-fire *B
+Disparo rápido do botão *B
 #MSG_PROGRESS_HOTKEY_WAITING_FOR_KEYS
 Aperte os botões que você deseja para realizar esta ação.
 #MSG_PROGRESS_MAPPING_WAITING_FOR_KEY
-Press the DS button you wish to map to this GBA button.
+Pressione o botão do DS que você quer mapear para esse botão do GBA.
 #MSG_PROGRESS_MAPPING_WAITING_FOR_KEY_OR_CLEAR
-Press the DS button you wish to map to this GBA button.\n
+Pressione o botão do DS que você quer mapear para esse botão do GBA.\n
 \n
-You can press two buttons at once to delete this mapping.
+Você pode pressionar dois botões ao mesmo tempo para deletar esse mapeamento.
 #MSG_HOTKEY_DELETE_WITH_A
 *A Limpar
 #MSG_HOTKEY_CANCEL_WITH_B
@@ -2027,19 +2027,19 @@ Novo jogo
 #MSG_VIDEO_FRAME_SKIPPING_10
 [10] Mostrar 1 em 11 frames
 #MSG_VIDEO_REWINDING_0
-Disabled
+Desativado
 #MSG_VIDEO_REWINDING_1
-0.25 s (3.5 s total)
+0.25 s (3.5 s no total)
 #MSG_VIDEO_REWINDING_2
-0.5 s (7 s total)
+0.5 s (7 s no total)
 #MSG_VIDEO_REWINDING_3
-1 s (14 s total)
+1 s (14 s no total)
 #MSG_VIDEO_REWINDING_4
-2 s (28 s total)
+2 s (28 s no total)
 #MSG_VIDEO_REWINDING_5
-5 s (1:10 min total)
+5 s (1:10 min no total)
 #MSG_VIDEO_REWINDING_6
-10 s (2:20 min total)
+10 s (2:20 min no total)
 #MSG_GENERAL_OFF
 Desligado
 #MSG_GENERAL_ON
@@ -2057,7 +2057,7 @@ Nenhum jogo carregado no momento
 #MSG_CHEAT_ELEMENT_NOT_LOADED
 <Nada carregado aqui>
 #MSG_SAVESTATE_FULL
-O slot atual contem um estado. Deseja sobrescrevê-lo?
+O slot atual contém um estado. Deseja sobrescrevê-lo?
 #MSG_PROGRESS_SAVED_STATE_CREATING
 Salvando estado...
 #MSG_PROGRESS_SAVED_STATE_CREATION_FAILED
@@ -2067,7 +2067,7 @@ OK!
 #MSG_TOP_SCREEN_NO_SAVED_STATE_IN_SLOT
 Nenhum estado salvo aqui
 #MSG_PROGRESS_SAVED_STATE_CORRUPTED
-O arquivo de estado deste jogo não foi encontrado ou está corrupto.
+O arquivo de estado deste jogo não foi encontrado ou está corrompido.
 #MSG_PROGRESS_SAVED_STATE_LOADING
 Carregando...
 #MSG_PROGRESS_SAVED_STATE_LOAD_FAILED
@@ -2075,9 +2075,9 @@ Falhou!
 #MSG_PROGRESS_SAVED_STATE_LOAD_SUCCEEDED
 OK!
 #FMT_STATUS_FRAMES_PER_SECOND
-FPS: %d rendered, %d/60 emulated
+FPS: %d renderizado, %d/60 emulado
 #MSG_SAVED_STATE_DELETE_ALL
-Delete todos os estads salvos
+Delete todos os estados salvos
 #FMT_SAVED_STATE_DELETE_ONE
 Delete o estado salvo %d
 #MSG_DIALOG_SAVE_STATE_DELETE_ALL
@@ -2102,7 +2102,7 @@ Pausar...
 *u  Acelerar\n
 *d  Desacelerar\n
 *l  Foto anterior\n
-*r  Proxima foto\n
+*r  Próxima foto\n
 *A  Pausar\n
 *B  Voltar ao menu
 #MSG_PROGRESS_LOADING_GAME
