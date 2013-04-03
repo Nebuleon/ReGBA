@@ -60,6 +60,8 @@ Aspect ratio       %s
 Fast-forward     %s
 #FMT_VIDEO_FRAME_SKIPPING
 Frame skipping    %s
+#FMT_VIDEO_FRAMES_PER_SECOND_COUNTER
+FPS counter        %s
 #FMT_AUDIO_SOUND
 Sound                  %s
 #FMT_VIDEO_REWINDING
@@ -84,6 +86,8 @@ Game-specific hotkey overrides...
 Global button mappings...
 #MSG_TOOLS_GAME_BUTTON_MAPPING_GENERAL
 Game-specific button mappings...
+#MSG_TOOLS_DEBUG_MENU_ENGLISH
+Debugging...
 #FMT_OPTIONS_LANGUAGE
 Language                          %s
 #FMT_OPTIONS_CPU_FREQUENCY
@@ -240,6 +244,8 @@ Loading...
 Failed!
 #MSG_PROGRESS_SAVED_STATE_LOAD_SUCCEEDED
 OK!
+#FMT_STATUS_FRAMES_PER_SECOND
+FPS: %d rendered, %d/60 emulated
 #MSG_SAVED_STATE_DELETE_ALL
 Delete all saved states
 #FMT_SAVED_STATE_DELETE_ONE
@@ -315,6 +321,8 @@ STARTCHINESESIM
 游戏快进                 %s
 #FMT_VIDEO_FRAME_SKIPPING
 跳帧方式                 %s
+#FMT_VIDEO_FRAMES_PER_SECOND_COUNTER
+FPS counter        %s
 #FMT_AUDIO_SOUND
 声音开关                 %s
 #FMT_VIDEO_REWINDING
@@ -339,6 +347,8 @@ Rewinding       %s
 Global button mappings...
 #MSG_TOOLS_GAME_BUTTON_MAPPING_GENERAL
 Game-specific button mappings...
+#MSG_TOOLS_DEBUG_MENU_ENGLISH
+Debugging (in English)...
 #FMT_OPTIONS_LANGUAGE
 语言                               %s
 #FMT_OPTIONS_CPU_FREQUENCY
@@ -495,6 +505,8 @@ Disabled
 加载存档失败
 #MSG_PROGRESS_SAVED_STATE_LOAD_SUCCEEDED
 加载存档成功
+#FMT_STATUS_FRAMES_PER_SECOND
+FPS: %d rendered, %d/60 emulated
 #MSG_SAVED_STATE_DELETE_ALL
 删除当前游戏的所有存档
 #FMT_SAVED_STATE_DELETE_ONE
@@ -570,6 +582,8 @@ Format d'image     %s
 Avance rapide       %s
 #FMT_VIDEO_FRAME_SKIPPING
 Omission d'images  %s
+#FMT_VIDEO_FRAMES_PER_SECOND_COUNTER
+Afficher images/s  %s
 #FMT_AUDIO_SOUND
 Son                         %s
 #FMT_VIDEO_REWINDING
@@ -594,6 +608,8 @@ Raccourcis pour ce jeu...
 Affectations de boutons globales...
 #MSG_TOOLS_GAME_BUTTON_MAPPING_GENERAL
 Affectations de boutous pour ce jeu...
+#MSG_TOOLS_DEBUG_MENU_ENGLISH
+Débogage (en anglais)...
 #FMT_OPTIONS_LANGUAGE
 Langue                              %s
 #FMT_OPTIONS_CPU_FREQUENCY
@@ -750,6 +766,8 @@ Chargement en cours...
 Échec!
 #MSG_PROGRESS_SAVED_STATE_LOAD_SUCCEEDED
 Terminé!
+#FMT_STATUS_FRAMES_PER_SECOND
+Images/s: %d affichées, %d/60 émulées
 #MSG_SAVED_STATE_DELETE_ALL
 Supprimer toutes les sauvegardes
 #FMT_SAVED_STATE_DELETE_ONE
@@ -826,6 +844,8 @@ Bildformat          %s
 Schnellvorlauf   %s
 #FMT_VIDEO_FRAME_SKIPPING
 Frames übersp.  %s
+#FMT_VIDEO_FRAMES_PER_SECOND_COUNTER
+FPS counter        %s
 #FMT_AUDIO_SOUND
 Ton                     %s
 #FMT_VIDEO_REWINDING
@@ -850,6 +870,8 @@ Spielspezifische Hotkeys...
 Global button mappings...
 #MSG_TOOLS_GAME_BUTTON_MAPPING_GENERAL
 Game-specific button mappings...
+#MSG_TOOLS_DEBUG_MENU_ENGLISH
+Debugging (in English)...
 #FMT_OPTIONS_LANGUAGE
 Sprache                          %s
 #FMT_OPTIONS_CPU_FREQUENCY
@@ -1006,6 +1028,8 @@ Laden...
 Fehlgeschlagen!
 #MSG_PROGRESS_SAVED_STATE_LOAD_SUCCEEDED
 OK!
+#FMT_STATUS_FRAMES_PER_SECOND
+FPS: %d rendered, %d/60 emulated
 #MSG_SAVED_STATE_DELETE_ALL
 Alle Speicherstände löschen
 #FMT_SAVED_STATE_DELETE_ONE
@@ -1082,6 +1106,8 @@ Beeldverhouding  %s
 Vooruitspoelen     %s
 #FMT_VIDEO_FRAME_SKIPPING
 Beeld overslaan   %s
+#FMT_VIDEO_FRAMES_PER_SECOND_COUNTER
+FPS counter        %s
 #FMT_AUDIO_SOUND
 Geluid                    %s
 #FMT_VIDEO_REWINDING
@@ -1106,6 +1132,8 @@ Spel-specifieke sneltoetsen...
 Global button mappings...
 #MSG_TOOLS_GAME_BUTTON_MAPPING_GENERAL
 Game-specific button mappings...
+#MSG_TOOLS_DEBUG_MENU_ENGLISH
+Debugging (in English)...
 #FMT_OPTIONS_LANGUAGE
 Taal                                  %s
 #FMT_OPTIONS_CPU_FREQUENCY
@@ -1262,6 +1290,8 @@ Laden...
 Laden mislukt!
 #MSG_PROGRESS_SAVED_STATE_LOAD_SUCCEEDED
 Laden geslaagd!
+#FMT_STATUS_FRAMES_PER_SECOND
+FPS: %d rendered, %d/60 emulated
 #MSG_SAVED_STATE_DELETE_ALL
 Verwijder alle spelstaten
 #FMT_SAVED_STATE_DELETE_ONE
@@ -1338,6 +1368,8 @@ Modo de pantalla        %s
 Modo avance rápido   %s
 #FMT_VIDEO_FRAME_SKIPPING
 Salto de fotogramas  %s
+#FMT_VIDEO_FRAMES_PER_SECOND_COUNTER
+FPS counter        %s
 #FMT_AUDIO_SOUND
 Sonido                         %s
 #FMT_VIDEO_REWINDING
@@ -1362,6 +1394,8 @@ Teclas de atajo para el juego...
 Teclas globales...
 #MSG_TOOLS_GAME_BUTTON_MAPPING_GENERAL
 Teclas para el juego...
+#MSG_TOOLS_DEBUG_MENU_ENGLISH
+Debugging (in English)...
 #FMT_OPTIONS_LANGUAGE
 Idioma                                %s
 #FMT_OPTIONS_CPU_FREQUENCY
@@ -1518,6 +1552,8 @@ Cargando...
 ¡Error al cargar!
 #MSG_PROGRESS_SAVED_STATE_LOAD_SUCCEEDED
 ¡Carga correcta!
+#FMT_STATUS_FRAMES_PER_SECOND
+FPS: %d rendered, %d/60 emulated
 #MSG_SAVED_STATE_DELETE_ALL
 Borrar todas las partidas
 #FMT_SAVED_STATE_DELETE_ONE
@@ -1593,6 +1629,8 @@ Modalità video    %s
 Avanzamento rapido   %s
 #FMT_VIDEO_FRAME_SKIPPING
 Salto fotogrammi %s
+#FMT_VIDEO_FRAMES_PER_SECOND_COUNTER
+FPS counter        %s
 #FMT_AUDIO_SOUND
 Audio                       %s
 #FMT_VIDEO_REWINDING
@@ -1617,6 +1655,8 @@ Tasti di scelta rapida del gioco...
 Global button mappings...
 #MSG_TOOLS_GAME_BUTTON_MAPPING_GENERAL
 Game-specific button mappings...
+#MSG_TOOLS_DEBUG_MENU_ENGLISH
+Debugging (in English)...
 #FMT_OPTIONS_LANGUAGE
 Lingua                               %s
 #FMT_OPTIONS_CPU_FREQUENCY
@@ -1773,6 +1813,8 @@ Caricando...
 Fallito!
 #MSG_PROGRESS_SAVED_STATE_LOAD_SUCCEEDED
 OK!
+#FMT_STATUS_FRAMES_PER_SECOND
+FPS: %d rendered, %d/60 emulated
 #MSG_SAVED_STATE_DELETE_ALL
 Cancella tutti i salvataggi
 #FMT_SAVED_STATE_DELETE_ONE
@@ -1848,6 +1890,8 @@ Proporção            %s
 Avanço de quadro  %s
 #FMT_VIDEO_FRAME_SKIPPING
 Pulo de quadros   %s
+#FMT_VIDEO_FRAMES_PER_SECOND_COUNTER
+FPS counter        %s
 #FMT_AUDIO_SOUND
 Som                       %s
 #FMT_VIDEO_REWINDING
@@ -1872,6 +1916,8 @@ Atalhos de tecla do jogo atual...
 Global button mappings...
 #MSG_TOOLS_GAME_BUTTON_MAPPING_GENERAL
 Game-specific button mappings...
+#MSG_TOOLS_DEBUG_MENU_ENGLISH
+Debugging (in English)...
 #FMT_OPTIONS_LANGUAGE
 Idioma                              %s
 #FMT_OPTIONS_CPU_FREQUENCY
@@ -2028,6 +2074,8 @@ Carregando...
 Falhou!
 #MSG_PROGRESS_SAVED_STATE_LOAD_SUCCEEDED
 OK!
+#FMT_STATUS_FRAMES_PER_SECOND
+FPS: %d rendered, %d/60 emulated
 #MSG_SAVED_STATE_DELETE_ALL
 Delete todos os estads salvos
 #FMT_SAVED_STATE_DELETE_ONE

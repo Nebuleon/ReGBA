@@ -109,7 +109,8 @@ typedef struct
    * [6] = Rapid A    [7] = Rapid B    (6 and 7 can be unset)
    */
   u32 ButtonMappings[8];
-  u32 Reserved1[114];
+  u32 DisplayFPS;
+  u32 Reserved1[113];
 } GPSP_CONFIG_FILE;
 
 // Runtime settings for the current game. Not persistent and reset between

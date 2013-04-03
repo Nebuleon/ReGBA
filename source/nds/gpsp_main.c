@@ -649,9 +649,11 @@ u32 update_gba()
 
 //          if(!skip_next_frame_flag)
 //            flip_gba_screen();
+            Stats.EmulatedFrames++;
             if(!skip_next_frame_flag)
             {
-				//clear_gba_screen(RGB15(255, 0, 0));
+                Stats.RenderedFrames++;
+                StatsDisplayFPS();
                 flip_gba_screen();
                 to_skip= 0;
             }

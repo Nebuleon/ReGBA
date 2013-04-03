@@ -2985,6 +2985,9 @@ u32 menu(u16 *screen, int FirstInvocation)
 
 	/* 03 */	STRING_SELECTION_OPTION(game_set_frameskip, NULL, &msg[FMT_VIDEO_FRAME_SKIPPING], frameskip_options,
 		&game_persistent_config.frameskip_value, 12 /* auto (0) and 0..10 (1..11) make 12 option values */, NULL, ACTION_TYPE, 3),
+
+	/* 04 */	STRING_SELECTION_OPTION(NULL, NULL, &msg[FMT_VIDEO_FRAMES_PER_SECOND_COUNTER], on_off_options,
+		&gpsp_persistent_config.DisplayFPS, 2, NULL, PASSIVE_TYPE, 4),
 	};
 
 	MAKE_MENU(graphics, NULL, NULL, NULL, NULL, 1, 1);
@@ -5726,7 +5729,7 @@ int gui_init(u32 lang_id)
 		goto gui_init_err;
 	}
 
-	// initial_path_config(); // Enable this later [Neb]
+	StatsInit();
 
   //gpsp_main expecting a return value
 	return 1;

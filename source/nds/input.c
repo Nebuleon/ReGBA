@@ -217,8 +217,8 @@ unsigned int gui_button_repeat = 0;
 				// Just avoiding a compiler error [Neb]
 #define BUTTON_REPEAT_CONTINUE (0)                        //之后重复间隔 0
 #else
-#define BUTTON_REPEAT_START (21428 / 2)
-#define BUTTON_REPEAT_CONTINUE (21428 / 20)
+#define BUTTON_REPEAT_START (23437 / 2)
+#define BUTTON_REPEAT_CONTINUE (23437 / 20)
 #endif
 
 // GUI输入处理

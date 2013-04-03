@@ -49,7 +49,8 @@ C_SOURCES    = source/nds/gpsp_main.c    \
                source/nds/zip.c         \
                source/nds/bitmap.c      \
                source/nds/ds2_main.c    \
-               source/nds/charsets.c
+               source/nds/charsets.c    \
+               source/nds/stats.c
 # source/nds/cpu_c.c
 CPP_SOURCES  = 
 ASM_SOURCES  = source/nds/mips_stub.S
