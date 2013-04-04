@@ -2001,7 +2001,7 @@ Novo jogo
 #MSG_VIDEO_ASPECT_RATIO_3
 [3] Meio, pixels exatos
 #MSG_VIDEO_ASPECT_RATIO_4
-[4] Toda a tela, alisado
+[4] Toda a tela, suavizado
 #MSG_VIDEO_FRAME_SKIPPING_AUTOMATIC
 [-] Variar conforme o jogo
 #MSG_VIDEO_FRAME_SKIPPING_0
