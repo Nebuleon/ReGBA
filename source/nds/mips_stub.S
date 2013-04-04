@@ -50,6 +50,7 @@
 .global invalidate_all_cache
 .global reg_check
 .global printf_reg
+.global call_bios_hle
 
 .global memory_map_read
 .global memory_map_write
@@ -3887,6 +3888,18 @@ iac_loop:
 
   jr $ra                          # return
   nop
+
+call_bios_hle:
+  addiu $sp, $sp, -4
+  sw $ra, ($sp)
+  collapse_flags
+  save_registers
+  jalr $1
+  nop                             # branch delay
+  restore_registers
+  lw $ra, ($sp)
+  jr $ra
+  addiu $sp, $sp, 4               # branch delay
 
 memory_map_read:
   .space 0x8000

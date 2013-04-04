@@ -92,7 +92,7 @@ u32 iwram_stack_optimize = 1;
 //u32 allow_smc_ram_u16 = 1;
 //u32 allow_smc_ram_u32 = 1;
 
-u32 bios_mode;
+// u32 bios_mode;
 
 typedef struct
 {
@@ -227,6 +227,8 @@ typedef struct
 
 #define thumb_decode_branch()                                                 \
   u32 offset = opcode & 0x07FF                                                \
+
+extern void call_bios_hle(void* func);
 
 #ifdef OLD_COUNT
 #include "mips_emit.h"
@@ -2943,7 +2945,7 @@ block_lookup_address_body(dual);
   ((opcode & 0x12FFF10) == 0x12FFF10) ||                                      \
   ((opcode & 0x8108000) == 0x8108000) ||                                      \
   ((opcode >= 0xA000000) && (opcode < 0xF000000)) ||                          \
-  ((opcode >= 0xF000000) && (!swi_hle_handle[((opcode >> 16) & 0xFF)][bios_mode])))       \
+  ((opcode >= 0xF000000) && (!swi_hle_handle[((opcode >> 16) & 0xFF)][0])))       \
 
 #define arm_opcode_branch                                                     \
   ((opcode & 0xE000000) == 0xA000000)                                         \
@@ -3049,7 +3051,7 @@ block_lookup_address_body(dual);
 #define thumb_exit_point                                                      \
   (((opcode >= 0xD000) && (opcode < 0xDF00)) ||                               \
    (((opcode & 0xFF00) == 0xDF00) &&                                          \
-    (!swi_hle_handle[opcode & 0xFF][bios_mode])) ||                           \
+    (!swi_hle_handle[opcode & 0xFF][0])) ||                           \
    ((opcode >= 0xE000) && (opcode < 0xE800)) ||                               \
    ((opcode & 0xFF00) == 0x4700) ||                                           \
    ((opcode & 0xFF00) == 0xBD00) ||                                           \

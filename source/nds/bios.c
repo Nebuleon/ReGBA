@@ -20,44 +20,6 @@
 
 #include "common.h"
 
-#define save_reg()            \
-  asm( "\n                    \
-  sw $3, 0(%0)\n              \
-  sw $7, 4(%0)\n              \
-  sw $8, 8(%0)\n              \
-  sw $9, 12(%0)\n             \
-  sw $10, 16(%0)\n            \
-  sw $11, 20(%0)\n            \
-  sw $12, 24(%0)\n            \
-  sw $13, 28(%0)\n            \
-  sw $14, 32(%0)\n            \
-  sw $15, 36(%0)\n            \
-  sw $24, 44(%0)\n            \
-  sw $25, 48(%0)\n            \
-  sw $18, 40(%0)\n            \
-  sw $28, 52(%0)\n            \
-  sw $30, 64(%0)\n            \
-  "::"r"(reg));               \
-
-#define load_reg()            \
-  asm( "\n                    \
-  lw $3, 0(%0)\n              \
-  lw $7, 4(%0)\n              \
-  lw $8, 8(%0)\n              \
-  lw $9, 12(%0)\n             \
-  lw $10, 16(%0)\n            \
-  lw $11, 20(%0)\n            \
-  lw $12, 24(%0)\n            \
-  lw $13, 28(%0)\n            \
-  lw $14, 32(%0)\n            \
-  lw $15, 36(%0)\n            \
-  lw $24, 44(%0)\n            \
-  lw $25, 48(%0)\n            \
-  lw $18, 40(%0)\n            \
-  lw $28, 52(%0)\n            \
-  lw $30, 64(%0)\n            \
-  "::"r"(reg));          \
-
 s16 b_sinetable[256] = {
   (s16)0x0000, (s16)0x0192, (s16)0x0323, (s16)0x04B5, (s16)0x0645, (s16)0x07D5, (s16)0x0964, (s16)0x0AF1,
   (s16)0x0C7C, (s16)0x0E05, (s16)0x0F8C, (s16)0x1111, (s16)0x1294, (s16)0x1413, (s16)0x158F, (s16)0x1708,
@@ -93,22 +55,47 @@ s16 b_sinetable[256] = {
   (s16)0xF384, (s16)0xF50F, (s16)0xF69C, (s16)0xF82B, (s16)0xF9BB, (s16)0xFB4B, (s16)0xFCDD, (s16)0xFE6E
 };
 
-void bios_halt()
-{;
-}
-
 u32 bios_sqrt(u32 b_value)
 {
     return sqrtf(b_value);
 }
 
+static u32 bios_arctan(u32 value)
+{
+  s32 a =  -(((s32)(value * value)) >> 14);
+  s32 b = ((0xA9 * a) >> 14) + 0x390;
+  b = ((b * a) >> 14) + 0x91C;
+  b = ((b * a) >> 14) + 0xFB6;
+  b = ((b * a) >> 14) + 0x16AA;
+  b = ((b * a) >> 14) + 0x2081;
+  b = ((b * a) >> 14) + 0x3651;
+  b = ((b * a) >> 14) + 0xA2F9;
+  a = ((s32)value * b) >> 16;
+  return a;
+}
+
+static u32 bios_arctan2(s32 x, s32 y)
+{
+  if (y == 0)
+    return (x>>16) & 0x8000;
+
+  if (x == 0)
+    return ((y>>16) & 0x8000) + 0x4000;
+
+  if ((abs(x) > abs(y)) || ((abs(x) == abs(y)) && (!((x<0) && (y<0))))) {
+    if (x < 0)
+      return bios_arctan((y << 14) / x) + 0x8000;
+    return bios_arctan((y << 14) / x) + (((y >> 16) & 0x8000) << 1);
+  }
+
+  return (0x4000 + ((y >> 16) & 0x8000)) - bios_arctan((x << 14) / y);
+} 
+
 void bios_cpuset(u32 b_source, u32 b_dest, u32 b_cnt) /* arm_r0, arm r1, arm_r2 */
 {
-  save_reg();
   if(((b_source & 0xe000000) == 0) ||
      ((b_source + (((b_cnt << 11)>>9) & 0x1FFFFF)) & 0xe000000) == 0)
     {
-      load_reg();
       return;
     }
   
@@ -157,16 +144,13 @@ void bios_cpuset(u32 b_source, u32 b_dest, u32 b_cnt) /* arm_r0, arm r1, arm_r2 
       }
     }
   }
-  load_reg();
 }
 
 void bios_cpufastset(u32 b_source, u32 b_dest, u32 b_cnt)
 {
-  save_reg();
   if(((b_source & 0xe000000) == 0) ||
      ((b_source + (((b_cnt << 11)>>9) & 0x1FFFFF)) & 0xe000000) == 0)
     {
-      load_reg();
       return;
     }
   // needed for 32-bit mode!
@@ -200,12 +184,10 @@ void bios_cpufastset(u32 b_source, u32 b_dest, u32 b_cnt)
       b_count -= 8;
     }
   }
-  load_reg();
 }
 
 void bios_bgaffineset(u32 b_src, u32 b_dest, u32 b_num)
 {
-  save_reg();
   u32 b_i;
   for(b_i = 0; b_i < b_num; b_i++) {
     s32 b_cx = read_memory32(b_src);
@@ -247,12 +229,10 @@ void bios_bgaffineset(u32 b_src, u32 b_dest, u32 b_num)
     write_memory32(b_dest, b_starty);
     b_dest += 4;
   }
-  load_reg();
 }  
 
 void bios_objaffineset(u32 b_src, u32 b_dest, u32 b_num, u32 b_offset)
 {
-  save_reg();
   u32 b_i;
   for(b_i = 0; b_i < b_num; b_i++) {
     s16 b_rx = read_memory16(b_src);
@@ -279,5 +259,51 @@ void bios_objaffineset(u32 b_src, u32 b_dest, u32 b_num, u32 b_offset)
     write_memory16(b_dest, b_dmy);
     b_dest += b_offset;
   }
-  load_reg();
 }
+
+unsigned int swi_hle_handle[256][3] = {
+  /* { (unsigned int) void* HandlerAddress, unsigned int InputParameterCount, unsigned int ReturnsValue } */
+  { 0, 0, 0, },              // SWI 0:  SoftReset
+  { 0, 0, 0, },              // SWI 1:  RegisterRAMReset
+  { 0, 0, 0, },              // SWI 2:  Halt
+  { 0, 0, 0, },              // SWI 3:  Stop/Sleep
+  { 0, 0, 0, },              // SWI 4:  IntrWait
+  { 0, 0, 0, },              // SWI 5:  VBlankIntrWait
+  { 1 /* special */, 0, 0, },              // SWI 6:  Div
+  { 1 /* special */, 0, 0, },              // SWI 7:  DivArm
+  { (unsigned int) bios_sqrt, 1, 1, },      // SWI 8:  Sqrt
+  { (unsigned int) bios_arctan, 1, 1, },      // SWI 9:  ArcTan
+  { (unsigned int) bios_arctan2, 2, 1, },    // SWI A:  ArcTan2
+  { (unsigned int) bios_cpuset, 3, 0, },      // SWI B:  CpuSet
+  { (unsigned int) bios_cpufastset, 3, 0, },    // SWI C:  CpuFastSet
+  { 0, 0, 0, },              // SWI D:  GetBIOSCheckSum
+  { (unsigned int) bios_bgaffineset, 3, 0, },  // SWI E:  BgAffineSet
+  { (unsigned int) bios_objaffineset, 4, 0, },  // SWI F:  ObjAffineSet
+  { 0, 0, 0, },              // SWI 10: BitUnpack
+  { 0, 0, 0, },              // SWI 11: LZ77UnCompWram
+  { 0, 0, 0, },              // SWI 12: LZ77UnCompVram
+  { 0, 0, 0, },              // SWI 13: HuffUnComp
+  { 0, 0, 0, },              // SWI 14: RLUnCompWram
+  { 0, 0, 0, },              // SWI 15: RLUnCompVram
+  { 0, 0, 0, },              // SWI 16: Diff8bitUnFilterWram
+  { 0, 0, 0, },              // SWI 17: Diff8bitUnFilterVram
+  { 0, 0, 0, },              // SWI 18: Diff16bitUnFilter
+  { 0, 0, 0, },              // SWI 19: SoundBias
+  { 0, 0, 0, },              // SWI 1A: SoundDriverInit
+  { 0, 0, 0, },              // SWI 1B: SoundDriverMode
+  { 0, 0, 0, },              // SWI 1C: SoundDriverMain
+  { 0, 0, 0, },              // SWI 1D: SoundDriverVSync
+  { 0, 0, 0, },              // SWI 1E: SoundChannelClear
+  { 0, 0, 0, },              // SWI 1F: MidiKey2Freq
+  { 0, 0, 0, },              // SWI 20: SoundWhatever0
+  { 0, 0, 0, },              // SWI 21: SoundWhatever1
+  { 0, 0, 0, },              // SWI 22: SoundWhatever2
+  { 0, 0, 0, },              // SWI 23: SoundWhatever3
+  { 0, 0, 0, },              // SWI 24: SoundWhatever4
+  { 0, 0, 0, },              // SWI 25: MultiBoot
+  { 0, 0, 0, },              // SWI 26: HardReset
+  { 0, 0, 0, },              // SWI 27: CustomHalt
+  { 0, 0, 0, },              // SWI 28: SoundDriverVSyncOff
+  { 0, 0, 0, },              // SWI 29: SoundDriverVSyncOn
+  { 0, 0, 0, },              // SWI 2A: SoundGetJumpList
+};

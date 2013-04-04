@@ -147,7 +147,7 @@ extern u32 translation_gate_target_pc[MAX_TRANSLATION_GATES];
 
 extern u32 in_interrupt;
 
-extern u32 bios_mode;
+// extern u32 bios_mode;
 
 #define ROM_BRANCH_HASH_SIZE (1024 * 64)
 

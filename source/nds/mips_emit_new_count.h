@@ -2800,60 +2800,22 @@ u32 execute_store_cpsr_body(u32 _cpsr, u32 store_mask, u32 address)
    block_exits[block_exit_position].branch_target);                           \
   block_exit_position++                                                       \
 
-u8 swi_hle_handle[256][2] =
-{ /* use bios , emu bios */
-  { 0x0, 0x0 },    // SWI 0:  SoftReset
-  { 0x0, 0x0 },    // SWI 1:  RegisterRAMReset
-  { 0x0, 0x0 },    // SWI 2:  Halt
-  { 0x0, 0x0 },    // SWI 3:  Stop/Sleep
-  { 0x0, 0x0 },    // SWI 4:  IntrWait
-  { 0x0, 0x0 },    // SWI 5:  VBlankIntrWait
-  { 0x1, 0x1 },    // SWI 6:  Div
-  { 0x1, 0x1 },    // SWI 7:  DivArm
-  { 0x0, 0x1 },    // SWI 8:  Sqrt
-  { 0x0, 0x0 },    // SWI 9:  ArcTan
-  { 0x0, 0x0 },    // SWI A:  ArcTan2
-  { 0x0, 0x1 },    // SWI B:  CpuSet
-  { 0x0, 0x1 },    // SWI C:  CpuFastSet
-  { 0x0, 0x0 },    // SWI D:  GetBIOSCheckSum
-  { 0x0, 0x1 },    // SWI E:  BgAffineSet
-  { 0x0, 0x1 },    // SWI F:  ObjAffineSet
-  { 0x0, 0x0 },    // SWI 10: BitUnpack
-  { 0x0, 0x0 },    // SWI 11: LZ77UnCompWram
-  { 0x0, 0x0 },    // SWI 12: LZ77UnCompVram
-  { 0x0, 0x0 },    // SWI 13: HuffUnComp
-  { 0x0, 0x0 },    // SWI 14: RLUnCompWram
-  { 0x0, 0x0 },    // SWI 15: RLUnCompVram
-  { 0x0, 0x0 },    // SWI 16: Diff8bitUnFilterWram
-  { 0x0, 0x0 },    // SWI 17: Diff8bitUnFilterVram
-  { 0x0, 0x0 },    // SWI 18: Diff16bitUnFilter
-  { 0x0, 0x0 },    // SWI 19: SoundBias
-  { 0x0, 0x0 },    // SWI 1A: SoundDriverInit
-  { 0x0, 0x0 },    // SWI 1B: SoundDriverMode
-  { 0x0, 0x0 },    // SWI 1C: SoundDriverMain
-  { 0x0, 0x0 },    // SWI 1D: SoundDriverVSync
-  { 0x0, 0x0 },    // SWI 1E: SoundChannelClear
-  { 0x0, 0x0 },    // SWI 20: SoundWhatever0
-  { 0x0, 0x0 },    // SWI 21: SoundWhatever1
-  { 0x0, 0x0 },    // SWI 22: SoundWhatever2
-  { 0x0, 0x0 },    // SWI 23: SoundWhatever3
-  { 0x0, 0x0 },    // SWI 24: SoundWhatever4
-  { 0x0, 0x0 },    // SWI 25: MultiBoot
-  { 0x0, 0x0 },    // SWI 26: HardReset
-  { 0x0, 0x0 },    // SWI 27: CustomHalt
-  { 0x0, 0x0 },    // SWI 28: SoundDriverVSyncOff
-  { 0x0, 0x0 },    // SWI 29: SoundDriverVSyncOn
-  { 0x0, 0x0 }     // SWI 2A: SoundGetJumpList
-};
+extern unsigned int swi_hle_handle[0x2B][3];
 
 #define generate_swi_hle_handler(_swi_number)                                 \
 {                                                                             \
   u32 swi_number = _swi_number;                                               \
-  if(swi_hle_handle[swi_number][bios_mode])                                   \
+  if(swi_hle_handle[swi_number][0])                                   \
   {                                                                           \
-    /* Div */                                                                 \
-    if(swi_number == 0x06)                                                    \
+    /* Div and DivArm */                                                      \
+    if(swi_number == 0x06 || swi_number == 0x07)                              \
     {                                                                         \
+      if(swi_number == 0x07 /* DivArm uses different registers */)            \
+      {                                                                       \
+        mips_emit_addu(reg_r3, reg_r0,reg_zero);                              \
+        mips_emit_addu(reg_r0, reg_r1,reg_zero);                              \
+        mips_emit_addu(reg_r1, reg_r3,reg_zero);                              \
+      }                                                                       \
       mips_emit_div(reg_r0, reg_r1);                                          \
       mips_emit_mflo(reg_r0);                                                 \
       mips_emit_mfhi(reg_r1);                                                 \
@@ -2861,64 +2823,18 @@ u8 swi_hle_handle[256][2] =
       mips_emit_xor(reg_r3, reg_r0, reg_a0);                                  \
       mips_emit_subu(reg_r3, reg_r3, reg_a0);                                 \
     }                                                                         \
-                                                                              \
-    /* Divarm */                                                              \
-    if(swi_number == 0x07)                                                    \
+    else                                                                      \
     {                                                                         \
-      mips_emit_addu(reg_r3, reg_r0,reg_zero);                                \
-      mips_emit_addu(reg_r0, reg_r1,reg_zero);                                \
-      mips_emit_addu(reg_r1, reg_r3,reg_zero);                                \
-      mips_emit_div(reg_r0, reg_r1);                                          \
-      mips_emit_mflo(reg_r0);                                                 \
-      mips_emit_mfhi(reg_r1);                                                 \
-      mips_emit_sra(reg_a0, reg_r0, 31);                                      \
-      mips_emit_xor(reg_r3, reg_r0, reg_a0);                                  \
-      mips_emit_subu(reg_r3, reg_r3, reg_a0);                                 \
-    }                                                                         \
+      for (i = 0; i < swi_hle_handle[swi_number][1]; i++) {                   \
+        generate_load_reg((i+4), i);                                          \
+      }                                                                       \
                                                                               \
-    /* Sqrt */                                                                \
-    if(swi_number == 0x08)                                                    \
-    {                                                                         \
-      mips_emit_addu(reg_a0, reg_r0, reg_zero);                               \
-      generate_function_call(bios_sqrt);                                      \
-      mips_emit_addu(reg_r0, reg_rv, reg_zero);                               \
-    }                                                                         \
+      generate_load_imm(reg_temp, swi_hle_handle[swi_number][0]);             \
+      generate_function_call(call_bios_hle);                                  \
                                                                               \
-    /* CpuSet */                                                              \
-    if(swi_number == 0x0B)                                                    \
-    {                                                                         \
-      mips_emit_addu(mips_reg_a0, reg_r0, reg_zero);                          \
-      mips_emit_addu(mips_reg_a1, reg_r1, reg_zero);                          \
-      mips_emit_addu(mips_reg_a2, reg_r2, reg_zero);                          \
-      generate_function_call(bios_cpuset);                                    \
-    }                                                                         \
-                                                                              \
-    /* CpuFastSet */                                                          \
-    if(swi_number == 0x0C)                                                    \
-    {                                                                         \
-      mips_emit_addu(mips_reg_a0, reg_r0, reg_zero);                          \
-      mips_emit_addu(mips_reg_a1, reg_r1, reg_zero);                          \
-      mips_emit_addu(mips_reg_a2, reg_r2, reg_zero);                          \
-      generate_function_call(bios_cpufastset);                                \
-    }                                                                         \
-                                                                              \
-    /* BgAffineSet */                                                         \
-    if(swi_number == 0x0E)                                                    \
-    {                                                                         \
-      mips_emit_addu(mips_reg_a0, reg_r0, reg_zero);                          \
-      mips_emit_addu(mips_reg_a1, reg_r1, reg_zero);                          \
-      mips_emit_addu(mips_reg_a2, reg_r2, reg_zero);                          \
-      generate_function_call(bios_bgaffineset);                               \
-    }                                                                         \
-                                                                              \
-    /* ObjAffineSet */                                                        \
-    if(swi_number == 0x0F)                                                    \
-    {                                                                         \
-      mips_emit_addu(mips_reg_a0, reg_r0, reg_zero);                          \
-      mips_emit_addu(mips_reg_a1, reg_r1, reg_zero);                          \
-      mips_emit_addu(mips_reg_a2, reg_r2, reg_zero);                          \
-      mips_emit_addu(mips_reg_a3, reg_r3, reg_zero);                          \
-      generate_function_call(bios_objaffineset);                              \
+      if(swi_hle_handle[swi_number][2]) {                                     \
+        mips_emit_addu(reg_r0, reg_rv, reg_zero);                             \
+      }                                                                       \
     }                                                                         \
                                                                               \
     break;                                                                    \
