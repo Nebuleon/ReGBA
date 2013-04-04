@@ -55,7 +55,7 @@ s16 b_sinetable[256] = {
   (s16)0xF384, (s16)0xF50F, (s16)0xF69C, (s16)0xF82B, (s16)0xF9BB, (s16)0xFB4B, (s16)0xFCDD, (s16)0xFE6E
 };
 
-u32 bios_sqrt(u32 b_value)
+static u32 bios_sqrt(u32 b_value)
 {
     return sqrtf(b_value);
 }
@@ -91,102 +91,7 @@ static u32 bios_arctan2(s32 x, s32 y)
   return (0x4000 + ((y >> 16) & 0x8000)) - bios_arctan((x << 14) / y);
 } 
 
-void bios_cpuset(u32 b_source, u32 b_dest, u32 b_cnt) /* arm_r0, arm r1, arm_r2 */
-{
-  if(((b_source & 0xe000000) == 0) ||
-     ((b_source + (((b_cnt << 11)>>9) & 0x1FFFFF)) & 0xe000000) == 0)
-    {
-      return;
-    }
-  
-  u32 b_count = b_cnt & 0x1FFFFF;
-
-  // 32-bit ?
-  if((b_cnt >> 26) & 1) {
-    // needed for 32-bit mode!
-    b_source &= 0x0FFFFFFC;
-    b_dest &= 0x0FFFFFFC;
-    // fill ?
-    if((b_cnt >> 24) & 1) {
-      u32 b_value = read_memory32(b_source);
-      while(b_count) {
-        write_memory32(b_dest, b_value);
-        b_dest += 4;
-        b_count--;
-      }
-    } else {
-      // copy
-      while(b_count) {
-        u32 b_value = read_memory32(b_source);
-        write_memory32(b_dest, b_value);
-        b_source += 4;
-        b_dest += 4;
-        b_count--;
-      }
-    }
-  } else {
-    // 16-bit fill?
-    if((b_cnt >> 24) & 1) {
-      u16 b_value = read_memory16(b_source);
-      while(b_count) {
-        write_memory16(b_dest, b_value);
-        b_dest += 2;
-        b_count--;
-      }
-    } else {
-      // copy
-      while(b_count) {
-        u16 b_value = read_memory16(b_source);
-        write_memory16(b_dest, b_value);
-        b_source += 2;
-        b_dest += 2;
-        b_count--;
-      }
-    }
-  }
-}
-
-void bios_cpufastset(u32 b_source, u32 b_dest, u32 b_cnt)
-{
-  if(((b_source & 0xe000000) == 0) ||
-     ((b_source + (((b_cnt << 11)>>9) & 0x1FFFFF)) & 0xe000000) == 0)
-    {
-      return;
-    }
-  // needed for 32-bit mode!
-  b_source &= 0x0FFFFFFC;
-  b_dest &= 0x0FFFFFFC;
-  
-  u32 b_count = b_cnt & 0x1FFFFF;
-  u32 b_i;
-
-  // fill?
-  if((b_cnt >> 24) & 1) {
-    while(b_count > 0) {
-      // BIOS always transfers 32 bytes at a time
-      u32 b_value = read_memory32(b_source);
-      for(b_i = 0; b_i < 8; b_i++) {
-        write_memory32(b_dest, b_value);
-        b_dest += 4;
-      }
-      b_count -= 8;
-    }
-  } else {
-    // copy
-    while(b_count > 0) {
-      // BIOS always transfers 32 bytes at a time
-      for(b_i = 0; b_i < 8; b_i++) {
-        u32 b_value = read_memory32(b_source);
-        write_memory32(b_dest, b_value);
-        b_source += 4;
-        b_dest += 4;
-      }
-      b_count -= 8;
-    }
-  }
-}
-
-void bios_bgaffineset(u32 b_src, u32 b_dest, u32 b_num)
+static void bios_bgaffineset(u32 b_src, u32 b_dest, u32 b_num)
 {
   u32 b_i;
   for(b_i = 0; b_i < b_num; b_i++) {
@@ -231,7 +136,7 @@ void bios_bgaffineset(u32 b_src, u32 b_dest, u32 b_num)
   }
 }  
 
-void bios_objaffineset(u32 b_src, u32 b_dest, u32 b_num, u32 b_offset)
+static void bios_objaffineset(u32 b_src, u32 b_dest, u32 b_num, u32 b_offset)
 {
   u32 b_i;
   for(b_i = 0; b_i < b_num; b_i++) {
@@ -261,7 +166,7 @@ void bios_objaffineset(u32 b_src, u32 b_dest, u32 b_num, u32 b_offset)
   }
 }
 
-unsigned int swi_hle_handle[256][3] = {
+unsigned int swi_hle_handle[0x2B][3] = {
   /* { (unsigned int) void* HandlerAddress, unsigned int InputParameterCount, unsigned int ReturnsValue } */
   { 0, 0, 0, },              // SWI 0:  SoftReset
   { 0, 0, 0, },              // SWI 1:  RegisterRAMReset
@@ -274,8 +179,8 @@ unsigned int swi_hle_handle[256][3] = {
   { (unsigned int) bios_sqrt, 1, 1, },      // SWI 8:  Sqrt
   { (unsigned int) bios_arctan, 1, 1, },      // SWI 9:  ArcTan
   { (unsigned int) bios_arctan2, 2, 1, },    // SWI A:  ArcTan2
-  { (unsigned int) bios_cpuset, 3, 0, },      // SWI B:  CpuSet
-  { (unsigned int) bios_cpufastset, 3, 0, },    // SWI C:  CpuFastSet
+  { 0, 0, 0, },              // SWI B:  CpuSet
+  { 0, 0, 0, },              // SWI C:  CpuFastSet
   { 0, 0, 0, },              // SWI D:  GetBIOSCheckSum
   { (unsigned int) bios_bgaffineset, 3, 0, },  // SWI E:  BgAffineSet
   { (unsigned int) bios_objaffineset, 4, 0, },  // SWI F:  ObjAffineSet
