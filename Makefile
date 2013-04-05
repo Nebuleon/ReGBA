@@ -67,11 +67,13 @@ CFLAGS := -mips32 -mno-abicalls -fno-pic -fno-builtin \
           -O3 -fomit-frame-pointer -fgcse-sm -fgcse-las -fgcse-after-reload \
           -fweb -fpeel-loops
 
-DEFS   := -DNDS_LAYER
+DEFS   := -DNDS_LAYER -DNO_LOAD_DELAY_SLOT
 # Usable flags are
 # -DTEST_MODE
 # -DUSE_DEBUG
 # -DUSE_C_CORE
+# -DNO_LOAD_DELAY_SLOT (for the XBurst architecture, which has no load delay
+#   slots)
 
 .PHONY: clean makedirs
 .SUFFIXES: .elf .dat .plg .c .S .o
