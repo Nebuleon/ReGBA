@@ -17,7 +17,7 @@ INCLUDE     := -Inds -I$(DS2SDKPATH)/include \
                -I$(CORE_DIR)
 
 LINK_SPEC   := $(DS2SDKPATH)/specs/link.xn
-START_ASM   := start.S
+START_ASM   := $(DS2SDKPATH)/specs/start.S
 START_O     := start.o
 
 # - - - Names - - -
