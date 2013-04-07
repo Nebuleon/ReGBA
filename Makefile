@@ -17,7 +17,7 @@ INCLUDE     := -Inds -I$(DS2SDKPATH)/include \
                -I$(CORE_DIR)
 
 LINK_SPEC   := $(DS2SDKPATH)/specs/link.xn
-START_ASM   := $(DS2SDKPATH)/specs/start.S
+START_ASM   := start.S
 START_O     := start.o
 
 # - - - Names - - -
@@ -67,7 +67,7 @@ CFLAGS := -mips32 -mno-abicalls -fno-pic -fno-builtin \
           -O3 -fomit-frame-pointer -fgcse-sm -fgcse-las -fgcse-after-reload \
           -fweb -fpeel-loops
 
-DEFS   := -DNDS_LAYER -DNO_LOAD_DELAY_SLOT
+DEFS   := -DNDS_LAYER -DNO_LOAD_DELAY_SLOT -DGIT_VERSION=$(shell git describe --always)
 # Usable flags are
 # -DTEST_MODE
 # -DUSE_DEBUG

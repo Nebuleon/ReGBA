@@ -2887,7 +2887,13 @@ u32 menu(u16 *screen, int FirstInvocation)
             bg_screenp_color = COLOR_BG;
 
         draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
+#ifdef GIT_VERSION
+#define STRINGIFY(x) XSTRINGIFY(x)
+#define XSTRINGIFY(x) #x
+        sprintf(line_buffer, "%s\n%s %s\nNebuleon/TempGBA commit %s", msg[MSG_EMULATOR_NAME], msg[MSG_WORD_EMULATOR_VERSION], NDSGBA_VERSION, STRINGIFY(GIT_VERSION));
+#else
         sprintf(line_buffer, "%s\n%s %s", msg[MSG_EMULATOR_NAME], msg[MSG_WORD_EMULATOR_VERSION], NDSGBA_VERSION);
+#endif
         draw_string_vcenter(down_screen_addr, MESSAGE_BOX_TEXT_X, MESSAGE_BOX_TEXT_Y, MESSAGE_BOX_TEXT_SX, COLOR_MSSG, line_buffer);
         ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
 
