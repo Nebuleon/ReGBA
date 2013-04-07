@@ -1,3 +1,3 @@
 To install:
 
-Place tempgba.plg, tempgba.bmp, tempgba.ini, pokegba.plg, pokegba.bmp and pokegba.ini in the _dstwoplug folder of your DSTWO.  Place the TEMPGBA folder in your dstwo's root folder (the one that contains _dstwo, _dstwoplug, etc).
+Place tempgba.plg, tempgba.bmp, and tempgba.ini in the _dstwoplug folder of your DSTWO.  Place the TEMPGBA folder in your dstwo's root folder (the one that contains _dstwo, _dstwoplug, etc).

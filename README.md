@@ -1,4 +1,4 @@
-TempGBA and PokéGBA beta version 8, 2013-04-02
+TempGBA beta version 8, 2013-04-02
 
 A Game Boy Advance emulator for the Supercard DSTWO.
 
@@ -34,20 +34,6 @@ Once dumped or found, name the file `gba_bios.bin`, and place it in the
 `TEMPGBA` directory of your storage card. So the path should look like this:
 `/media/Your-Card/TEMPGBA/gba_bios.bin` on Linux; `E:\TempGBA\gba_bios.bin`
 on Windows.
-
-# TempGBA versus PokéGBA
-
-For technical reasons related to audio rendering, it is better if you use
-PokéGBA to play Pokémon games, and TempGBA to play other games.
-
-* If you use PokéGBA to play Golden Sun - The Lost Age or some GBA Video
-  cartridges, you will hear the audio overlap itself or slow down massively.
-* If you use TempGBA to play Pokémon games, the music will appear to
-  incorrectly synchronise some parts of itself with the others after about
-  5 minutes of gameplay, becoming rather annoying after 10 minutes.
-
-Saved states made by one should be readable by the other, but any audio
-rendering glitch applicable to the other version will reappear in it.
 
 # Improving game compatibility with game_config.txt
 

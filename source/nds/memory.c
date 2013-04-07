@@ -37,20 +37,6 @@ u8 SAVEFAST_MEM[ SAVESTATE_FAST_SIZE ] __attribute__ ((aligned (4))) ;
 const u8 SVS_HEADER[SVS_HEADER_SIZE] = {'N', 'G', 'B', 'A', 'R', 'T', 'S', '1', '.', '0',
   'e'};
 
-/*
- * If you're reading this, then you've found out about the Pokémon split of
- * this emulator. You're probably pulling your hair out and wondering why
- * it's split like that. It's split because Pokémon's audio channels, PSG and
- * Direct Sound, desynchronise if they are rendered at 65536 Hz. They only
- * render correctly at 32768 Hz. Conversely, Golden Sun - The Lost Age and
- * some GBA Video cartridges only render correctly at 65536 Hz.
- * So the SVS_HEADER saved states are written out as if SOUND_FREQUENCY were
- * 65536, and POKEMON_SVS_HEADER as if it were 32768.
- * - Nebuleon, 2013-04-07
- */
-const u8 POKEMON_SVS_HEADER[SVS_HEADER_SIZE] = {'P', 'G', 'B', 'A', 'R', 'T', 'S', '1', '.', '0',
-  'e'};
-
 typedef enum
 {
   FLASH_DEVICE_MACRONIX_64KB   = 0x1C,
@@ -3822,8 +3808,6 @@ printf("D %s\n", dot_position);
 }
 #endif
 
-extern u32 gbc_sound_partial_ticks;
-
 /*
  * Loads a saved state, given its file name and a file handle already opened
  * in at least mode "rb" to the same file. This function is responsible for
@@ -3846,10 +3830,7 @@ u32 load_state(char *savestate_filename, FILE *fp)
 		fclose(fp);
 		return 1; // Failed to fully read the file
 	}
-	if (!(
-		memcmp(header, SVS_HEADER, SVS_HEADER_SIZE) == 0
-	||	memcmp(header, POKEMON_SVS_HEADER, SVS_HEADER_SIZE) == 0
-	)) {
+	if (memcmp(header, SVS_HEADER, SVS_HEADER_SIZE) != 0) {
 		fclose(fp);
 		return 2; // Bad saved state format
 	}
@@ -3864,39 +3845,6 @@ printf("fread %d\n", i);
 printf("gamepak_filename0: %s\n", gamepak_filename);
 
         savestate_block(read_mem);
-
-	// Perform fixups by saved state version.
-
-	// NGBA____ / PGBA____
-	/*
-	 * NGBA saves are written with precalculated values using
-	 * SOUND_FREQUENCY == 65536.0. PGBA saves are written with
-	 * precalculated values using SOUND_FREQUENCY == 32768.0.
-	 */
-	u8 n;
-#ifdef POKEMON
-	if (header[0] == 'N') {
-		for (n = 0; n < 4; n++) {
-			gbc_sound_channel[n].frequency_step <<= 1;
-		}
-		for (n = 0; n < 2; n++) {
-			timer[n].frequency_step <<= 1;
-		}
-		gbc_sound_partial_ticks >>= 1;
-	}
-#else
-	if (header[0] == 'P') {
-		for (n = 0; n < 4; n++) {
-			gbc_sound_channel[n].frequency_step >>= 1;
-		}
-		for (n = 0; n < 2; n++) {
-			timer[n].frequency_step >>= 1;
-		}
-		gbc_sound_partial_ticks <<= 1;
-	}
-#endif
-
-	// End version-specific fixups.
 
         flush_translation_cache_ram();
         flush_translation_cache_rom();
@@ -3968,11 +3916,7 @@ u32 save_state(char *savestate_filename, u16 *screen_capture)
   FILE_OPEN(savestate_file, savestate_path, WRITE);
   if(FILE_CHECK_VALID(savestate_file))
   {
-#ifdef POKEMON
-    FILE_WRITE(savestate_file, POKEMON_SVS_HEADER, SVS_HEADER_SIZE);
-#else
     FILE_WRITE(savestate_file, SVS_HEADER, SVS_HEADER_SIZE);
-#endif
     FILE_WRITE(savestate_file, savestate_write_buffer, sizeof(savestate_write_buffer));
     FILE_CLOSE(savestate_file);
   }
