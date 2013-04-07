@@ -21,8 +21,16 @@ START_ASM   := $(DS2SDKPATH)/specs/start.S
 START_O     := start.o
 
 # - - - Names - - -
-OUTPUT      := tempgba
+# Two emulator plugins are produced by this Makefile.
+# One runs Pokémon games without desynchronising some parts of the music
+# with the others. That's PokeGBA.
+# The other runs Golden Sun - The Lost Age and some GBA Video cartridges
+# without crappy sound. That's TempGBA.
+# Both are placed in the release zip file.
 PLUGIN_DIR  := TEMPGBA
+RELEASE     := tempgba
+OUTPUT1     := tempgba
+OUTPUT2     := pokegba
 
 # - - - Tools - - -
 CC           = $(CROSS)gcc
@@ -55,10 +63,16 @@ C_SOURCES    = source/nds/gpsp_main.c    \
 CPP_SOURCES  = 
 ASM_SOURCES  = source/nds/mips_stub.S
 SOURCES      = $(C_SOURCES) $(CPP_SOURCES) $(ASM_SOURCES)
-C_OBJECTS    = $(C_SOURCES:.c=.o)
-CPP_OBJECTS  = $(CPP_SOURCES:.cpp=.o)
-ASM_OBJECTS  = $(ASM_SOURCES:.S=.o)
-OBJECTS      = $(C_OBJECTS) $(CPP_OBJECTS) $(ASM_OBJECTS)
+
+C_OBJECTS1   = $(C_SOURCES:.c=.1o)
+CPP_OBJECTS1 = $(CPP_SOURCES:.cpp=.1o)
+ASM_OBJECTS1 = $(ASM_SOURCES:.S=.1o)
+OBJECTS1     = $(C_OBJECTS1) $(CPP_OBJECTS1) $(ASM_OBJECTS1)
+
+C_OBJECTS2   = $(C_SOURCES:.c=.2o)
+CPP_OBJECTS2 = $(CPP_SOURCES:.cpp=.2o)
+ASM_OBJECTS2 = $(ASM_SOURCES:.S=.2o)
+OBJECTS2     = $(C_OBJECTS2) $(CPP_OBJECTS2) $(ASM_OBJECTS2)
 
 # - - - Compilation flags - - -
 CFLAGS := -mips32 -mno-abicalls -fno-pic -fno-builtin \
@@ -66,8 +80,12 @@ CFLAGS := -mips32 -mno-abicalls -fno-pic -fno-builtin \
 	      -msoft-float -G 4 \
           -O3 -fomit-frame-pointer -fgcse-sm -fgcse-las -fgcse-after-reload \
           -fweb -fpeel-loops
+CFLAGS1 = $(CFLAGS)
+CFLAGS2 = $(CFLAGS)
 
 DEFS   := -DNDS_LAYER -DNO_LOAD_DELAY_SLOT
+DEFS1   = $(DEFS)
+DEFS2   = $(DEFS) -DPOKEMON
 # Usable flags are
 # -DTEST_MODE
 # -DUSE_DEBUG
@@ -76,13 +94,13 @@ DEFS   := -DNDS_LAYER -DNO_LOAD_DELAY_SLOT
 #   slots)
 
 .PHONY: clean makedirs
-.SUFFIXES: .elf .dat .plg .c .S .o
+.SUFFIXES: .elf .dat .plg .c .S .1o .2o
 
-all: $(OUTPUT).plg makedirs
+all: $(OUTPUT1).plg $(OUTPUT2).plg makedirs
 
 release: all
-	-rm -f $(OUTPUT).zip
-	zip -r $(OUTPUT).zip $(PLUGIN_DIR) $(OUTPUT).plg $(OUTPUT).bmp $(OUTPUT).ini copyright installation.txt README.md source.txt
+	-rm -f $(RELEASE).zip
+	zip -r $(RELEASE).zip $(PLUGIN_DIR) $(OUTPUT1).plg $(OUTPUT1).bmp $(OUTPUT1).ini $(OUTPUT2).plg $(OUTPUT2).bmp $(OUTPUT2).ini copyright installation.txt README.md source.txt
 
 # $< is the source (OUTPUT.dat); $@ is the target (OUTPUT.plg)
 .dat.plg:
@@ -92,8 +110,11 @@ release: all
 .elf.dat:
 	$(OBJCOPY) -x -O binary $< $@
 
-$(OUTPUT).elf: Makefile $(OBJECTS) $(START_O) $(LINK_SPEC) $(EXTLIBS)
-	$(CC) -nostdlib -static -T $(LINK_SPEC) -o $@ $(START_O) $(OBJECTS) $(EXTLIBS) $(LIBS)
+$(OUTPUT1).elf: Makefile $(OBJECTS1) $(START_O) $(LINK_SPEC) $(EXTLIBS)
+	$(CC) -nostdlib -static -T $(LINK_SPEC) -o $@ $(START_O) $(OBJECTS1) $(EXTLIBS) $(LIBS)
+
+$(OUTPUT2).elf: Makefile $(OBJECTS2) $(START_O) $(LINK_SPEC) $(EXTLIBS)
+	$(CC) -nostdlib -static -T $(LINK_SPEC) -o $@ $(START_O) $(OBJECTS2) $(EXTLIBS) $(LIBS)
 
 $(EXTLIBS):
 	$(MAKE) -C $(DS2SDKPATH)/source/
@@ -108,14 +129,21 @@ makedirs:
 	-mkdir $(PLUGIN_DIR)/PICS
 
 clean:
-	-rm -rf $(OUTPUT).plg $(OUTPUT).dat $(OUTPUT).elf depend $(OBJECTS) $(START_O)
+	-rm -rf $(OUTPUT1).plg $(OUTPUT1).dat $(OUTPUT1).elf $(OUTPUT2).plg $(OUTPUT2).dat $(OUTPUT2).elf depend $(OBJECTS) $(START_O)
 
-.c.o:
-	$(CC) $(CFLAGS) $(INCLUDE) $(DEFS) -o $@ -c $<
-.cpp.o:
-	$(CC) $(CFLAGS) $(INCLUDE) $(DEFS) -fno-rtti -o $@ -c $<
-.S.o:
-	$(CC) $(CFLAGS) $(INCLUDE) $(DEFS) -D__ASSEMBLY__ -o $@ -c $<
+.c.1o:
+	$(CC) $(CFLAGS1) $(INCLUDE) $(DEFS1) -o $@ -c $<
+.cpp.1o:
+	$(CC) $(CFLAGS1) $(INCLUDE) $(DEFS1) -fno-rtti -o $@ -c $<
+.S.1o:
+	$(CC) $(CFLAGS1) $(INCLUDE) $(DEFS1) -D__ASSEMBLY__ -o $@ -c $<
+
+.c.2o:
+	$(CC) $(CFLAGS2) $(INCLUDE) $(DEFS2) -o $@ -c $<
+.cpp.2o:
+	$(CC) $(CFLAGS2) $(INCLUDE) $(DEFS2) -fno-rtti -o $@ -c $<
+.S.2o:
+	$(CC) $(CFLAGS2) $(INCLUDE) $(DEFS2) -D__ASSEMBLY__ -o $@ -c $<
 
 Makefile: depend
 
