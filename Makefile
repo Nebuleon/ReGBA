@@ -17,7 +17,7 @@ INCLUDE     := -Inds -I$(DS2SDKPATH)/include \
                -I$(CORE_DIR)
 
 LINK_SPEC   := $(DS2SDKPATH)/specs/link.xn
-START_ASM   := $(DS2SDKPATH)/specs/start.S
+START_ASM   := start.S
 START_O     := start.o
 
 # - - - Names - - -
@@ -50,7 +50,8 @@ C_SOURCES    = source/nds/gpsp_main.c    \
                source/nds/bitmap.c      \
                source/nds/ds2_main.c    \
                source/nds/charsets.c    \
-               source/nds/stats.c
+               source/nds/stats.c       \
+               source/nds/guru_meditation.c
 # source/nds/cpu_c.c
 CPP_SOURCES  = 
 ASM_SOURCES  = source/nds/mips_stub.S
