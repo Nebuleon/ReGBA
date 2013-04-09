@@ -572,7 +572,11 @@ mips_indirect_branch_dual:
   addiu $ra, $ra, -8              # rewind return address to function call
   sw $1, ($ra)                    # modify to call new handler
 
-  cache 0x15, ($ra)               # writeback dcache line
+#ifdef NDS_LAYER
+  cache 0x19, ($ra)               # writeback dcache line
+#else
+  cache 0x15, ($ra)               # writeback-invalidate dcache line
+#endif
   sync
   cache 0x10, ($ra)               # invalidate icache line  
 
@@ -619,7 +623,11 @@ mips_indirect_branch_dual:
   addiu $ra, $ra, -8              # rewind return address to function call
   sw $1, ($ra)                    # modify to call new handler
 
-  cache 0x15, ($ra)               # writeback dcache line
+#ifdef NDS_LAYER
+  cache 0x19, ($ra)               # writeback dcache line
+#else
+  cache 0x15, ($ra)               # writeback-invalidate dcache line
+#endif
   sync
   cache 0x10, ($ra)               # invalidate icache line  
 
@@ -4166,6 +4174,12 @@ invalidate_all_cache:
 #  nop
 #  nop
 
+#ifdef NDS_LAYER
+  jal __dcache_writeback_all
+  nop
+  jal __icache_invalidate_all
+  nop
+#else
   addu $4, $0, $0                 # $4 = 0
   addiu $5, $0, 0x4000            # $5 = 0x4000
 
@@ -4177,6 +4191,7 @@ iac_loop:
 
   jr $ra                          # return
   nop
+#endif
 
 call_bios_hle:
   addiu $sp, $sp, -4
