@@ -4091,7 +4091,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 	{
 		first_load = 1;
 		//try auto loading games passed through argv first
-		if(strlen(argv[1]) > 0 && LoadGameAndItsData(argv[1]))
+		if(FirstInvocation && strlen(argv[1]) > 0 && LoadGameAndItsData(argv[1]))
 			repeat = 0;
 		else
 		{

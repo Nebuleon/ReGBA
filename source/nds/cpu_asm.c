@@ -2797,6 +2797,8 @@ printf("\n");\
 
 u32     recursion_level= 0;
 
+extern void ARMBadJump(unsigned int SourcePC, unsigned int TargetPC);
+
 // Where emulation started
 #define block_lookup_address_body(type)                                       \
 {                                                                             \
@@ -2893,14 +2895,12 @@ u32     recursion_level= 0;
          should never be hit) */                                              \
       if(translation_recursion_level == 0)                                    \
       {                                                                       \
-        /*char buffer[256];                                                     \
-        video_resolution(FRAME_MENU);*/                                         \
-        printf("bad jump %x (%x)\n", (int)pc, (int)reg[REG_PC]);     \
-        /*PRINT_STRING_BG(buffer, COLOR_WHITE, COLOR_BLACK, 0, 10);             \
-        flip_screen();                                                        \
-        error_msg("");*/                                                        \
-        __asm__ __volatile__("syscall 30\n\t");                                \
-        quit(0);                                                               \
+        ARMBadJump((unsigned int) reg[REG_PC], (unsigned int) pc);            \
+        /* Here, we can't return 0 or -1, because when the new gamepak is     \
+           loaded, mips_stub.S's code which called into block_lookup_address  \
+           _*something* will expect the return value to be a MIPS address to  \
+           jump to. So we just let the ARMBadJump procedure run               \
+           endlessly. */                                                      \
       }                                                                       \
       block_address = (u8 *)(-1);                                             \
       break;                                                                  \
