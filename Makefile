@@ -51,7 +51,8 @@ C_SOURCES    = source/nds/gpsp_main.c    \
                source/nds/ds2_main.c    \
                source/nds/charsets.c    \
                source/nds/stats.c       \
-               source/nds/guru_meditation.c
+               source/nds/guru_meditation.c \
+               source/nds/arm_guru_meditation.c
 # source/nds/cpu_c.c
 CPP_SOURCES  = 
 ASM_SOURCES  = source/nds/mips_stub.S
