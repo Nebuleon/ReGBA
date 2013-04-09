@@ -421,6 +421,15 @@ unsigned int DisassembleInstructionMIPS32IType(unsigned int Instruction,
 		else
 			strcpy(ShortForm, CanonicalForm);
 		return 1;
+	case 0x0E:	// XORI RT, RS, IMM
+		sprintf(CanonicalForm, "xori $%u, $%u, 0x%X", T, S, Imm);
+		if (T == 0 || (S == T && Imm == 0))	// Effectively a nop
+			strcpy(ShortForm, "nop");
+		else if (Imm == 0)	// Moving RS into RT
+			sprintf(ShortForm, "move $%u, $%u", T, S);
+		else
+			strcpy(ShortForm, CanonicalForm);
+		return 1;
 	case 0x0F:	// LUI RT, IMM
 		sprintf(CanonicalForm, "lui $%u, 0x%X", T, Imm);
 		if (T == 0)	// Effectively a nop
