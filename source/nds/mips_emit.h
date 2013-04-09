@@ -452,7 +452,7 @@ typedef enum
 
 // Writing to r15 goes straight to a0, to be chained with other ops
 
-u32 arm_to_mips_reg[] =
+const u8 arm_to_mips_reg[] =
 {
   reg_r0,
   reg_r1,
@@ -2657,7 +2657,7 @@ extern unsigned int swi_hle_handle[0x2B][3];
       }                                                                       \
                                                                               \
       generate_load_imm(reg_temp, swi_hle_handle[swi_number][0]);             \
-      generate_function_call(call_bios_hle);                                  \
+      generate_function_call_swap_delay(call_bios_hle);                       \
                                                                               \
       if(swi_hle_handle[swi_number][2]) {                                     \
         mips_emit_addu(reg_r0, reg_rv, reg_zero);                             \

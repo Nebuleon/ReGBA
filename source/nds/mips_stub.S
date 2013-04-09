@@ -3874,9 +3874,8 @@ execute_swi:
   ori $2, 0x13                    # set mode to supervisor
   sw $2, REG_CPSR($16)            # write back CPSR
   save_registers
-  addu $4, $0, $0                 # $4 becomes 0 so that ORI $4, 3 can work
   jal set_cpu_mode                # set the CPU mode to supervisor
-  ori $4, 3                       # 3 is supervisor mode (delay slot)
+  ori $4, $0, 3                   # 3 is supervisor mode (delay slot)
 
   restore_most_registers
   lw $ra, ($sp)                   # pop $ra
