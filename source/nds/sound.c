@@ -295,12 +295,12 @@ u32 left_buffer;
  ******************************************************************************/
 static u32 audio_buffer_size;
 static s16 sound_buffer[BUFFER_SIZE];       // 音频缓冲区 2n = Left / 2n+1 = Right
-volatile static u32 sound_read_offset = 0;  // 音频缓冲区读指针
+static SOUND_RELATED u32 sound_read_offset = 0;  // 音频缓冲区读指针
 //static SceUID sound_thread;
 static u32 sound_last_cpu_ticks = 0;
 static FIXED16_16 gbc_sound_tick_step;
-volatile static u32 audio_thread_exit_flag; // 音频处理线程结束标志
-volatile static u32 pause_sound_flag;
+static SOUND_RELATED u32 audio_thread_exit_flag; // 音频处理线程结束标志
+static SOUND_RELATED u32 pause_sound_flag;
 
 /******************************************************************************
  * 本地函数声明
@@ -454,7 +454,7 @@ u32 gbc_sound_envelope_volume_table[16] =
     FIXED_DIV(14, 15, 14),
     FIXED_DIV(15, 15, 14) };
 
-volatile /*static*/ u32 gbc_sound_buffer_index = 0;
+/*static*/ SOUND_RELATED u32 gbc_sound_buffer_index = 0;
 
 u32 gbc_sound_last_cpu_ticks = 0;
 u32 gbc_sound_partial_ticks = 0;

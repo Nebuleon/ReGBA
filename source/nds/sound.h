@@ -102,6 +102,14 @@ typedef struct
 #define AUDIO_LEN 1536
 #endif
 
+// Define NO_VOLATILE_SOUND somewhere if your port of gpSP does not need the
+// sound to be volatile. This allows more compiler optimisations.
+#ifdef NO_VOLATILE_SOUND
+#define SOUND_RELATED
+#else
+#define SOUND_RELATED volatile
+#endif
+
 // This is the frequency of sound output by the GBA. It is stored in a
 // buffer containing BUFFER_SIZE bytes, and AUDIO_LEN refers to samples
 // at this frequency.
@@ -316,7 +324,7 @@ extern u32 sound_on;
 extern u32 left_buffer;
 extern u32 gbc_sound_wave_volume[4];
 
-extern volatile u32 gbc_sound_buffer_index;
+extern SOUND_RELATED u32 gbc_sound_buffer_index;
 
 void sound_timer_queue32(u8 channel);
 void sound_timer(FIXED16_16 frequency_step, u32 channel);
