@@ -2962,11 +2962,6 @@ block_lookup_address_body(dual);
                                                                               \
   opcode &= 0xFFFFFFF;                                                        \
                                                                               \
-  if(opcode >= 0x0F2B0000)\
-  {\
-	condition = 0xE;\
-	opcode = 0xE1A00000;\
-  }\
   block_end_pc += 4                                                           \
 
 #define arm_branch_target()                                                   \
