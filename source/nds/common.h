@@ -26,7 +26,7 @@
 #ifndef COMMON_H
 #define COMMON_H
 
-#define OLD_COUNT
+// #define OLD_COUNT
 #ifdef NDS_LAYER
 #define NO_VOLATILE_SOUND
 #endif
