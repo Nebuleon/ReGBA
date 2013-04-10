@@ -5175,7 +5175,10 @@ static void get_savestate_filelist(void)
 		{
 			SavedStateExistenceCache [i] = TRUE;
 			read = fread(header, 1, SVS_HEADER_SIZE, fp);
-			if(read < SVS_HEADER_SIZE || memcmp(header, SVS_HEADER, SVS_HEADER_SIZE) != 0) {
+			if(read < SVS_HEADER_SIZE || !(
+				memcmp(header, SVS_HEADER_E, SVS_HEADER_SIZE) == 0
+			||	memcmp(header, SVS_HEADER_F, SVS_HEADER_SIZE) == 0
+			)) {
 				fclose(fp);
 				continue;
 			}

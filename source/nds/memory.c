@@ -34,8 +34,12 @@ u8 *g_state_buffer_ptr;
 #define SAVESTATE_FAST_NUM (14)
 u8 SAVEFAST_MEM[ SAVESTATE_FAST_SIZE ] __attribute__ ((aligned (4))) ;
 
-const u8 SVS_HEADER[SVS_HEADER_SIZE] = {'N', 'G', 'B', 'A', 'R', 'T', 'S', '1', '.', '0',
-  'e'};
+const u8 SVS_HEADER_E[SVS_HEADER_SIZE] = {'N', 'G', 'B', 'A', 'R', 'T', 'S',
+  '1', '.', '0', 'e'}; // 1.0e is written with sound frequency-dependent
+  // variables precalculated with SOUND_FREQUENCY = 65536. 1.0f is written
+  // with sound frequency-dependent variables precalculated with it at 88200.
+const u8 SVS_HEADER_F[SVS_HEADER_SIZE] = {'N', 'G', 'B', 'A', 'R', 'T', 'S',
+  '1', '.', '0', 'f'};
 
 typedef enum
 {
@@ -3830,7 +3834,10 @@ u32 load_state(char *savestate_filename, FILE *fp)
 		fclose(fp);
 		return 1; // Failed to fully read the file
 	}
-	if (memcmp(header, SVS_HEADER, SVS_HEADER_SIZE) != 0) {
+	if (!(
+		memcmp(header, SVS_HEADER_E, SVS_HEADER_SIZE) == 0
+	||	memcmp(header, SVS_HEADER_F, SVS_HEADER_SIZE) == 0
+	)) {
 		fclose(fp);
 		return 2; // Bad saved state format
 	}
@@ -3845,6 +3852,23 @@ printf("fread %d\n", i);
 printf("gamepak_filename0: %s\n", gamepak_filename);
 
         savestate_block(read_mem);
+
+	// Perform fixups by saved-state version.
+
+	// 1.0e: Uses precalculated variables with SOUND_FREQUENCY equal to
+	// 65536. Port these values forward to 1.0f where it's 88200.
+	if (memcmp(header, SVS_HEADER_E, SVS_HEADER_SIZE) == 0)
+	{
+		unsigned int n;
+		for (n = 0; n < 4; n++) {
+			gbc_sound_channel[n].frequency_step = FLOAT_TO_FP16_16(FP16_16_TO_FLOAT(gbc_sound_channel[n].frequency_step) * 65536.0 / SOUND_FREQUENCY);
+		}
+		for (n = 0; n < 2; n++) {
+			timer[n].frequency_step = FLOAT_TO_FP16_16(FP16_16_TO_FLOAT(timer[n].frequency_step) * 65536.0 / SOUND_FREQUENCY);
+		}
+	}
+
+	// End fixups.
 
         flush_translation_cache_ram();
         flush_translation_cache_rom();
@@ -3916,7 +3940,7 @@ u32 save_state(char *savestate_filename, u16 *screen_capture)
   FILE_OPEN(savestate_file, savestate_path, WRITE);
   if(FILE_CHECK_VALID(savestate_file))
   {
-    FILE_WRITE(savestate_file, SVS_HEADER, SVS_HEADER_SIZE);
+    FILE_WRITE(savestate_file, SVS_HEADER_F, SVS_HEADER_SIZE);
     FILE_WRITE(savestate_file, savestate_write_buffer, sizeof(savestate_write_buffer));
     FILE_CLOSE(savestate_file);
   }
