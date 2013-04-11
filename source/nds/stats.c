@@ -45,6 +45,7 @@ void StatsInitGame(void)
 #endif
 	Stats.SoundBufferUnderrunCount = 0;
 	Stats.InSoundBufferUnderrun = 0;
+	Stats.TotalEmulatedFrames = 0;
 #ifdef PERFORMANCE_IMPACTING_STATISTICS
 	Stats.ROMTranslationBytesPeak = 0;
 	Stats.RAMTranslationBytesPeak = 0;
