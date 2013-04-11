@@ -247,6 +247,22 @@ extern void call_bios_hle(void* func);
       pc_address_block = load_gamepak_page(pc_region & 0x3FF);                \
   }                                                                           \
 
+#ifdef PERFORMANCE_IMPACTING_STATISTICS
+static inline void StatsAddARMOpcode()
+{
+	Stats.ARMOpcodesDecoded++;
+}
+
+static inline void StatsAddThumbOpcode()
+{
+	Stats.ThumbOpcodesDecoded++;
+}
+#else
+static inline void StatsAddARMOpcode() {}
+
+static inline void StatsAddThumbOpcode() {}
+#endif
+
 #define translate_arm_instruction()                                           \
   check_pc_region(pc);                                                        \
   opcode = ADDRESS32(pc_address_block, (pc & 0x7FFF));                        \
@@ -269,6 +285,8 @@ extern void call_bios_hle(void* func);
       arm_conditional_block_header();                                         \
     }                                                                         \
   }                                                                           \
+                                                                              \
+  StatsAddARMOpcode();                                                        \
                                                                               \
   switch((opcode >> 20) & 0xFF)                                               \
   {                                                                           \
@@ -1696,6 +1714,8 @@ extern void call_bios_hle(void* func);
   last_opcode = opcode;                                                       \
   opcode = ADDRESS16(pc_address_block, (pc & 0x7FFF));                        \
                                                                               \
+  StatsAddThumbOpcode();                                                      \
+                                                                              \
   switch((opcode >> 8) & 0xFF)                                                \
   {                                                                           \
     case 0x00 ... 0x07:                                                       \
@@ -2799,6 +2819,20 @@ u32     recursion_level= 0;
 
 extern void ARMBadJump(unsigned int SourcePC, unsigned int TargetPC);
 
+#ifdef PERFORMANCE_IMPACTING_STATISTICS
+static inline void AdjustTranslationBufferPeaks()
+{
+	if (Stats.ROMTranslationBytesPeak < rom_translation_ptr - rom_translation_cache)
+		Stats.ROMTranslationBytesPeak = rom_translation_ptr - rom_translation_cache;
+	if (Stats.RAMTranslationBytesPeak < ram_translation_ptr - ram_translation_cache)
+		Stats.RAMTranslationBytesPeak = ram_translation_ptr - ram_translation_cache;
+	if (Stats.BIOSTranslationBytesPeak < bios_translation_ptr - bios_translation_cache)
+		Stats.BIOSTranslationBytesPeak = bios_translation_ptr - bios_translation_cache;
+}
+#else
+static inline void AdjustTranslationBufferPeaks() {}
+#endif
+
 // Where emulation started
 #define block_lookup_address_body(type)                                       \
 {                                                                             \
@@ -2911,6 +2945,7 @@ extern void ARMBadJump(unsigned int SourcePC, unsigned int TargetPC);
 {\
     dump_translation_cache(); \
 }*/\
+  AdjustTranslationBufferPeaks();                                             \
   return block_address;                                                       \
 }                                                                             \
 
@@ -3509,8 +3544,11 @@ translate_block_builder(thumb);
 
 void flush_translation_cache_ram()
 {
+  Stats.RAMTranslationFlushCount++;
+  Stats.RAMTranslationBytesFlushed += ram_translation_ptr
+   - ram_translation_cache;
   invalidate_icache_region(ram_translation_cache,
-   (ram_translation_ptr - ram_translation_cache) + 0x100);
+   (ram_translation_ptr - ram_translation_cache) + CACHE_LINE_SIZE);
 
   ram_translation_ptr = ram_translation_cache;
   ram_block_tag_top = 0x0101;
@@ -3563,8 +3601,11 @@ void flush_translation_cache_ram()
 
 void flush_translation_cache_rom()
 {
+  Stats.ROMTranslationFlushCount++;
+  Stats.ROMTranslationBytesFlushed += rom_translation_ptr
+   - rom_translation_cache;
   invalidate_icache_region(rom_translation_cache,
-   rom_translation_ptr - rom_translation_cache + 0x100);
+   rom_translation_ptr - rom_translation_cache + CACHE_LINE_SIZE);
 
   rom_translation_ptr = rom_translation_cache;
   memset(rom_branch_hash, 0, sizeof(rom_branch_hash));
@@ -3572,8 +3613,11 @@ void flush_translation_cache_rom()
 
 void flush_translation_cache_bios()
 {
+  Stats.BIOSTranslationFlushCount++;
+  Stats.BIOSTranslationBytesFlushed += bios_translation_ptr
+   - bios_translation_cache;
   invalidate_icache_region(bios_translation_cache,
-   bios_translation_ptr - bios_translation_cache + 0x100);
+   bios_translation_ptr - bios_translation_cache + CACHE_LINE_SIZE);
 
   bios_block_tag_top = 0x0101;
   bios_translation_ptr = bios_translation_cache;

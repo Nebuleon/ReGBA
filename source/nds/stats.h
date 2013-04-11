@@ -18,6 +18,43 @@ struct GPSP_STATS {
 	u32	LastFPSCalculationTime;
 	s32	RenderedFPS;
 	s32	EmulatedFPS;
+
+	/* Performance statistics collectors. This set does not impact
+	 * performance of the emulator much. */
+#ifndef USE_C_CORE
+	/* How many bytes of MIPS code have we discarded since the current
+	 * game started running? */
+	u32	ROMTranslationBytesFlushed;
+	u32	RAMTranslationBytesFlushed;
+	u32	BIOSTranslationBytesFlushed;
+	/* How many times have we had to discard MIPS code since the current
+	 * game started running? */
+	u32	ROMTranslationFlushCount;
+	u32	RAMTranslationFlushCount;
+	u32	BIOSTranslationFlushCount;
+#endif
+	/* How many times have we detected an underrun of the sound buffer? */
+	u32	SoundBufferUnderrunCount;
+	/* How many frames have we emulated since the current game started
+	 * running? */
+	u32	TotalEmulatedFrames;
+
+#ifdef PERFORMANCE_IMPACTING_STATISTICS
+	/* Performance statistics collectors. This set impacts normal
+	 * performance of the emulator. */
+	/* Up to how many bytes of MIPS code must we hold for this game? */
+	u32	ROMTranslationBytesPeak;
+	u32	RAMTranslationBytesPeak;
+	u32	BIOSTranslationBytesPeak;
+	/* How many times have we had to decode an ARM or a Thumb opcode from
+	 * scratch since the current game started running? */
+	u32	ARMOpcodesDecoded;
+	u32	ThumbOpcodesDecoded;
+#endif
+
+	/* Are we in a sound buffer underrun? If we are, ignore underrunning
+	 * until the current underrun is done. */
+	u8	InSoundBufferUnderrun;
 };
 
 extern struct GPSP_STATS Stats;

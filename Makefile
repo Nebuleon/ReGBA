@@ -76,6 +76,8 @@ DEFS   := -DNDS_LAYER -DNO_LOAD_DELAY_SLOT -DGIT_VERSION=$(shell git describe --
 # -DUSE_C_CORE
 # -DNO_LOAD_DELAY_SLOT (for the XBurst architecture, which has no load delay
 #   slots)
+# -DPERFORMANCE_IMPACTING_STATISTICS (if you want to get statistics that are
+#   so expensive to collect that the emulator's performance would plummet)
 
 .PHONY: clean makedirs
 .SUFFIXES: .elf .dat .plg .c .S .o

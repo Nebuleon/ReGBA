@@ -1376,6 +1376,22 @@ u32 spsr[6];
 
 u32 last_pc= 0;
 
+#ifdef PERFORMANCE_IMPACTING_STATISTICS
+static inline void StatsAddARMOpcode()
+{
+	Stats.ARMOpcodesDecoded++;
+}
+
+static inline void StatsAddThumbOpcode()
+{
+	Stats.ThumbOpcodesDecoded++;
+}
+#else
+static inline void StatsAddARMOpcode() {}
+
+static inline void StatsAddThumbOpcode() {}
+#endif
+
 #define execute_arm_instruction()                                             \
   check_pc_region();                                                          \
   pc &= ~0x03;                                                                \
@@ -1484,6 +1500,8 @@ last_pc= pc;                                                                  \
       arm_next_instruction();                                                 \
       break;                                                                  \
   }                                                                           \
+                                                                              \
+  StatsAddARMOpcode();                                                        \
                                                                               \
   switch((opcode >> 20) & 0xFF)                                               \
   {                                                                           \
@@ -2957,6 +2975,8 @@ if(pc != (last_pc+2))                                                         \
 printf("T LPC= %08x PC= %08x\n", last_pc, pc);                                \
 }                                                                             \
 last_pc= pc;                                                                  \
+                                                                              \
+  StatsAddThumbOpcode();                                                      \
                                                                               \
   switch((opcode >> 8) & 0xFF)                                                \
   {                                                                           \

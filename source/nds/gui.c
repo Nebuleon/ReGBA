@@ -253,7 +253,7 @@ const u8 HOTKEY_DOWN_DISPLAY[] = {0xE2, 0x86, 0x93, 0x00};
     display_string, option_ptr, num_options, help_string, line_number)        \
   ACTION_SELECTION_OPTION(action_function, passive_function,                  \
    display_string, NULL, option_ptr, num_options, help_string,                \
-   line_number, NUMBER_SELECTION_TYPE)                                        \
+   line_number, NUMBER_SELECTION_TYPE | HIDEN_TYPE)                           \
 
 
 typedef enum
@@ -3176,6 +3176,119 @@ u32 menu(u16 *screen, int FirstInvocation)
 
     MAKE_MENU(tools_screensnap, NULL, NULL, NULL, NULL, 1, 1);
 
+    MENU_TYPE tools_debug_menu;
+
+	char* TRANSLATION_STATISTICS = "ARM-to-MIPS translation statistics...";
+	char* ROM_BYTES_FLUSHED = "ROM bytes flushed        %d";
+	char* ROM_FLUSH_COUNT =   "ROM flush count            %d";
+	char* ROM_BYTES_PEAK =    "ROM bytes peak             %d";
+	char* RAM_BYTES_FLUSHED = "RAM bytes flushed        %d";
+	char* RAM_FLUSH_COUNT =   "RAM flush count            %d";
+	char* RAM_BYTES_PEAK =    "RAM bytes peak             %d";
+	char* BIOS_FLUSH_COUNT =  "BIOS flush count            %d";
+	char* BIOS_BYTES_PEAK =   "BIOS bytes peak             %d";
+
+  /*--------------------------------------------------------
+     Tools - Debugging - ARM-to-MIPS translation stats
+  --------------------------------------------------------*/
+    MENU_OPTION_TYPE tools_debug_translation_options[] =
+    {
+	/* 00 */ SUBMENU_OPTION(&tools_debug_menu, &TRANSLATION_STATISTICS, NULL, 0),
+
+	/* 01 */ NUMERIC_SELECTION_HIDE_OPTION(NULL, NULL, &ROM_BYTES_FLUSHED,
+        &Stats.ROMTranslationBytesFlushed, 2, NULL, 1),
+
+	/* 02 */ NUMERIC_SELECTION_HIDE_OPTION(NULL, NULL, &ROM_FLUSH_COUNT,
+        &Stats.ROMTranslationFlushCount, 2, NULL, 2),
+
+#ifdef PERFORMANCE_IMPACTING_STATISTICS
+	/* 03 */ NUMERIC_SELECTION_HIDE_OPTION(NULL, NULL, &ROM_BYTES_PEAK,
+        &Stats.ROMTranslationBytesPeak, 2, NULL, 3),
+#endif
+
+	/* 04 */ NUMERIC_SELECTION_HIDE_OPTION(NULL, NULL, &RAM_BYTES_FLUSHED,
+        &Stats.RAMTranslationBytesFlushed, 2, NULL,
+#ifdef PERFORMANCE_IMPACTING_STATISTICS
+	4
+#else
+	3
+#endif
+	),
+
+	/* 05 */ NUMERIC_SELECTION_HIDE_OPTION(NULL, NULL, &RAM_FLUSH_COUNT,
+        &Stats.RAMTranslationFlushCount, 2, NULL,
+#ifdef PERFORMANCE_IMPACTING_STATISTICS
+	5
+#else
+	4
+#endif
+	),
+
+#ifdef PERFORMANCE_IMPACTING_STATISTICS
+	/* 06 */ NUMERIC_SELECTION_HIDE_OPTION(NULL, NULL, &RAM_BYTES_PEAK,
+        &Stats.RAMTranslationBytesPeak, 2, NULL, 6),
+#endif
+
+	/* 07 */ NUMERIC_SELECTION_HIDE_OPTION(NULL, NULL, &BIOS_FLUSH_COUNT,
+        &Stats.BIOSTranslationFlushCount, 2, NULL,
+#ifdef PERFORMANCE_IMPACTING_STATISTICS
+	7
+#else
+	5
+#endif
+	),
+
+#ifdef PERFORMANCE_IMPACTING_STATISTICS
+	/* 08 */ NUMERIC_SELECTION_HIDE_OPTION(NULL, NULL, &BIOS_BYTES_PEAK,
+        &Stats.BIOSTranslationBytesPeak, 2, NULL, 8),
+#endif
+    };
+    MAKE_MENU(tools_debug_translation, NULL, NULL, NULL, NULL, 0, 0);
+
+	char* EXECUTION_STATISTICS = "Execution statistics...";
+	char* SOUND_BUFFER_UNDERRUNS = "Sound buffer underruns  %d";
+	char* FRAMES_EMULATED        = "Frames emulated              %d";
+	char* ARM_OPCODES_DECODED    = "ARM opcodes decoded        %d";
+	char* THUMB_OPCODES_DECODED  = "Thumb opcodes decoded    %d";
+
+  /*--------------------------------------------------------
+     Tools - Debugging - Execution stats
+  --------------------------------------------------------*/
+    MENU_OPTION_TYPE tools_debug_statistics_options[] =
+    {
+	/* 00 */ SUBMENU_OPTION(&tools_debug_menu, &EXECUTION_STATISTICS, NULL, 0),
+
+	/* 01 */ NUMERIC_SELECTION_HIDE_OPTION(NULL, NULL, &SOUND_BUFFER_UNDERRUNS,
+        &Stats.SoundBufferUnderrunCount, 2, NULL, 1),
+
+	/* 02 */ NUMERIC_SELECTION_HIDE_OPTION(NULL, NULL, &FRAMES_EMULATED,
+        &Stats.TotalEmulatedFrames, 2, NULL, 2),
+
+#ifdef PERFORMANCE_IMPACTING_STATISTICS
+	/* 01 */ NUMERIC_SELECTION_HIDE_OPTION(NULL, NULL, &ARM_OPCODES_DECODED,
+        &Stats.ARMOpcodesDecoded, 2, NULL, 1),
+
+	/* 02 */ NUMERIC_SELECTION_HIDE_OPTION(NULL, NULL, &THUMB_OPCODES_DECODED,
+        &Stats.ThumbOpcodesDecoded, 2, NULL, 2),
+#endif
+    };
+    MAKE_MENU(tools_debug_statistics, NULL, NULL, NULL, NULL, 0, 0);
+
+	char* DEBUG_MENU = "Performance and debugging";
+
+  /*--------------------------------------------------------
+     Tools - Debugging
+  --------------------------------------------------------*/
+    MENU_OPTION_TYPE tools_debug_options[] =
+    {
+	/* 00 */ SUBMENU_OPTION(&tools_menu, &DEBUG_MENU, NULL, 0),
+
+	/* 01 */ SUBMENU_OPTION(&tools_debug_translation_menu, &TRANSLATION_STATISTICS, NULL, 1),
+
+	/* 02 */ SUBMENU_OPTION(&tools_debug_statistics_menu, &EXECUTION_STATISTICS, NULL, 2),
+    };
+    INIT_MENU(tools_debug, NULL, NULL, NULL, NULL, 1, 1);
+
   /*--------------------------------------------------------
      Tools
   --------------------------------------------------------*/
@@ -3194,7 +3307,9 @@ u32 menu(u16 *screen, int FirstInvocation)
 	/* 05 */ SUBMENU_OPTION(&tools_game_specific_button_mappings_menu, &msg[MSG_TOOLS_GAME_BUTTON_MAPPING_GENERAL], NULL, 5),
 
 	/* 06 */ STRING_SELECTION_OPTION(game_set_rewind, NULL, &msg[FMT_VIDEO_REWINDING], rewinding_options,
-		&game_persistent_config.rewind_value, 7, NULL, ACTION_TYPE, 6)
+		&game_persistent_config.rewind_value, 7, NULL, ACTION_TYPE, 6),
+
+	/* 07 */ SUBMENU_OPTION(&tools_debug_menu, &msg[MSG_TOOLS_DEBUG_MENU_ENGLISH], NULL, 7)
     };
 
     INIT_MENU(tools, tools_menu_init, NULL, NULL, NULL, 1, 1);

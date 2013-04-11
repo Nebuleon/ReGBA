@@ -203,6 +203,8 @@ void init_main()
   flush_translation_cache_rom();
   flush_translation_cache_ram();
   flush_translation_cache_bios();
+
+  StatsInitGame();
 }
 
 void quit(void)
@@ -650,6 +652,7 @@ u32 update_gba()
 //          if(!skip_next_frame_flag)
 //            flip_gba_screen();
             Stats.EmulatedFrames++;
+            Stats.TotalEmulatedFrames++;
             if(!skip_next_frame_flag)
             {
                 Stats.RenderedFrames++;

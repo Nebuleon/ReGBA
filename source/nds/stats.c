@@ -33,6 +33,27 @@ void StatsInit(void)
 	Stats.EmulatedFPS = -1;
 }
 
+void StatsInitGame(void)
+{
+#ifndef USE_C_CORE
+	Stats.ROMTranslationBytesFlushed = 0;
+	Stats.RAMTranslationBytesFlushed = 0;
+	Stats.BIOSTranslationBytesFlushed = 0;
+	Stats.ROMTranslationFlushCount = 0;
+	Stats.RAMTranslationFlushCount = 0;
+	Stats.BIOSTranslationFlushCount = 0;
+#endif
+	Stats.SoundBufferUnderrunCount = 0;
+	Stats.InSoundBufferUnderrun = 0;
+#ifdef PERFORMANCE_IMPACTING_STATISTICS
+	Stats.ROMTranslationBytesPeak = 0;
+	Stats.RAMTranslationBytesPeak = 0;
+	Stats.BIOSTranslationBytesPeak = 0;
+	Stats.ARMOpcodesDecoded = 0;
+	Stats.ThumbOpcodesDecoded = 0;
+#endif
+}
+
 void StatsDisplayFPS(void)
 {
 	u32 Visible = gpsp_persistent_config.DisplayFPS;

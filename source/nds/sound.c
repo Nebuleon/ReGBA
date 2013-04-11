@@ -875,6 +875,10 @@ static int sound_update()
   int ret;
 static int pp= 0;
 
+	u8 WasInUnderrun = Stats.InSoundBufferUnderrun;
+	Stats.InSoundBufferUnderrun = ds2_checkAudiobuff() == 0;
+	if (Stats.InSoundBufferUnderrun && !WasInUnderrun)
+		Stats.SoundBufferUnderrunCount++;
 
   while(1)
   {
