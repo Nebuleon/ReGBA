@@ -3303,6 +3303,26 @@ block_exit_type block_exits[MAX_EXITS];
 #define thumb_fix_pc()                                                        \
   pc &= ~0x01                                                                 \
 
+/*
+ * Flushes a cache line in both the data cache and the instruction cache.
+ */
+#ifdef NDS_LAYER
+static inline void FlushCacheLine(void* CacheLine)
+{
+    // On the JZ4740, CACHE 0x19 functions as Hit Writeback, but leaves the
+    // cache line valid. This is particularly useful to write more things to
+    // the rest of the same cache line.
+    __asm__ __volatile__ ("cache 0x19, 0(%0)\n\tsync\n\tcache 0x10, 0(%0)"
+      : : "r"(CacheLine));
+}
+#else
+static inline void FlushCacheLine(void* CacheLine)
+{
+    __asm__ __volatile__ ("cache 0x15, 0(%0)\n\tsync\n\tcache 0x10, 0(%0)"
+      : : "r"(CacheLine));
+}
+#endif
+
 #define translate_block_builder(type)                                         \
 s32 translate_block_##type(u32 pc, TRANSLATION_REGION_TYPE                    \
  translation_region, u32 smc_enable)                                          \
@@ -3525,8 +3545,7 @@ s32 translate_block_##type(u32 pc, TRANSLATION_REGION_TYPE                    \
   u8 *flush_addr;                                                             \
   for(flush_addr= update_trampoline; flush_addr < translation_ptr + CACHE_LINE_SIZE; )\
   {                                                                           \
-    __asm__ __volatile__ ("cache 0x15, 0(%0)\n\tsync\n\tcache 0x10, 0(%0)"    \
-      : : "r"(flush_addr));                                                   \
+    FlushCacheLine(flush_addr);                                               \
                                                                               \
     flush_addr += CACHE_LINE_SIZE;                                            \
   }                                                                           \
