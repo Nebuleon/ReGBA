@@ -3246,10 +3246,12 @@ u32 menu(u16 *screen, int FirstInvocation)
     MAKE_MENU(tools_debug_translation, NULL, NULL, NULL, NULL, 0, 0);
 
 	char* EXECUTION_STATISTICS = "Execution statistics...";
-	char* SOUND_BUFFER_UNDERRUNS = "Sound buffer underruns  %d";
-	char* FRAMES_EMULATED        = "Frames emulated              %d";
-	char* ARM_OPCODES_DECODED    = "ARM opcodes decoded        %d";
+	char* SOUND_BUFFER_UNDERRUNS = "Sound buffer underruns     %d";
+	char* FRAMES_EMULATED        = "Frames emulated                %d";
+	char* ARM_OPCODES_DECODED    = "ARM opcodes decoded         %d";
 	char* THUMB_OPCODES_DECODED  = "Thumb opcodes decoded    %d";
+	char* DMA_BYTES_TO_RAM       = "DMA bytes to RAM                %d";
+	char* MODIFIED_DMA_BYTES     = "DMA modified bytes             %d";
 
   /*--------------------------------------------------------
      Tools - Debugging - Execution stats
@@ -3265,11 +3267,17 @@ u32 menu(u16 *screen, int FirstInvocation)
         &Stats.TotalEmulatedFrames, 2, NULL, 2),
 
 #ifdef PERFORMANCE_IMPACTING_STATISTICS
-	/* 01 */ NUMERIC_SELECTION_HIDE_OPTION(NULL, NULL, &ARM_OPCODES_DECODED,
-        &Stats.ARMOpcodesDecoded, 2, NULL, 1),
+	/* 03 */ NUMERIC_SELECTION_HIDE_OPTION(NULL, NULL, &ARM_OPCODES_DECODED,
+        &Stats.ARMOpcodesDecoded, 2, NULL, 3),
 
-	/* 02 */ NUMERIC_SELECTION_HIDE_OPTION(NULL, NULL, &THUMB_OPCODES_DECODED,
-        &Stats.ThumbOpcodesDecoded, 2, NULL, 2),
+	/* 04 */ NUMERIC_SELECTION_HIDE_OPTION(NULL, NULL, &THUMB_OPCODES_DECODED,
+        &Stats.ThumbOpcodesDecoded, 2, NULL, 4),
+
+	/* 05 */ NUMERIC_SELECTION_HIDE_OPTION(NULL, NULL, &DMA_BYTES_TO_RAM,
+        &Stats.DMABytesToRAM, 2, NULL, 5),
+
+	/* 06 */ NUMERIC_SELECTION_HIDE_OPTION(NULL, NULL, &MODIFIED_DMA_BYTES,
+        &Stats.ModifiedDMABytesToRAM, 2, NULL, 6),
 #endif
     };
     MAKE_MENU(tools_debug_statistics, NULL, NULL, NULL, NULL, 0, 0);
@@ -3560,11 +3568,14 @@ u32 menu(u16 *screen, int FirstInvocation)
 		{
 			tools_options[3] /* game hotkeys */.option_type |= HIDEN_TYPE;
 			tools_options[5] /* game button mappings */.option_type |= HIDEN_TYPE;
+			tools_options[7] /* debugging */.option_type |= HIDEN_TYPE;
+			
 		}
 		else
 		{
 			tools_options[3] /* game hotkeys */.option_type &= ~HIDEN_TYPE;
 			tools_options[5] /* game button mappings */.option_type &= ~HIDEN_TYPE;
+			tools_options[7] /* debugging */.option_type &= ~HIDEN_TYPE;
 		}
 	}
 

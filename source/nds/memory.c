@@ -2855,9 +2855,30 @@ dma_region_type dma_region_map[16] =
 #define dma_read_ext(type, transfer_size)                                     \
   read_value = read_memory##transfer_size(type##_ptr)                         \
 
+#ifdef PERFORMANCE_IMPACTING_STATISTICS
+static inline void StatsDMAToRAM(u32 bits)
+{
+	Stats.DMABytesToRAM += bits / 8;
+}
+
+static inline void StatsModifiedDMAToRAM(u32 bits)
+{
+	Stats.ModifiedDMABytesToRAM += bits / 8;
+}
+#else
+static inline void StatsDMAToRAM(u32 bits) {}
+
+static inline void StatsModifiedDMAToRAM(u32 bits) {}
+#endif
+
 #define dma_write_iwram(type, transfer_size)                                  \
-  ADDRESS##transfer_size(iwram + 0x8000, type##_ptr & 0x7FFF) = read_value;   \
-  smc_trigger |= ADDRESS##transfer_size(iwram, type##_ptr & 0x7FFF)           \
+  if (ADDRESS##transfer_size(iwram + 0x8000, type##_ptr & 0x7FFF) != read_value) \
+  {                                                                           \
+    ADDRESS##transfer_size(iwram + 0x8000, type##_ptr & 0x7FFF) = read_value; \
+    smc_trigger |= ADDRESS##transfer_size(iwram, type##_ptr & 0x7FFF);        \
+    StatsModifiedDMAToRAM(transfer_size);                                     \
+  }                                                                           \
+  StatsDMAToRAM(transfer_size)                                                \
 
 #define dma_write_vram(type, transfer_size)                                   \
   ADDRESS##transfer_size(vram, type##_ptr & 0x1FFFF) = read_value             \
@@ -2877,10 +2898,16 @@ dma_region_type dma_region_map[16] =
 #define dma_write_ewram(type, transfer_size)                                  \
   dma_ewram_check_region(type);                                               \
                                                                               \
-  ADDRESS##transfer_size(type##_address_block, type##_ptr & 0x7FFF) =         \
-    read_value;                                                               \
-  smc_trigger |= ADDRESS##transfer_size(type##_address_block,                 \
-   (type##_ptr & 0x7FFF) - 0x8000)                                            \
+  if (ADDRESS##transfer_size(type##_address_block, type##_ptr & 0x7FFF) !=    \
+    read_value)                                                               \
+  {                                                                           \
+    ADDRESS##transfer_size(type##_address_block, type##_ptr & 0x7FFF) =       \
+      read_value;                                                             \
+    smc_trigger |= ADDRESS##transfer_size(type##_address_block,               \
+     (type##_ptr & 0x7FFF) - 0x8000);                                         \
+    StatsModifiedDMAToRAM(transfer_size);                                     \
+  }                                                                           \
+  StatsDMAToRAM(transfer_size)                                                \
 
 #define dma_epilogue_iwram()                                                  \
   if(smc_trigger)                                                             \

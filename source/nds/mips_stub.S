@@ -1419,31 +1419,45 @@ mips_indirect_branch_dual:
 
 .macro store_u8_smc base
   addiu $2, $2, %lo(\base)        # offset the address
-  lb $1, -32768($2)               # load the SMC status
+
+  lb $1, ($2)                     # if we are about to write the current value
+  andi $5, $5, 0xFF               # (a byte)
+  beq $1, $5, 1f                  # get out
+  lb $1, -32768($2)               # load the SMC status (branch delay)
+
 #ifndef NO_LOAD_DELAY_SLOT
   nop
 #endif
   bne $1, $0, smc_write           # is there code there?
   sb $5, ($2)                     # store value at base[offset] (delay)
-  jr $ra                          # return
+1:jr $ra                          # return
   nop                             # cannot usefully delay here
 .endm
 
 .macro store_u16_smc base
   addiu $2, $2, %lo(\base)        # offset the address
-  lh $1, -32768($2)               # load the SMC status
+
+  lh $1, ($2)                     # if we are about to write the current value
+  andi $5, $5, 0xFFFF             # (a halfword)
+  beq $1, $5, 1f                  # get out
+  lh $1, -32768($2)               # load the SMC status (branch delay)
+
 #ifndef NO_LOAD_DELAY_SLOT
   nop
 #endif
   bne $1, $0, smc_write           # is there code there?
   sh $5, ($2)                     # store value at base[offset] (delay)
-  jr $ra                          # return
+1:jr $ra                          # return
   nop                             # cannot usefully delay here
 .endm
 
 .macro store_u32_smc base
   addiu $2, $2, %lo(\base)        # offset the address
-  lw $1, -32768($2)               # load the SMC status
+
+  lw $1, ($2)                     # if we are about to write the current value
+  beq $1, $5, 1f                  # get out
+  lw $1, -32768($2)               # load the SMC status (branch delay)
+
 #ifndef NO_LOAD_DELAY_SLOT
   nop
 #endif
@@ -1452,7 +1466,7 @@ mips_indirect_branch_dual:
   
 #  syscall 8
 
-  jr $ra                          # return
+1:jr $ra                          # return
   nop                             # cannot usefully delay here
 .endm
 

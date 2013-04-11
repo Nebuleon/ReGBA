@@ -52,6 +52,8 @@ void StatsInitGame(void)
 	Stats.BIOSTranslationBytesPeak = 0;
 	Stats.ARMOpcodesDecoded = 0;
 	Stats.ThumbOpcodesDecoded = 0;
+	Stats.DMABytesToRAM = 0;
+	Stats.ModifiedDMABytesToRAM = 0;
 #endif
 }
 
