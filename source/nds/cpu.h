@@ -161,7 +161,7 @@ void dump_translation_cache();
 extern u32 reg_mode[7][7];
 extern u32 spsr[6];
 
-extern u32 cpu_modes[32];
+extern const u8 cpu_modes[32];
 
 void init_cpu();
 

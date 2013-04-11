@@ -35,7 +35,7 @@
 
 u32 reg_mode[7][7];
  
-u32 cpu_modes[32] =
+const u8 cpu_modes[32] =
 {
   MODE_INVALID, MODE_INVALID, MODE_INVALID, MODE_INVALID,
   MODE_INVALID, MODE_INVALID, MODE_INVALID, MODE_INVALID,
@@ -47,7 +47,7 @@ u32 cpu_modes[32] =
   MODE_INVALID, MODE_INVALID, MODE_INVALID, MODE_USER
 };
 
-u32 cpu_modes_cpsr[7] = { 0x10, 0x11, 0x12, 0x13, 0x17, 0x1B, 0x1F };
+const u8 cpu_modes_cpsr[7] = { 0x10, 0x11, 0x12, 0x13, 0x17, 0x1B, 0x1F };
 
 // When switching modes set spsr[new_mode] to cpsr. Modifying PC as the
 // target of a data proc instruction will set cpsr to spsr[cpu_mode].
