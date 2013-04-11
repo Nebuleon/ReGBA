@@ -682,11 +682,6 @@ const u8 arm_to_mips_reg[] =
 
 #define generate_block_prologue()                                             \
   update_trampoline = translation_ptr;                                        \
-/*  __asm__                                                                     \
-  (                                                                           \
-    "cache 8, 0(%0)\n"                                                        \
-    "cache 8, 0(%0)" : : "r"(translation_ptr)                                 \
-  );*/                                                                          \
                                                                               \
   mips_emit_j(mips_absolute_offset(mips_update_gba));                         \
   mips_emit_nop();                                                            \

@@ -689,28 +689,12 @@ u32 arm_to_mips_reg[] =
   mips_emit_j(mips_absolute_offset(mips_indirect_branch_##type));             \
   mips_emit_nop()                                                             \
 
-#ifndef NDS_LAYER
-#define generate_block_prologue()                                             \
-  update_trampoline = translation_ptr;                                        \
-  __asm__                                                                     \
-  (                                                                           \
-    "cache 8, 0(%0)\n"                                                        \
-    "cache 8, 0(%0)" : : "r"(translation_ptr)                                 \
-  );                                                                          \
-                                                                              \
-  mips_emit_j(mips_absolute_offset(mips_update_gba));                         \
-  mips_emit_nop();                                                            \
-  generate_load_imm(reg_pc, stored_pc)                                        \
-
-#else
 #define generate_block_prologue()                                             \
   update_trampoline = translation_ptr;                                        \
                                                                               \
   mips_emit_j(mips_absolute_offset(mips_update_gba));                         \
   mips_emit_nop();                                                            \
   generate_load_imm(reg_pc, stored_pc)                                        \
-
-#endif
 
 #ifndef NDS_LAYER
 #define translate_invalidate_dcache()                                         \

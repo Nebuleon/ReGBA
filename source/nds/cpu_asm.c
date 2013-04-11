@@ -2793,8 +2793,8 @@ u32 bios_block_tag_top = 0x0101;
       goto redo;                                                              \
     }                                                                         \
                                                                               \
-    if(translation_recursion_level == 0)                                      \
-      translate_invalidate_dcache();                                          \
+    /* if(translation_recursion_level == 0)                                      \
+      translate_invalidate_dcache(); */                                          \
   }                                                                           \
   else                                                                        \
   {                                                                           \
@@ -2913,8 +2913,8 @@ static inline void AdjustTranslationBufferPeaks() {}
           goto redo;                                                          \
         }                                                                     \
                                                                               \
-        if(translation_recursion_level == 0)                                  \
-          translate_invalidate_dcache();                                      \
+        /* if(translation_recursion_level == 0)                                  \
+          translate_invalidate_dcache(); */                                      \
       }                                                                       \
       break;                                                                  \
     }                                                                         \
@@ -3525,13 +3525,8 @@ s32 translate_block_##type(u32 pc, TRANSLATION_REGION_TYPE                    \
   u8 *flush_addr;                                                             \
   for(flush_addr= update_trampoline; flush_addr < translation_ptr + CACHE_LINE_SIZE; )\
   {                                                                           \
-    __asm__ __volatile__ ("cache 0x15, 0(%0)" : : "r"(flush_addr));           \
-                                                                              \
-    flush_addr += CACHE_LINE_SIZE;                                            \
-  }                                                                           \
-  for(flush_addr= update_trampoline; flush_addr < translation_ptr + CACHE_LINE_SIZE; )\
-  {                                                                           \
-    __asm__ __volatile__ ("cache 0x10, 0(%0)" : : "r"(flush_addr));           \
+    __asm__ __volatile__ ("cache 0x15, 0(%0)\n\tsync\n\tcache 0x10, 0(%0)"    \
+      : : "r"(flush_addr));                                                   \
                                                                               \
     flush_addr += CACHE_LINE_SIZE;                                            \
   }                                                                           \
@@ -3547,8 +3542,10 @@ void flush_translation_cache_ram()
   Stats.RAMTranslationFlushCount++;
   Stats.RAMTranslationBytesFlushed += ram_translation_ptr
    - ram_translation_cache;
+/*
   invalidate_icache_region(ram_translation_cache,
    (ram_translation_ptr - ram_translation_cache) + CACHE_LINE_SIZE);
+*/
 
   ram_translation_ptr = ram_translation_cache;
   ram_block_tag_top = 0x0101;
@@ -3604,8 +3601,10 @@ void flush_translation_cache_rom()
   Stats.ROMTranslationFlushCount++;
   Stats.ROMTranslationBytesFlushed += rom_translation_ptr
    - rom_translation_cache;
+/*
   invalidate_icache_region(rom_translation_cache,
    rom_translation_ptr - rom_translation_cache + CACHE_LINE_SIZE);
+*/
 
   rom_translation_ptr = rom_translation_cache;
   memset(rom_branch_hash, 0, sizeof(rom_branch_hash));
@@ -3616,8 +3615,10 @@ void flush_translation_cache_bios()
   Stats.BIOSTranslationFlushCount++;
   Stats.BIOSTranslationBytesFlushed += bios_translation_ptr
    - bios_translation_cache;
+/*
   invalidate_icache_region(bios_translation_cache,
    bios_translation_ptr - bios_translation_cache + CACHE_LINE_SIZE);
+*/
 
   bios_block_tag_top = 0x0101;
   bios_translation_ptr = bios_translation_cache;
