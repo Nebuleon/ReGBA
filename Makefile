@@ -67,7 +67,7 @@ CFLAGS := -mips32 -mno-abicalls -fno-pic -fno-builtin \
 	      -fno-exceptions -ffunction-sections -mno-long-calls \
 	      -msoft-float -G 4 \
           -O3 -fomit-frame-pointer -fgcse-sm -fgcse-las -fgcse-after-reload \
-          -fweb -fpeel-loops
+          -fweb -fpeel-loops -fno-inline -fno-early-inlining
 
 DEFS   := -DNDS_LAYER -DNO_LOAD_DELAY_SLOT -DGIT_VERSION=$(shell git describe --always)
 # Usable flags are
