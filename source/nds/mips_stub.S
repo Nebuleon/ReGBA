@@ -1404,11 +1404,8 @@ mips_indirect_branch_dual:
 
 .macro store_u8_double base
 #  ins $5, $5, 8, 8                # value = (value << 8) | value
-  ori $1, $0, 0xFF00
-  nor $1, $0, $1
-  and $5, $5, $1
-  andi $1, $5, 0x00FF
-  sll  $1, $1, 8
+  andi $5, $5, 0x00FF
+  sll  $1, $5, 8
   or   $5, $1, $5		  # emulate INS instruction
   jr $ra                          # return
   sh $5, %lo(\base)($2)           # store value at base[offset]
@@ -1495,7 +1492,6 @@ execute_load_bios_u8:
 
 2:
   open_load8_core
-#  nop                             # open_load8_core does jr $ra; unneeded?
 
 
 execute_load_ewram_u8:
@@ -1551,11 +1547,9 @@ execute_load_eeprom_u8:
 
 execute_load_backup_u8:
   backup_load patch_load_u8
-#  nop                             # backup_load does jr $ra; unneeded?
 
 execute_load_open_u8:
   open_load8 patch_load_u8
-#  nop                             # open_load8 does jr $ra; unneeded?
 
 load_u8_ftable:
   .long execute_load_bios_u8      # 0x00 BIOS
@@ -1603,10 +1597,6 @@ execute_load_bios_s8:
 
 2:
   open_load8_core
-#  seb $2, $2
-#  sll $2, $2, 24                  # - - - - - - - - - - - -
-#  sra $2, $2, 24                  # emulate SEB instruction
-# open_load8_core does jr $ra; 2 unneeded?
 
 
 execute_load_ewram_s8:
@@ -1659,17 +1649,9 @@ execute_load_eeprom_s8:
 
 execute_load_backup_s8:
   backup_load patch_load_s8
-#  seb $2, $2                      # sign extend result (delay)
-#  sll $2, $2, 24                  # - - - - - - - - - - - -
-#  sra $2, $2, 24                  # emulate SEB instruction
-# open_load8 does jr $ra; 2 unneeded?
 
 execute_load_open_s8:
   open_load8 patch_load_s8
-#  seb $2, $2                      # sign extend result (delay)
-#  sll $2, $2, 24                  # - - - - - - - - - - - -
-#  sra $2, $2, 24                  # emulate SEB instruction
-# open_load8 does jr $ra; 2 unneeded?
 
 load_s8_ftable:
   .long execute_load_bios_s8      # 0x00 BIOS
@@ -1717,7 +1699,6 @@ execute_load_bios_u16:
 
 2:
   open_load16_core
-#  nop                             # open_load16_core does jr $ra; unneeded?
 
 execute_load_ewram_u16:
   translate_region_ewram_load_align 1, 0, patch_load_u16
@@ -1769,11 +1750,9 @@ execute_load_eeprom_u16:
 
 execute_load_backup_u16:
   backup_load_align 1, 0, patch_load_u16
-#  nop                             # backup_load_align does jr $ra; unneeded?
 
 execute_load_open_u16:
   open_load16_align 1, 0, patch_load_u16
-#  nop                             # open_load16_align does jr $ra; unneeded?
 
 
 # Unsigned unaligned 16bit load handlers
@@ -1800,11 +1779,6 @@ execute_load_bios_u16u:
 
 2:
   open_load16_core
-#  ror $2, $2, 8
-#  sll  $1, $2, 24                 # - - - - - - - - - - - -
-#  srl  $2, $2, 8
-#  or   $2, $2, $1                 # emulate ROR instruction
-# open_load16_core does jr $ra; 3 unneeded?
 
 
 execute_load_ewram_u16u:
@@ -1856,19 +1830,9 @@ execute_load_eeprom_u16u:
 
 execute_load_backup_u16u:
   backup_load_align16 1, 1, patch_load_u16
-#  ror $2, $2, 8                   # rotate value by 8bits
-#  sll  $1, $2, 24                 # - - - - - - - - - - - -
-#  srl  $2, $2, 8
-#  or   $2, $2, $1                 # emulate ROR instruction
-# backup_load_align16 does jr $ra; 3 unneeded?
 
 execute_load_open_u16u:
   open_load16_align16 1, 1, patch_load_u16
-#  ror $2, $2, 8                   # rotate value by 8bits
-#  sll  $1, $2, 24                 # - - - - - - - - - - - -
-#  srl  $2, $2, 8
-#  or   $2, $2, $1                 # emulate ROR instruction
-# open_load16_align16 does jr $ra; 3 unneeded?
 
 load_u16_ftable:
 #  .long execute_load_full_u16
@@ -1968,10 +1932,6 @@ execute_load_bios_s16:
 
 2:
   open_load16_core
-#  seh $2, $2
-#  sll $2, $2, 16                  # - - - - - - - - - - - -
-#  sra $2, $2, 16                  # emulate SEH instruction
-# open_load16_core does jr $ra; 2 unneeded?
 
 execute_load_ewram_s16:
   translate_region_ewram_load_align 1, 0, patch_load_s16
@@ -2023,11 +1983,9 @@ execute_load_eeprom_s16:
 
 execute_load_backup_s16:
   backup_load_align 1, 0, patch_load_s16
-#  nop                             # backup_load_align does jr $ra; unneeded?
 
 execute_load_open_s16:
   open_load16_align 1, 0, patch_load_s16
-#  nop                             # open_load16_align does jr $ra; unneeded?
 
 
 # Signed unaligned 16bit load handlers
@@ -2054,10 +2012,6 @@ execute_load_bios_s16u:
 
 2:
   open_load16_core
-#  seb $2, $2
-#  sll $2, $2, 24                  # - - - - - - - - - - - -
-#  sra $2, $2, 24                  # emulate SEB instruction
-# open_load16_core does jr $ra; 2 unneeded?  
 
 execute_load_ewram_s16u:
   translate_region_ewram_load_align16 1, 1, patch_load_s16
@@ -2108,17 +2062,9 @@ execute_load_eeprom_s16u:
 
 execute_load_backup_s16u:
   backup_load_align 1, 1, patch_load_s16
-#  seb $2, $2                      # sign extend result from 8bits
-#  sll $2, $2, 24                  # - - - - - - - - - - - -
-#  sra $2, $2, 24                  # emulate SEB instruction
-# backup_load_align does jr $ra; 2 unneeded?
 
 execute_load_open_s16u:
   open_load16_align 1, 1, patch_load_s16
-#  seb $2, $2                      # sign extend result from 8bits
-#  sll $2, $2, 24                  # - - - - - - - - - - - -
-#  sra $2, $2, 24                  # emulate SEB instruction
-# open_load16_align does jr $ra; 2 unneeded?
 
 load_s16_ftable:
   .long execute_load_bios_s16     # 0x00 BIOS
@@ -2180,7 +2126,6 @@ execute_load_bios_u32:
 
 2:
   open_load32_core
-#  nop                             # open_load32_core does jr $ra; unneeded?
 
 
 execute_load_ewram_u32:
@@ -2235,11 +2180,9 @@ execute_load_eeprom_u32:
 
 execute_load_backup_u32:
   backup_load_align 2, 0, patch_load_u32
-#  nop                             # backup_load_align does jr $ra; unneeded?
 
 execute_load_open_u32:
   open_load32_align 2, 0, patch_load_u32
-#  nop                             # open_load32_align does jr $ra; unneeded?
 
 
 # Unsigned unaligned (by 1) 32bit load handlers
@@ -2262,11 +2205,6 @@ execute_load_bios_u32u1:
 
 2:
   open_load32_core
-#  ror $2, $2, 8
-#  sll  $1, $2, 24                 # - - - - - - - - - - - -
-#  srl  $2, $2, 8
-#  or   $2, $2, $1                 # emulate ROR instruction
-# open_load32_core does jr $ra; 3 unneeded?
 
 execute_load_ewram_u32u1:
   translate_region_ewram_load_align32 2, 1, patch_load_u32
@@ -2317,19 +2255,9 @@ execute_load_eeprom_u32u1:
 
 execute_load_backup_u32u1:
   backup_load_align32 2, 1, patch_load_u32
-#  ror $2, $2, 8                   # rotate value by 8bits
-#  sll  $1, $2, 24                 # - - - - - - - - - - - -
-#  srl  $2, $2, 8
-#  or   $2, $2, $1                 # emulate ROR instruction
-# backup_load_align32 does jr $ra; 3 unneeded?
 
 execute_load_open_u32u1:
   open_load32_align32 2, 1, patch_load_u32
-#  ror $2, $2, 8                   # rotate value by 8bits
-#  sll  $1, $2, 24                 # - - - - - - - - - - - -
-#  srl  $2, $2, 8
-#  or   $2, $2, $1                 # emulate ROR instruction
-# open_load32_align32 does jr $ra; 3 unneeded?
 
 # Unsigned unaligned (by 2) 32bit load handlers
 
@@ -2351,11 +2279,6 @@ execute_load_bios_u32u2:
 
 2:
   open_load32_core
-#  ror $2, $2, 16
-#  sll  $1, $2, 16                 # - - - - - - - - - - - -
-#  srl  $2, $2, 16
-#  or   $2, $2, $1                 # emulate ROR instruction
-# open_load32_core does jr $ra; 3 unneeded?
 
 execute_load_ewram_u32u2:
   translate_region_ewram_load_align32 2, 2, patch_load_u32
@@ -2406,19 +2329,9 @@ execute_load_eeprom_u32u2:
 
 execute_load_backup_u32u2:
   backup_load_align32 2, 2, patch_load_u32
-#  ror $2, $2, 16                   # rotate value by 16bits
-#  sll  $1, $2, 16                 # - - - - - - - - - - - -
-#  srl  $2, $2, 16
-#  or   $2, $2, $1                 # emulate ROR instruction
-# backup_load_align32 does jr $ra; 3 unneeded?
 
 execute_load_open_u32u2:
   open_load32_align32 2, 2, patch_load_u32
-#  ror $2, $2, 16                   # rotate value by 16bits
-#  sll  $1, $2, 16                 # - - - - - - - - - - - -
-#  srl  $2, $2, 16
-#  or   $2, $2, $1                 # emulate ROR instruction
-# open_load32_align32 does jr $ra; 3 unneeded?
 
 # Unsigned unaligned (by 1) 32bit load handlers
 
@@ -2440,11 +2353,6 @@ execute_load_bios_u32u3:
 
 2:
   open_load32_core
-#  ror $2, $2, 24
-#  sll  $1, $2, 8                  # - - - - - - - - - - - -
-#  srl  $2, $2, 24
-#  or   $2, $2, $1                 # emulate ROR instruction
-# open_load32_core does jr $ra; 3 unneeded?
 
 execute_load_ewram_u32u3:
   translate_region_ewram_load_align32 2, 3, patch_load_u32
@@ -2495,19 +2403,9 @@ execute_load_eeprom_u32u3:
 
 execute_load_backup_u32u3:
   backup_load_align32 2, 3, patch_load_u32
-#  ror $2, $2, 24                  # rotate value by 24bits
-#  sll  $1, $2, 8
-#  srl  $2, $2, 24
-#  or   $2, $2, $1                 # emulate ROR instruction
-# backup_load_align32 does jr $ra; 3 unneeded?
 
 execute_load_open_u32u3:
   open_load32_align32 2, 3, patch_load_u32
-#  ror $2, $2, 24                  # rotate value by 24bits
-#  sll  $1, $2, 8
-#  srl  $2, $2, 24
-#  or   $2, $2, $1                 # emulate ROR instruction
-# open_load32_align32 does jr $ra; 3 unneeded?
 
 
 load_u32_ftable:
@@ -2604,7 +2502,6 @@ execute_load_bios_u32a:
 
 2:
   open_load32_a
-#  nop                             # open_load32_a does jr $ra; unneeded?
 
 execute_load_ewram_u32a:
   translate_region_ewram patch_load_u32a
@@ -2656,7 +2553,6 @@ execute_load_eeprom_u32a:
 
 execute_load_backup_u32a:
   backup_load_a patch_load_u32a
-#  nop                             # backup_load_a does jr $ra; unneeded?
 
 execute_load_open_u32a:
   open_load32_a patch_load_u32a
@@ -2717,12 +2613,9 @@ execute_store_palette_u8:
   region_check 5, patch_store_u8
   lui $2, %hi(palette_ram)        # start loading palette_ram address (delay)
 #  ins $5, $5, 8, 8                # double value
-  ori  $1, $0, 0xFF00
-  nor  $1, $0, $1
-  and  $5, $5, $1
-  andi $1, $5, 0x00FF
-  sll  $1, $1, 8
-  or   $5, $5, $1		  # emulate INS instruction
+  andi $5, $5, 0x00FF
+  sll  $1, $5, 8
+  or   $5, $1, $5		  # emulate INS instruction
   andi $4, $4, 0x3FE              # align palette address
   addu $2, $2, $4
 
@@ -3029,8 +2922,6 @@ execute_store_palette_u32a:
   lui $2, %hi(palette_ram)        # start loading palette_ram address (delay)
   andi $4, $4, 0x3FC              # wrap/align palette address
   addu $2, $2, $4
-#  sw $5, %lo(palette_ram)($2)     # palette_ram[address] = value
-# Also done below - I think this one isn't needed [Neb]
 
   jr $ra                          # return
   sw $5, %lo(palette_ram)($2)     # palette_ram[address] = value
@@ -3377,7 +3268,7 @@ ext_store_eeprom:
   jal write_eeprom                # write the value out
   sw $6, REG_PC($16)              # save the PC (delay slot)
 
-  restore_registers
+  restore_most_registers
   lw $ra, ($sp)                   # restore return address
   restore_register_30             # delay usefully even without a load slot
   jr $ra                          # we can return
@@ -3404,15 +3295,11 @@ ext_store_vram8:
 #  ins $5, $5, 8, 8                # value = (value << 8) | value
 #  ext $4, $4, 0, 17               # address = adress & 0x1FFFF
 #  ins $4, $0, 0, 1                # align out bottom bit
-  ori  $1, $0, 0xFF00
-  nor  $1, $0, $1
-  and  $5, $5, $1
-  andi $1, $5, 0x00FF
-  sll  $1, $1, 8
+  andi $5, $5, 0x00FF
+  sll  $1, $5, 8
   or   $5, $5, $1
-  ori  $1, $0, 0xFFFF
-  sll  $1, $1, 1
-  and  $4, $4, $1		  # emulate INS and EXT instructions
+  sll  $4, $4, 15
+  srl  $4, $4, 15		  # emulate INS and EXT instructions
   lui $1, %hi(0x18000)            # $1 = 0x18000
   sltu $1, $4, $1                 # if $4 >= $1 then $1 = 0 else $1 = 1
   bne $1, $0, ext_store_vram8b    # if $1 != 0 then j ext_store_vram8b
@@ -3430,11 +3317,8 @@ ext_store_oam8:
   sw $1, %lo(oam_update)($1)      # cheap, but the address is non-zero
   andi $4, $4, 0x3FE              # wrap around address and align to 16bits
 #  ins $5, $5, 8, 8                # value = (value << 8) | value
-  ori  $1, $0, 0xFF00
-  nor  $1, $0, $1
-  and  $5, $5, $1
-  andi $1, $5, 0x00FF
-  sll  $1, $1, 8
+  andi $5, $5, 0x00FF
+  sll  $1, $5, 8
   or   $5, $5, $1		  # emulate INS instruction
   lui $1, %hi(oam_ram)            # $1 = (hi)oam_ram
   addu $1, $1, $4                 # $1 = (hi)oam_ram + address
@@ -3530,8 +3414,6 @@ ext_store_palette16:
 ext_store_palette16b:
   lui $2, %hi(palette_ram)
   addu $2, $2, $4
-#  sh $5, %lo(palette_ram)($2)     # palette_ram[address] = value
-# Also done below - I think this one isn't needed [Neb]
 
   jr $ra                          # return
   sh $5, %lo(palette_ram)($2)     # palette_ram[address] = value
@@ -4093,7 +3975,7 @@ execute_arm_translate:
   addu $17, $4, $0                # $17 = cycle counter
   lui $16, %hi(reg)               # $16 = &reg
   addiu $16, %lo(reg)
-  extract_flags                   # $1= CPSR, extract falgs from $28~$31
+  extract_flags                   # $1 = CPSR, extract flags from $28..$31
 
   and $1, $1, 0x20                # $1 = $1 & 0x20
 #ifndef NO_LOAD_DELAY_SLOT
