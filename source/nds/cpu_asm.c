@@ -3574,6 +3574,8 @@ void flush_translation_cache_ram()
     iwram_code_min &= 0x7FFF;
     iwram_code_max &= 0x7FFF;
     memset(iwram + iwram_code_min, 0, iwram_code_max - iwram_code_min + 1);
+    iwram_code_min = 0xFFFFFFFF;
+    iwram_code_max = 0xFFFFFFFF;
   }
 
   if(ewram_code_min != 0xFFFFFFFF)
@@ -3600,19 +3602,16 @@ void flush_translation_cache_ram()
     }
     else
     {
-      memset(ewram + (ewram_code_min_page * 0x10000) + ewram_code_min_offset, 0, 0x8000);
+      memset(ewram + (ewram_code_min_page * 0x10000) + ewram_code_min_offset, 0, 0x8000 - ewram_code_min_offset);
       for(i = ewram_code_min_page + 1; i < ewram_code_max_page; i++)
         memset(ewram + (i * 0x10000), 0, 0x8000);
 
       memset(ewram + (ewram_code_max_page * 0x10000), 0, ewram_code_max_offset + 1);
 
     }
+    ewram_code_min = 0xFFFFFFFF;
+    ewram_code_max = 0xFFFFFFFF;
   }
-
-  iwram_code_min = 0xFFFFFFFF;
-  iwram_code_max = 0xFFFFFFFF;
-  ewram_code_min = 0xFFFFFFFF;
-  ewram_code_max = 0xFFFFFFFF;
 }
 
 void flush_translation_cache_rom()
