@@ -1491,10 +1491,10 @@ void init_default_gpsp_config()
   gpsp_persistent_config.ButtonMappings[3] /* GBA START */ = KEY_START;
   gpsp_persistent_config.ButtonMappings[4] /* GBA R */ = KEY_R;
   gpsp_persistent_config.ButtonMappings[5] /* GBA L */ = KEY_L;
-#if 1
-  gpsp_config.emulate_core = ASM_CORE;
-#else
+#if USE_C_CORE
   gpsp_config.emulate_core = C_CORE;
+#else
+  gpsp_config.emulate_core = ASM_CORE;
 #endif
   gpsp_config.debug_flag = NO;
   gpsp_config.fake_fat = NO;
