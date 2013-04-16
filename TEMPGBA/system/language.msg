@@ -1107,11 +1107,11 @@ Vooruitspoelen     %s
 #FMT_VIDEO_FRAME_SKIPPING
 Beeld overslaan   %s
 #FMT_VIDEO_FRAMES_PER_SECOND_COUNTER
-FPS counter        %s
+FPS-teller             %s
 #FMT_AUDIO_SOUND
 Geluid                    %s
 #FMT_VIDEO_REWINDING
-Rewinding       %s
+Terugspoelen       %s
 #FMT_SAVED_STATE_CREATE
 Creëer spelstaat       %d
 #FMT_SAVED_STATE_LOAD
@@ -1129,11 +1129,11 @@ Globale sneltoetsen...
 #MSG_TOOLS_GAME_HOTKEY_GENERAL
 Spel-specifieke sneltoetsen...
 #MSG_TOOLS_GLOBAL_BUTTON_MAPPING_GENERAL
-Global button mappings...
+Global sneltoets toewijzingen...
 #MSG_TOOLS_GAME_BUTTON_MAPPING_GENERAL
-Game-specific button mappings...
+Spel-specifieke sneltoets toewijzingen...
 #MSG_TOOLS_DEBUG_MENU_ENGLISH
-Debugging (in English)...
+Debuggen (in het Engels)...
 #FMT_OPTIONS_LANGUAGE
 Taal                                  %s
 #FMT_OPTIONS_CPU_FREQUENCY
@@ -1153,7 +1153,7 @@ CPU frequentie                 %s
 #MSG_OPTIONS_CARD_CAPACITY
 Kaartcapaciteit
 #MSG_OPTIONS_RESET
-Herstel standaard instellingen
+Herstel standaardinstellingen
 #MSG_OPTIONS_VERSION
 Versie-informatie
 #MSG_SCREENSHOT_CREATE
@@ -1161,7 +1161,7 @@ Maak beeldschermafdruk
 #MSG_SCREENSHOT_BROWSE
 Diavoorstelling
 #MSG_HOTKEY_REWIND
-Rewind
+Spoel terug
 #MSG_HOTKEY_MAIN_MENU
 Ga naar het hoofdmenu
 #MSG_HOTKEY_TEMPORARY_FAST_FORWARD
@@ -1175,29 +1175,29 @@ Sla spelstaat 1 op
 #MSG_HOTKEY_FULL_SCREEN_TOGGLE
 Schakel naar volledig scherm
 #MSG_BUTTON_MAPPING_A
-GBA key *A
+GBA-toets *A
 #MSG_BUTTON_MAPPING_B
-GBA key *B
+GBA-toets *B
 #MSG_BUTTON_MAPPING_SELECT
-GBA key *s
+GBA-toets *s
 #MSG_BUTTON_MAPPING_START
-GBA key *S
+GBA-toets *S
 #MSG_BUTTON_MAPPING_R
-GBA key *R
+GBA-toets *R
 #MSG_BUTTON_MAPPING_L
-GBA key *L
+GBA-toets *L
 #MSG_BUTTON_MAPPING_RAPID_A
-Rapid-fire *A
+Snelvuurtoets *A
 #MSG_BUTTON_MAPPING_RAPID_B
-Rapid-fire *B
+Snelvuurtoets *B
 #MSG_PROGRESS_HOTKEY_WAITING_FOR_KEYS
-Druk op de gewenste knoppencombinatie.
+Druk op de gewenste toetsencombinatie.
 #MSG_PROGRESS_MAPPING_WAITING_FOR_KEY
-Press the DS button you wish to map to this GBA button.
+Druk op de DS-toets die je aan deze GBA-toets wilt toewijzen.
 #MSG_PROGRESS_MAPPING_WAITING_FOR_KEY_OR_CLEAR
-Press the DS button you wish to map to this GBA button.\n
+Druk op de DS-toets die je aan deze GBA-toets wilt toewijzen.\n
 \n
-You can press two buttons at once to delete this mapping.
+U kunt twee toetsen tegelijk indrukken om deze toetstoewijzing te verwijderen.
 #MSG_HOTKEY_DELETE_WITH_A
 *A Wissen
 #MSG_HOTKEY_CANCEL_WITH_B
@@ -1243,19 +1243,19 @@ Nieuw spel
 #MSG_VIDEO_FRAME_SKIPPING_10
 [10] 1 uit 11 beelden tonen
 #MSG_VIDEO_REWINDING_0
-Disabled
+Uitgeschakeld
 #MSG_VIDEO_REWINDING_1
-0.25 s (3.5 s total)
+0.25 s (3.5 s totaal)
 #MSG_VIDEO_REWINDING_2
-0.5 s (7 s total)
+0.5 s (7 s totaal)
 #MSG_VIDEO_REWINDING_3
-1 s (14 s total)
+1 s (14 s totaal)
 #MSG_VIDEO_REWINDING_4
-2 s (28 s total)
+2 s (28 s totaal)
 #MSG_VIDEO_REWINDING_5
-5 s (1:10 min total)
+5 s (1:10 min totaal)
 #MSG_VIDEO_REWINDING_6
-10 s (2:20 min total)
+10 s (2:20 min totaal)
 #MSG_GENERAL_OFF
 Uit
 #MSG_GENERAL_ON
@@ -1283,7 +1283,7 @@ Opslaan geslaagd!
 #MSG_TOP_SCREEN_NO_SAVED_STATE_IN_SLOT
 Geen spelstaat in slot.
 #MSG_PROGRESS_SAVED_STATE_CORRUPTED
-State niet gevonden of corrupt.
+Staat niet gevonden of corrupt.
 #MSG_PROGRESS_SAVED_STATE_LOADING
 Laden...
 #MSG_PROGRESS_SAVED_STATE_LOAD_FAILED
@@ -1291,7 +1291,7 @@ Laden mislukt!
 #MSG_PROGRESS_SAVED_STATE_LOAD_SUCCEEDED
 Laden geslaagd!
 #FMT_STATUS_FRAMES_PER_SECOND
-FPS: %d rendered, %d/60 emulated
+FPS: %d gerenderd, %d/60 geëmuleerd
 #MSG_SAVED_STATE_DELETE_ALL
 Verwijder alle spelstaten
 #FMT_SAVED_STATE_DELETE_ONE
