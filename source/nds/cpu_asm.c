@@ -3217,9 +3217,72 @@ block_exit_type block_exits[MAX_EXITS];
 
 #define smc_write_thumb_no()                                                  \
 
+/*
+ * Inserts Value into a sorted Array of unique values (or doesn't), of
+ * size Size.
+ * If Value was already present, then the old size is returned, and no
+ * insertions are made. Otherwise, Value is inserted into Array at the
+ * proper position to maintain its total order, and Size + 1 is returned.
+ */
+static u32 InsertUniqueSorted(u32* Array, u32 Value, u32 Size)
+{
+	// Gather the insertion index with a binary search.
+	s32 Min = 0, Max = Size - 1;
+	while (Min < Max) {
+		s32 Mid = Min + (Max - Min) / 2;
+		if (Array[Mid] < Value)
+			Min = Mid + 1;
+		else
+			Max = Mid;
+	}
+
+	// Insert at Min.
+	// Min == Size means we just insert at the end...
+	if (Min == Size) {
+		Array[Size] = Value;
+		return Size + 1;
+	}
+	// ... otherwise it's either already in the array...
+	else if (Array[Min] == Value) {
+		return Size;
+	}
+	// ... or we need to move things.
+	else {
+		memmove(&Array[Min + 1], &Array[Min], Size - Min);
+		Array[Min] = Value;
+		return Size + 1;
+	}
+}
+
+/*
+ * Searches for the given Value in the given sorted Array of size Size.
+ * If found, the index in the Array of the first element having the given
+ * Value is returned.
+ * Otherwise, -1 is returned.
+ */
+static s32 BinarySearch(u32* Array, u32 Value, u32 Size)
+{
+	s32 Min = 0, Max = Size - 1;
+	while (Min < Max) {
+		s32 Mid = Min + (Max - Min) / 2;
+		if (Array[Mid] < Value)
+			Min = Mid + 1;
+		else
+			Max = Mid;
+	}
+
+	if (Min == Max && Array[Min] == Value)
+		return Min;
+	else
+		return -1;
+}
+
 #define scan_block(type, smc_write_op)                                        \
 {                                                                             \
   __label__ block_end;                                                        \
+  u8 continue_block = 1;                                                      \
+  u32 branch_targets_sorted[MAX_EXITS];                                       \
+  u32 sorted_branch_count = 0;                                                \
   /* Find the end of the block */                                             \
 /*printf("str: %08x\n", block_start_pc);*/\
   do                                                                          \
@@ -3237,6 +3300,8 @@ block_exit_type block_exits[MAX_EXITS];
         __label__ no_direct_branch;                                           \
         type##_branch_target();                                               \
         block_exits[block_exit_position].branch_target = branch_target;       \
+        sorted_branch_count = InsertUniqueSorted(branch_targets_sorted,       \
+          branch_target, sorted_branch_count);                                \
         block_exit_position++;                                                \
                                                                               \
         /* Give the branch target macro somewhere to bail if it turns out to  \
@@ -3249,6 +3314,8 @@ block_exit_type block_exits[MAX_EXITS];
       if(type##_opcode_swi)                                                   \
       {                                                                       \
         block_exits[block_exit_position].branch_target = 0x00000008;          \
+        sorted_branch_count = InsertUniqueSorted(branch_targets_sorted,       \
+          branch_target, sorted_branch_count); /* could already be in */      \
         block_exit_position++;                                                \
       }                                                                       \
                                                                               \
@@ -3258,43 +3325,39 @@ block_exit_type block_exits[MAX_EXITS];
       if(type##_opcode_unconditional_branch)                                  \
       {                                                                       \
         /* Check to see if any prior block exits branch after here,           \
-           if so don't end the block. Starts from the top and works           \
-           down because the most recent branch is most likely to              \
-           join after the end (if/then form) */                               \
-        for(i = block_exit_position - 2; i >= 0; i--)                         \
-        {                                                                     \
-          if(block_exits[i].branch_target == block_end_pc)                    \
-            break;                                                            \
-        }                                                                     \
-                                                                              \
-        if(i < 0)                                                             \
-          break;                                                              \
+           if so don't end the block. For efficiency, but to also keep the    \
+           correct order of the scanned branches for code emission, this is   \
+           using a separate sorted array with unique branch_targets. */       \
+        if (BinarySearch(branch_targets_sorted, block_end_pc,                 \
+          sorted_branch_count) == -1)                                         \
+          continue_block = 0;                                                 \
       }                                                                       \
       if(block_exit_position == MAX_EXITS)                                    \
-        break;                                                                \
+        continue_block = 0;                                                   \
     }                                                                         \
     else                                                                      \
     {                                                                         \
       type##_set_condition(condition);                                        \
     }                                                                         \
+    block_data[block_data_position].update_cycles = 0;                        \
+    block_data_position++;                                                    \
                                                                               \
     for(i = 0; i < translation_gate_targets; i++)                             \
     {                                                                         \
       if(block_end_pc == translation_gate_target_pc[i])                       \
-        goto block_end;                                                       \
+      {                                                                       \
+        translation_gate_required = 1;                                        \
+        continue_block = 0;                                                   \
+      }                                                                       \
     }                                                                         \
                                                                               \
-    block_data[block_data_position].update_cycles = 0;                        \
-    block_data_position++;                                                    \
     if((block_data_position == MAX_BLOCK_SIZE) ||                             \
      (block_end_pc == 0x3007FF0) || (block_end_pc == 0x203FFF0))              \
     {                                                                         \
-      break;                                                                  \
+      continue_block = 0;                                                     \
     }                                                                         \
-  } while(1);                                                                 \
+  } while(continue_block);                                                    \
 /*printf("end: %08x\n", block_end_pc);*/\
-                                                                              \
-  block_end:;                                                                 \
 }                                                                             \
 
 #define arm_fix_pc()                                                          \
@@ -3393,9 +3456,7 @@ s32 translate_block_##type(u32 pc, TRANSLATION_REGION_TYPE                    \
                                                                               \
   generate_block_prologue();                                                  \
                                                                               \
-  /* This is a function because it's used a lot more than it might seem (all  \
-     of the data processing functions can access it), and its expansion was   \
-     massacreing the compiler. */                                             \
+  u8 translation_gate_required = 0; /* gets updated by scan_block */          \
                                                                               \
   if(smc_enable)                                                              \
   {                                                                           \
@@ -3418,7 +3479,12 @@ s32 translate_block_##type(u32 pc, TRANSLATION_REGION_TYPE                    \
     }                                                                         \
   }                                                                           \
                                                                               \
-  type##_dead_flag_eliminate();                                               \
+  if (translation_region != TRANSLATION_REGION_RAM) {                         \
+    /* If we're translating in RAM, expect to be called VERY often. Thus,     \
+     * don't spend time eliminating flags for code that will just go to       \
+     * waste in a millisecond. */                                             \
+    type##_dead_flag_eliminate();                                             \
+  }                                                                           \
                                                                               \
   block_exit_position = 0;                                                    \
   block_data_position = 0;                                                    \
@@ -3469,13 +3535,9 @@ s32 translate_block_##type(u32 pc, TRANSLATION_REGION_TYPE                    \
     }                                                                         \
   }                                                                           \
                                                                               \
-  for(i = 0; i < translation_gate_targets; i++)                               \
+  if (translation_gate_required)                                              \
   {                                                                           \
-    if(pc == translation_gate_target_pc[i])                                   \
-    {                                                                         \
-      generate_translation_gate(type);                                        \
-      break;                                                                  \
-    }                                                                         \
+    generate_translation_gate(type);                                          \
   }                                                                           \
                                                                               \
   for(i = 0; i < block_exit_position; i++)                                    \
