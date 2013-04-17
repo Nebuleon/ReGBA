@@ -33,6 +33,8 @@ void ARMBadJump(unsigned int SourcePC, unsigned int TargetPC)
 	ds2_flipScreen(UP_SCREEN, 2);
 	char Line[512];
 
+	dump_translation_cache();
+
 	draw_string_vcenter(up_screen_addr, 0, 0, 256, COLOR_WHITE, "Guru Meditation");
 	sprintf(Line, "Jump to unmapped address %08X", TargetPC);
 	BDF_render_mix(up_screen_addr, NDS_SCREEN_WIDTH, 0, 32, 0, COLOR_TRANS, COLOR_WHITE, Line);

@@ -3054,8 +3054,11 @@ block_lookup_address_body(dual);
     break;                                                                    \
   }                                                                           \
 
+#if 0
 #define arm_link_block()                                                      \
   translation_target = block_lookup_address_arm(branch_target)                \
+
+#endif
 
 #define arm_instruction_width 4
 
@@ -3132,11 +3135,14 @@ block_lookup_address_body(dual);
 
 #define thumb_set_condition(_condition)                                       \
 
+#if 0
 #define thumb_link_block()                                                    \
   if(branch_target != 0x00000008)                                             \
     translation_target = block_lookup_address_thumb(branch_target);           \
   else                                                                        \
     translation_target = block_lookup_address_arm(branch_target)              \
+
+#endif
 
 #define thumb_instruction_width 2
 
@@ -3458,6 +3464,10 @@ s32 translate_block_##type(u32 pc, TRANSLATION_REGION_TYPE                    \
                                                                               \
   u8 translation_gate_required = 0; /* gets updated by scan_block */          \
                                                                               \
+  /* scan_block is the first pass of the compiler. It reads the instructions, \
+   * determines basically what kind of instructions they are, the branch      \
+   * targets, the condition codes atop each instruction, as well  as the need \
+   * for a translation gate to be placed at the end. */                       \
   if(smc_enable)                                                              \
   {                                                                           \
     scan_block(type, yes);                                                    \
@@ -3479,10 +3489,12 @@ s32 translate_block_##type(u32 pc, TRANSLATION_REGION_TYPE                    \
     }                                                                         \
   }                                                                           \
                                                                               \
+  /* Dead flag elimination is a sort of second pass. It works on the          \
+   * instructions in reverse, skipping processing to calculate the status of  \
+   * the flags if they will soon be overwritten. Dead flag elimination itself \
+   * takes a fair bit of time, so skip it for the RAM, given that the         \
+   * recompiler is expected to be called VERY often there. */                 \
   if (translation_region != TRANSLATION_REGION_RAM) {                         \
-    /* If we're translating in RAM, expect to be called VERY often. Thus,     \
-     * don't spend time eliminating flags for code that will just go to       \
-     * waste in a millisecond. */                                             \
     type##_dead_flag_eliminate();                                             \
   }                                                                           \
                                                                               \
@@ -3491,6 +3503,7 @@ s32 translate_block_##type(u32 pc, TRANSLATION_REGION_TYPE                    \
                                                                               \
   last_condition = 0x0E;                                                      \
                                                                               \
+  /* Finally, we take all of that data and actually generate native code. */  \
   while(pc != block_end_pc)                                                   \
   {                                                                           \
     block_data[block_data_position].block_offset = translation_ptr;           \
@@ -3592,17 +3605,17 @@ s32 translate_block_##type(u32 pc, TRANSLATION_REGION_TYPE                    \
       bios_translation_ptr = translation_ptr;                                 \
       break;                                                                  \
   }                                                                           \
-                                                                              \
+  /*                                                                          \
   for(i = 0; i < external_block_exit_position; i++)                           \
   {                                                                           \
     branch_target = external_block_exits[i].branch_target;                    \
 /*printf("link %08x\n", branch_target);*/\
-    type##_link_block();                                                      \
+    /* type##_link_block();                                                      \
     if(translation_target == NULL)                                            \
       return -1;                                                              \
     generate_branch_patch_unconditional(                                      \
      external_block_exits[i].branch_source, translation_target);              \
-  }                                                                           \
+  } */                                                                          \
                                                                               \
   u8 *flush_addr;                                                             \
   for(flush_addr= update_trampoline; flush_addr < translation_ptr + CACHE_LINE_SIZE; )\
@@ -3723,7 +3736,7 @@ if(last_ram != (ram_translation_ptr - ram_translation_cache))
 
 if(last_rom != (rom_translation_ptr - rom_translation_cache))
 {
-  fp = fopen("fat1:/rom_cache.bin", "wb");
+  fp = fopen("fat:/rom_cache.bin", "wb");
   fwrite(rom_translation_cache, 1, rom_translation_ptr - rom_translation_cache, fp);
   fclose(fp);
 
@@ -3732,7 +3745,7 @@ if(last_rom != (rom_translation_ptr - rom_translation_cache))
   
 if(last_bios != (bios_translation_ptr - bios_translation_cache))
 {
-  fp = fopen("fat1:/bios_cache.bin", "wb");
+  fp = fopen("fat:/bios_cache.bin", "wb");
   fwrite(bios_translation_cache, bios_translation_ptr - bios_translation_cache, 1, fp);
   fclose(fp);
 
