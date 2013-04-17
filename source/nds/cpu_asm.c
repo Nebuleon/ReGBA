@@ -3054,11 +3054,8 @@ block_lookup_address_body(dual);
     break;                                                                    \
   }                                                                           \
 
-#if 0
 #define arm_link_block()                                                      \
   translation_target = block_lookup_address_arm(branch_target)                \
-
-#endif
 
 #define arm_instruction_width 4
 
@@ -3135,14 +3132,11 @@ block_lookup_address_body(dual);
 
 #define thumb_set_condition(_condition)                                       \
 
-#if 0
 #define thumb_link_block()                                                    \
   if(branch_target != 0x00000008)                                             \
     translation_target = block_lookup_address_thumb(branch_target);           \
   else                                                                        \
     translation_target = block_lookup_address_arm(branch_target)              \
-
-#endif
 
 #define thumb_instruction_width 2
 
@@ -3285,7 +3279,14 @@ static s32 BinarySearch(u32* Array, u32 Value, u32 Size)
 
 #define scan_block(type, smc_write_op)                                        \
 {                                                                             \
-  __label__ block_end;                                                        \
+  /* The address of the first translation gate after block_start_pc. */       \
+  u32 next_translation_gate = 0xFFFFFFFD; /* none */                          \
+  for(i = 0; i < translation_gate_targets; i++)                               \
+  {                                                                           \
+    if(translation_gate_target_pc[i] >= block_start_pc &&                     \
+       translation_gate_target_pc[i] <  next_translation_gate)                \
+      next_translation_gate = translation_gate_target_pc[i];                  \
+  }                                                                           \
   u8 continue_block = 1;                                                      \
   u32 branch_targets_sorted[MAX_EXITS];                                       \
   u32 sorted_branch_count = 0;                                                \
@@ -3339,7 +3340,10 @@ static s32 BinarySearch(u32* Array, u32 Value, u32 Size)
           continue_block = 0;                                                 \
       }                                                                       \
       if(block_exit_position == MAX_EXITS)                                    \
+      {                                                                       \
+        RecompilerMaxExitsReached(block_start_pc, block_end_pc, MAX_EXITS);   \
         continue_block = 0;                                                   \
+      }                                                                       \
     }                                                                         \
     else                                                                      \
     {                                                                         \
@@ -3348,18 +3352,18 @@ static s32 BinarySearch(u32* Array, u32 Value, u32 Size)
     block_data[block_data_position].update_cycles = 0;                        \
     block_data_position++;                                                    \
                                                                               \
-    for(i = 0; i < translation_gate_targets; i++)                             \
+    if(block_end_pc == next_translation_gate)                                 \
     {                                                                         \
-      if(block_end_pc == translation_gate_target_pc[i])                       \
-      {                                                                       \
-        translation_gate_required = 1;                                        \
-        continue_block = 0;                                                   \
-      }                                                                       \
+      translation_gate_required = 1;                                          \
+      continue_block = 0;                                                     \
     }                                                                         \
                                                                               \
     if((block_data_position == MAX_BLOCK_SIZE) ||                             \
      (block_end_pc == 0x3007FF0) || (block_end_pc == 0x203FFF0))              \
     {                                                                         \
+      if(block_data_position == MAX_BLOCK_SIZE)                               \
+        RecompilerMaxBlockSizeReached(block_start_pc, block_end_pc,           \
+          MAX_BLOCK_SIZE);                                                    \
       continue_block = 0;                                                     \
     }                                                                         \
   } while(continue_block);                                                    \
@@ -3569,12 +3573,21 @@ s32 translate_block_##type(u32 pc, TRANSLATION_REGION_TYPE                    \
     }                                                                         \
     else                                                                      \
     {                                                                         \
-      /* External branch, save for later */                                   \
-      external_block_exits[external_block_exit_position].branch_target =      \
-       branch_target;                                                         \
-      external_block_exits[external_block_exit_position].branch_source =      \
-       block_exits[i].branch_source;                                          \
-      external_block_exit_position++;                                         \
+      /* This branch exits the basic block. If the branch target is in a      \
+       * read-only code area (the BIOS or the Game Pak ROM), we can link the  \
+       * block statically below. THIS BEHAVIOUR NEEDS TO BE DUPLICATED IN THE \
+       * EMITTER. Please see your emitter's generate_branch_no_cycle_update   \
+       * macro for more information. */                                       \
+      if (branch_target < 0x00004000 /* BIOS */                               \
+      || (branch_target >= 0x08000000 && branch_target < 0x0A000000))         \
+      {                                                                       \
+        /* External branch, save for later */                                 \
+        external_block_exits[external_block_exit_position].branch_target =    \
+         branch_target;                                                       \
+        external_block_exits[external_block_exit_position].branch_source =    \
+         block_exits[i].branch_source;                                        \
+        external_block_exit_position++;                                       \
+      }                                                                       \
     }                                                                         \
   }                                                                           \
                                                                               \
@@ -3605,17 +3618,18 @@ s32 translate_block_##type(u32 pc, TRANSLATION_REGION_TYPE                    \
       bios_translation_ptr = translation_ptr;                                 \
       break;                                                                  \
   }                                                                           \
-  /*                                                                          \
+                                                                              \
+  /* Go compile all the external branches into read-only code areas. */       \
   for(i = 0; i < external_block_exit_position; i++)                           \
   {                                                                           \
     branch_target = external_block_exits[i].branch_target;                    \
 /*printf("link %08x\n", branch_target);*/\
-    /* type##_link_block();                                                      \
+    type##_link_block();                                                      \
     if(translation_target == NULL)                                            \
       return -1;                                                              \
     generate_branch_patch_unconditional(                                      \
      external_block_exits[i].branch_source, translation_target);              \
-  } */                                                                          \
+  }                                                                           \
                                                                               \
   u8 *flush_addr;                                                             \
   for(flush_addr= update_trampoline; flush_addr < translation_ptr + CACHE_LINE_SIZE; )\

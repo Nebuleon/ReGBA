@@ -653,13 +653,17 @@ const u8 arm_to_mips_reg[] =
       generate_function_call_swap_delay(mips_update_gba);                     \
       /* This uses variables from cpu_asm.c's translate_block_builder /       \
        * translate_block_arm / translate_block_thumb functions. Basically,    \
-       * if we're emitting a jump towards inside the same basic block, we can \
-       * backpatch all we like, but if we're emitting a jump towards another  \
-       * basic block, that block is OFF LIMITS and we issue an indirect       \
-       * branch to it. This allows us to efficiently clear SOME of the RAM    \
+       * if we're emitting a jump towards inside the same basic block, or if  \
+       * the branch target is in a read-only area (BIOS or ROM), we can link  \
+       * statically and backpatch all we like, but if we're emitting a branch \
+       * towards a basic block that's in writable (GBA) memory, that block is \
+       * OFF LIMITS and that branch must be issued indirectly and resolved at \
+       * branch time. This allows us to efficiently clear SOME of the RAM     \
        * code cache after SOME of it has been modified. Ideally, that's one   \
        * basic block. */                                                      \
-      if (new_pc >= block_start_pc && new_pc < block_end_pc) {                \
+      if ((new_pc >= block_start_pc && new_pc < block_end_pc)                 \
+       || (new_pc <  0x00004000) /* BIOS */                                   \
+       || (new_pc >= 0x08000000 && new_pc < 0x0A000000) /* Game Pak ROM */) { \
         mips_emit_j_filler(writeback_location);                               \
         mips_emit_nop();                                                      \
       }                                                                       \
@@ -675,7 +679,9 @@ const u8 arm_to_mips_reg[] =
       mips_relative_offset(translation_ptr, update_trampoline));              \
       generate_swap_delay();                                                  \
       /* Same as above. */                                                    \
-      if (new_pc >= block_start_pc && new_pc < block_end_pc) {                \
+      if ((new_pc >= block_start_pc && new_pc < block_end_pc)                 \
+       || (new_pc <  0x00004000) /* BIOS */                                   \
+       || (new_pc >= 0x08000000 && new_pc < 0x0A000000) /* Game Pak ROM */) { \
         mips_emit_j_filler(writeback_location);                               \
         mips_emit_nop();                                                      \
       }                                                                       \
