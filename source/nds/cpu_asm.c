@@ -3198,7 +3198,6 @@ block_lookup_address_body(dual);
 #define MAX_EXITS      256
 
 block_data_type block_data[MAX_BLOCK_SIZE];
-block_exit_type block_exits[MAX_EXITS];
 
 #define smc_write_arm_yes()                                                   \
   if(ADDRESS32(pc_address_block, (block_end_pc & 0x7FFC) - 0x8000) == 0x0000) \
@@ -3324,11 +3323,16 @@ static s32 BinarySearch(u32* Array, u32 Value, u32 Size)
       if(type##_opcode_swi)                                                   \
       {                                                                       \
         block_exits[block_exit_position].branch_target = 0x00000008;          \
+<<<<<<< HEAD
         if (translation_region != TRANSLATION_REGION_RAM)                     \
           /* If we're in RAM, exit at the first unconditional branch, no      \
            * questions asked */                                               \
           sorted_branch_count = InsertUniqueSorted(branch_targets_sorted,     \
             branch_target, sorted_branch_count); /* could already be in */    \
+=======
+        sorted_branch_count = InsertUniqueSorted(branch_targets_sorted,       \
+          0x00000008, sorted_branch_count); /* could already be in */         \
+>>>>>>> master
         block_exit_position++;                                                \
       }                                                                       \
                                                                               \
@@ -3430,7 +3434,7 @@ s32 translate_block_##type(u32 pc, TRANSLATION_REGION_TYPE                    \
   u8 *translation_cache_limit = NULL;                                         \
   s32 i;                                                                      \
   u32 flag_status;                                                            \
-  block_exit_type external_block_exits[MAX_EXITS];                            \
+  block_exit_type block_exits[MAX_EXITS];                                     \
                                                                               \
   generate_block_extra_vars_##type();                                         \
   type##_fix_pc();                                                            \
@@ -3591,11 +3595,11 @@ s32 translate_block_##type(u32 pc, TRANSLATION_REGION_TYPE                    \
       if (branch_target < 0x00004000 /* BIOS */                               \
       || (branch_target >= 0x08000000 && branch_target < 0x0A000000))         \
       {                                                                       \
-        /* External branch, save for later */                                 \
-        external_block_exits[external_block_exit_position].branch_target =    \
-         branch_target;                                                       \
-        external_block_exits[external_block_exit_position].branch_source =    \
-         block_exits[i].branch_source;                                        \
+        if (i != external_block_exit_position)                                \
+        {                                                                     \
+          memcpy(&block_exits[external_block_exit_position], &block_exits[i], \
+            sizeof(block_exit_type));                                         \
+        }                                                                     \
         external_block_exit_position++;                                       \
       }                                                                       \
     }                                                                         \
@@ -3632,13 +3636,13 @@ s32 translate_block_##type(u32 pc, TRANSLATION_REGION_TYPE                    \
   /* Go compile all the external branches into read-only code areas. */       \
   for(i = 0; i < external_block_exit_position; i++)                           \
   {                                                                           \
-    branch_target = external_block_exits[i].branch_target;                    \
+    branch_target = block_exits[i].branch_target;                             \
 /*printf("link %08x\n", branch_target);*/\
     type##_link_block();                                                      \
     if(translation_target == NULL)                                            \
       return -1;                                                              \
     generate_branch_patch_unconditional(                                      \
-     external_block_exits[i].branch_source, translation_target);              \
+     block_exits[i].branch_source, translation_target);                       \
   }                                                                           \
                                                                               \
   u8 *flush_addr;                                                             \
