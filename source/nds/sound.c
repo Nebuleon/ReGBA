@@ -880,101 +880,94 @@ static int pp= 0;
 	if (Stats.InSoundBufferUnderrun && !WasInUnderrun)
 		Stats.SoundBufferUnderrunCount++;
 
-  while(1)
-  {
-    ret = -1;
-    n= ds2_checkAudiobuff();
+	if (CHECK_BUFFER() < AUDIO_LEN * 4)
+	{
+		// Generate more sound first, please!
+		// On auto frameskip, sound buffers being full or empty determines
+		// whether we're late.
+		if (AUTO_SKIP)
+		{
+			n = ds2_checkAudiobuff();
+			if (n >= 2)
+			{
+				// We're in no hurry, because 2 buffers are still full.
+				if(pp > 0)
+				{ // Minimum skip 2
+					if(pp > 5 && SKIP_RATE > 2)
+						SKIP_RATE--;
+					if(SKIP_RATE == 2)
+						pp = 0;
+					else
+						pp++;
+				}
+			}
+			else
+			{
+				// Alright, we're in a hurry. Raise frameskip.
+				if(pp < 2)
+				{ // Maximum skip 9
+					if(SKIP_RATE < 8)
+						SKIP_RATE++;
+					pp = 1;
+				}
+			}
+		}
+		return -1;
+	}
 
-if(AUTO_SKIP)
-{
-    if(n >= 2)
-    {
-        if(CHECK_BUFFER() < AUDIO_LEN*4)
-            break;
+	// We have enough sound. Complete this update.
+	if (game_fast_forward || temporary_fast_forward)
+	{
+		if (ds2_checkAudiobuff() >= AUDIO_BUFFER_COUNT)
+		{
+			// Drain the buffer down to a manageable size, then exit.
+			// This needs to be high to avoid audible crackling/bubbling,
+			// but not so high as to require all of the sound to be emitted.
+			// gpSP synchronises on the sound, after all. -Neb, 2013-03-23
+			while (CHECK_BUFFER() > AUDIO_LEN * 8) {
+				sound_buffer[sound_read_offset] = 0;
+				sound_read_offset = (sound_read_offset +1) & BUFFER_SIZE;
+				sound_buffer[sound_read_offset] = 0;
+				sound_read_offset = (sound_read_offset +1) & BUFFER_SIZE;
+			}
+			return 0;
+		}
+	}
+	else
+	{
+		while (ds2_checkAudiobuff() >= AUDIO_BUFFER_COUNT);
+	}
 
-        if(pp >0)
-        {
-            if(pp > 5 && SKIP_RATE > 2)
-                SKIP_RATE -= 1;
-            if(SKIP_RATE == 2)
-                pp =0;
-            else
-                pp += 1;
-        }
+	do
+		audio_buff = ds2_getAudiobuff();
+	while (audio_buff == NULL);
 
-        while(ds2_checkAudiobuff() >= AUDIO_BUFFER_COUNT);
-            //OSTimeDly(1);
-    }
+	dst_ptr = audio_buff; // left (stereo)
+	dst_ptr1 = dst_ptr + (int) (AUDIO_LEN / OUTPUT_FREQUENCY_DIVISOR); // right (stereo)
 
-    n= ds2_checkAudiobuff();
-    if(n<2 && CHECK_BUFFER() < AUDIO_LEN*4)
-    {
-        if(pp <2)
-        {
-            if(SKIP_RATE < 8)
-            SKIP_RATE += 1;
-            pp = 1;
-        }
-    }
-}
-else if (game_fast_forward || temporary_fast_forward)
-{
-    if (ds2_checkAudiobuff() >= AUDIO_BUFFER_COUNT)
-    {
-        // Drain the buffer down to a manageable size, then exit.
-        // This needs to be high to avoid audible crackling/bubbling,
-        // but not so high as to require all of the sound to be emitted.
-        // gpSP synchronises on the sound, after all. -Neb, 2013-03-23
-        while (CHECK_BUFFER() > AUDIO_LEN * 8) {
-            sound_buffer[sound_read_offset] = 0;
-            sound_read_offset = (sound_read_offset +1) & BUFFER_SIZE;
-            sound_buffer[sound_read_offset] = 0;
-            sound_read_offset = (sound_read_offset +1) & BUFFER_SIZE;
-        }
-        return;
-    }
-}
-else
-{
-    while(ds2_checkAudiobuff() >= AUDIO_BUFFER_COUNT);
-}
+	for(i= 0; i<AUDIO_LEN; i += OUTPUT_FREQUENCY_DIVISOR)
+	{
+		s16 left = 0, right = 0;
+		for (j = 0; j < OUTPUT_FREQUENCY_DIVISOR; j++) {
+			sample = sound_buffer[sound_read_offset];
+			if(sample > 1023) sample= 1023;
+			if(sample < -1024) sample= -1024;
+			left += (sample << 5) / OUTPUT_FREQUENCY_DIVISOR;
+			sound_buffer[sound_read_offset] = 0;
+			sound_read_offset = (sound_read_offset + 1) & BUFFER_SIZE;
 
-    audio_buff = ds2_getAudiobuff();
-    if(audio_buff != NULL)
-    {
-    dst_ptr = audio_buff; // left (stereo)
-    dst_ptr1 = dst_ptr + (int) (AUDIO_LEN / OUTPUT_FREQUENCY_DIVISOR); // right (stereo)
-
-    for(i= 0; i<AUDIO_LEN; i += OUTPUT_FREQUENCY_DIVISOR)
-    {
-        s16 left = 0, right = 0;
-        for (j = 0; j < OUTPUT_FREQUENCY_DIVISOR; j++) {
-            sample = sound_buffer[sound_read_offset];
-            if(sample > 1023) sample= 1023;
-            if(sample < -1024) sample= -1024;
-            left += (sample << 5) / OUTPUT_FREQUENCY_DIVISOR;
-            sound_buffer[sound_read_offset] = 0;
-            sound_read_offset = (sound_read_offset + 1) & BUFFER_SIZE;
-
-            sample = sound_buffer[sound_read_offset];
-            if(sample > 1023) sample= 1023;
-            if(sample < -1024) sample= -1024;
-            right += (sample << 5) / OUTPUT_FREQUENCY_DIVISOR;
-            sound_buffer[sound_read_offset] = 0;
-            sound_read_offset = (sound_read_offset + 1) & BUFFER_SIZE;
-        }
-        *dst_ptr++ = left;
-        *dst_ptr1++ = right;
-    }
-    ds2_updateAudio();
-    ret = 0;
-    }
-
-    if(CHECK_BUFFER() < AUDIO_LEN *4)
-        break;
-  }
-
-  return ret;
+			sample = sound_buffer[sound_read_offset];
+			if(sample > 1023) sample= 1023;
+			if(sample < -1024) sample= -1024;
+			right += (sample << 5) / OUTPUT_FREQUENCY_DIVISOR;
+			sound_buffer[sound_read_offset] = 0;
+			sound_read_offset = (sound_read_offset + 1) & BUFFER_SIZE;
+		}
+		*dst_ptr++ = left;
+		*dst_ptr1++ = right;
+	}
+	ds2_updateAudio();
+	return 0;
 }
 #endif
 
