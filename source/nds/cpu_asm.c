@@ -3315,7 +3315,7 @@ static s32 BinarySearch(u32* Array, u32 Value, u32 Size)
       {                                                                       \
         block_exits[block_exit_position].branch_target = 0x00000008;          \
         sorted_branch_count = InsertUniqueSorted(branch_targets_sorted,       \
-          branch_target, sorted_branch_count); /* could already be in */      \
+          0x00000008, sorted_branch_count); /* could already be in */         \
         block_exit_position++;                                                \
       }                                                                       \
                                                                               \
