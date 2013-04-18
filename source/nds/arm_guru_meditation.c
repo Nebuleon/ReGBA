@@ -16,8 +16,10 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
+#include "ds2_types.h"
 #include "ds2io.h"
 #include "ds2_cpu.h"
+#include "input.h"
 #include "bdf_font.h"
 #include "draw.h"
 #include "gu.h"
@@ -62,6 +64,9 @@ void RecompilerMaxExitsReached(unsigned int BlockStartPC, unsigned int BlockEndP
 
 	draw_string_vcenter(up_screen_addr, 0, 80, 256, COLOR_WHITE, "The game has encountered a recoverable error. It has not crashed, but due to this, it soon may.");
 	ds2_flipScreen(UP_SCREEN, 2);
+
+	wait_Anykey_press(0);
+	wait_Allkey_release(0);
 }
 
 void RecompilerMaxBlockSizeReached(unsigned int BlockStartPC, unsigned int BlockEndPC, unsigned int BlockSize)
@@ -79,4 +84,7 @@ void RecompilerMaxBlockSizeReached(unsigned int BlockStartPC, unsigned int Block
 
 	draw_string_vcenter(up_screen_addr, 0, 80, 256, COLOR_WHITE, "The game has encountered a recoverable error. It has not crashed, but due to this, it soon may.");
 	ds2_flipScreen(UP_SCREEN, 2);
+
+	wait_Anykey_press(0);
+	wait_Allkey_release(0);
 }
