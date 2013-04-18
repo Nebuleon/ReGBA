@@ -3323,16 +3323,11 @@ static s32 BinarySearch(u32* Array, u32 Value, u32 Size)
       if(type##_opcode_swi)                                                   \
       {                                                                       \
         block_exits[block_exit_position].branch_target = 0x00000008;          \
-<<<<<<< HEAD
         if (translation_region != TRANSLATION_REGION_RAM)                     \
           /* If we're in RAM, exit at the first unconditional branch, no      \
            * questions asked */                                               \
           sorted_branch_count = InsertUniqueSorted(branch_targets_sorted,     \
-            branch_target, sorted_branch_count); /* could already be in */    \
-=======
-        sorted_branch_count = InsertUniqueSorted(branch_targets_sorted,       \
-          0x00000008, sorted_branch_count); /* could already be in */         \
->>>>>>> master
+            0x00000008, sorted_branch_count); /* could already be in */       \
         block_exit_position++;                                                \
       }                                                                       \
                                                                               \
