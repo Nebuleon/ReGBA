@@ -1,2 +1,7 @@
-CAT SFC emulator - Based on BAG SFC emulator r3 - core NDSSFC 1.06
+TempGBA emulator for the Game Boy Advance
+
+Based on:
+* gpSP 0.9 by Exophase;
+* Unofficial gpSP Kai by Takka;
+* NDSGBA 1.21 by the Supercard Team.
 
