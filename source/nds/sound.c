@@ -568,8 +568,6 @@ void update_gbc_sound(u32 cpu_ticks)
 #ifdef NDS_LAYER
 //    if(start_flag== 0)
 //    {
-        if(CHECK_BUFFER() >= AUDIO_LEN*2)
-        {
 //            start_flag= 1;
 //            OSSemPost(sound_sem);
 //            if(game_fast_forward)  // [Neb] Enable sound while
@@ -577,7 +575,6 @@ void update_gbc_sound(u32 cpu_ticks)
 //                sound_skip();
 //            else
                 sound_update();
-        }
 //    }
 #endif
   }
@@ -871,12 +868,12 @@ static int sound_update()
   s16 sample;
   s16* audio_buff;
   s16 *dst_ptr, *dst_ptr1;
-  u32 n;
+  u32 n = ds2_checkAudiobuff();
   int ret;
 static int pp= 0;
 
 	u8 WasInUnderrun = Stats.InSoundBufferUnderrun;
-	Stats.InSoundBufferUnderrun = ds2_checkAudiobuff() == 0;
+	Stats.InSoundBufferUnderrun = n == 0 && CHECK_BUFFER() < AUDIO_LEN * 4;
 	if (Stats.InSoundBufferUnderrun && !WasInUnderrun)
 		Stats.SoundBufferUnderrunCount++;
 
@@ -887,7 +884,6 @@ static int pp= 0;
 		// whether we're late.
 		if (AUTO_SKIP)
 		{
-			n = ds2_checkAudiobuff();
 			if (n >= 2)
 			{
 				// We're in no hurry, because 2 buffers are still full.
@@ -918,7 +914,7 @@ static int pp= 0;
 	// We have enough sound. Complete this update.
 	if (game_fast_forward || temporary_fast_forward)
 	{
-		if (ds2_checkAudiobuff() >= AUDIO_BUFFER_COUNT)
+		if (n >= AUDIO_BUFFER_COUNT)
 		{
 			// Drain the buffer down to a manageable size, then exit.
 			// This needs to be high to avoid audible crackling/bubbling,
@@ -966,6 +962,7 @@ static int pp= 0;
 		*dst_ptr++ = left;
 		*dst_ptr1++ = right;
 	}
+	Stats.InSoundBufferUnderrun = 0;
 	ds2_updateAudio();
 	return 0;
 }
