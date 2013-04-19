@@ -862,6 +862,47 @@ printf("sound thread exit\n");
 
 extern struct main_buf *pmain_buf;
 
+#define DAMPEN_SAMPLE_COUNT  (AUDIO_LEN / 32)
+
+static s16 LastFastForwardedLeft[DAMPEN_SAMPLE_COUNT];
+static s16 LastFastForwardedRight[DAMPEN_SAMPLE_COUNT];
+
+// Each pointer should be towards the last N samples output for a channel
+// during fast-forwarding. This procedure stores these samples for damping
+// the next 8.
+static void EndFastForwardedSound(s16* left, s16* right)
+{
+	memcpy(LastFastForwardedLeft,  left,  DAMPEN_SAMPLE_COUNT * sizeof(s16));
+	memcpy(LastFastForwardedRight, right, DAMPEN_SAMPLE_COUNT * sizeof(s16));
+}
+
+// Each pointer should be towards the first N samples which are about to be
+// output for a channel during fast-forwarding. Using the last emitted
+// samples, this sound is dampened.
+static void StartFastForwardedSound(s16* left, s16* right)
+{
+	// Start by bringing the start sample of each channel much closer
+	// to the last sample written, to avoid a loud pop.
+	// Subsequent samples are paired with an earlier sample. In a way,
+	// this is a form of cross-fading.
+	s32 index;
+	for (index = 0; index < DAMPEN_SAMPLE_COUNT; index++)
+	{
+		left[index] = (s16) (
+			((LastFastForwardedLeft[DAMPEN_SAMPLE_COUNT - index - 1])
+				* (DAMPEN_SAMPLE_COUNT - index) / (DAMPEN_SAMPLE_COUNT + 1))
+			+ ((left[index])
+				* (index + 1) / (DAMPEN_SAMPLE_COUNT + 1))
+			);
+		right[index] = (s16) (
+			((LastFastForwardedRight[DAMPEN_SAMPLE_COUNT - index - 1])
+				* (DAMPEN_SAMPLE_COUNT - index) / (DAMPEN_SAMPLE_COUNT + 1))
+			+ ((right[index])
+				* (index + 1) / (DAMPEN_SAMPLE_COUNT + 1))
+			);
+	}
+}
+
 static int sound_update()
 {
   u32 i, j;
@@ -962,6 +1003,18 @@ static int pp= 0;
 		*dst_ptr++ = left;
 		*dst_ptr1++ = right;
 	}
+
+	if (game_fast_forward || temporary_fast_forward)
+	{
+		// Dampen the sound with the previous samples written
+		// (or unitialised data if we just started the emulator)
+		StartFastForwardedSound(audio_buff,
+			&audio_buff[(int) (AUDIO_LEN / OUTPUT_FREQUENCY_DIVISOR)]);
+		// Store the end for the next time
+		EndFastForwardedSound(&audio_buff[(int) (AUDIO_LEN / OUTPUT_FREQUENCY_DIVISOR) - DAMPEN_SAMPLE_COUNT],
+			&audio_buff[(int) (AUDIO_LEN / OUTPUT_FREQUENCY_DIVISOR) * 2 - DAMPEN_SAMPLE_COUNT]);
+	}
+
 	Stats.InSoundBufferUnderrun = 0;
 	ds2_updateAudio();
 	return 0;
