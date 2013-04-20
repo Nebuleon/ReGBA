@@ -3588,7 +3588,7 @@ s32 translate_block_##type(u32 pc, TRANSLATION_REGION_TYPE                    \
        * EMITTER. Please see your emitter's generate_branch_no_cycle_update   \
        * macro for more information. */                                       \
       if (branch_target < 0x00004000 /* BIOS */                               \
-      || (branch_target >= 0x08000000 && branch_target < 0x0A000000))         \
+      || (branch_target >= 0x08000000 && branch_target < 0x0E000000))         \
       {                                                                       \
         if (i != external_block_exit_position)                                \
         {                                                                     \

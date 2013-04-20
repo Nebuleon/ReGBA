@@ -672,7 +672,7 @@ u32 arm_to_mips_reg[] =
        * basic block. */                                                      \
       if ((new_pc >= block_start_pc && new_pc < block_end_pc)                 \
        || (new_pc <  0x00004000) /* BIOS */                                   \
-       || (new_pc >= 0x08000000 && new_pc < 0x0A000000) /* Game Pak ROM */) { \
+       || (new_pc >= 0x08000000 && new_pc < 0x0E000000) /* Game Pak ROM */) { \
         mips_emit_j_filler(writeback_location);                               \
         mips_emit_nop();                                                      \
       }                                                                       \
@@ -690,7 +690,7 @@ u32 arm_to_mips_reg[] =
       /* Same as above. */                                                    \
       if ((new_pc >= block_start_pc && new_pc < block_end_pc)                 \
        || (new_pc <  0x00004000) /* BIOS */                                   \
-       || (new_pc >= 0x08000000 && new_pc < 0x0A000000) /* Game Pak ROM */) { \
+       || (new_pc >= 0x08000000 && new_pc < 0x0E000000) /* Game Pak ROM */) { \
         mips_emit_j_filler(writeback_location);                               \
         mips_emit_nop();                                                      \
       }                                                                       \
