@@ -961,7 +961,7 @@ static int pp= 0;
 			// This needs to be high to avoid audible crackling/bubbling,
 			// but not so high as to require all of the sound to be emitted.
 			// gpSP synchronises on the sound, after all. -Neb, 2013-03-23
-			while (CHECK_BUFFER() > AUDIO_LEN * 8) {
+			while (CHECK_BUFFER() > AUDIO_LEN * 4) {
 				sound_buffer[sound_read_offset] = 0;
 				sound_read_offset = (sound_read_offset +1) & BUFFER_SIZE;
 				sound_buffer[sound_read_offset] = 0;
