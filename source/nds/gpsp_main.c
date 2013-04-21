@@ -44,6 +44,7 @@ u32 global_cycles_per_instruction = 1;
 //u64 last_frame_interval_timestamp;
 u32 psp_fps_debug = 0;
 u32 skip_next_frame_flag = 0;
+u32 frameskip_0_hack_flag = 0;
 //u32 frameskip_counter = 0;
 
 u32 cpu_ticks = 0;
@@ -180,6 +181,7 @@ void init_main()
   u32 i;
 
   skip_next_frame_flag = 0;
+  frameskip_0_hack_flag = 0;
 
   for(i = 0; i < 4; i++)
   {
@@ -663,7 +665,9 @@ u32 update_gba()
             else
               to_skip ++;
 
-		skip_next_frame_flag = to_skip < SKIP_RATE;
+		if (frameskip_0_hack_flag)
+			frameskip_0_hack_flag--;
+		skip_next_frame_flag = to_skip < SKIP_RATE || frameskip_0_hack_flag;
 
 //printf("SKIP_RATE %d %d\n", SKIP_RATE, to_skip);
         } //(vcount == 228)

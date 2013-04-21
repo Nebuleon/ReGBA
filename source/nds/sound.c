@@ -949,6 +949,16 @@ static int pp= 0;
 				}
 			}
 		}
+		/* DSTwo-specific hack: Frame skip 0 can cause crashes when
+		 * the emulator can't handle rendering 60 FPS for a game.
+		 * If audio is about to lag, skip one frame. The value 2 is
+		 * used here because we're likely in the middle of a frame
+		 * so we need to skip that half-frame first. */
+		else if (SKIP_RATE == 0 && n < 2 && !frameskip_0_hack_flag)
+		{
+			skip_next_frame_flag = 1;
+			frameskip_0_hack_flag = 2;
+		}
 		return -1;
 	}
 
