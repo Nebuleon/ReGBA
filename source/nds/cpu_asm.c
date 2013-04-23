@@ -3306,7 +3306,7 @@ static s32 BinarySearch(u32* Array, u32 Value, u32 Size)
         __label__ no_direct_branch;                                           \
         type##_branch_target();                                               \
         block_exits[block_exit_position].branch_target = branch_target;       \
-        if (translation_region != TRANSLATION_REGION_RAM)                     \
+        if (translation_region_read_only)                                     \
           /* If we're in RAM, exit at the first unconditional branch, no      \
            * questions asked */                                               \
           sorted_branch_count = InsertUniqueSorted(branch_targets_sorted,     \
@@ -3323,7 +3323,7 @@ static s32 BinarySearch(u32* Array, u32 Value, u32 Size)
       if(type##_opcode_swi)                                                   \
       {                                                                       \
         block_exits[block_exit_position].branch_target = 0x00000008;          \
-        if (translation_region != TRANSLATION_REGION_RAM)                     \
+        if (translation_region_read_only)                                     \
           /* If we're in RAM, exit at the first unconditional branch, no      \
            * questions asked */                                               \
           sorted_branch_count = InsertUniqueSorted(branch_targets_sorted,     \
@@ -3343,7 +3343,7 @@ static s32 BinarySearch(u32* Array, u32 Value, u32 Size)
          * If we're in RAM, exit at the first unconditional branch, no        \
          * questions asked. We can do that, since unconditional branches that \
          * go outside the current block are made indirect. */                 \
-        if (translation_region == TRANSLATION_REGION_RAM ||                   \
+        if (!translation_region_read_only ||                                  \
           BinarySearch(branch_targets_sorted, block_end_pc,                   \
           sorted_branch_count) == -1)                                         \
           continue_block = 0;                                                 \
@@ -3351,6 +3351,7 @@ static s32 BinarySearch(u32* Array, u32 Value, u32 Size)
       if(block_exit_position == MAX_EXITS)                                    \
       {                                                                       \
         RecompilerMaxExitsReached(block_start_pc, block_end_pc, MAX_EXITS);   \
+        translation_gate_required = 1;                                        \
         continue_block = 0;                                                   \
       }                                                                       \
     }                                                                         \
@@ -3373,6 +3374,7 @@ static s32 BinarySearch(u32* Array, u32 Value, u32 Size)
       if(block_data_position == MAX_BLOCK_SIZE)                               \
         RecompilerMaxBlockSizeReached(block_start_pc, block_end_pc,           \
           MAX_BLOCK_SIZE);                                                    \
+      translation_gate_required = 1;                                          \
       continue_block = 0;                                                     \
     }                                                                         \
   } while(continue_block);                                                    \
@@ -3433,6 +3435,9 @@ s32 translate_block_##type(u32 pc, TRANSLATION_REGION_TYPE                    \
                                                                               \
   generate_block_extra_vars_##type();                                         \
   type##_fix_pc();                                                            \
+  u32 translation_region_read_only =                                          \
+    (translation_region == TRANSLATION_REGION_ROM ||                          \
+     translation_region == TRANSLATION_REGION_BIOS);                          \
                                                                               \
   if(pc_address_block == NULL)                                                \
     pc_address_block = load_gamepak_page(pc_region & 0x3FF);                  \
@@ -3507,7 +3512,7 @@ s32 translate_block_##type(u32 pc, TRANSLATION_REGION_TYPE                    \
    * the flags if they will soon be overwritten. Dead flag elimination itself \
    * takes a fair bit of time, so skip it for the RAM, given that the         \
    * recompiler is expected to be called VERY often there. */                 \
-  if (translation_region != TRANSLATION_REGION_RAM) {                         \
+  if (translation_region_read_only) {                                         \
     type##_dead_flag_eliminate();                                             \
   }                                                                           \
                                                                               \
