@@ -267,22 +267,16 @@ static inline void StatsAddThumbOpcode() {}
   check_pc_region(pc);                                                        \
   opcode = ADDRESS32(pc_address_block, (pc & 0x7FFF));                        \
   condition = block_data[block_data_position].condition;                      \
+  u32 has_condition_header = 0;                                               \
                                                                               \
   if((condition != last_condition) || (condition >= 0x20))                    \
   {                                                                           \
-                                                                              \
-    if((last_condition & 0x0F) != 0x0E)                                       \
-    {                                                                         \
-      generate_branch_patch_conditional(backpatch_address, translation_ptr);  \
-    }                                                                         \
-                                                                              \
-    last_condition = condition;                                               \
-                                                                              \
     condition &= 0x0F;                                                        \
                                                                               \
     if(condition != 0x0E)                                                     \
     {                                                                         \
       arm_conditional_block_header();                                         \
+      has_condition_header = 1;                                               \
     }                                                                         \
   }                                                                           \
                                                                               \
@@ -1702,6 +1696,11 @@ static inline void StatsAddThumbOpcode() {}
       arm_swi();                                                              \
       break;                                                                  \
     }                                                                         \
+  }                                                                           \
+                                                                              \
+  if(has_condition_header)                                                    \
+  {                                                                           \
+    generate_branch_patch_conditional(backpatch_address, translation_ptr);    \
   }                                                                           \
                                                                               \
   pc += 4                                                                     \
