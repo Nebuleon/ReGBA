@@ -760,7 +760,7 @@ mips_indirect_branch_dual:
 
 
 .macro translate_region_vram_core
-  addiu $2, $2, -3                # see if it's 3
+  addiu $2, $2, -3                # see if it's 3 (the mirror of last 32 KiB)
 #  ext $4, $4, 0, 17               # generate 17bit offset
   sll $4, $4, 15
   srl $4, $4, 15		  # emulate EXT instruction
@@ -3352,7 +3352,7 @@ ext_store_vram8:
   or   $5, $5, $1
   sll  $4, $4, 15
   srl  $4, $4, 15		  # emulate INS and EXT instructions
-  lui $1, %hi(0x18000)            # $1 = 0x18000
+  li $1, 0x18000
   sltu $1, $4, $1                 # if $4 >= $1 then $1 = 0 else $1 = 1
   bne $1, $0, ext_store_vram8b    # if $1 != 0 then j ext_store_vram8b
   lui $2, %hi(vram)               # start loading vram address (delay)
@@ -3474,7 +3474,7 @@ ext_store_vram16:
 #  ext $4, $4, 0, 17               # address = adress & 0x1FFFF
   sll $4, $4, 15
   srl $4, $4, 15		  # emulate EXT instruction
-  lui $1, %hi(0x18000)            # $1 = 0x18000
+  li $1, 0x18000
   sltu $1, $4, $1                 # see if address < 0x18000
   bne $1, $0, ext_store_vram16b
   lui $2, %hi(vram)               # start loading vram address (delay)
@@ -3585,7 +3585,7 @@ ext_store_vram32:
 #  ext $4, $4, 0, 17               # address = adress & 0x1FFFF
   sll $4, $4, 15
   srl $4, $4, 15		  # emulate EXT instruction
-  lui $1, %hi(0x18000)            # $1 = 0x18000
+  li $1, 0x18000
   sltu $1, $4, $1                 # see if address < 0x18000
   bne $1, $0, ext_store_vram32b
   lui $2, %hi(vram)               # start loading vram address (delay)
