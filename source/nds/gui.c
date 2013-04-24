@@ -3250,8 +3250,6 @@ u32 menu(u16 *screen, int FirstInvocation)
 	char* FRAMES_EMULATED        = "Frames emulated                %d";
 	char* ARM_OPCODES_DECODED    = "ARM opcodes decoded         %d";
 	char* THUMB_OPCODES_DECODED  = "Thumb opcodes decoded    %d";
-	char* DMA_BYTES_TO_RAM       = "DMA bytes to RAM                %d";
-	char* MODIFIED_DMA_BYTES     = "DMA modified bytes             %d";
 
   /*--------------------------------------------------------
      Tools - Debugging - Execution stats
@@ -3272,12 +3270,6 @@ u32 menu(u16 *screen, int FirstInvocation)
 
 	/* 04 */ NUMERIC_SELECTION_HIDE_OPTION(NULL, NULL, &THUMB_OPCODES_DECODED,
         &Stats.ThumbOpcodesDecoded, 2, NULL, 4),
-
-	/* 05 */ NUMERIC_SELECTION_HIDE_OPTION(NULL, NULL, &DMA_BYTES_TO_RAM,
-        &Stats.DMABytesToRAM, 2, NULL, 5),
-
-	/* 06 */ NUMERIC_SELECTION_HIDE_OPTION(NULL, NULL, &MODIFIED_DMA_BYTES,
-        &Stats.ModifiedDMABytesToRAM, 2, NULL, 6),
 #endif
     };
     MAKE_MENU(tools_debug_statistics, NULL, NULL, NULL, NULL, 0, 0);

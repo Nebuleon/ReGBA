@@ -1412,6 +1412,65 @@ mips_indirect_branch_dual:
 .endm
 
 
+# Store the values and check if it overwrote code there, in split metadata
+# sections.
+
+.macro store_u8_metadata base, metabase
+  addiu $2, $2, %lo(\base)        # offset the address
+
+  la $1, \base                    # load the Data Area's starting address
+  sub $4, $2, $1                  # regenerate the offset after base -> $4
+  la $1, \metabase                # load the Metadata Area's address
+  add $1, $1, $4                  # $1 = &metabase[offset]
+
+  lb $4, ($1)                     # load the code modification status
+#ifndef NO_LOAD_DELAY_SLOT
+  nop
+#endif
+  bne $4, $0, smc_write           # if there has been code there, go flush RAM
+  sb $5, ($2)                     # store value at base[offset] (delay)
+  jr $ra                          # if there has not been code there, return
+  nop                             # cannot usefully delay here
+.endm
+
+.macro store_u16_metadata base, metabase
+  addiu $2, $2, %lo(\base)        # offset the address
+
+  la $1, \base                    # load the Data Area's starting address
+  sub $4, $2, $1                  # regenerate the offset after base -> $4
+  la $1, \metabase                # load the Metadata Area's address
+  add $1, $1, $4                  # $1 = &metabase[offset]
+
+  lh $4, ($1)                     # load the code modification status
+#ifndef NO_LOAD_DELAY_SLOT
+  nop
+#endif
+  bne $4, $0, smc_write           # if there has been code there, go flush RAM
+  sh $5, ($2)                     # store value at base[offset] (delay)
+  jr $ra                          # if there has not been code there, return
+  nop                             # cannot usefully delay here
+.endm
+
+.macro store_u32_metadata base, metabase
+  addiu $2, $2, %lo(\base)        # offset the address
+
+  la $1, \base                    # load the Data Area's starting address
+  sub $4, $2, $1                  # regenerate the offset after base -> $4
+  la $1, \metabase                # load the Metadata Area's address
+  add $1, $1, $4                  # $1 = &metabase[offset]
+
+  lw $4, ($1)                     # load the code modification status
+#ifndef NO_LOAD_DELAY_SLOT
+  nop
+#endif
+  bne $4, $0, smc_write           # if there has been code there, go flush RAM
+  sw $5, ($2)                     # store value at base[offset] (delay)
+  jr $ra                          # if there has not been code there, return
+  nop                             # cannot usefully delay here
+.endm
+
+
+
 # Store the values and check if it overwrote code there
 
 .macro store_u8_smc base
@@ -1503,8 +1562,8 @@ execute_load_ewram_u8:
 
 execute_load_u8:
 execute_load_iwram_u8:
-  translate_region 3, patch_load_u8, (iwram + 0x8000), 0x7FFF
-  load_u8 (iwram + 0x8000)
+  translate_region 3, patch_load_u8, iwram_data, 0x7FFF
+  load_u8 iwram_data
 
 execute_load_io_u8:
   translate_region 4, patch_load_u8, io_registers, 0x3FF
@@ -1605,8 +1664,8 @@ execute_load_ewram_s8:
 
 execute_load_s8:
 execute_load_iwram_s8:
-  translate_region 3, patch_load_s8, (iwram + 0x8000), 0x7FFF
-  load_s8 (iwram + 0x8000)
+  translate_region 3, patch_load_s8, iwram_data, 0x7FFF
+  load_s8 iwram_data
 
 execute_load_io_s8:
   translate_region 4, patch_load_s8, io_registers, 0x3FF
@@ -1706,8 +1765,8 @@ execute_load_ewram_u16:
 
 execute_load_u16:
 execute_load_iwram_u16:
-  translate_region_align 3, 1, 0, patch_load_u16, (iwram + 0x8000), 0x7FFF
-  load_u16 (iwram + 0x8000)
+  translate_region_align 3, 1, 0, patch_load_u16, iwram_data, 0x7FFF
+  load_u16 iwram_data
 
 execute_load_io_u16:
   translate_region_align 4, 1, 0, patch_load_u16, io_registers, 0x3FF
@@ -1786,8 +1845,8 @@ execute_load_ewram_u16u:
   load_u16_unaligned (ewram + 0x8000)
 
 execute_load_iwram_u16u:
-  translate_region_align 3, 1, 1, patch_load_u16, (iwram + 0x8000), 0x7FFE
-  load_u16_unaligned (iwram + 0x8000)
+  translate_region_align 3, 1, 1, patch_load_u16, iwram_data, 0x7FFE
+  load_u16_unaligned iwram_data
 
 execute_load_io_u16u:
   translate_region_align 4, 1, 1, patch_load_u16, io_registers, 0x3FE
@@ -1939,8 +1998,8 @@ execute_load_ewram_s16:
 
 execute_load_s16:
 execute_load_iwram_s16:
-  translate_region_align 3, 1, 0, patch_load_s16, (iwram + 0x8000), 0x7FFF
-  load_s16 (iwram + 0x8000)
+  translate_region_align 3, 1, 0, patch_load_s16, iwram_data, 0x7FFF
+  load_s16 iwram_data
 
 execute_load_io_s16:
   translate_region_align 4, 1, 0, patch_load_s16, io_registers, 0x3FF
@@ -2018,8 +2077,8 @@ execute_load_ewram_s16u:
   load_s16_unaligned (ewram + 0x8000)
 
 execute_load_iwram_s16u:
-  translate_region_align 3, 1, 1, patch_load_s16, (iwram + 0x8000), 0x7FFE
-  load_s16_unaligned (iwram + 0x8000)
+  translate_region_align 3, 1, 1, patch_load_s16, iwram_data, 0x7FFE
+  load_s16_unaligned iwram_data
 
 execute_load_io_s16u:
   translate_region_align 4, 1, 1, patch_load_s16, io_registers, 0x3FE
@@ -2135,8 +2194,8 @@ execute_load_ewram_u32:
   .ent execute_load_u32
 execute_load_u32:
 execute_load_iwram_u32:
-  translate_region_align 3, 2, 0, patch_load_u32, (iwram + 0x8000), 0x7FFF
-  load_u32 (iwram + 0x8000)
+  translate_region_align 3, 2, 0, patch_load_u32, iwram_data, 0x7FFF
+  load_u32 iwram_data
   .end execute_load_u32
  
 execute_load_io_u32:
@@ -2211,8 +2270,8 @@ execute_load_ewram_u32u1:
   load_u32_unaligned (ewram + 0x8000), 1
 
 execute_load_iwram_u32u1:
-  translate_region_align 3, 2, 1, patch_load_u32, (iwram + 0x8000), 0x7FFC
-  load_u32_unaligned (iwram + 0x8000), 1
+  translate_region_align 3, 2, 1, patch_load_u32, iwram_data, 0x7FFC
+  load_u32_unaligned iwram_data, 1
 
 execute_load_io_u32u1:
   translate_region_align 4, 2, 1, patch_load_u32, io_registers, 0x3FC
@@ -2285,8 +2344,8 @@ execute_load_ewram_u32u2:
   load_u32_unaligned (ewram + 0x8000), 2
 
 execute_load_iwram_u32u2:
-  translate_region_align 3, 2, 2, patch_load_u32, (iwram + 0x8000), 0x7FFC
-  load_u32_unaligned (iwram + 0x8000), 2
+  translate_region_align 3, 2, 2, patch_load_u32, iwram_data, 0x7FFC
+  load_u32_unaligned iwram_data, 2
 
 execute_load_io_u32u2:
   translate_region_align 4, 2, 2, patch_load_u32, io_registers, 0x3FC
@@ -2359,8 +2418,8 @@ execute_load_ewram_u32u3:
   load_u32_unaligned (ewram + 0x8000), 3
 
 execute_load_iwram_u32u3:
-  translate_region_align 3, 2, 3, patch_load_u32, (iwram + 0x8000), 0x7FFC
-  load_u32_unaligned (iwram + 0x8000), 3
+  translate_region_align 3, 2, 3, patch_load_u32, iwram_data, 0x7FFC
+  load_u32_unaligned iwram_data, 3
 
 execute_load_io_u32u3:
   translate_region_align 4, 2, 3, patch_load_u32, io_registers, 0x3FC
@@ -2509,8 +2568,8 @@ execute_load_ewram_u32a:
 
 execute_aligned_load32:
 execute_load_iwram_u32a:
-  translate_region 3, patch_load_u32a, (iwram + 0x8000), 0x7FFF
-  load_u32 (iwram + 0x8000)
+  translate_region 3, patch_load_u32a, iwram_data, 0x7FFF
+  load_u32 iwram_data
 
 execute_load_io_u32a:
   translate_region 4, patch_load_u32a, io_registers, 0x3FF
@@ -2593,8 +2652,8 @@ execute_store_ewram_u8:
 
 execute_store_u8:
 execute_store_iwram_u8:
-  translate_region 3, patch_store_u8, (iwram + 0x8000), 0x7FFF
-  store_u8_smc (iwram + 0x8000)
+  translate_region 3, patch_store_u8, iwram_data, 0x7FFF
+  store_u8_metadata iwram_data, iwram_smc_data
 
 execute_store_io_u8:
   region_check 4, patch_store_u8
@@ -2695,8 +2754,8 @@ execute_store_ewram_u16:
 
 execute_store_u16:
 execute_store_iwram_u16:
-  translate_region 3, patch_store_u16, (iwram + 0x8000), 0x7FFE
-  store_u16_smc (iwram + 0x8000)
+  translate_region 3, patch_store_u16, iwram_data, 0x7FFE
+  store_u16_metadata iwram_data, iwram_smc_data
 
 execute_store_io_u16:
   region_check 4, patch_store_u16
@@ -2793,8 +2852,8 @@ execute_store_ewram_u32:
 
 execute_store_u32:
 execute_store_iwram_u32:
-  translate_region 3, patch_store_u32, (iwram + 0x8000), 0x7FFC
-  store_u32_smc (iwram + 0x8000)
+  translate_region 3, patch_store_u32, iwram_data, 0x7FFC
+  store_u32_metadata iwram_data, iwram_smc_data
 
 execute_store_io_u32:
   region_check 4, patch_store_u32
@@ -2890,8 +2949,8 @@ execute_store_ewram_u32a:
 
 execute_aligned_store32:
 execute_store_iwram_u32a:
-  translate_region 3, patch_store_u32a, (iwram + 0x8000), 0x7FFC
-  store_u32 (iwram + 0x8000)
+  translate_region 3, patch_store_u32a, iwram_data, 0x7FFC
+  store_u32 iwram_data
 
 execute_store_io_u32a:
   region_check 4, patch_store_u32a

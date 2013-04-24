@@ -2863,7 +2863,7 @@ static inline void AdjustTranslationBufferPeaks() {}
       break;                                                                  \
                                                                               \
     case 0x3:                                                                 \
-      location = (u16 *)(iwram + (pc & 0x7FFF));                              \
+      location = (u16 *)(iwram_smc_data + (pc & 0x7FFF));                     \
       block_lookup_translate(type, ram, 1);                                   \
       break;                                                                  \
                                                                               \
@@ -3199,16 +3199,39 @@ block_lookup_address_body(dual);
 block_data_type block_data[MAX_BLOCK_SIZE];
 
 #define smc_write_arm_yes()                                                   \
-  if(ADDRESS32(pc_address_block, (block_end_pc & 0x7FFC) - 0x8000) == 0x0000) \
+  switch (block_end_pc >> 24)                                                 \
   {                                                                           \
-    ADDRESS32(pc_address_block, (block_end_pc & 0x7FFC) - 0x8000) =           \
-     0xFFFFFFFF;                                                              \
+    case 0x03: /* IWRAM */                                                    \
+      if (ADDRESS32(iwram_smc_data, block_end_pc & 0x7FFC) == 0)              \
+      {                                                                       \
+        ADDRESS32(iwram_smc_data, block_end_pc & 0x7FFC) =  0xFFFFFFFF;       \
+      }                                                                       \
+      break;                                                                  \
+    default:                                                                  \
+      if(ADDRESS32(pc_address_block, (block_end_pc & 0x7FFC) - 0x8000) == 0)  \
+      {                                                                       \
+        ADDRESS32(pc_address_block, (block_end_pc & 0x7FFC) - 0x8000) =       \
+         0xFFFFFFFF;                                                          \
+      }                                                                       \
+      break;                                                                  \
   }                                                                           \
 
 #define smc_write_thumb_yes()                                                 \
-  if(ADDRESS16(pc_address_block, (block_end_pc & 0x7FFE) - 0x8000) == 0x0000) \
+  switch (block_end_pc >> 24)                                                 \
   {                                                                           \
-    ADDRESS16(pc_address_block, (block_end_pc & 0x7FFE) - 0x8000) = 0xFFFF;   \
+    case 0x03: /* IWRAM */                                                    \
+      if (ADDRESS16(iwram_smc_data, block_end_pc & 0x7FFE) == 0)              \
+      {                                                                       \
+        ADDRESS16(iwram_smc_data, block_end_pc & 0x7FFE) = 0xFFFF;            \
+      }                                                                       \
+      break;                                                                  \
+    default:                                                                  \
+      if(ADDRESS16(pc_address_block, (block_end_pc & 0x7FFE) - 0x8000) == 0)  \
+      {                                                                       \
+        ADDRESS16(pc_address_block, (block_end_pc & 0x7FFE) - 0x8000) =       \
+         0xFFFF;                                                              \
+      }                                                                       \
+      break;                                                                  \
   }                                                                           \
 
 #define smc_write_arm_no()                                                    \
@@ -3675,7 +3698,7 @@ void flush_translation_cache_ram()
   { // iwramのキャッシュを使用していた場合
     iwram_code_min &= 0x7FFF;
     iwram_code_max &= 0x7FFF;
-    memset(iwram + iwram_code_min, 0, iwram_code_max - iwram_code_min + 1);
+    memset(iwram_smc_data + iwram_code_min, 0, iwram_code_max - iwram_code_min + 1);
     iwram_code_min = 0xFFFFFFFF;
     iwram_code_max = 0xFFFFFFFF;
   }

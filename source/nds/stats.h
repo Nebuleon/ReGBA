@@ -44,10 +44,6 @@ struct GPSP_STATS {
 	u32	ROMTranslationBytesPeak;
 	u32	RAMTranslationBytesPeak;
 	u32	BIOSTranslationBytesPeak;
-	/* How many bytes have we written to IWRAM and EWRAM with DMA? */
-	u32	DMABytesToRAM;
-	/* How many of those bytes have actually been modified? */
-	u32	ModifiedDMABytesToRAM;
 	/* How many times have we had to decode an ARM or a Thumb opcode from
 	 * scratch since the current game started running? */
 	u32	ARMOpcodesDecoded;

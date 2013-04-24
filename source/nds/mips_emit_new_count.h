@@ -2155,7 +2155,7 @@ u32 execute_store_cpsr_body(u32 _cpsr, u32 store_mask, u32 address)
   if((rn == REG_SP) && iwram_stack_optimize)                                  \
   {                                                                           \
     mips_emit_andi(reg_a1, reg_a2, 0x7FFC);                                   \
-    generate_load_imm(reg_a0, ((u32)(iwram + 0x8000)));                       \
+    generate_load_imm(reg_a0, ((u32)iwram_data));                             \
     mips_emit_addu(reg_a1, reg_a1, reg_a0);                                   \
                                                                               \
     for(i = 0; i < 16; i++)                                                   \
@@ -2210,7 +2210,7 @@ u32 execute_store_cpsr_body(u32 _cpsr, u32 store_mask, u32 address)
   if((rn == REG_SP) && iwram_stack_optimize)                                  \
   {                                                                           \
     mips_emit_andi(reg_a1, reg_a2, 0x7FFC);                                   \
-    generate_load_imm(reg_a0, ((u32)(iwram + 0x8000)));                       \
+    generate_load_imm(reg_a0, ((u32)iwram_data));                             \
     mips_emit_addu(reg_a1, reg_a1, reg_a0);                                   \
                                                                               \
     for(i = 0; i < 16; i++)                                                   \
@@ -2630,7 +2630,7 @@ u32 execute_store_cpsr_body(u32 _cpsr, u32 store_mask, u32 address)
   if((base_reg == REG_SP) && iwram_stack_optimize)                            \
   {                                                                           \
     mips_emit_andi(reg_a1, reg_a2, 0x7FFC);                                   \
-    generate_load_imm(reg_a0, ((u32)(iwram + 0x8000)));                       \
+    generate_load_imm(reg_a0, ((u32)iwram_data));                             \
     generate_add(reg_a1, reg_a0);                                             \
                                                                               \
     for(i = 0; i < 8; i++)                                                    \
@@ -2686,7 +2686,7 @@ u32 execute_store_cpsr_body(u32 _cpsr, u32 store_mask, u32 address)
   if((base_reg == REG_SP) && iwram_stack_optimize)                            \
   {                                                                           \
     mips_emit_andi(reg_a1, reg_a2, 0x7FFC);                                   \
-    generate_load_imm(reg_a0, ((u32)(iwram + 0x8000)));                       \
+    generate_load_imm(reg_a0, ((u32)iwram_data));                             \
     generate_add(reg_a1, reg_a0);                                             \
                                                                               \
     for(i = 0; i < 8; i++)                                                    \

@@ -1,0 +1,290 @@
+                      == Partial flushing of RAM code ==
+Modification history:
+2013-04-18 [Nebuleon]: Initial version.
+2013-04-18 [Normmatt]: 32-bit buses and Thumb.
+2013-04-22 [Nebuleon]: Rewrote some parts after observations.
+2013-04-23 [Nebuleon]: Rewrote the mechanism used to signify code writes.
+2013-04-23 [pcercuei]: Unaligned writes cannot happen on the GBA. Clarify
+  Code Write Counts.
+
+Alright. Here's my idea for partially flushing the translation buffer for
+writable areas.
+
+== Writable Areas ==
+
+There are three writable areas in a Game Boy Advance's memory map, of which
+only the first two are supported for containing code in current "master gpSP"
+(as opposed to the experimental code), but a real Game Boy Advance would be
+able to execute code from all of them:
+
+* The Internal Working RAM (IWRAM), 32 KiB of memory close to the ARM7TDMI
+  processor. This memory uses a 32-bit bus, so programmers are advised to
+  put ARM code here.
+* The External Working RAM (EWRAM), 256 KiB of memory that sits somewhat far
+  from the processor. This memory uses a 16-bit bus, so programmers are
+  advised to put Thumb code here.
+* The Video RAM (VRAM), 96 KiB of memory that uses a 16-bit bus, some of
+  which is unused for graphics depending on the Game Boy Advance's active
+  video mode.
+
+Of course, it is possible to place ARM code in EWRAM and VRAM (which would
+then be fetched twice too slow), and Thumb code in IWRAM (which would be
+prefetched two instructions at a time).
+
+== ARM and Thumb code ==
+
+ARM code is 4 bytes per instruction, and an ARM instruction must reside at
+an address that is a multiple of 4 (4-byte-aligned).
+
+Thumb code is 2 bytes per instruction, and a Thumb instruction must reside at
+an address that is a multiple of 2 (2-byte-aligned).
+
+ARM and Thumb code may freely be mixed in the same memory line, and a piece
+of code may be both valid ARM and valid Thumb. A branch to an instruction that
+is 4-byte-aligned, using the BX instruction, may branch to that instruction in
+ARM mode if the address's bit 0 is clear, or in Thumb mode if its bit 0 is
+set. A branch to an instruction that is 2-byte-aligned but not 4-byte-aligned
+must be in Thumb mode, with the address's bit 0 set for the BX instruction.
+
+== Abstract ==
+
+To unify the implementation of block tags across all writable areas (and
+unfortunately the BIOS, as it also uses a block tag mechanism), as well as
+to allow this polyglot ARM-Thumb code to work properly, I wish to use tags
+to indicate the native code addresses of both ARM and Thumb code.
+
+The compiler will be retrofitted to issue a write into a new metadata area
+separate from the 'iwram', 'ewram' and 'vram' variables, which I will
+henceforth refer to as a Metadata Area (original, huh?). To refer to the area
+which a Metadata Area describes with its tags, instead of writing
+"'iwram', 'ewram' or 'vram'", I will use the generic term Data Area.
+
+== The Metadata Area ==
+
+For each 32-bit word in a Data Area (the Data Word), the corresponding
+Metadata Area shall have four (4) 16-bit [half-]words (a Metadata Entry):
+
+  [ data | data | data | data | data |...]
+    ...is described by...
+  (me ta da ta|me ta da ta|me ta da ta|me ta da ta|me ta da ta|...)
+
+The four 16-bit [half-]words are written like an array, [half-]word 0 at the
+lowest address and 3 at the highest. All of them are interpreted as unsigned.
+
+* [0] contains the tag, which can be used as a lookup key in the native-code
+  address array, for the Thumb instruction in the first half of the Data Word.
+  If there is no such native code, because there has not been a branch to the
+  first half in Thumb mode, this is 0000h.
+  Legal tags for this [half-]word to represent native code are 0001h to FFFEh.
+  FFFFh is not legal due to FFFFh + 1 overflowing an unsigned short.
+* [1] contains the tag for the ARM instruction in the Data Word.
+  If there is no such native code, because there has not been a branch to the
+  word in ARM mode, this is 0000h.
+  Legal tags for this word to represent native code are 0001h to FFFEh.
+* [2] contains the tag for the Thumb instruction in the second half-word of
+  the Data Word.
+  If there is no such native code, because there has not been a branch to the
+  second half-word in Thumb mode, this is 0000h.
+  Legal tags for this [half-]word to represent native code are 0001h to FFFEh.
+* [3] contains a code metadata word. It contains 0000h if the Data Word, or
+  either half of it, has never been compiled in ARM or Thumb mode for the
+  current ROM. Otherwise, it contains:
+   15            8 7           1 0
+  [W r i t e C n t 0 0 0 0 0 0 0 c]
+   |             |               |
+    -------------                |
+          |                      |
+   Code Write Count        Currently Code
+
+  The Code Write Count is a measure of the number of times the corresponding
+  Data Word has been rewritten while it was compiled as code, either wholly or
+  partially. It is only incremented when Currently Code is set.
+  The Currently Code flag is present for a Data Word if, despite its tag being
+  0, it currently contains code. That code can be at the start or middle of a
+  basic block of native code compiled from it, but it is code nonetheless.
+  Adjacent blocks having this flag set may be cleared during a Partial Flush
+  (see the section on Partial Flushes below for more information).
+
+== Tags ==
+
+The "tags" are an index into an array, one per Metadata Area, containing the
+addresses of native code blocks in each Data Area. The lookup procedure is as
+follows:
+1. Obtain an offset into the Data Area. For example, if the GBA address to
+   look up is 02F042F8h, then the offset is into 'ewram', and is 42F8h.
+2. Mask the lower 2 bits of the offset. In assembly, you also need to multiply
+   the offset by 2 because each element is 2 bytes long. Then add the starting
+   address of the Metadata Area corresponding to the Data Area to form the
+   address of the Metadata Entry.
+3. If wishing to execute native code for ARM code, the tag is the Metadata
+   Entry's [half-]word at [1] (multiplied by 2 in assembly). In Thumb mode,
+   the tag is the [half-]word at [Address & 2] (multiplied by 2 in assembly).
+4. A separate array, in this example 'ewram_block_ptrs', can be indexed by the
+   tag to find the address of compiled code in the right mode (ARM or Thumb)
+   for the tag. In C, that will be <data area>_block_ptrs[tag]. In assembly,
+   you need to multiply the tag by 4 then add <data area>_block_ptrs.
+The lookup is made in constant time.
+
+== Memory writes ==
+
+The process of writing to a Data Area, via DMA or the memory storage functions
+of the stub, is thus as follows:
+* Perform the write.
+* Get the Metadata Entry describing the first Data Word to be written into.
+* If [3] & 1 == 1, trigger a Partial Flush targetting the first Data Word,
+  then increment the Code Write Count unless it's already 255.
+
+The increment must be done after the Partial Flush, because if the first Data
+Word has a Code Write Count of 255 and the next Data Word has a Code Write
+Count of 254, the compiler will have isolated the first from the second,
+creating a block for the first instruction alone. (See the compilation
+modification below for more information.) It follows that the Partial Flush
+should be erasing that block and isolate the next one until its Code Write
+Count has also reached 255. (See the Partial Flush definition below for more
+information.)
+
+After a Partial Flush, the stub needs to ensure that it is returning to native
+code that matches the GBA code at the next GBA instruction. It does that by
+looking up the MIPS address of the next GBA instruction using block_lookup_
+address_{arm | thumb}.
+
+== Compilation ==
+
+Compilation is also slightly modified:
+* Tags run from 0001h to FFFEh. Master gpSP allows tags from 0101h to FFFEh.
+  If the current tag, before being incremented, is FFFFh, a Full Flush is
+  forced, and its cause will be "Last Tag".
+* Compilation shall set the Metadata Entry of any Data Word it newly compiles:
+  It shall set [3]'s Currently Code bit (bit 0) for a Data Word it compiles
+  wholly in ARM mode or wholly or partially in Thumb mode.
+* Compilation shall stop immediately at any Data Word whose Code Write Count,
+  as stored in the Metadata Entry's [3], bits 15..8, is 255 if the compilation
+  has so far only read Data Words whose Code Write Counts were all less than
+  255. Similarly, it shall stop immediately at any Data Word whose Code Write
+  Count is less than 255 if the compilation has so far only read Data Words
+  whose Code Write Counts were all 255. A translation gate (which reloads the
+  PC and forces an indirect branch to the next instruction) shall be emitted
+  if the last instruction of an interrupted block is not an unconditional
+  branch instruction.
+  This rule is there to isolate small, often-modified blocks from their
+  surroundings.
+* If compiling code in a writable Data Area whose Metadata Entry's Code Write
+  Count is 255, the block is expected to be recompiled very often, so remove
+  dead flag elimination and anything superfluous, and stop a block after an
+  unconditional branch. If an instruction earlier in the block is a branch
+  to the next instruction after that unconditional branch:
+
+  [Start: CMP x, y | BNE End: | Other instructions | B Elsewhere | End: ]
+
+  then it will be resolved indirectly. The hope is that the next instruction
+  will have a Code Write Count of less than 255.
+* If compiling code whose Code Write Count is less than 255, perform dead flag
+  elimination, and stop a block at the first instruction that is not a branch
+  target after an unconditional branch (or any instruction whose Code Write
+  Count is 255). That way, there are no native code links that could survive a
+  Partial Flush that erases the block, but any branches leading to the
+  instruction after an unconditional branch are still optimised.
+
+== Partial Flushes ==
+
+All of this to finally define a Partial Flush targetting a certain Data Word:
+* Load the GBA address of the Data Word into the first parameter register for
+  the platform.
+* Make a call to partial_flush_ram.
+  partial_flush_ram is a C function that will take care of the Partial Flush.
+* Start with the Metadata Entry for the specified Data Word. Make it not code
+  anymore, by setting [0..2] -> 0000h, and by clearing the Currently Code bit
+  (bit 0) of [3]. If the Write Count in that Metadata Entry's [3], bits 15..8,
+  is 255, a Partial Flush shall affect only adjacent Metadata Entries whose
+  Write Count is also 255. The same happens if the Write Count is less than
+  255, affecting adjacent Metadata Entries whose Write Count is less than 255.
+* Going to the left (and wrapping to the right if the memory is mirrored),
+  if the Metadata Entry for a Data Word has [3] & 1 == 1, make it not code, by
+  setting [0..2] -> 0000h, and by clearing the Currently Code bit (bit 0) of
+  [3]. Stop at the first Data Word whose Metadata Entry has [3] & 1 == 0. This
+  is to flush all native code that is a superset of the block which is being
+  flushed:
+
+  [Start: MOV|SUBS|CMP|...|BEQ|SUB|B Start]
+                              [SUB|B Start] <- Flushing this
+
+* Going to the right (and wrapping to the left if the memory is mirrored),
+  repeat the above procedure. It is needed to go forward past the end of the
+  flushed block, because it is not known which block is being flushed. Its tag
+  has become 0000h, and the Data Word was not necessarily the first
+  instruction in its block either.
+* Return. The return address will be after the instruction that triggered the
+  Partial Flush, which is responsible for looking up the native code address
+  of the following instruction. This will cause recompilation if the next
+  instruction is among those flushed, which may perform a Full Flush, whose
+  cause is either "Last tag" or "Cache full", then a branch will be made to
+  the new code.
+
+The next instruction may be a subset of a larger block, which will be
+recompiled separately. For example:
+
+  {Start: ? ? ?}              [SUB|B Start] <- Flushed this
+  [Start: MOV|SUBS|CMP|...|BEQ|SUB|B Start] <- At Start, not yet compiled
+
+This creates a few subset blocks, which should be small enough not to affect
+the Translation Cache in any meaningful way. I posit (without any proof, ha!)
+that attempting to split or join these subset blocks would cause more
+processing than simply recompiling the larger block and letting the smaller
+one (and its 1 tag, out of 65534 available) go unused.
+
+In order to cause fewer Full Flushes whose cause is "Cache full", the
+Translation Cache needs to be made larger on all platforms. Full Flushes are
+unavoidable, but infrequent ones are comparable to Full GCs in garbage-
+collected runtime systems like Java[TM].
+
+== Appendix A: Full Flush Causes ==
+
+Full Flushes can be caused by one of 6 events, which dictate how the flush
+should be handled.
+a) Emulator initialisation. These flushes should be as thorough as possible,
+   because the memory of all Metadata Areas is uninitialised. Memsetting is
+   appropriate here.
+b) ROM loading. These flushes should be thorough, but not as much as during
+   emulator initialisation. All Metadata Areas are affected. Specifically:
+   * The flushes are allowed to short-cut clearing Metadata Entries if there
+     has been code only in part of a Data Area (for example, the start, the
+     middle, or the end) before the ROM change.
+   * The flushes need to reset the Write Count of all Metadata Entries.
+c) Native code linking. Since read-only areas are expected not to need to be
+   compiled often, a high level of optimisation can go into compiling them.
+   Branches into a read-only area can therefore be patched directly into a
+   native code address, bypassing the lookup mechanism.
+   Unfortunately:
+   * The BIOS has an unconditional branch into the ROM when it does Reset or
+     SoftReset.
+   * The ROM has many unconditional branches into the BIOS, in the form of the
+     SWI instruction. (At least, most ROMs do; some don't use the BIOS!)
+   * The RAM areas can have branches into read-only areas, which are then
+     patched.
+   So when a read-only area is the target of a Full Flush (with the reason
+   "Cache full", below), any native code branches targetting that area have
+   become invalid. This affects all other areas than the one flushed.
+   These flushes should be less thorough than when loading a ROM.
+   Specifically:
+   * The flushes are allowed to short-cut clearing Metadata Entries if there
+     has been code only in part of a Data Area (for example, the start, the
+     middle, or the end).
+   * The flushes need to preserve the Write Count of all Metadata Entries.
+d) Cache full. These flushes affect only one Metadata Area, and are exactly
+   as thorough as the "Native code linking" flushes. If the one Metadata Area
+   that is affected describes a read-only area, then all other areas must be
+   flushed with the reason "Native code linking".
+e) Last tag. If a Metadata Area that uses tags would be the recipient of a
+   newly-compiled block with the tag FFFFh, then the affected Metadata Area
+   must be flushed before the tag 0001h is usable for the block instead.
+   Since the BIOS has a Metadata Area that uses tags, if the BIOS code cache
+   is flushed, all others must be flushed with the reason "Native code
+   linking".
+f) Loading a state. This only needs to affect the RAM areas, even if the
+   Program Counter is in the ROM area after loading the state and the code
+   is not compiled at that location. (Compiling that code may or may not cause
+   a Full Flush of the ROM metadata with the reason "Cache full".)
+   Even if the entire RAM has been overwritten after loading a state, the
+   Metadata Entries can still be selectively cleared if it was known a priori
+   that not all of a Data Area contained code. Write Counts also need to be
+   preserved.

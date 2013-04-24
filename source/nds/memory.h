@@ -171,24 +171,16 @@ extern DMA_TRANSFER_TYPE dma[4];
 extern u8 savestate_write_buffer[];
 extern u8 *g_state_buffer_ptr;
 
-//#define USE_VRAM
-
-#ifndef USE_VRAM
 extern u16 palette_ram[512];
 extern u16 oam_ram[512];
 extern u16 io_registers[1024 * 16];
 extern u8 ewram[1024 * 256 * 2];
-extern u8 iwram[1024 * 32 * 2];
+extern u8 iwram_data[1024 * 32];
 extern u8 vram[1024 * 96 * 2];
 extern u8 bios_rom[0x8000];
-#else
-extern u16 *palette_ram;
-extern u16 *oam_ram;
-extern u16 *io_registers;
-extern u8 *ewram;
-extern u8 *iwram;
-extern u8 *vram;
-extern u8 *bios_rom;
+
+#ifndef USE_C_CORE
+extern u8 iwram_smc_data[1024 * 32];
 #endif
 
 extern u32 bios_read_protect;
