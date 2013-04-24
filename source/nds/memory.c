@@ -172,8 +172,8 @@ u8 iwram_data[1024 * 32];
 // VRAM 192kb
 u8 vram[1024 * 96];
 
-// BIOS ROM 32kb - only the first 16 KiB are used, but 32 KiB is needed [Neb]
-u8 bios_rom[0x8000];
+// BIOS ROM 16kb
+u8 bios_data[0x4000];
 
 // SRAM/flash/EEPROM 128kb
 u8 gamepak_backup[1024 * 128];
@@ -181,7 +181,8 @@ u8 gamepak_backup[1024 * 128];
 #ifndef USE_C_CORE
 u8 iwram_smc_data[1024 * 32];          // Contains block tags and
 u8 ewram_smc_data[1024 * 256];         // self-modifying code (SMC) detection
-                                       // data for the named Data Areas.
+u8 bios_smc_data[1024 * 16];           // data for the named Data Areas.
+                                       // (BIOS = read-only, so only tags)
 #endif
 
 u32 flash_bank_offset = 0;
@@ -573,7 +574,7 @@ u32 read_eeprom()
         }                                                                     \
       }                                                                       \
       else                                                                    \
-        value = ADDRESS##type(bios_rom, address & 0x3FFF);                    \
+        value = ADDRESS##type(bios_data, address & 0x3FFF);                   \
       break;                                                                  \
                                                                               \
     case 0x02:                                                                \
@@ -2415,8 +2416,8 @@ s32 load_game_config(char *gamepak_title, char *gamepak_code, char *gamepak_make
   idle_loop_targets = 0;
   idle_loop_target_pc[0] = 0xFFFFFFFF;
   iwram_stack_optimize = 1;
-  bios_rom[0x39] = 0x00;
-  bios_rom[0x2C] = 0x00;
+  bios_data[0x39] = 0x00;
+  bios_data[0x2C] = 0x00;
   translation_gate_targets = 0;
   flash_device_id = FLASH_DEVICE_MACRONIX_64KB;
   backup_type = BACKUP_NONE;
@@ -2501,13 +2502,13 @@ s32 load_game_config(char *gamepak_title, char *gamepak_code, char *gamepak_make
             if(!strcasecmp(current_variable, "bios_rom_hack_39") &&
               !strcasecmp(current_value, "yes"))
             {
-              bios_rom[0x39] = 0xC0;
+              bios_data[0x39] = 0xC0;
             }
 
             if(!strcasecmp(current_variable, "bios_rom_hack_2C") &&
               !strcasecmp(current_value, "yes"))
             {
-               bios_rom[0x2C] = 0x02;
+               bios_data[0x2C] = 0x02;
             }
           }
         }
@@ -2676,10 +2677,10 @@ s32 load_bios(char *name)
 
   if(FILE_CHECK_VALID(bios_file))
   {
-    FILE_READ(bios_file, bios_rom, 0x4000);
+    FILE_READ(bios_file, bios_data, 0x4000);
     FILE_CLOSE(bios_file);
     // 获得BIOS的MD5
-//    sceKernelUtilsMd5Digest(bios_rom, 0x4000, md5);
+//    sceKernelUtilsMd5Digest(bios_data, 0x4000, md5);
 //    if (memcmp(md5,gba_md5,16) == 0)
       return 0;
 //    if (memcmp(md5,nds_md5,16) == 0)
@@ -3462,8 +3463,8 @@ void init_memory()
 {
   u32 map_offset = 0;
 
-  memory_regions[0x00] = (u8 *)bios_rom;
-  memory_regions[0x01] = (u8 *)bios_rom;
+  memory_regions[0x00] = (u8 *)bios_data;
+  memory_regions[0x01] = (u8 *)bios_data;
   memory_regions[0x02] = (u8 *)ewram_data;
   memory_regions[0x03] = (u8 *)iwram_data;
   memory_regions[0x04] = (u8 *)io_registers;
@@ -3495,7 +3496,7 @@ void init_memory()
   memory_limits[0x0E] = 0xFFFF;
 
   // Fill memory map regions, areas marked as NULL must be checked directly
-  map_region(read, 0x0000000, 0x1000000, 1, bios_rom);
+  map_region(read, 0x0000000, 0x1000000, 1, bios_data);
   map_null(read, 0x1000000, 0x2000000);
   map_region(read, 0x2000000, 0x3000000, 8, ewram_data);
   map_region(read, 0x3000000, 0x4000000, 1, iwram_data);
@@ -3582,7 +3583,7 @@ void init_memory()
 
 void bios_region_read_allow()
 {
-  memory_map_read[0] = bios_rom;
+  memory_map_read[0] = bios_data;
 }
 
 void bios_region_read_protect()

@@ -1529,11 +1529,11 @@ execute_load_bios_u8:
   bne $2, $0, 2f                  # if not, perform open read
   srl $1, $5, 14                  # check if PC is in BIOS region (delay)
   bne $1, $0, 1f                  # if not, perform BIOS protected read
-  lui $2, %hi(bios_rom)           # generate upper address (delay)
+  lui $2, %hi(bios_data)          # generate upper address (delay)
 
   andi $4, $4, 0x3FFF             # generate offset
   addu $2, $2, $4
-  load_u8 bios_rom
+  load_u8 bios_data
 
 1:
   lui $2, %hi(bios_read_protect)  # generate upper address
@@ -1634,11 +1634,11 @@ execute_load_bios_s8:
   bne $2, $0, 2f
   srl $1, $5, 14                  # check if PC is in BIOS region (delay)
   bne $1, $0, 1f                  # if not, perform BIOS protected read
-  lui $2, %hi(bios_rom)           # generate upper address (delay)
+  lui $2, %hi(bios_data)          # generate upper address (delay)
 
   andi $4, $4, 0x3FFF             # generate offset
   addu $2, $2, $4
-  load_s8 bios_rom
+  load_s8 bios_data
 
 1:
   lui $2, %hi(bios_read_protect)  # generate upper address
@@ -1736,11 +1736,11 @@ execute_load_bios_u16:
   bne $2, $0, 2f                  # if not, perform open read
   srl $1, $5, 14                  # check if PC is in BIOS region (delay)
   bne $1, $0, 1f                  # if not, perform BIOS protected read
-  lui $2, %hi(bios_rom)           # generate upper address (delay)
+  lui $2, %hi(bios_data)          # generate upper address (delay)
 
   andi $4, $4, 0x3FFF             # generate offset
   addu $2, $2, $4
-  load_u16 bios_rom
+  load_u16 bios_data
 
 1:
   lui $2, %hi(bios_read_protect)  # generate upper address
@@ -1815,11 +1815,11 @@ execute_load_bios_u16u:
   bne $2, $0, 2f                  # if not, perform open read
   srl $1, $5, 14                  # check if PC is in BIOS region (delay)
   bne $1, $0, 1f                  # if not, perform BIOS protected read
-  lui $2, %hi(bios_rom)           # generate upper address (delay)
+  lui $2, %hi(bios_data)          # generate upper address (delay)
 
   andi $4, $4, 0x3FFE             # generate offset
   addu $2, $2, $4
-  load_u16_unaligned bios_rom
+  load_u16_unaligned bios_data
 
 1:
   lui $2, %hi(bios_read_protect)  # generate upper address
@@ -1969,11 +1969,11 @@ execute_load_bios_s16:
   bne $2, $0, 2f                  # if not, perform open read
   srl $1, $5, 14                  # check if PC is in BIOS region (delay)
   bne $1, $0, 1f                  # if not, perform BIOS protected read
-  lui $2, %hi(bios_rom)           # generate upper address (delay)
+  lui $2, %hi(bios_data)          # generate upper address (delay)
 
   andi $4, $4, 0x3FFF             # generate offset
   addu $2, $2, $4
-  load_s16 bios_rom
+  load_s16 bios_data
 
 1:
   lui $2, %hi(bios_read_protect)  # generate upper address
@@ -2048,11 +2048,11 @@ execute_load_bios_s16u:
   bne $2, $0, 2f                  # if not, perform open read
   srl $1, $5, 14                  # check if PC is in BIOS region (delay)
   bne $1, $0, 1f                  # if not, perform BIOS protected read
-  lui $2, %hi(bios_rom)           # generate upper address (delay)
+  lui $2, %hi(bios_data)          # generate upper address (delay)
 
   andi $4, $4, 0x3FFE             # generate offset
   addu $2, $2, $4
-  load_s16_unaligned bios_rom
+  load_s16_unaligned bios_data
 
 1:
   lui $2, %hi(bios_read_protect)  # generate upper address
@@ -2166,11 +2166,11 @@ execute_load_bios_u32:
   bne $2, $0, 2f                  # if not, perform open read
   srl $1, $5, 14                  # check if PC is in BIOS region (delay)
   bne $1, $0, 1f                  # if not, perform BIOS protected read
-  lui $2, %hi(bios_rom)           # generate upper address (delay)
+  lui $2, %hi(bios_data)          # generate upper address (delay)
 
   andi $4, $4, 0x3FFF             # generate offset
   addu $2, $2, $4
-  load_u32 bios_rom
+  load_u32 bios_data
 
 1:
   lui $2, %hi(bios_read_protect)  # generate upper address
@@ -2245,11 +2245,11 @@ execute_load_bios_u32u1:
   bne $2, $0, 2f                  # if not, perform open read
   srl $1, $5, 14                  # check if PC is in BIOS region (delay)
   bne $1, $0, 1f                  # if not, perform BIOS protected read
-  lui $2, %hi(bios_rom)           # generate upper address (delay)
+  lui $2, %hi(bios_data)          # generate upper address (delay)
 
   andi $4, $4, 0x3FFC             # generate offset
   addu $2, $2, $4
-  load_u32_unaligned bios_rom, 1
+  load_u32_unaligned bios_data, 1
 
 1:
   lui $2, %hi(bios_read_protect)  # generate upper address
@@ -2319,11 +2319,11 @@ execute_load_bios_u32u2:
   bne $2, $0, 2f                  # if not, perform open read
   srl $1, $5, 14                  # check if PC is in BIOS region (delay)
   bne $1, $0, 1f                  # if not, perform BIOS protected read
-  lui $2, %hi(bios_rom)           # generate upper address (delay)
+  lui $2, %hi(bios_data)          # generate upper address (delay)
 
   andi $4, $4, 0x3FFC             # generate offset
   addu $2, $2, $4
-  load_u32_unaligned bios_rom, 2
+  load_u32_unaligned bios_data, 2
 
 1:
   lui $2, %hi(bios_read_protect)  # generate upper address
@@ -2393,11 +2393,11 @@ execute_load_bios_u32u3:
   bne $2, $0, 2f                  # if not, perform open read
   srl $1, $5, 14                  # check if PC is in BIOS region (delay)
   bne $1, $0, 1f                  # if not, perform BIOS protected read
-  lui $2, %hi(bios_rom)           # generate upper address (delay)
+  lui $2, %hi(bios_data)          # generate upper address (delay)
 
   andi $4, $4, 0x3FFC             # generate offset
   addu $2, $2, $4
-  load_u32_unaligned bios_rom, 3
+  load_u32_unaligned bios_data, 3
 
 1:
   lui $2, %hi(bios_read_protect)  # generate upper address
@@ -2542,11 +2542,11 @@ execute_load_bios_u32a:
   bne $2, $0, 2f                  # if not, perform open read
   srl $1, $5, 14                  # check if PC is in BIOS region (delay)
   bne $1, $0, 1f                  # if not, perform BIOS protected read
-  lui $2, %hi(bios_rom)           # generate upper address (delay)
+  lui $2, %hi(bios_data)          # generate upper address (delay)
 
   andi $4, $4, 0x3FFF             # generate offset
   addu $2, $2, $4
-  load_u32 bios_rom
+  load_u32 bios_data
 
 1:
   lui $2, %hi(bios_read_protect)  # generate upper address

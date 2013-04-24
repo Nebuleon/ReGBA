@@ -2851,7 +2851,7 @@ static inline void AdjustTranslationBufferPeaks() {}
   {                                                                           \
     case 0x0:                                                                 \
       bios_region_read_allow();                                               \
-      location = (u16 *)(bios_rom + pc + 0x4000);                             \
+      location = (u16 *)(bios_smc_data + pc);                                 \
       block_lookup_translate(type, bios, 0);                                  \
       if(translation_recursion_level == 0)                                    \
         bios_region_read_allow();                                             \
@@ -3751,7 +3751,7 @@ void flush_translation_cache_bios()
 
   bios_block_tag_top = 0x0101;
   bios_translation_ptr = bios_translation_cache;
-  memset(bios_rom + 0x4000, 0, 0x4000);
+  memset(bios_smc_data, 0, 0x4000);
 }
 
 unsigned int last_ram= 0;
