@@ -721,48 +721,41 @@ mips_indirect_branch_dual:
 
 
 .macro translate_region_ewram_core mask
-  andi $1, $4, \mask              # generate 15bit offset
-#  ext $4, $4, 15, 3               # isolate top 3 bits of offset
-#  ins $1, $4, 16, 3               # reinsert into top 4 bits
-  srl $4, $4, 15
-  andi $4, $4, 7
-  lui $2, 7
-  nor $2, $0, $2
-  and $1, $1, $2
-  sll $2, $4, 16
-  or  $1, $1, $2                  # emulate INS instruction
-  lui $2, %hi(ewram + 0x8000)     # generate upper address (delay)
-  addu $2, $2, $1
+  lui  $1, 3                      # size of EWRAM = 0x40000; load 3 in 31..16
+  ori  $1, $1, \mask              # now append the rest of the mask, 0x3XXXX
+  and  $4, $4, $1
+  lui  $2, %hi(ewram_data)        # generate upper address (delay)
+  addu $2, $2, $4
 .endm
 
 .macro translate_region_ewram patch_handler
   region_check 2, \patch_handler
-  translate_region_ewram_core 0x7FFF # partially in BNE delay slot
+  translate_region_ewram_core 0xFFFF # partially in BNE delay slot
 .endm
 
 .macro translate_region_ewram_load_align align_bits, alignment, patch_handler
   region_check_align 2, \align_bits, \alignment, \patch_handler
-  translate_region_ewram_core 0x7FFF # partially in BNE delay slot
+  translate_region_ewram_core 0xFFFF # partially in BNE delay slot
 .endm
 
 .macro translate_region_ewram_load_align16 align_bits, alignment, patch_handler
   region_check_align 2, \align_bits, \alignment, \patch_handler
-  translate_region_ewram_core 0x7FFE # partially in BNE delay slot
+  translate_region_ewram_core 0xFFFE # partially in BNE delay slot
 .endm
 
 .macro translate_region_ewram_load_align32 align_bits, alignment, patch_handler
   region_check_align 2, \align_bits, \alignment, \patch_handler
-  translate_region_ewram_core 0x7FFC # partially in BNE delay slot
+  translate_region_ewram_core 0xFFFC # partially in BNE delay slot
 .endm
 
 .macro translate_region_ewram_store_align16 patch_handler
   region_check 2, \patch_handler
-  translate_region_ewram_core 0x7FFE # partially in BNE delay slot
+  translate_region_ewram_core 0xFFFE # partially in BNE delay slot
 .endm
 
 .macro translate_region_ewram_store_align32 patch_handler
   region_check 2, \patch_handler
-  translate_region_ewram_core 0x7FFC # partially in BNE delay slot
+  translate_region_ewram_core 0xFFFC # partially in BNE delay slot
 .endm
 
 
@@ -1555,7 +1548,7 @@ execute_load_bios_u8:
 
 execute_load_ewram_u8:
   translate_region_ewram patch_load_u8
-  load_u8 (ewram + 0x8000)
+  load_u8 ewram_data
 
 # Put the generic address over the handler you want to be default
 # IWRAM is typically the most frequently read and written to.
@@ -1660,7 +1653,7 @@ execute_load_bios_s8:
 
 execute_load_ewram_s8:
   translate_region_ewram patch_load_s8
-  load_s8 (ewram + 0x8000)
+  load_s8 ewram_data
 
 execute_load_s8:
 execute_load_iwram_s8:
@@ -1761,7 +1754,7 @@ execute_load_bios_u16:
 
 execute_load_ewram_u16:
   translate_region_ewram_load_align 1, 0, patch_load_u16
-  load_u16 (ewram + 0x8000)
+  load_u16 ewram_data
 
 execute_load_u16:
 execute_load_iwram_u16:
@@ -1842,7 +1835,7 @@ execute_load_bios_u16u:
 
 execute_load_ewram_u16u:
   translate_region_ewram_load_align16 1, 1, patch_load_u16
-  load_u16_unaligned (ewram + 0x8000)
+  load_u16_unaligned ewram_data
 
 execute_load_iwram_u16u:
   translate_region_align 3, 1, 1, patch_load_u16, iwram_data, 0x7FFE
@@ -1994,7 +1987,7 @@ execute_load_bios_s16:
 
 execute_load_ewram_s16:
   translate_region_ewram_load_align 1, 0, patch_load_s16
-  load_s16 (ewram + 0x8000)
+  load_s16 ewram_data
 
 execute_load_s16:
 execute_load_iwram_s16:
@@ -2074,7 +2067,7 @@ execute_load_bios_s16u:
 
 execute_load_ewram_s16u:
   translate_region_ewram_load_align16 1, 1, patch_load_s16
-  load_s16_unaligned (ewram + 0x8000)
+  load_s16_unaligned ewram_data
 
 execute_load_iwram_s16u:
   translate_region_align 3, 1, 1, patch_load_s16, iwram_data, 0x7FFE
@@ -2189,7 +2182,7 @@ execute_load_bios_u32:
 
 execute_load_ewram_u32:
   translate_region_ewram_load_align 2, 0, patch_load_u32
-  load_u32 (ewram + 0x8000)
+  load_u32 ewram_data
 
   .ent execute_load_u32
 execute_load_u32:
@@ -2267,7 +2260,7 @@ execute_load_bios_u32u1:
 
 execute_load_ewram_u32u1:
   translate_region_ewram_load_align32 2, 1, patch_load_u32
-  load_u32_unaligned (ewram + 0x8000), 1
+  load_u32_unaligned ewram_data, 1
 
 execute_load_iwram_u32u1:
   translate_region_align 3, 2, 1, patch_load_u32, iwram_data, 0x7FFC
@@ -2341,7 +2334,7 @@ execute_load_bios_u32u2:
 
 execute_load_ewram_u32u2:
   translate_region_ewram_load_align32 2, 2, patch_load_u32
-  load_u32_unaligned (ewram + 0x8000), 2
+  load_u32_unaligned ewram_data, 2
 
 execute_load_iwram_u32u2:
   translate_region_align 3, 2, 2, patch_load_u32, iwram_data, 0x7FFC
@@ -2415,7 +2408,7 @@ execute_load_bios_u32u3:
 
 execute_load_ewram_u32u3:
   translate_region_ewram_load_align32 2, 3, patch_load_u32
-  load_u32_unaligned (ewram + 0x8000), 3
+  load_u32_unaligned ewram_data, 3
 
 execute_load_iwram_u32u3:
   translate_region_align 3, 2, 3, patch_load_u32, iwram_data, 0x7FFC
@@ -2564,7 +2557,7 @@ execute_load_bios_u32a:
 
 execute_load_ewram_u32a:
   translate_region_ewram patch_load_u32a
-  load_u32 (ewram + 0x8000)
+  load_u32 ewram_data
 
 execute_aligned_load32:
 execute_load_iwram_u32a:
@@ -2648,7 +2641,7 @@ execute_store_ignore1_u8:
 
 execute_store_ewram_u8:
   translate_region_ewram patch_store_u8
-  store_u8_smc (ewram + 0x8000)
+  store_u8_metadata ewram_data, ewram_smc_data
 
 execute_store_u8:
 execute_store_iwram_u8:
@@ -2750,7 +2743,7 @@ execute_store_ignore1_u16:
 
 execute_store_ewram_u16:
   translate_region_ewram_store_align16 patch_store_u16
-  store_u16_smc (ewram + 0x8000)
+  store_u16_metadata ewram_data, ewram_smc_data
 
 execute_store_u16:
 execute_store_iwram_u16:
@@ -2848,7 +2841,7 @@ execute_store_ignore1_u32:
 
 execute_store_ewram_u32:
   translate_region_ewram_store_align32 patch_store_u32
-  store_u32_smc (ewram + 0x8000)
+  store_u32_metadata ewram_data, ewram_smc_data
 
 execute_store_u32:
 execute_store_iwram_u32:
@@ -2945,7 +2938,7 @@ execute_store_ignore1_u32a:
 
 execute_store_ewram_u32a:
   translate_region_ewram_store_align32 patch_store_u32a
-  store_u32 (ewram + 0x8000)
+  store_u32 ewram_data
 
 execute_aligned_store32:
 execute_store_iwram_u32a:

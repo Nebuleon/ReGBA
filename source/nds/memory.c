@@ -166,7 +166,7 @@ u16 oam_ram[512];
 // IOレジスタ 32kb
 u16 io_registers[1024 * 16];
 // ExtワークRAM 256KB x2
-u8 ewram[1024 * 256 * 2];
+u8 ewram_data[1024 * 256];
 // IntワークRAM 32KB x2
 u8 iwram_data[1024 * 32];
 // VRAM 192kb
@@ -180,7 +180,7 @@ u8 gamepak_backup[1024 * 128];
 
 #ifndef USE_C_CORE
 u8 iwram_smc_data[1024 * 32];          // Contains block tags and
-                                       // self-modifying code (SMC) detection
+u8 ewram_smc_data[1024 * 256];         // self-modifying code (SMC) detection
                                        // data for the named Data Areas.
 #endif
 
@@ -578,8 +578,7 @@ u32 read_eeprom()
                                                                               \
     case 0x02:                                                                \
       /* external work RAM */                                                 \
-      address = (address & 0x7FFF) + ((address & 0x38000) << 1) + 0x8000;     \
-      value = ADDRESS##type(ewram, address);                                  \
+      value = ADDRESS##type(ewram_data, address & 0x3FFFF);                   \
       break;                                                                  \
                                                                               \
     case 0x03:                                                                \
@@ -2099,8 +2098,7 @@ void write_rtc(u32 address, u32 value)
   {                                                                           \
     case 0x02:                                                                \
       /* external work RAM */                                                 \
-      address = (address & 0x7FFF) + ((address & 0x38000) * 2) + 0x8000;      \
-      ADDRESS##type(ewram, address) = value;                                  \
+      ADDRESS##type(ewram_data, address & 0x3FFFF) = value;                   \
       break;                                                                  \
                                                                               \
     case 0x03:                                                                \
@@ -2800,21 +2798,10 @@ dma_region_type dma_region_map[16] =
 
 #define dma_vars_ewram(type)                                                  \
   dma_smc_vars_##type();                                                      \
-  u32 type##_new_region;                                                      \
-  u32 type##_current_region = type##_ptr >> 15;                               \
-  u8 *type##_address_block = dma_segmented_load_##type()                      \
 
 #define dma_vars_bios(type)                                                   \
 
 #define dma_vars_ext(type)                                                    \
-
-#define dma_ewram_check_region(type)                                          \
-  type##_new_region = (type##_ptr >> 15);                                     \
-  if(type##_new_region != type##_current_region)                              \
-  {                                                                           \
-    type##_current_region = type##_new_region;                                \
-    type##_address_block = dma_segmented_load_##type();                       \
-  }                                                                           \
 
 #define dma_gamepak_check_region(type)                                        \
   type##_new_region = (type##_ptr >> 15);                                     \
@@ -2845,9 +2832,7 @@ dma_region_type dma_region_map[16] =
   read_value = ADDRESS##transfer_size(palette_ram, type##_ptr & 0x3FF)        \
 
 #define dma_read_ewram(type, transfer_size)                                   \
-  dma_ewram_check_region(type);                                               \
-  read_value = ADDRESS##transfer_size(type##_address_block,                   \
-   type##_ptr & 0x7FFF)                                                       \
+  read_value = ADDRESS##transfer_size(ewram_data, type##_ptr & 0x3FFFF)       \
 
 #define dma_read_gamepak(type, transfer_size)                                 \
   dma_gamepak_check_region(type);                                             \
@@ -2882,12 +2867,8 @@ dma_region_type dma_region_map[16] =
   write_memory##transfer_size(type##_ptr, read_value)                         \
 
 #define dma_write_ewram(type, transfer_size)                                  \
-  dma_ewram_check_region(type);                                               \
-                                                                              \
-  ADDRESS##transfer_size(type##_address_block, type##_ptr & 0x7FFF) =         \
-    read_value;                                                               \
-  smc_trigger |= ADDRESS##transfer_size(type##_address_block,                 \
-   (type##_ptr & 0x7FFF) - 0x8000);                                           \
+  ADDRESS##transfer_size(ewram_data, type##_ptr & 0x3FFFF) = read_value;      \
+  smc_trigger |= ADDRESS##transfer_size(ewram_smc_data, type##_ptr & 0x3FFFF);\
 
 #define dma_epilogue_iwram()                                                  \
   if(smc_trigger)                                                             \
@@ -3483,7 +3464,7 @@ void init_memory()
 
   memory_regions[0x00] = (u8 *)bios_rom;
   memory_regions[0x01] = (u8 *)bios_rom;
-  memory_regions[0x02] = (u8 *)ewram;
+  memory_regions[0x02] = (u8 *)ewram_data;
   memory_regions[0x03] = (u8 *)iwram_data;
   memory_regions[0x04] = (u8 *)io_registers;
   memory_regions[0x05] = (u8 *)palette_ram;
@@ -3516,7 +3497,7 @@ void init_memory()
   // Fill memory map regions, areas marked as NULL must be checked directly
   map_region(read, 0x0000000, 0x1000000, 1, bios_rom);
   map_null(read, 0x1000000, 0x2000000);
-  map_ram_region(read, 0x2000000, 0x3000000, 8, ewram);
+  map_region(read, 0x2000000, 0x3000000, 8, ewram_data);
   map_region(read, 0x3000000, 0x4000000, 1, iwram_data);
   map_region(read, 0x4000000, 0x5000000, 1, io_registers);
   map_null(read, 0x5000000, 0x6000000);
@@ -3527,7 +3508,7 @@ void init_memory()
 
   // Fill memory map regions, areas marked as NULL must be checked directly
   map_null(write, 0x0000000, 0x2000000);
-  map_ram_region(write, 0x2000000, 0x3000000, 8, ewram);
+  map_region(write, 0x2000000, 0x3000000, 8, ewram_data);
   map_region(write, 0x3000000, 0x4000000, 1, iwram_data);
   map_null(write, 0x4000000, 0x5000000);
   map_null(write, 0x5000000, 0x6000000);
@@ -3562,7 +3543,8 @@ void init_memory()
   memset(palette_ram, 0, sizeof(palette_ram));
   memset(iwram_data, 0, sizeof(iwram_data));
   memset(iwram_smc_data, 0, sizeof(iwram_smc_data));
-  memset(ewram, 0, sizeof(ewram));
+  memset(ewram_data, 0, sizeof(ewram_data));
+  memset(ewram_smc_data, 0, sizeof(ewram_smc_data));
   memset(vram, 0, sizeof(vram));
 
   io_registers[REG_DISPCNT] = 0x80;
@@ -4006,10 +3988,7 @@ u32 save_state(char *savestate_filename, u16 *screen_capture)
   FILE_##type##_ARRAY(g_state_buffer_ptr, dma);                               \
                                                                               \
   FILE_##type##_ARRAY(g_state_buffer_ptr, iwram_data);                        \
-  for(i = 0; i < 8; i++)                                                      \
-  {                                                                           \
-    FILE_##type(g_state_buffer_ptr, ewram + (i * 0x10000) + 0x8000, 0x8000);  \
-  }                                                                           \
+  FILE_##type##_ARRAY(g_state_buffer_ptr, ewram_data);                        \
   FILE_##type(g_state_buffer_ptr, vram, 0x18000);                             \
   FILE_##type(g_state_buffer_ptr, oam_ram, 0x400);                            \
   FILE_##type(g_state_buffer_ptr, palette_ram, 0x400);                        \
@@ -4052,10 +4031,7 @@ memory_savestate_body(WRITE_MEM);
   FILE_##type##_ARRAY(g_state_buffer_ptr, dma);								  \
                                                                               \
   FILE_##type##_ARRAY(g_state_buffer_ptr, iwram_data);				 \
-  for(i = 0; i < 8; i++)                                                      \
-  {                                                                           \
-    FILE_##type(g_state_buffer_ptr, ewram + (i * 0x10000) + 0x8000, 0x8000);  \
-  }                                                                           \
+  FILE_##type##_ARRAY(g_state_buffer_ptr, ewram_data);				 \
   FILE_##type(g_state_buffer_ptr, vram, 0x18000);							  \
   FILE_##type(g_state_buffer_ptr, oam_ram, 0x400);							  \
   FILE_##type(g_state_buffer_ptr, palette_ram, 0x400);						  \

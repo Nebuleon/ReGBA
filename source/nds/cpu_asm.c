@@ -2858,7 +2858,7 @@ static inline void AdjustTranslationBufferPeaks() {}
       break;                                                                  \
                                                                               \
     case 0x2:                                                                 \
-      location = (u16 *)(ewram + (pc & 0x7FFF) + ((pc & 0x38000) << 1));      \
+      location = (u16 *)(ewram_smc_data + (pc & 0x3FFFF));                    \
       block_lookup_translate(type, ram, 1);                                   \
       break;                                                                  \
                                                                               \
@@ -3201,6 +3201,12 @@ block_data_type block_data[MAX_BLOCK_SIZE];
 #define smc_write_arm_yes()                                                   \
   switch (block_end_pc >> 24)                                                 \
   {                                                                           \
+    case 0x02: /* EWRAM */                                                    \
+      if (ADDRESS32(ewram_smc_data, block_end_pc & 0x3FFFC) == 0)             \
+      {                                                                       \
+        ADDRESS32(ewram_smc_data, block_end_pc & 0x3FFFC) =  0xFFFFFFFF;      \
+      }                                                                       \
+      break;                                                                  \
     case 0x03: /* IWRAM */                                                    \
       if (ADDRESS32(iwram_smc_data, block_end_pc & 0x7FFC) == 0)              \
       {                                                                       \
@@ -3219,6 +3225,12 @@ block_data_type block_data[MAX_BLOCK_SIZE];
 #define smc_write_thumb_yes()                                                 \
   switch (block_end_pc >> 24)                                                 \
   {                                                                           \
+    case 0x02: /* EWRAM */                                                    \
+      if (ADDRESS16(ewram_smc_data, block_end_pc & 0x3FFFE) == 0)             \
+      {                                                                       \
+        ADDRESS16(ewram_smc_data, block_end_pc & 0x3FFFE) = 0xFFFF;           \
+      }                                                                       \
+      break;                                                                  \
     case 0x03: /* IWRAM */                                                    \
       if (ADDRESS16(iwram_smc_data, block_end_pc & 0x7FFE) == 0)              \
       {                                                                       \
@@ -3705,35 +3717,9 @@ void flush_translation_cache_ram()
 
   if(ewram_code_min != 0xFFFFFFFF)
   {
-    u32 ewram_code_min_page;
-    u32 ewram_code_max_page;
-    u32 ewram_code_min_offset;
-    u32 ewram_code_max_offset;
-    u32 i;
-
     ewram_code_min &= 0x3FFFF;
     ewram_code_max &= 0x3FFFF;
-
-    ewram_code_min_page = ewram_code_min >> 15;
-    ewram_code_max_page = ewram_code_max >> 15;
-    ewram_code_min_offset = ewram_code_min & 0x7FFF;
-    ewram_code_max_offset = ewram_code_max & 0x7FFF;
-
-    if(ewram_code_min_page == ewram_code_max_page)
-    {
-      memset(ewram + (ewram_code_min_page * 0x10000) +
-       ewram_code_min_offset, 0,
-       ewram_code_max_offset - ewram_code_min_offset + 1);
-    }
-    else
-    {
-      memset(ewram + (ewram_code_min_page * 0x10000) + ewram_code_min_offset, 0, 0x8000 - ewram_code_min_offset);
-      for(i = ewram_code_min_page + 1; i < ewram_code_max_page; i++)
-        memset(ewram + (i * 0x10000), 0, 0x8000);
-
-      memset(ewram + (ewram_code_max_page * 0x10000), 0, ewram_code_max_offset + 1);
-
-    }
+    memset(ewram_smc_data + ewram_code_min, 0, ewram_code_max - ewram_code_min + 1);
     ewram_code_min = 0xFFFFFFFF;
     ewram_code_max = 0xFFFFFFFF;
   }
