@@ -170,7 +170,7 @@ u8 ewram_data[1024 * 256];
 // IntワークRAM 32KB x2
 u8 iwram_data[1024 * 32];
 // VRAM 192kb
-u8 vram[1024 * 96 * 2];
+u8 vram[1024 * 96];
 
 // BIOS ROM 32kb - only the first 16 KiB are used, but 32 KiB is needed [Neb]
 u8 bios_rom[0x8000];

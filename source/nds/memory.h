@@ -176,7 +176,7 @@ extern u16 oam_ram[512];
 extern u16 io_registers[1024 * 16];
 extern u8 ewram_data[1024 * 256];
 extern u8 iwram_data[1024 * 32];
-extern u8 vram[1024 * 96 * 2];
+extern u8 vram[1024 * 96];
 extern u8 bios_rom[0x8000];
 
 #ifndef USE_C_CORE
