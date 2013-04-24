@@ -2850,7 +2850,13 @@ dma_region_type dma_region_map[16] =
 
 #define dma_write_iwram(type, transfer_size)                                  \
   ADDRESS##transfer_size(iwram_data, type##_ptr & 0x7FFF) = read_value;       \
-  smc_trigger |= ADDRESS##transfer_size(iwram_smc_data, type##_ptr & 0x7FFF); \
+  {                                                                           \
+    u32 smc = ADDRESS##transfer_size(iwram_smc_data, type##_ptr & 0x7FFF);    \
+    if (smc) {                                                                \
+      partial_flush_ram(0x03000000 | (type##_ptr & 0xFFFFFF));                \
+    }                                                                         \
+    smc_trigger |= smc;                                                       \
+  }                                                                           \
 
 #define dma_write_vram(type, transfer_size)                                   \
   ADDRESS##transfer_size(vram, type##_ptr & 0x1FFFF) = read_value             \
@@ -2869,7 +2875,13 @@ dma_region_type dma_region_map[16] =
 
 #define dma_write_ewram(type, transfer_size)                                  \
   ADDRESS##transfer_size(ewram_data, type##_ptr & 0x3FFFF) = read_value;      \
-  smc_trigger |= ADDRESS##transfer_size(ewram_smc_data, type##_ptr & 0x3FFFF);\
+  {                                                                           \
+    u32 smc = ADDRESS##transfer_size(ewram_smc_data, type##_ptr & 0x3FFFF);   \
+    if (smc) {                                                                \
+      partial_flush_ram(0x02000000 | (type##_ptr & 0xFFFFFF));                \
+    }                                                                         \
+    smc_trigger |= smc;                                                       \
+  }                                                                           \
 
 #define dma_epilogue_iwram()                                                  \
   if(smc_trigger)                                                             \

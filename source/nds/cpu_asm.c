@@ -2772,6 +2772,11 @@ u32 bios_block_tag_top = 0x0101;
     s32 translation_result;                                                   \
                                                                               \
     redo:                                                                     \
+    if (mem_type##_block_tag_top == 0xFFFF)                                   \
+    {                                                                         \
+      translation_flush_count++;                                              \
+      flush_translation_cache_##mem_type();                                   \
+    }                                                                         \
                                                                               \
     translation_recursion_level++;                                            \
     block_address = mem_type##_translation_ptr + block_prologue_size;         \
@@ -3693,7 +3698,75 @@ s32 translate_block_##type(u32 pc, TRANSLATION_REGION_TYPE                    \
 translate_block_builder(arm);
 translate_block_builder(thumb);
 
+/*
+ * Starts a Partial Flush of the code residing in the Data Word at the given
+ * GBA address, and all adjacent code words.
+ */
+void partial_flush_ram(u32 address)
+{
+  u8 *smc_data;
+
+  switch (address >> 24)
+  {
+    case 0x02: /* EWRAM */
+      smc_data = ewram_smc_data + (address & 0x3FFFE);
+      break;
+    case 0x03: /* IWRAM */
+      smc_data = iwram_smc_data + (address & 0x7FFE);
+      break;
+    default:   /* no smc_data */
+      return;
+  }
+  if (*((u16*) smc_data) == 0)
+    return;
+
+  u8 *smc_data_area, *smc_data_area_end, *smc_data_right;
+  smc_data_right = smc_data; // Save this pointer to go to the right later
+  switch (address >> 24)
+  {
+    case 0x02: /* EWRAM */
+      smc_data_area = ewram_smc_data;
+      smc_data_area_end = ewram_smc_data + 0x40000;
+      break;
+    case 0x03: /* IWRAM */
+      smc_data_area = iwram_smc_data;
+      smc_data_area_end = iwram_smc_data + 0x8000;
+      break;
+  }
+
+  while (1)
+  {
+    smc_data = smc_data - 2;
+    if (smc_data < smc_data_area)
+      smc_data = smc_data_area_end - 2; // Wrap to the end
+    if (*((u16*) smc_data) != 0)
+      *((u16*) smc_data) = 0xFFFF;
+    else break;
+  }
+
+  smc_data = smc_data_right;
+
+  while (1)
+  {
+    smc_data = smc_data + 2;
+    if (smc_data == smc_data_area_end)
+      smc_data = smc_data_area; // Wrap to the beginning
+    if (*((u16*) smc_data) != 0)
+      *((u16*) smc_data) = 0xFFFF;
+    else break;
+  }
+}
+
+static void flush_translation_cache_ram_internal();
+static void flush_translation_cache_rom_internal();
+static void flush_translation_cache_bios_internal();
+
 void flush_translation_cache_ram()
+{
+  flush_translation_cache_ram_internal();
+}
+
+static void flush_translation_cache_ram_internal()
 {
   Stats.RAMTranslationFlushCount++;
   Stats.RAMTranslationBytesFlushed += ram_translation_ptr
@@ -3727,6 +3800,15 @@ void flush_translation_cache_ram()
 
 void flush_translation_cache_rom()
 {
+  /* If flushing the ROM cache, we must also flush the others, because
+   * we have patched native code offsets for the branches into the ROM */
+  flush_translation_cache_rom_internal();
+  flush_translation_cache_bios_internal();
+  flush_translation_cache_ram_internal();
+}
+
+static void flush_translation_cache_rom_internal()
+{
   Stats.ROMTranslationFlushCount++;
   Stats.ROMTranslationBytesFlushed += rom_translation_ptr
    - rom_translation_cache;
@@ -3740,6 +3822,15 @@ void flush_translation_cache_rom()
 }
 
 void flush_translation_cache_bios()
+{
+  /* If flushing the BIOS cache, we must also flush the others, because
+   * we have patched native code offsets for the branches into the BIOS */
+  flush_translation_cache_bios_internal();
+  flush_translation_cache_rom_internal();
+  flush_translation_cache_ram_internal();
+}
+
+static void flush_translation_cache_bios_internal()
 {
   Stats.BIOSTranslationFlushCount++;
   Stats.BIOSTranslationBytesFlushed += bios_translation_ptr

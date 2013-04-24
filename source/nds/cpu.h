@@ -153,6 +153,7 @@ extern u32 in_interrupt;
 
 extern u32 *rom_branch_hash[ROM_BRANCH_HASH_SIZE];
 
+void partial_flush_ram();
 void flush_translation_cache_rom();
 void flush_translation_cache_ram();
 void flush_translation_cache_bios();

@@ -1408,117 +1408,62 @@ mips_indirect_branch_dual:
 # Store the values and check if it overwrote code there, in split metadata
 # sections.
 
-.macro store_u8_metadata base, metabase
+.macro store_u8_metadata base, metabase, gba_addr_line
   addiu $2, $2, %lo(\base)        # offset the address
-
-  la $1, \base                    # load the Data Area's starting address
-  sub $4, $2, $1                  # regenerate the offset after base -> $4
-  la $1, \metabase                # load the Metadata Area's address
-  add $1, $1, $4                  # $1 = &metabase[offset]
-
-  lb $4, ($1)                     # load the code modification status
-#ifndef NO_LOAD_DELAY_SLOT
-  nop
-#endif
-  bne $4, $0, smc_write           # if there has been code there, go flush RAM
   sb $5, ($2)                     # store value at base[offset] (delay)
-  jr $ra                          # if there has not been code there, return
-  nop                             # cannot usefully delay here
-.endm
-
-.macro store_u16_metadata base, metabase
-  addiu $2, $2, %lo(\base)        # offset the address
 
   la $1, \base                    # load the Data Area's starting address
   sub $4, $2, $1                  # regenerate the offset after base -> $4
   la $1, \metabase                # load the Metadata Area's address
   add $1, $1, $4                  # $1 = &metabase[offset]
 
-  lh $4, ($1)                     # load the code modification status
+  lb $5, ($1)                     # load the code modification status
 #ifndef NO_LOAD_DELAY_SLOT
   nop
 #endif
-  bne $4, $0, smc_write           # if there has been code there, go flush RAM
-  sh $5, ($2)                     # store value at base[offset] (delay)
+  bne $5, $0, smc_write           # if there has been code there, go flush RAM
+  lui $2, \gba_addr_line          # load $2 with the address line (delay)
   jr $ra                          # if there has not been code there, return
   nop                             # cannot usefully delay here
 .endm
 
-.macro store_u32_metadata base, metabase
+.macro store_u16_metadata base, metabase, gba_addr_line
   addiu $2, $2, %lo(\base)        # offset the address
+  sh $5, ($2)                     # store value at base[offset] (delay)
 
   la $1, \base                    # load the Data Area's starting address
   sub $4, $2, $1                  # regenerate the offset after base -> $4
   la $1, \metabase                # load the Metadata Area's address
   add $1, $1, $4                  # $1 = &metabase[offset]
 
-  lw $4, ($1)                     # load the code modification status
+  lh $5, ($1)                     # load the code modification status
 #ifndef NO_LOAD_DELAY_SLOT
   nop
 #endif
-  bne $4, $0, smc_write           # if there has been code there, go flush RAM
-  sw $5, ($2)                     # store value at base[offset] (delay)
+  bne $5, $0, smc_write           # if there has been code there, go flush RAM
+  lui $2, \gba_addr_line          # load $2 with the address line (delay)
   jr $ra                          # if there has not been code there, return
   nop                             # cannot usefully delay here
 .endm
 
-
-
-# Store the values and check if it overwrote code there
-
-.macro store_u8_smc base
+.macro store_u32_metadata base, metabase, gba_addr_line
   addiu $2, $2, %lo(\base)        # offset the address
-
-  lb $1, ($2)                     # if we are about to write the current value
-  andi $5, $5, 0xFF               # (a byte)
-  beq $1, $5, 1f                  # get out
-  lb $1, -32768($2)               # load the SMC status (branch delay)
-
-#ifndef NO_LOAD_DELAY_SLOT
-  nop
-#endif
-  bne $1, $0, smc_write           # is there code there?
-  sb $5, ($2)                     # store value at base[offset] (delay)
-1:jr $ra                          # return
-  nop                             # cannot usefully delay here
-.endm
-
-.macro store_u16_smc base
-  addiu $2, $2, %lo(\base)        # offset the address
-
-  lh $1, ($2)                     # if we are about to write the current value
-  andi $5, $5, 0xFFFF             # (a halfword)
-  beq $1, $5, 1f                  # get out
-  lh $1, -32768($2)               # load the SMC status (branch delay)
-
-#ifndef NO_LOAD_DELAY_SLOT
-  nop
-#endif
-  bne $1, $0, smc_write           # is there code there?
-  sh $5, ($2)                     # store value at base[offset] (delay)
-1:jr $ra                          # return
-  nop                             # cannot usefully delay here
-.endm
-
-.macro store_u32_smc base
-  addiu $2, $2, %lo(\base)        # offset the address
-
-  lw $1, ($2)                     # if we are about to write the current value
-  beq $1, $5, 1f                  # get out
-  lw $1, -32768($2)               # load the SMC status (branch delay)
-
-#ifndef NO_LOAD_DELAY_SLOT
-  nop
-#endif
-  bne $1, $0, smc_write           # is there code there?
   sw $5, ($2)                     # store value at base[offset] (delay)
-  
-#  syscall 8
 
-1:jr $ra                          # return
+  la $1, \base                    # load the Data Area's starting address
+  sub $4, $2, $1                  # regenerate the offset after base -> $4
+  la $1, \metabase                # load the Metadata Area's address
+  add $1, $1, $4                  # $1 = &metabase[offset]
+
+  lw $5, ($1)                     # load the code modification status
+#ifndef NO_LOAD_DELAY_SLOT
+  nop
+#endif
+  bne $5, $0, smc_write           # if there has been code there, go flush RAM
+  lui $2, \gba_addr_line          # load $2 with the address line (delay)
+  jr $ra                          # if there has not been code there, return
   nop                             # cannot usefully delay here
 .endm
-
 
 
 # Unsigned 8bit load handlers
@@ -2641,12 +2586,12 @@ execute_store_ignore1_u8:
 
 execute_store_ewram_u8:
   translate_region_ewram patch_store_u8
-  store_u8_metadata ewram_data, ewram_smc_data
+  store_u8_metadata ewram_data, ewram_smc_data, 0x0200
 
 execute_store_u8:
 execute_store_iwram_u8:
   translate_region 3, patch_store_u8, iwram_data, 0x7FFF
-  store_u8_metadata iwram_data, iwram_smc_data
+  store_u8_metadata iwram_data, iwram_smc_data, 0x0300
 
 execute_store_io_u8:
   region_check 4, patch_store_u8
@@ -2743,12 +2688,12 @@ execute_store_ignore1_u16:
 
 execute_store_ewram_u16:
   translate_region_ewram_store_align16 patch_store_u16
-  store_u16_metadata ewram_data, ewram_smc_data
+  store_u16_metadata ewram_data, ewram_smc_data, 0x0200
 
 execute_store_u16:
 execute_store_iwram_u16:
   translate_region 3, patch_store_u16, iwram_data, 0x7FFE
-  store_u16_metadata iwram_data, iwram_smc_data
+  store_u16_metadata iwram_data, iwram_smc_data, 0x0300
 
 execute_store_io_u16:
   region_check 4, patch_store_u16
@@ -2841,12 +2786,12 @@ execute_store_ignore1_u32:
 
 execute_store_ewram_u32:
   translate_region_ewram_store_align32 patch_store_u32
-  store_u32_metadata ewram_data, ewram_smc_data
+  store_u32_metadata ewram_data, ewram_smc_data, 0x0200
 
 execute_store_u32:
 execute_store_iwram_u32:
   translate_region 3, patch_store_u32, iwram_data, 0x7FFC
-  store_u32_metadata iwram_data, iwram_smc_data
+  store_u32_metadata iwram_data, iwram_smc_data, 0x0300
 
 execute_store_io_u32:
   region_check 4, patch_store_u32
@@ -3307,10 +3252,8 @@ no_alert:
   addiu $sp, $sp, 4               # fix the stack (delay)
 
 smc_dma:
-  jal flush_translation_cache_ram # flush translation cache
-  addiu $sp, $sp, 4               # fix the stack (delay)
   j lookup_pc
-  nop
+  addiu $sp, $sp, 4               # fix the stack (delay)
 
 
 ext_store_eeprom:
@@ -3734,9 +3677,14 @@ ext_aligned_store32:
 #  jr $ra                          # return
 #  sw $5, ($1)                     # write the value
 
+# smc_write expects three registers to be set:
+# $2 = GBA address line (0x02000000, 0x03000000, 0x06000000, etc.)
+# $4 = offset into the Data Area, canonical (address AND (size - 1))
+# $6 = Program Counter, which is immediately looked up
 smc_write:
   save_registers
-  jal flush_translation_cache_ram # flush translation cache
+  or  $4, $2, $4                  # $4 (param 1) = (address line << 24) | offs
+  jal partial_flush_ram           # flush some of the translation cache
   sw $6, REG_PC($16)              # save PC (delay slot)
 
 lookup_pc:
