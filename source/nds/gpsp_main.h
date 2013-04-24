@@ -171,6 +171,7 @@ extern u32 execute_cycles;
 extern u32 global_cycles_per_instruction;
 extern u32 synchronize_flag;
 extern u32 skip_next_frame_flag;
+extern u32 frameskip_0_hack_flag; // described in sound.c:sound_update()
 extern TIMER_TYPE timer[4];
 extern u32 prescale_table[];
 extern char main_path[MAX_PATH];
