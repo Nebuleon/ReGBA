@@ -2854,7 +2854,7 @@ dma_region_type dma_region_map[16] =
      * location. See "doc/partial flushing of RAM code.txt" for more info. */ \
     u16 smc = iwram_metadata[(type##_ptr & 0x7FFC) | 3] & 1;                  \
     if (smc) {                                                                \
-      partial_flush_ram(0x03000000 | (type##_ptr & 0xFFFFFF));                \
+      partial_flush_ram(type##_ptr);                                          \
     }                                                                         \
     smc_trigger |= smc;                                                       \
   }                                                                           \
@@ -2881,7 +2881,7 @@ dma_region_type dma_region_map[16] =
      * location. See "doc/partial flushing of RAM code.txt" for more info. */ \
     u16 smc = ewram_metadata[(type##_ptr & 0x3FFFC) | 3] & 1;                 \
     if (smc) {                                                                \
-      partial_flush_ram(0x02000000 | (type##_ptr & 0xFFFFFF));                \
+      partial_flush_ram(type##_ptr);                                          \
     }                                                                         \
     smc_trigger |= smc;                                                       \
   }                                                                           \
