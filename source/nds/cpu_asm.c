@@ -2688,11 +2688,11 @@ static inline void StatsAddThumbOpcode() {}
   block_data[block_data_position].flag_data = flag_status;                    \
 }                                                                             \
 
-u8 *ram_block_ptrs[1024 * 64];
-u32 ram_block_tag_top = 0x0101;
+u8 *ram_block_ptrs[MAX_TAG + 1];
+u32 ram_block_tag_top = MIN_TAG;
 
-u8 *bios_block_ptrs[1024 * 8];
-u32 bios_block_tag_top = 0x0101;
+u8 *bios_block_ptrs[MAX_TAG + 1];
+u32 bios_block_tag_top = MIN_TAG;
 
 // This function will return a pointer to a translated block of code. If it
 // doesn't exist it will translate it, if it does it will pass it back.
@@ -2745,18 +2745,31 @@ u32 bios_block_tag_top = 0x0101;
      mem_type##_translation_region, smc_enable);                              \
   }                                                                           \
 
-// 0x0101 is the smallest tag that can be used. 0xFFFF is marked
-// in the middle of blocks and used for write guarding, it doesn't
-// indicate a valid block either (it's okay to compile a new block
-// that overlaps the earlier one, although this should be relatively
-// uncommon)
+/*
+ * MIN_TAG is the smallest tag that can be used. 0xFFFF is off-limits because
+ * adding 1 to it for the next tag would overflow an unsigned short.
+ * An array containing native code addresses is indexed by these tags;
+ * the tags themselves are applied to the Metadata Area at the same offset as
+ * the code that is tagged in this way. It is possible to have a tag that
+ * starts in the middle of another block, and it is possible to have a tag
+ * for the very same Data Word when it's interpreted as an ARM instruction or
+ * as a Thumb instruction.
+ */
+
+#define get_tag_arm()                                                         \
+  (location[1])                                                               \
+
+#define get_tag_thumb()                                                       \
+  (location[pc & 2])                                                          \
+
+#define get_tag_dual()                                                        \
+  ((thumb) ? (get_tag_thumb()) : (get_tag_arm()))                             \
 
 #define fill_tag_arm(mem_type)                                                \
-  location[0] = mem_type##_block_tag_top;                                     \
-  location[1] = 0xFFFF                                                        \
+  location[1] = mem_type##_block_tag_top                                      \
 
 #define fill_tag_thumb(mem_type)                                              \
-  *location = mem_type##_block_tag_top                                        \
+  location[pc & 2] = mem_type##_block_tag_top                                 \
 
 #define fill_tag_dual(mem_type)                                               \
   if(thumb)                                                                   \
@@ -2765,14 +2778,14 @@ u32 bios_block_tag_top = 0x0101;
     fill_tag_arm(mem_type)                                                    \
 
 #define block_lookup_translate(instruction_type, mem_type, smc_enable)        \
-  block_tag = *location;                                                      \
-  if((block_tag < 0x0101) || (block_tag == 0xFFFF))                           \
+  block_tag = get_tag_##instruction_type();                                   \
+  if((block_tag < MIN_TAG) || (block_tag > MAX_TAG))                          \
   {                                                                           \
     __label__ redo;                                                           \
     s32 translation_result;                                                   \
                                                                               \
     redo:                                                                     \
-    if (mem_type##_block_tag_top == 0xFFFF)                                   \
+    if (mem_type##_block_tag_top > MAX_TAG)                                   \
     {                                                                         \
       translation_flush_count++;                                              \
       flush_translation_cache_##mem_type();                                   \
@@ -2856,19 +2869,19 @@ static inline void AdjustTranslationBufferPeaks() {}
   {                                                                           \
     case 0x0:                                                                 \
       bios_region_read_allow();                                               \
-      location = (u16 *)(bios_smc_data + pc);                                 \
+      location = bios_metadata + (pc & 0x3FFC);                               \
       block_lookup_translate(type, bios, 0);                                  \
       if(translation_recursion_level == 0)                                    \
         bios_region_read_allow();                                             \
       break;                                                                  \
                                                                               \
     case 0x2:                                                                 \
-      location = (u16 *)(ewram_smc_data + (pc & 0x3FFFF));                    \
+      location = ewram_metadata + (pc & 0x3FFFC);                             \
       block_lookup_translate(type, ram, 1);                                   \
       break;                                                                  \
                                                                               \
     case 0x3:                                                                 \
-      location = (u16 *)(iwram_smc_data + (pc & 0x7FFF));                     \
+      location = iwram_metadata + (pc & 0x7FFC);                              \
       block_lookup_translate(type, ram, 1);                                   \
       break;                                                                  \
                                                                               \
@@ -3207,16 +3220,10 @@ block_data_type block_data[MAX_BLOCK_SIZE];
   switch (block_end_pc >> 24)                                                 \
   {                                                                           \
     case 0x02: /* EWRAM */                                                    \
-      if (ADDRESS32(ewram_smc_data, block_end_pc & 0x3FFFC) == 0)             \
-      {                                                                       \
-        ADDRESS32(ewram_smc_data, block_end_pc & 0x3FFFC) =  0xFFFFFFFF;      \
-      }                                                                       \
+      ewram_metadata[(block_end_pc & 0x3FFFC) | 3] |= 1;                      \
       break;                                                                  \
     case 0x03: /* IWRAM */                                                    \
-      if (ADDRESS32(iwram_smc_data, block_end_pc & 0x7FFC) == 0)              \
-      {                                                                       \
-        ADDRESS32(iwram_smc_data, block_end_pc & 0x7FFC) =  0xFFFFFFFF;       \
-      }                                                                       \
+      iwram_metadata[(block_end_pc & 0x7FFC) | 3] |= 1;                       \
       break;                                                                  \
     default:                                                                  \
       if(ADDRESS32(pc_address_block, (block_end_pc & 0x7FFC) - 0x8000) == 0)  \
@@ -3231,16 +3238,10 @@ block_data_type block_data[MAX_BLOCK_SIZE];
   switch (block_end_pc >> 24)                                                 \
   {                                                                           \
     case 0x02: /* EWRAM */                                                    \
-      if (ADDRESS16(ewram_smc_data, block_end_pc & 0x3FFFE) == 0)             \
-      {                                                                       \
-        ADDRESS16(ewram_smc_data, block_end_pc & 0x3FFFE) = 0xFFFF;           \
-      }                                                                       \
+      ewram_metadata[(block_end_pc & 0x3FFFC) | 3] |= 1;                      \
       break;                                                                  \
     case 0x03: /* IWRAM */                                                    \
-      if (ADDRESS16(iwram_smc_data, block_end_pc & 0x7FFE) == 0)              \
-      {                                                                       \
-        ADDRESS16(iwram_smc_data, block_end_pc & 0x7FFE) = 0xFFFF;            \
-      }                                                                       \
+      iwram_metadata[(block_end_pc & 0x7FFC) | 3] |= 1;                       \
       break;                                                                  \
     default:                                                                  \
       if(ADDRESS16(pc_address_block, (block_end_pc & 0x7FFE) - 0x8000) == 0)  \
@@ -3704,55 +3705,73 @@ translate_block_builder(thumb);
  */
 void partial_flush_ram(u32 address)
 {
-  u8 *smc_data;
+  // 1. Determine where the Metadata Entry for this Data Word is.
+  u16 *metadata;
 
   switch (address >> 24)
   {
     case 0x02: /* EWRAM */
-      smc_data = ewram_smc_data + (address & 0x3FFFE);
+      metadata = ewram_metadata + (address & 0x3FFFC);
       break;
     case 0x03: /* IWRAM */
-      smc_data = iwram_smc_data + (address & 0x7FFE);
+      metadata = iwram_metadata + (address & 0x7FFC);
       break;
-    default:   /* no smc_data */
+    default:   /* no metadata */
       return;
   }
-  if (*((u16*) smc_data) == 0)
-    return;
 
-  u8 *smc_data_area, *smc_data_area_end, *smc_data_right;
-  smc_data_right = smc_data; // Save this pointer to go to the right later
+  // 2. If there was a Metadata Entry, and it's not code, the Partial Flush
+  // is done. Otherwise, flush that Metadata Entry.
+  if ((metadata[3] & 1) == 0)
+    return;
+  metadata[3] &= ~1;
+  metadata[0] /* Thumb 1 */ = metadata[1] /* ARM */ =
+    metadata[2] /* Thumb 2 */ = 0x0000;
+
+  // 3. Prepare for wrapping in the Metadata Area if there's code at the
+  // boundaries of the Data Area.
+  u16 *metadata_area, *metadata_area_end, *metadata_right;
+  metadata_right = metadata; // Save this pointer to go to the right later
   switch (address >> 24)
   {
     case 0x02: /* EWRAM */
-      smc_data_area = ewram_smc_data;
-      smc_data_area_end = ewram_smc_data + 0x40000;
+      metadata_area = ewram_metadata;
+      metadata_area_end = ewram_metadata + 0x40000;
       break;
     case 0x03: /* IWRAM */
-      smc_data_area = iwram_smc_data;
-      smc_data_area_end = iwram_smc_data + 0x8000;
+      metadata_area = iwram_metadata;
+      metadata_area_end = iwram_metadata + 0x8000;
       break;
   }
 
+  // 4. Clear tags for code to the left.
   while (1)
   {
-    smc_data = smc_data - 2;
-    if (smc_data < smc_data_area)
-      smc_data = smc_data_area_end - 2; // Wrap to the end
-    if (*((u16*) smc_data) != 0)
-      *((u16*) smc_data) = 0xFFFF;
+    metadata = metadata - 4;
+    if (metadata < metadata_area)
+      metadata = metadata_area_end - 4; // Wrap to the end
+    if ((metadata[3] & 1) != 0)
+    {
+      metadata[3] &= ~1;
+      metadata[0] /* Thumb 1 */ = metadata[1] /* ARM */ =
+        metadata[2] /* Thumb 2 */ = 0x0000;
+    }
     else break;
   }
 
-  smc_data = smc_data_right;
-
+  // 5. Clear tags for code to the right.
+  metadata = metadata_right;
   while (1)
   {
-    smc_data = smc_data + 2;
-    if (smc_data == smc_data_area_end)
-      smc_data = smc_data_area; // Wrap to the beginning
-    if (*((u16*) smc_data) != 0)
-      *((u16*) smc_data) = 0xFFFF;
+    metadata = metadata + 4;
+    if (metadata == metadata_area_end)
+      metadata = metadata_area; // Wrap to the beginning
+    if ((metadata[3] & 1) != 0)
+    {
+      metadata[3] &= ~1;
+      metadata[0] /* Thumb 1 */ = metadata[1] /* ARM */ =
+        metadata[2] /* Thumb 2 */ = 0x0000;
+    }
     else break;
   }
 }
@@ -3777,22 +3796,28 @@ static void flush_translation_cache_ram_internal()
 */
 
   ram_translation_ptr = ram_translation_cache;
-  ram_block_tag_top = 0x0101;
+  ram_block_tag_top = MIN_TAG;
 
   if(iwram_code_min != 0xFFFFFFFF)
   { // iwramのキャッシュを使用していた場合
-    iwram_code_min &= 0x7FFF;
-    iwram_code_max &= 0x7FFF;
-    memset(iwram_smc_data + iwram_code_min, 0, iwram_code_max - iwram_code_min + 1);
+    iwram_code_min &= 0x7FFC;
+    iwram_code_max &= 0x7FFE;
+    if (iwram_code_max & 2)
+      // Catch the last Metadata Entry for a 4-byte-aligned Thumb instruction
+      iwram_code_max += 2;
+    memset(iwram_metadata + iwram_code_min, 0, (iwram_code_max - iwram_code_min) * sizeof(u16));
     iwram_code_min = 0xFFFFFFFF;
     iwram_code_max = 0xFFFFFFFF;
   }
 
   if(ewram_code_min != 0xFFFFFFFF)
   {
-    ewram_code_min &= 0x3FFFF;
-    ewram_code_max &= 0x3FFFF;
-    memset(ewram_smc_data + ewram_code_min, 0, ewram_code_max - ewram_code_min + 1);
+    ewram_code_min &= 0x3FFFC;
+    ewram_code_max &= 0x3FFFE;
+    if (ewram_code_max & 2)
+      // Catch the last Metadata Entry for a 4-byte-aligned Thumb instruction
+      ewram_code_max += 2;
+    memset(ewram_metadata + ewram_code_min, 0, (ewram_code_max - ewram_code_min) * sizeof(u16));
     ewram_code_min = 0xFFFFFFFF;
     ewram_code_max = 0xFFFFFFFF;
   }
@@ -3840,9 +3865,9 @@ static void flush_translation_cache_bios_internal()
    bios_translation_ptr - bios_translation_cache + CACHE_LINE_SIZE);
 */
 
-  bios_block_tag_top = 0x0101;
+  bios_block_tag_top = MIN_TAG;
   bios_translation_ptr = bios_translation_cache;
-  memset(bios_smc_data, 0, 0x4000);
+  memset(bios_metadata, 0, 0x4000 * sizeof(u16));
 }
 
 unsigned int last_ram= 0;

@@ -181,9 +181,12 @@ extern u8  bios_data     [ 0x4000];
 extern u8  gamepak_backup[0x20000];
 
 #ifndef USE_C_CORE
-extern u8  iwram_smc_data[ 0x8000];
-extern u8  ewram_smc_data[0x40000];
-extern u8  bios_smc_data [ 0x4000];
+#define MIN_TAG (0x0001)
+#define MAX_TAG (0xFFFE)
+
+extern u16 iwram_metadata[ 0x8000];
+extern u16 ewram_metadata[0x40000];
+extern u16 bios_metadata [ 0x4000];
 #endif
 
 extern u32 bios_read_protect;

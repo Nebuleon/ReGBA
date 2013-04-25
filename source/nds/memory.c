@@ -28,10 +28,10 @@ u8 *g_state_buffer_ptr;
 //u8 PACKROM_MEM[ PACKROM_MEM_SIZE ] __attribute__ ((aligned (4))) ;
 //u8 PACKROM_MEM_MAP[ PACKROM_MEM_SIZE/(32*1024)*8 ];
 
-#define SAVESTATE_FAST_SIZE (SAVESTATE_FAST_LEN*SAVESTATE_FAST_NUM)	//~6MB
+#define SAVESTATE_FAST_SIZE (SAVESTATE_FAST_LEN*SAVESTATE_FAST_NUM)	//~4MB
 //fast save state length: 0x68e3f
 #define SAVESTATE_FAST_LEN (0x68e40)
-#define SAVESTATE_FAST_NUM (14)
+#define SAVESTATE_FAST_NUM (10)
 u8 SAVEFAST_MEM[ SAVESTATE_FAST_SIZE ] __attribute__ ((aligned (4))) ;
 
 const u8 SVS_HEADER_E[SVS_HEADER_SIZE] = {'N', 'G', 'B', 'A', 'R', 'T', 'S',
@@ -171,11 +171,17 @@ u8  gamepak_backup[0x20000]; // Backup flash/EEPROM...  (0E000000h)    128 KiB
                              // Total                                  562 KiB
 
 #ifndef USE_C_CORE
-u8  iwram_smc_data[ 0x8000]; // Internal Working RAM code metadata      32 KiB
-u8  ewram_smc_data[0x40000]; // External Working RAM code metadata     256 KiB
-u8  bios_smc_data [ 0x4000]; // BIOS ROM code tags (no modification)    16 KiB
+/*
+ * These are Metadata Areas corresponding to the Data Areas above. They
+ * contain information about the native code compilation status of each
+ * Data Word in that Data Area. For more information about these, see
+ * "doc/partial flushing of RAM code.txt" in your source tree.
+ */
+u16 iwram_metadata[ 0x8000]; // Internal Working RAM code metadata      64 KiB
+u16 ewram_metadata[0x40000]; // External Working RAM code metadata     512 KiB
+u16 bios_metadata [ 0x4000]; // BIOS ROM code tags (no modification)    32 KiB
                              // ----------------------------------------------
-                             // Total                                  304 KiB
+                             // Total                                  608 KiB
 #endif
 
 u32 flash_bank_offset = 0;
@@ -2844,7 +2850,9 @@ dma_region_type dma_region_map[16] =
 #define dma_write_iwram(type, transfer_size)                                  \
   ADDRESS##transfer_size(iwram_data, type##_ptr & 0x7FFF) = read_value;       \
   {                                                                           \
-    u32 smc = ADDRESS##transfer_size(iwram_smc_data, type##_ptr & 0x7FFF);    \
+    /* Get the Metadata Entry's [3], bit 0, to see if there's code at this    \
+     * location. See "doc/partial flushing of RAM code.txt" for more info. */ \
+    u16 smc = iwram_metadata[(type##_ptr & 0x7FFC) | 3] & 1;                  \
     if (smc) {                                                                \
       partial_flush_ram(0x03000000 | (type##_ptr & 0xFFFFFF));                \
     }                                                                         \
@@ -2869,7 +2877,9 @@ dma_region_type dma_region_map[16] =
 #define dma_write_ewram(type, transfer_size)                                  \
   ADDRESS##transfer_size(ewram_data, type##_ptr & 0x3FFFF) = read_value;      \
   {                                                                           \
-    u32 smc = ADDRESS##transfer_size(ewram_smc_data, type##_ptr & 0x3FFFF);   \
+    /* Get the Metadata Entry's [3], bit 0, to see if there's code at this    \
+     * location. See "doc/partial flushing of RAM code.txt" for more info. */ \
+    u16 smc = ewram_metadata[(type##_ptr & 0x3FFFC) | 3] & 1;                 \
     if (smc) {                                                                \
       partial_flush_ram(0x02000000 | (type##_ptr & 0xFFFFFF));                \
     }                                                                         \
@@ -3548,9 +3558,9 @@ void init_memory()
   memset(oam_ram, 0, sizeof(oam_ram));
   memset(palette_ram, 0, sizeof(palette_ram));
   memset(iwram_data, 0, sizeof(iwram_data));
-  memset(iwram_smc_data, 0, sizeof(iwram_smc_data));
+  memset(iwram_metadata, 0, sizeof(iwram_metadata));
   memset(ewram_data, 0, sizeof(ewram_data));
-  memset(ewram_smc_data, 0, sizeof(ewram_smc_data));
+  memset(ewram_metadata, 0, sizeof(ewram_metadata));
   memset(vram, 0, sizeof(vram));
 
   io_registers[REG_DISPCNT] = 0x80;
