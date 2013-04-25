@@ -200,9 +200,9 @@ void init_main()
 
   // bios_mode = USE_BIOS;
 
-  flush_translation_cache_rom();
-  flush_translation_cache_ram();
-  flush_translation_cache_bios();
+  flush_translation_cache_rom(1);
+  flush_translation_cache_ram(1);
+  flush_translation_cache_bios(1);
 
   StatsInitGame();
 }

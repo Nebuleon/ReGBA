@@ -154,9 +154,9 @@ extern u32 in_interrupt;
 extern u32 *rom_branch_hash[ROM_BRANCH_HASH_SIZE];
 
 void partial_flush_ram();
-void flush_translation_cache_rom();
-void flush_translation_cache_ram();
-void flush_translation_cache_bios();
+void flush_translation_cache_rom(u32 loading_new_rom);
+void flush_translation_cache_ram(u32 loading_new_rom);
+void flush_translation_cache_bios(u32 loading_new_rom);
 void dump_translation_cache();
 
 extern u32 reg_mode[7][7];

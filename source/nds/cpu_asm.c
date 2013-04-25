@@ -2788,7 +2788,7 @@ u32 bios_block_tag_top = MIN_TAG;
     if (mem_type##_block_tag_top > MAX_TAG)                                   \
     {                                                                         \
       translation_flush_count++;                                              \
-      flush_translation_cache_##mem_type();                                   \
+      flush_translation_cache_##mem_type(0);                                  \
     }                                                                         \
                                                                               \
     translation_recursion_level++;                                            \
@@ -3257,6 +3257,75 @@ block_data_type block_data[MAX_BLOCK_SIZE];
 #define smc_write_thumb_no()                                                  \
 
 /*
+ * The Code Write Count is a way to isolate heavily-rewritten blocks of code
+ * from their surroundings. This is only needed for writable areas, of course,
+ * and is enforced by:
+ * a) if the first instruction in a block has been rewritten fewer than 255
+ *    times while compiled as code, compiling only up to the first instruction
+ *    that has been rewritten 255 times already, then issuing a translation
+ *    gate if the last instruction of the block is not an unconditional
+ *    branch;
+ * b) if the first instruction in a block has been rewritten 255 times while
+ *    compiled as code, compiling only up to the first instruction that has
+ *    been rewritten fewer than 255 times, then issuing a translation gate if
+ *    the last instruction of the block is not an unconditional branch.
+ * See "doc/partial flushing of RAM code.txt" for more information.
+ */
+#define write_count_vars_yes()                                                \
+  u32 is_write_count_255;                                                     \
+  switch (block_end_pc >> 24)                                                 \
+  {                                                                           \
+    case 0x02: /* EWRAM */                                                    \
+      is_write_count_255 =                                                    \
+        (ewram_metadata[(block_end_pc & 0x3FFFC) | 3] & 0xFF00) == 0xFF00;    \
+      break;                                                                  \
+    case 0x03: /* IWRAM */                                                    \
+      is_write_count_255 =                                                    \
+        (iwram_metadata[(block_end_pc & 0x7FFC) | 3] & 0xFF00) == 0xFF00;     \
+      break;                                                                  \
+    default:                                                                  \
+      is_write_count_255 = 0;                                                 \
+      break;                                                                  \
+  }                                                                           \
+
+#define write_count_vars_no()                                                 \
+
+#define check_write_count_yes()                                               \
+  /* If the NEXT instruction has a mismatching write count, stop.             \
+   * The address of that instruction is already in block_end_pc. */           \
+  u32 is_next_write_count_255;                                                \
+  switch (block_end_pc >> 24)                                                 \
+  {                                                                           \
+    case 0x02: /* EWRAM */                                                    \
+      is_next_write_count_255 =                                               \
+        (ewram_metadata[(block_end_pc & 0x3FFFC) | 3] & 0xFF00) == 0xFF00;    \
+      break;                                                                  \
+    case 0x03: /* IWRAM */                                                    \
+      is_next_write_count_255 =                                               \
+        (iwram_metadata[(block_end_pc & 0x7FFC) | 3] & 0xFF00) == 0xFF00;     \
+      break;                                                                  \
+    default:                                                                  \
+      is_next_write_count_255 = 0;                                            \
+      break;                                                                  \
+  }                                                                           \
+  if (is_write_count_255 != is_next_write_count_255)                          \
+  {                                                                           \
+    translation_gate_required = 1;                                            \
+    continue_block = 0;                                                       \
+  }                                                                           \
+
+#define check_write_count_no()                                                \
+
+/* According to whether the current area is writable (yes/no)... */
+#define heavily_optimize_yes                                                  \
+  /* Optimize more only if we're compiling seldom-rewritten code. */          \
+  (!is_write_count_255)                                                       \
+
+#define heavily_optimize_no                                                   \
+  /* Optimize more, always. */                                                \
+  (1)                                                                         \
+
+/*
  * Inserts Value into a sorted Array of unique values (or doesn't), of
  * size Size.
  * If Value was already present, then the old size is returned, and no
@@ -3329,6 +3398,7 @@ static s32 BinarySearch(u32* Array, u32 Value, u32 Size)
   u8 continue_block = 1;                                                      \
   u32 branch_targets_sorted[MAX_EXITS];                                       \
   u32 sorted_branch_count = 0;                                                \
+  write_count_vars_##smc_write_op();                                          \
   /* Find the end of the block */                                             \
 /*printf("str: %08x\n", block_start_pc);*/\
   do                                                                          \
@@ -3346,9 +3416,9 @@ static s32 BinarySearch(u32* Array, u32 Value, u32 Size)
         __label__ no_direct_branch;                                           \
         type##_branch_target();                                               \
         block_exits[block_exit_position].branch_target = branch_target;       \
-        if (translation_region_read_only)                                     \
-          /* If we're in RAM, exit at the first unconditional branch, no      \
-           * questions asked */                                               \
+        if (translation_region_read_only || heavily_optimize_##smc_write_op)  \
+          /* If we're in often-rewritten code in RAM, exit at the first       \
+           * unconditional branch, no questions asked */                      \
           sorted_branch_count = InsertUniqueSorted(branch_targets_sorted,     \
             branch_target, sorted_branch_count);                              \
         block_exit_position++;                                                \
@@ -3363,9 +3433,9 @@ static s32 BinarySearch(u32* Array, u32 Value, u32 Size)
       if(type##_opcode_swi)                                                   \
       {                                                                       \
         block_exits[block_exit_position].branch_target = 0x00000008;          \
-        if (translation_region_read_only)                                     \
-          /* If we're in RAM, exit at the first unconditional branch, no      \
-           * questions asked */                                               \
+        if (translation_region_read_only || heavily_optimize_##smc_write_op)  \
+          /* If we're in often-rewritten code in RAM, exit at the first       \
+           * unconditional branch, no questions asked */                      \
           sorted_branch_count = InsertUniqueSorted(branch_targets_sorted,     \
             0x00000008, sorted_branch_count); /* could already be in */       \
         block_exit_position++;                                                \
@@ -3380,10 +3450,11 @@ static s32 BinarySearch(u32* Array, u32 Value, u32 Size)
          * if so don't end the block. For efficiency, but to also keep the    \
          * correct order of the scanned branches for code emission, this is   \
          * using a separate sorted array with unique branch_targets.          \
-         * If we're in RAM, exit at the first unconditional branch, no        \
-         * questions asked. We can do that, since unconditional branches that \
-         * go outside the current block are made indirect. */                 \
-        if (!translation_region_read_only ||                                  \
+         * If we're in RAM and compiling often-rewritten code, exit at the    \
+         * first unconditional branch, no questions asked. We can do that,    \
+         * since unconditional branches that  go outside the current block    \
+         * are made indirect. */                                              \
+        if (!heavily_optimize_##smc_write_op ||                               \
           BinarySearch(branch_targets_sorted, block_end_pc,                   \
           sorted_branch_count) == -1)                                         \
           continue_block = 0;                                                 \
@@ -3398,6 +3469,7 @@ static s32 BinarySearch(u32* Array, u32 Value, u32 Size)
     else                                                                      \
     {                                                                         \
       type##_set_condition(condition);                                        \
+      check_write_count_##smc_write_op();                                     \
     }                                                                         \
     block_data[block_data_position].update_cycles = 0;                        \
     block_data_position++;                                                    \
@@ -3547,14 +3619,7 @@ s32 translate_block_##type(u32 pc, TRANSLATION_REGION_TYPE                    \
     }                                                                         \
   }                                                                           \
                                                                               \
-  /* Dead flag elimination is a sort of second pass. It works on the          \
-   * instructions in reverse, skipping processing to calculate the status of  \
-   * the flags if they will soon be overwritten. Dead flag elimination itself \
-   * takes a fair bit of time, so skip it for the RAM, given that the         \
-   * recompiler is expected to be called VERY often there. */                 \
-  if (translation_region_read_only) {                                         \
-    type##_dead_flag_eliminate();                                             \
-  }                                                                           \
+  type##_dead_flag_eliminate();                                               \
                                                                               \
   block_exit_position = 0;                                                    \
   block_data_position = 0;                                                    \
@@ -3583,15 +3648,15 @@ s32 translate_block_##type(u32 pc, TRANSLATION_REGION_TYPE                    \
       switch(translation_region)                                              \
       {                                                                       \
         case TRANSLATION_REGION_RAM:                                          \
-          flush_translation_cache_ram();                                      \
+          flush_translation_cache_ram(0);                                     \
           break;                                                              \
                                                                               \
         case TRANSLATION_REGION_ROM:                                          \
-          flush_translation_cache_rom();                                      \
+          flush_translation_cache_rom(0);                                     \
           break;                                                              \
                                                                               \
         case TRANSLATION_REGION_BIOS:                                         \
-          flush_translation_cache_bios();                                     \
+          flush_translation_cache_bios(0);                                    \
           break;                                                              \
       }                                                                       \
                                                                               \
@@ -3724,6 +3789,8 @@ void partial_flush_ram(u32 address)
   // is done. Otherwise, flush that Metadata Entry.
   if ((metadata[3] & 1) == 0)
     return;
+  u16* original_metadata = metadata; // so the write count can be ++'d later
+  u32 WriteCount255 = (metadata[3] & 0xFF00) == 0xFF00;
   metadata[3] &= ~1;
   metadata[0] /* Thumb 1 */ = metadata[1] /* ARM */ =
     metadata[2] /* Thumb 2 */ = 0x0000;
@@ -3744,48 +3811,84 @@ void partial_flush_ram(u32 address)
       break;
   }
 
-  // 4. Clear tags for code to the left.
-  while (1)
+  if (WriteCount255)
   {
-    metadata = metadata - 4;
-    if (metadata < metadata_area)
-      metadata = metadata_area_end - 4; // Wrap to the end
-    if ((metadata[3] & 1) != 0)
+    // 4. Clear tags for code to the left.
+    while (1)
     {
-      metadata[3] &= ~1;
-      metadata[0] /* Thumb 1 */ = metadata[1] /* ARM */ =
-        metadata[2] /* Thumb 2 */ = 0x0000;
+      metadata = metadata - 4;
+      if (metadata < metadata_area)
+        metadata = metadata_area_end - 4; // Wrap to the end
+      if ((metadata[3] & 0xFF01) == 0xFF01) // write count 255, code
+      {
+        metadata[3] &= ~1;
+        metadata[0] /* Thumb 1 */ = metadata[1] /* ARM */ =
+          metadata[2] /* Thumb 2 */ = 0x0000;
+      }
+      else break;
     }
-    else break;
-  }
 
-  // 5. Clear tags for code to the right.
-  metadata = metadata_right;
-  while (1)
-  {
-    metadata = metadata + 4;
-    if (metadata == metadata_area_end)
-      metadata = metadata_area; // Wrap to the beginning
-    if ((metadata[3] & 1) != 0)
+    // 5. Clear tags for code to the right.
+    metadata = metadata_right;
+    while (1)
     {
-      metadata[3] &= ~1;
-      metadata[0] /* Thumb 1 */ = metadata[1] /* ARM */ =
-        metadata[2] /* Thumb 2 */ = 0x0000;
+      metadata = metadata + 4;
+      if (metadata == metadata_area_end)
+        metadata = metadata_area; // Wrap to the beginning
+      if ((metadata[3] & 0xFF01) == 0xFF01) // write count 255, code
+      {
+        metadata[3] &= ~1;
+        metadata[0] /* Thumb 1 */ = metadata[1] /* ARM */ =
+          metadata[2] /* Thumb 2 */ = 0x0000;
+      }
+      else break;
     }
-    else break;
+  }
+  else
+  {
+    // 4. Clear tags for code to the left.
+    while (1)
+    {
+      metadata = metadata - 4;
+      if (metadata < metadata_area)
+        metadata = metadata_area_end - 4; // Wrap to the end
+      if ((metadata[3] & 0xFF00) != 0xFF00 && (metadata[3] & 1) != 0)
+      { // write count less than 255, code
+        metadata[3] &= ~1;
+        metadata[0] /* Thumb 1 */ = metadata[1] /* ARM */ =
+          metadata[2] /* Thumb 2 */ = 0x0000;
+      }
+      else break;
+    }
+
+    // 5. Clear tags for code to the right.
+    metadata = metadata_right;
+    while (1)
+    {
+      metadata = metadata + 4;
+      if (metadata == metadata_area_end)
+        metadata = metadata_area; // Wrap to the beginning
+      if ((metadata[3] & 0xFF00) != 0xFF00 && (metadata[3] & 1) != 0)
+      { // write count less than 255, code
+        metadata[3] &= ~1;
+        metadata[0] /* Thumb 1 */ = metadata[1] /* ARM */ =
+          metadata[2] /* Thumb 2 */ = 0x0000;
+      }
+      else break;
+    }
   }
 }
 
-static void flush_translation_cache_ram_internal();
+static void flush_translation_cache_ram_internal(u32 loading_new_rom);
 static void flush_translation_cache_rom_internal();
 static void flush_translation_cache_bios_internal();
 
-void flush_translation_cache_ram()
+void flush_translation_cache_ram(u32 loading_new_rom)
 {
-  flush_translation_cache_ram_internal();
+  flush_translation_cache_ram_internal(loading_new_rom);
 }
 
-static void flush_translation_cache_ram_internal()
+static void flush_translation_cache_ram_internal(u32 loading_new_rom)
 {
   Stats.RAMTranslationFlushCount++;
   Stats.RAMTranslationBytesFlushed += ram_translation_ptr
@@ -3805,7 +3908,21 @@ static void flush_translation_cache_ram_internal()
     if (iwram_code_max & 2)
       // Catch the last Metadata Entry for a 4-byte-aligned Thumb instruction
       iwram_code_max += 2;
-    memset(iwram_metadata + iwram_code_min, 0, (iwram_code_max - iwram_code_min) * sizeof(u16));
+    if (loading_new_rom) {
+      memset(iwram_metadata + iwram_code_min, 0, (iwram_code_max - iwram_code_min) * sizeof(u16));
+    }
+    else {
+      /* Preserve the Code Write Counts used for isolating heavily-rewritten code */
+      u16* metadata;
+      for (metadata = iwram_metadata + iwram_code_min;
+           metadata < iwram_metadata + iwram_code_max;
+           metadata += 4)
+      {
+        metadata[0] /* Thumb 1 */ = metadata[1] /* ARM */ =
+          metadata[2] /* Thumb 2 */ = 0x0000;
+        metadata[3] &= ~1;
+      }
+    }
     iwram_code_min = 0xFFFFFFFF;
     iwram_code_max = 0xFFFFFFFF;
   }
@@ -3817,19 +3934,33 @@ static void flush_translation_cache_ram_internal()
     if (ewram_code_max & 2)
       // Catch the last Metadata Entry for a 4-byte-aligned Thumb instruction
       ewram_code_max += 2;
-    memset(ewram_metadata + ewram_code_min, 0, (ewram_code_max - ewram_code_min) * sizeof(u16));
+    if (loading_new_rom) {
+      memset(ewram_metadata + ewram_code_min, 0, (ewram_code_max - ewram_code_min) * sizeof(u16));
+    }
+    else {
+      /* Preserve the Code Write Counts used for isolating heavily-rewritten code */
+      u16* metadata;
+      for (metadata = ewram_metadata + ewram_code_min;
+           metadata < ewram_metadata + ewram_code_max;
+           metadata += 4)
+      {
+        metadata[0] /* Thumb 1 */ = metadata[1] /* ARM */ =
+          metadata[2] /* Thumb 2 */ = 0x0000;
+        metadata[3] &= ~1;
+      }
+    }
     ewram_code_min = 0xFFFFFFFF;
     ewram_code_max = 0xFFFFFFFF;
   }
 }
 
-void flush_translation_cache_rom()
+void flush_translation_cache_rom(u32 loading_new_rom)
 {
   /* If flushing the ROM cache, we must also flush the others, because
    * we have patched native code offsets for the branches into the ROM */
   flush_translation_cache_rom_internal();
   flush_translation_cache_bios_internal();
-  flush_translation_cache_ram_internal();
+  flush_translation_cache_ram_internal(0);
 }
 
 static void flush_translation_cache_rom_internal()
@@ -3846,13 +3977,13 @@ static void flush_translation_cache_rom_internal()
   memset(rom_branch_hash, 0, sizeof(rom_branch_hash));
 }
 
-void flush_translation_cache_bios()
+void flush_translation_cache_bios(u32 loading_new_rom)
 {
   /* If flushing the BIOS cache, we must also flush the others, because
    * we have patched native code offsets for the branches into the BIOS */
   flush_translation_cache_bios_internal();
   flush_translation_cache_rom_internal();
-  flush_translation_cache_ram_internal();
+  flush_translation_cache_ram_internal(0);
 }
 
 static void flush_translation_cache_bios_internal()
