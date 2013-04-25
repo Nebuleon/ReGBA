@@ -158,31 +158,24 @@ u8 cpu_waitstate_cycles_seq[2][16] =
 };
 #endif
 
-// GBAのROM/RAM 合計962kb
-// パレットRAM 1kb
-u16 palette_ram[512];
-// オブジェクトアトリビュートRAM 1kb
-u16 oam_ram[512];
-// IOレジスタ 32kb
-u16 io_registers[1024 * 16];
-// ExtワークRAM 256KB x2
-u8 ewram_data[1024 * 256];
-// IntワークRAM 32KB x2
-u8 iwram_data[1024 * 32];
-// VRAM 192kb
-u8 vram[1024 * 96];
-
-// BIOS ROM 16kb
-u8 bios_data[0x4000];
-
-// SRAM/flash/EEPROM 128kb
-u8 gamepak_backup[1024 * 128];
+// GBA memory areas.
+u16 palette_ram   [  0x200]; // Palette RAM             (05000000h)      1 KiB
+u16 oam_ram       [  0x200]; // Object Attribute Memory (07000000h)      1 KiB
+u16 io_registers  [ 0x4000]; // I/O Registers           (04000000h)     32 KiB
+u8  ewram_data    [0x40000]; // External Working RAM    (02000000h)    256 KiB
+u8  iwram_data    [ 0x8000]; // Internal Working RAM    (03000000h)     32 KiB
+u8  vram          [0x18000]; // Video RAM               (06000000h)     96 KiB
+u8  bios_data     [ 0x4000]; // BIOS ROM                (00000000h)     16 KiB
+u8  gamepak_backup[0x20000]; // Backup flash/EEPROM...  (0E000000h)    128 KiB
+                             // ----------------------------------------------
+                             // Total                                  562 KiB
 
 #ifndef USE_C_CORE
-u8 iwram_smc_data[1024 * 32];          // Contains block tags and
-u8 ewram_smc_data[1024 * 256];         // self-modifying code (SMC) detection
-u8 bios_smc_data[1024 * 16];           // data for the named Data Areas.
-                                       // (BIOS = read-only, so only tags)
+u8  iwram_smc_data[ 0x8000]; // Internal Working RAM code metadata      32 KiB
+u8  ewram_smc_data[0x40000]; // External Working RAM code metadata     256 KiB
+u8  bios_smc_data [ 0x4000]; // BIOS ROM code tags (no modification)    16 KiB
+                             // ----------------------------------------------
+                             // Total                                  304 KiB
 #endif
 
 u32 flash_bank_offset = 0;

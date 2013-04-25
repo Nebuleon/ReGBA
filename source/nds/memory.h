@@ -171,18 +171,19 @@ extern DMA_TRANSFER_TYPE dma[4];
 extern u8 savestate_write_buffer[];
 extern u8 *g_state_buffer_ptr;
 
-extern u16 palette_ram[512];
-extern u16 oam_ram[512];
-extern u16 io_registers[1024 * 16];
-extern u8 ewram_data[1024 * 256];
-extern u8 iwram_data[1024 * 32];
-extern u8 vram[1024 * 96];
-extern u8 bios_data[0x4000];
+extern u16 palette_ram   [  0x200];
+extern u16 oam_ram       [  0x200];
+extern u16 io_registers  [ 0x4000];
+extern u8  ewram_data    [0x40000];
+extern u8  iwram_data    [ 0x8000];
+extern u8  vram          [0x18000];
+extern u8  bios_data     [ 0x4000];
+extern u8  gamepak_backup[0x20000];
 
 #ifndef USE_C_CORE
-extern u8 iwram_smc_data[1024 * 32];
-extern u8 ewram_smc_data[1024 * 256];
-extern u8 bios_smc_data[1024 * 16];
+extern u8  iwram_smc_data[ 0x8000];
+extern u8  ewram_smc_data[0x40000];
+extern u8  bios_smc_data [ 0x4000];
 #endif
 
 extern u32 bios_read_protect;
