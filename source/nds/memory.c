@@ -3670,7 +3670,9 @@ void loadstate_fast(void)
 	g_state_buffer_ptr = SAVEFAST_MEM + savefast_queue_wr_len * SAVESTATE_FAST_LEN;
 	savestate_block_fast(read_mem);
 
-	flush_translation_cache_ram(0);
+	flush_translation_cache_ram();
+	flush_translation_cache_rom();
+	flush_translation_cache_bios();
 
 	oam_update = 1;
 	gbc_sound_update = 1;
@@ -3749,7 +3751,9 @@ u32 load_state(char *savestate_filename, u32 slot_num)
   savestate_block(read_mem);
   update_progress();
 
-  flush_translation_cache_ram(0);
+  flush_translation_cache_ram();
+  flush_translation_cache_rom();
+  flush_translation_cache_bios();
   update_progress();
 
   oam_update = 1;
@@ -3872,7 +3876,9 @@ printf("gamepak_filename0: %s\n", gamepak_filename);
 
 	// End fixups.
 
-        flush_translation_cache_ram(0);
+        flush_translation_cache_ram();
+        flush_translation_cache_rom();
+        flush_translation_cache_bios();
 
         oam_update = 1;
         gbc_sound_update = 1;
