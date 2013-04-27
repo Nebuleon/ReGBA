@@ -237,7 +237,7 @@ const u8 HOTKEY_DOWN_DISPLAY[] = {0xE2, 0x86, 0x93, 0x00};
   SELECTION_OPTION(passive_function, display_string, NULL, option_ptr,        \
    num_options, help_string, line_number, NUMBER_SELECTION_TYPE)              \
 
-#define STRING_SELECTION_HIDEN_OPTION(action_function, passive_function,      \
+#define STRING_SELECTION_HIDE_OPTION(action_function, passive_function,      \
  display_string, options, option_ptr, num_options, help_string, line_number)  \
   ACTION_SELECTION_OPTION(action_function, passive_function,                  \
    display_string,  options, option_ptr, num_options, help_string,            \
@@ -3197,10 +3197,10 @@ u32 menu(u16 *screen, int FirstInvocation)
     MAKE_MENU(tools_debug_flush, NULL, tools_debug_flush_menu_passive, NULL, NULL, 0, 0);
 
 	char* EXECUTION_STATISTICS = "Execution statistics...";
-	char* SOUND_BUFFER_UNDERRUNS = "Sound buffer underruns     %d";
-	char* FRAMES_EMULATED        = "Frames emulated                %d";
-	char* ARM_OPCODES_DECODED    = "ARM opcodes decoded         %d";
-	char* THUMB_OPCODES_DECODED  = "Thumb opcodes decoded    %d";
+	char* SOUND_BUFFER_UNDERRUNS = "Sound buffer underruns     %u";
+	char* FRAMES_EMULATED        = "Frames emulated                %u";
+	char* ARM_OPCODES_DECODED    = "ARM opcodes decoded         %u";
+	char* THUMB_OPCODES_DECODED  = "Thumb opcodes decoded    %u";
 
   /*--------------------------------------------------------
      Tools - Debugging - Execution stats
@@ -3225,6 +3225,36 @@ u32 menu(u16 *screen, int FirstInvocation)
     };
     MAKE_MENU(tools_debug_statistics, NULL, NULL, NULL, NULL, 0, 0);
 
+	u32   zero = 0;
+	char* ROM_INFORMATION  = "ROM information...";
+	char* gamepak_title_ptr = gamepak_title;
+	char* game_name_options[] = { (char*) &gamepak_title_ptr };
+	char* GAME_NAME        = "game_name       %s";
+	char* gamepak_code_ptr = gamepak_code;
+	char* game_code_options[] = { (char*) &gamepak_code_ptr };
+	char* GAME_CODE        = "game_code        %s";
+	char* gamepak_maker_ptr = gamepak_maker;
+	char* vender_code_options[] = { (char*) &gamepak_maker_ptr };
+	char* VENDER_CODE      = "vender_code     %s";
+
+  /*--------------------------------------------------------
+     Tools - Debugging - Execution stats
+  --------------------------------------------------------*/
+    MENU_OPTION_TYPE tools_debug_rom_info_options[] =
+    {
+	/* 00 */ SUBMENU_OPTION(&tools_debug_menu, &ROM_INFORMATION, NULL, 0),
+
+	/* 01 */ STRING_SELECTION_HIDE_OPTION(NULL, NULL, &GAME_NAME,
+        game_name_options, &zero, 1, NULL, 1),
+
+	/* 02 */ STRING_SELECTION_HIDE_OPTION(NULL, NULL, &GAME_CODE,
+        game_code_options, &zero, 1, NULL, 2),
+
+	/* 03 */ STRING_SELECTION_HIDE_OPTION(NULL, NULL, &VENDER_CODE,
+        vender_code_options, &zero, 1, NULL, 3),
+    };
+    MAKE_MENU(tools_debug_rom_info, NULL, NULL, NULL, NULL, 0, 0);
+
 	char* DEBUG_MENU = "Performance and debugging";
 
   /*--------------------------------------------------------
@@ -3239,6 +3269,8 @@ u32 menu(u16 *screen, int FirstInvocation)
 	/* 01 */ SUBMENU_OPTION(&tools_debug_flush_menu, &FLUSH_COUNTS, NULL, 1),
 
 	/* 02 */ SUBMENU_OPTION(&tools_debug_statistics_menu, &EXECUTION_STATISTICS, NULL, 2),
+
+	/* 02 */ SUBMENU_OPTION(&tools_debug_rom_info_menu, &ROM_INFORMATION, NULL, 3),
     };
     INIT_MENU(tools_debug, NULL, NULL, NULL, NULL, 1, 1);
 
