@@ -12,7 +12,7 @@ CORE_DIR     = $(DS2SDKPATH)/libsrc/core
 LIBS        := $(DS2SDKPATH)/lib/libds2b.a -lc -lm -lgcc
 EXTLIBS     := $(DS2SDKPATH)/lib/libds2a.a
 
-INCLUDE     := -Inds -I$(DS2SDKPATH)/include \
+INCLUDE     := -Isource -I$(DS2SDKPATH)/include \
                -I$(FS_DIR) -I$(CONSOLE_DIR) -I$(KEY_DIR) -I$(ZLIB_DIR) \
                -I$(CORE_DIR)
 

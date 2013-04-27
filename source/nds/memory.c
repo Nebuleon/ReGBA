@@ -2850,9 +2850,9 @@ dma_region_type dma_region_map[16] =
 #define dma_write_iwram(type, transfer_size)                                  \
   ADDRESS##transfer_size(iwram_data, type##_ptr & 0x7FFF) = read_value;       \
   {                                                                           \
-    /* Get the Metadata Entry's [3], bit 0, to see if there's code at this    \
+    /* Get the Metadata Entry's [3], bits 0-1, to see if there's code at this \
      * location. See "doc/partial flushing of RAM code.txt" for more info. */ \
-    u16 smc = iwram_metadata[(type##_ptr & 0x7FFC) | 3] & 1;                  \
+    u16 smc = iwram_metadata[(type##_ptr & 0x7FFC) | 3] & 0x3;                \
     if (smc) {                                                                \
       partial_flush_ram(type##_ptr);                                          \
     }                                                                         \
@@ -2877,9 +2877,9 @@ dma_region_type dma_region_map[16] =
 #define dma_write_ewram(type, transfer_size)                                  \
   ADDRESS##transfer_size(ewram_data, type##_ptr & 0x3FFFF) = read_value;      \
   {                                                                           \
-    /* Get the Metadata Entry's [3], bit 0, to see if there's code at this    \
+    /* Get the Metadata Entry's [3], bits 0-1, to see if there's code at this \
      * location. See "doc/partial flushing of RAM code.txt" for more info. */ \
-    u16 smc = ewram_metadata[(type##_ptr & 0x3FFFC) | 3] & 1;                 \
+    u16 smc = ewram_metadata[(type##_ptr & 0x3FFFC) | 3] & 0x3;               \
     if (smc) {                                                                \
       partial_flush_ram(type##_ptr);                                          \
     }                                                                         \
@@ -3558,9 +3558,7 @@ void init_memory()
   memset(oam_ram, 0, sizeof(oam_ram));
   memset(palette_ram, 0, sizeof(palette_ram));
   memset(iwram_data, 0, sizeof(iwram_data));
-  memset(iwram_metadata, 0, sizeof(iwram_metadata));
   memset(ewram_data, 0, sizeof(ewram_data));
-  memset(ewram_metadata, 0, sizeof(ewram_metadata));
   memset(vram, 0, sizeof(vram));
 
   io_registers[REG_DISPCNT] = 0x80;
@@ -3670,9 +3668,8 @@ void loadstate_fast(void)
 	g_state_buffer_ptr = SAVEFAST_MEM + savefast_queue_wr_len * SAVESTATE_FAST_LEN;
 	savestate_block_fast(read_mem);
 
-	flush_translation_cache_ram();
-	flush_translation_cache_rom();
-	flush_translation_cache_bios();
+	flush_translation_cache(TRANSLATION_REGION_IWRAM, FLUSH_REASON_LOADING_STATE);
+	flush_translation_cache(TRANSLATION_REGION_EWRAM, FLUSH_REASON_LOADING_STATE);
 
 	oam_update = 1;
 	gbc_sound_update = 1;
@@ -3751,9 +3748,8 @@ u32 load_state(char *savestate_filename, u32 slot_num)
   savestate_block(read_mem);
   update_progress();
 
-  flush_translation_cache_ram();
-  flush_translation_cache_rom();
-  flush_translation_cache_bios();
+  flush_translation_cache(TRANSLATION_REGION_IWRAM, FLUSH_REASON_LOADING_STATE);
+  flush_translation_cache(TRANSLATION_REGION_EWRAM, FLUSH_REASON_LOADING_STATE);
   update_progress();
 
   oam_update = 1;
@@ -3876,9 +3872,8 @@ printf("gamepak_filename0: %s\n", gamepak_filename);
 
 	// End fixups.
 
-        flush_translation_cache_ram();
-        flush_translation_cache_rom();
-        flush_translation_cache_bios();
+	flush_translation_cache(TRANSLATION_REGION_IWRAM, FLUSH_REASON_LOADING_STATE);
+	flush_translation_cache(TRANSLATION_REGION_EWRAM, FLUSH_REASON_LOADING_STATE);
 
         oam_update = 1;
         gbc_sound_update = 1;

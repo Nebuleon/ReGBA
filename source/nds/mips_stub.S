@@ -1430,7 +1430,7 @@ mips_indirect_branch_dual:
 #ifndef NO_LOAD_DELAY_SLOT
   nop
 #endif
-  andi $5, $5, 1                  # and extract the Code Guard bit from it
+  andi $5, $5, 0x3                # and extract the Currently Code bits
 
   bne $5, $0, smc_write           # if there has been code there, go flush RAM
   lui $2, \gba_addr_line          # load $2 with the address line (delay)

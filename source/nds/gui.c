@@ -1687,6 +1687,9 @@ u32 menu(u16 *screen, int FirstInvocation)
 	auto void game_specific_button_rapid_a_passive();
 	auto void game_specific_button_rapid_b_passive();
 
+	auto void tools_debug_utilisation_menu_passive();
+	auto void tools_debug_flush_menu_passive();
+
 	auto void load_default_setting();
 	auto void check_gbaemu_version();
 	auto void load_lastest_played();
@@ -3178,72 +3181,20 @@ u32 menu(u16 *screen, int FirstInvocation)
 
     MENU_TYPE tools_debug_menu;
 
-	char* TRANSLATION_STATISTICS = "ARM-to-MIPS translation statistics...";
-	char* ROM_BYTES_FLUSHED = "ROM bytes flushed        %d";
-	char* ROM_FLUSH_COUNT =   "ROM flush count            %d";
-	char* ROM_BYTES_PEAK =    "ROM bytes peak             %d";
-	char* RAM_BYTES_FLUSHED = "RAM bytes flushed        %d";
-	char* RAM_FLUSH_COUNT =   "RAM flush count            %d";
-	char* RAM_BYTES_PEAK =    "RAM bytes peak             %d";
-	char* BIOS_FLUSH_COUNT =  "BIOS flush count            %d";
-	char* BIOS_BYTES_PEAK =   "BIOS bytes peak             %d";
+	char* CACHE_USAGE  = "Nebuleon's code cache utilisation...";
+	char* FLUSH_COUNTS = "Nebuleon's code cache flush counts...";
 
-  /*--------------------------------------------------------
-     Tools - Debugging - ARM-to-MIPS translation stats
-  --------------------------------------------------------*/
-    MENU_OPTION_TYPE tools_debug_translation_options[] =
+    MENU_OPTION_TYPE tools_debug_utilisation_options[] =
     {
-	/* 00 */ SUBMENU_OPTION(&tools_debug_menu, &TRANSLATION_STATISTICS, NULL, 0),
-
-	/* 01 */ NUMERIC_SELECTION_HIDE_OPTION(NULL, NULL, &ROM_BYTES_FLUSHED,
-        &Stats.ROMTranslationBytesFlushed, 2, NULL, 1),
-
-	/* 02 */ NUMERIC_SELECTION_HIDE_OPTION(NULL, NULL, &ROM_FLUSH_COUNT,
-        &Stats.ROMTranslationFlushCount, 2, NULL, 2),
-
-#ifdef PERFORMANCE_IMPACTING_STATISTICS
-	/* 03 */ NUMERIC_SELECTION_HIDE_OPTION(NULL, NULL, &ROM_BYTES_PEAK,
-        &Stats.ROMTranslationBytesPeak, 2, NULL, 3),
-#endif
-
-	/* 04 */ NUMERIC_SELECTION_HIDE_OPTION(NULL, NULL, &RAM_BYTES_FLUSHED,
-        &Stats.RAMTranslationBytesFlushed, 2, NULL,
-#ifdef PERFORMANCE_IMPACTING_STATISTICS
-	4
-#else
-	3
-#endif
-	),
-
-	/* 05 */ NUMERIC_SELECTION_HIDE_OPTION(NULL, NULL, &RAM_FLUSH_COUNT,
-        &Stats.RAMTranslationFlushCount, 2, NULL,
-#ifdef PERFORMANCE_IMPACTING_STATISTICS
-	5
-#else
-	4
-#endif
-	),
-
-#ifdef PERFORMANCE_IMPACTING_STATISTICS
-	/* 06 */ NUMERIC_SELECTION_HIDE_OPTION(NULL, NULL, &RAM_BYTES_PEAK,
-        &Stats.RAMTranslationBytesPeak, 2, NULL, 6),
-#endif
-
-	/* 07 */ NUMERIC_SELECTION_HIDE_OPTION(NULL, NULL, &BIOS_FLUSH_COUNT,
-        &Stats.BIOSTranslationFlushCount, 2, NULL,
-#ifdef PERFORMANCE_IMPACTING_STATISTICS
-	7
-#else
-	5
-#endif
-	),
-
-#ifdef PERFORMANCE_IMPACTING_STATISTICS
-	/* 08 */ NUMERIC_SELECTION_HIDE_OPTION(NULL, NULL, &BIOS_BYTES_PEAK,
-        &Stats.BIOSTranslationBytesPeak, 2, NULL, 8),
-#endif
+	/* 00 */ SUBMENU_OPTION(&tools_debug_menu, &CACHE_USAGE, NULL, 0)
     };
-    MAKE_MENU(tools_debug_translation, NULL, NULL, NULL, NULL, 0, 0);
+    MAKE_MENU(tools_debug_utilisation, NULL, tools_debug_utilisation_menu_passive, NULL, NULL, 0, 0);
+
+    MENU_OPTION_TYPE tools_debug_flush_options[] =
+    {
+	/* 00 */ SUBMENU_OPTION(&tools_debug_menu, &FLUSH_COUNTS, NULL, 0)
+    };
+    MAKE_MENU(tools_debug_flush, NULL, tools_debug_flush_menu_passive, NULL, NULL, 0, 0);
 
 	char* EXECUTION_STATISTICS = "Execution statistics...";
 	char* SOUND_BUFFER_UNDERRUNS = "Sound buffer underruns     %d";
@@ -3283,7 +3234,9 @@ u32 menu(u16 *screen, int FirstInvocation)
     {
 	/* 00 */ SUBMENU_OPTION(&tools_menu, &DEBUG_MENU, NULL, 0),
 
-	/* 01 */ SUBMENU_OPTION(&tools_debug_translation_menu, &TRANSLATION_STATISTICS, NULL, 1),
+	/* 01 */ SUBMENU_OPTION(&tools_debug_utilisation_menu, &CACHE_USAGE, NULL, 1),
+
+	/* 01 */ SUBMENU_OPTION(&tools_debug_flush_menu, &FLUSH_COUNTS, NULL, 1),
 
 	/* 02 */ SUBMENU_OPTION(&tools_debug_statistics_menu, &EXECUTION_STATISTICS, NULL, 2),
     };
@@ -4148,7 +4101,88 @@ u32 menu(u16 *screen, int FirstInvocation)
 		}
     }
 
+	char* CACHE_NAMES[TRANSLATION_REGION_COUNT] = {
+		"IWRAM", "EWRAM", "ROM", "BIOS"
+	};
+	char* REASON_NAMES[FLUSH_REASON_COUNT] = {
+		"Init", "ROM", "Link", "Full", "Tag", "State"
+	};
 
+	void tools_debug_utilisation_menu_passive()
+	{
+		//draw background
+		show_icon(down_screen_addr, &ICON_SUBBG, 0, 0);
+		show_icon(down_screen_addr, &ICON_TITLE, 0, 0);
+		show_icon(down_screen_addr, &ICON_TITLEICON, TITLE_ICON_X, TITLE_ICON_Y);
+
+		if(current_option_num == 0)
+			show_icon(down_screen_addr, &ICON_BACK, BACK_BUTTON_X, BACK_BUTTON_Y);
+		else
+		{
+			show_icon(down_screen_addr, &ICON_NBACK, BACK_BUTTON_X, BACK_BUTTON_Y);
+			show_icon(down_screen_addr, &ICON_SUBSELA, SUBSELA_X, GUI_ROW1_Y + (current_option_num-1) * GUI_ROW_SY + SUBSELA_OFFSET_Y);
+		}
+
+		strcpy(line_buffer, *(display_option->display_string));
+		draw_string_vcenter(down_screen_addr, 0, 9, 256, COLOR_ACTIVE_ITEM, line_buffer);
+
+		PRINT_STRING_BG(down_screen_addr, "Current", COLOR_INACTIVE_ITEM, COLOR_TRANS, OPTION_TEXT_X + 1 * (NDS_SCREEN_WIDTH - OPTION_TEXT_X * 2) / 4, GUI_ROW1_Y + TEXT_OFFSET_Y);
+		PRINT_STRING_BG(down_screen_addr, "Peak", COLOR_INACTIVE_ITEM, COLOR_TRANS, OPTION_TEXT_X + 2 * (NDS_SCREEN_WIDTH - OPTION_TEXT_X * 2) / 4, GUI_ROW1_Y + TEXT_OFFSET_Y);
+		PRINT_STRING_BG(down_screen_addr, "Flushed", COLOR_INACTIVE_ITEM, COLOR_TRANS, OPTION_TEXT_X + 3 * (NDS_SCREEN_WIDTH - OPTION_TEXT_X * 2) / 4, GUI_ROW1_Y + TEXT_OFFSET_Y);
+		int i;
+		for (i = 0; i < TRANSLATION_REGION_COUNT; i++)
+		{
+			PRINT_STRING_BG(down_screen_addr, CACHE_NAMES[i], COLOR_INACTIVE_ITEM, COLOR_TRANS, OPTION_TEXT_X, GUI_ROW1_Y + (i + 1) * GUI_ROW_SY + TEXT_OFFSET_Y);
+			u32 Current = 0;
+			switch (i)
+			{
+				case TRANSLATION_REGION_IWRAM: Current = iwram_translation_ptr - iwram_translation_cache; break;
+				case TRANSLATION_REGION_EWRAM: Current = ewram_translation_ptr - ewram_translation_cache; break;
+				case TRANSLATION_REGION_ROM:   Current = rom_translation_ptr   - rom_translation_cache;   break;
+				case TRANSLATION_REGION_BIOS:  Current = bios_translation_ptr  - bios_translation_cache;  break;
+			}
+			sprintf(line_buffer, "%u", Current);
+			PRINT_STRING_BG(down_screen_addr, line_buffer, COLOR_INACTIVE_ITEM, COLOR_TRANS, OPTION_TEXT_X + 1 * (NDS_SCREEN_WIDTH - OPTION_TEXT_X * 2) / 4, GUI_ROW1_Y + (i + 1) * GUI_ROW_SY + TEXT_OFFSET_Y);
+			sprintf(line_buffer, "%u", Stats.TranslationBytesPeak[i]);
+			PRINT_STRING_BG(down_screen_addr, line_buffer, COLOR_INACTIVE_ITEM, COLOR_TRANS, OPTION_TEXT_X + 2 * (NDS_SCREEN_WIDTH - OPTION_TEXT_X * 2) / 4, GUI_ROW1_Y + (i + 1) * GUI_ROW_SY + TEXT_OFFSET_Y);
+			sprintf(line_buffer, "%u", Stats.TranslationBytesFlushed[i]);
+			PRINT_STRING_BG(down_screen_addr, line_buffer, COLOR_INACTIVE_ITEM, COLOR_TRANS, OPTION_TEXT_X + 3 * (NDS_SCREEN_WIDTH - OPTION_TEXT_X * 2) / 4, GUI_ROW1_Y + (i + 1) * GUI_ROW_SY + TEXT_OFFSET_Y);
+		}
+	}
+
+	void tools_debug_flush_menu_passive()
+	{
+		//draw background
+		show_icon(down_screen_addr, &ICON_SUBBG, 0, 0);
+		show_icon(down_screen_addr, &ICON_TITLE, 0, 0);
+		show_icon(down_screen_addr, &ICON_TITLEICON, TITLE_ICON_X, TITLE_ICON_Y);
+
+		if(current_option_num == 0)
+			show_icon(down_screen_addr, &ICON_BACK, BACK_BUTTON_X, BACK_BUTTON_Y);
+		else
+		{
+			show_icon(down_screen_addr, &ICON_NBACK, BACK_BUTTON_X, BACK_BUTTON_Y);
+			show_icon(down_screen_addr, &ICON_SUBSELA, SUBSELA_X, GUI_ROW1_Y + (current_option_num-1) * GUI_ROW_SY + SUBSELA_OFFSET_Y);
+		}
+
+		strcpy(line_buffer, *(display_option->display_string));
+		draw_string_vcenter(down_screen_addr, 0, 9, 256, COLOR_ACTIVE_ITEM, line_buffer);
+
+		u32 reason, cache;
+		for (reason = 0; reason < FLUSH_REASON_COUNT; reason++)
+			PRINT_STRING_BG(down_screen_addr, REASON_NAMES[reason], COLOR_INACTIVE_ITEM, COLOR_TRANS, OPTION_TEXT_X + (reason + 1) * ((NDS_SCREEN_WIDTH - OPTION_TEXT_X * 2) / (FLUSH_REASON_COUNT + 1)), GUI_ROW1_Y + TEXT_OFFSET_Y);
+		for (cache = 0; cache < TRANSLATION_REGION_COUNT; cache++)
+		{
+			u32 y = GUI_ROW1_Y + (cache + 1) * GUI_ROW_SY + TEXT_OFFSET_Y;
+			PRINT_STRING_BG(down_screen_addr, CACHE_NAMES[cache], COLOR_INACTIVE_ITEM, COLOR_TRANS, OPTION_TEXT_X, y);
+			for (reason = 0; reason < FLUSH_REASON_COUNT; reason++)
+			{
+				u32 x = OPTION_TEXT_X + (reason + 1) * ((NDS_SCREEN_WIDTH - OPTION_TEXT_X * 2) / (FLUSH_REASON_COUNT + 1));
+				sprintf(line_buffer, "%u", Stats.TranslationFlushCount[cache][reason]);
+				PRINT_STRING_BG(down_screen_addr, line_buffer, COLOR_INACTIVE_ITEM, COLOR_TRANS, x, y);
+			}
+		}
+	}
 
 	void reload_cheats_page()
 	{

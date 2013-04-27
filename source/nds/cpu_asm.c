@@ -69,8 +69,10 @@ u32 last_instruction = 0;
 u8 rom_translation_cache[ROM_TRANSLATION_CACHE_SIZE];
 u8 *rom_translation_ptr = rom_translation_cache;
 
-u8 ram_translation_cache[RAM_TRANSLATION_CACHE_SIZE];
-u8 *ram_translation_ptr = ram_translation_cache;
+u8 iwram_translation_cache[IWRAM_TRANSLATION_CACHE_SIZE];
+u8 *iwram_translation_ptr = iwram_translation_cache;
+u8 ewram_translation_cache[EWRAM_TRANSLATION_CACHE_SIZE];
+u8 *ewram_translation_ptr = ewram_translation_cache;
 u32 iwram_code_min = 0xFFFFFFFF;
 u32 iwram_code_max = 0xFFFFFFFF;
 u32 ewram_code_min = 0xFFFFFFFF;
@@ -2688,8 +2690,10 @@ static inline void StatsAddThumbOpcode() {}
   block_data[block_data_position].flag_data = flag_status;                    \
 }                                                                             \
 
-u8 *ram_block_ptrs[MAX_TAG + 1];
-u32 ram_block_tag_top = MIN_TAG;
+u8 *iwram_block_ptrs[MAX_TAG + 1];
+u32 iwram_block_tag_top = MIN_TAG;
+u8 *ewram_block_ptrs[MAX_TAG + 1];
+u32 ewram_block_tag_top = MIN_TAG;
 
 u8 *bios_block_ptrs[MAX_TAG + 1];
 u32 bios_block_tag_top = MIN_TAG;
@@ -2721,9 +2725,10 @@ u32 bios_block_tag_top = MIN_TAG;
     reg[REG_CPSR] &= ~0x20;                                                   \
   }                                                                           \
 
-#define ram_translation_region  TRANSLATION_REGION_RAM
-#define rom_translation_region  TRANSLATION_REGION_ROM
-#define bios_translation_region TRANSLATION_REGION_BIOS
+#define iwram_translation_region TRANSLATION_REGION_IWRAM
+#define ewram_translation_region TRANSLATION_REGION_EWRAM
+#define rom_translation_region   TRANSLATION_REGION_ROM
+#define bios_translation_region  TRANSLATION_REGION_BIOS
 
 #define block_lookup_translate_arm(mem_type, smc_enable)                      \
   translation_result = translate_block_arm(pc, mem_type##_translation_region, \
@@ -2788,7 +2793,8 @@ u32 bios_block_tag_top = MIN_TAG;
     if (mem_type##_block_tag_top > MAX_TAG)                                   \
     {                                                                         \
       translation_flush_count++;                                              \
-      flush_translation_cache_##mem_type();                                   \
+      flush_translation_cache(mem_type##_translation_region,                  \
+        FLUSH_REASON_LAST_TAG);                                               \
     }                                                                         \
                                                                               \
     translation_recursion_level++;                                            \
@@ -2836,19 +2842,27 @@ u32     recursion_level= 0;
 
 extern void ARMBadJump(unsigned int SourcePC, unsigned int TargetPC);
 
-#ifdef PERFORMANCE_IMPACTING_STATISTICS
-static inline void AdjustTranslationBufferPeaks()
+static inline void AdjustTranslationBufferPeak(TRANSLATION_REGION_TYPE translation_region)
 {
-	if (Stats.ROMTranslationBytesPeak < rom_translation_ptr - rom_translation_cache)
-		Stats.ROMTranslationBytesPeak = rom_translation_ptr - rom_translation_cache;
-	if (Stats.RAMTranslationBytesPeak < ram_translation_ptr - ram_translation_cache)
-		Stats.RAMTranslationBytesPeak = ram_translation_ptr - ram_translation_cache;
-	if (Stats.BIOSTranslationBytesPeak < bios_translation_ptr - bios_translation_cache)
-		Stats.BIOSTranslationBytesPeak = bios_translation_ptr - bios_translation_cache;
+	u32 Size;
+	switch (translation_region)
+	{
+		case TRANSLATION_REGION_IWRAM:
+			Size = iwram_translation_ptr - iwram_translation_cache;
+			break;
+		case TRANSLATION_REGION_EWRAM:
+			Size = ewram_translation_ptr - ewram_translation_cache;
+			break;
+		case TRANSLATION_REGION_ROM:
+			Size = rom_translation_ptr - rom_translation_cache;
+			break;
+		case TRANSLATION_REGION_BIOS:
+			Size = bios_translation_ptr - bios_translation_cache;
+			break;
+	}
+	if (Size > Stats.TranslationBytesPeak[translation_region])
+		Stats.TranslationBytesPeak[translation_region] = Size;
 }
-#else
-static inline void AdjustTranslationBufferPeaks() {}
-#endif
 
 // Where emulation started
 #define block_lookup_address_body(type)                                       \
@@ -2873,16 +2887,19 @@ static inline void AdjustTranslationBufferPeaks() {}
       block_lookup_translate(type, bios, 0);                                  \
       if(translation_recursion_level == 0)                                    \
         bios_region_read_allow();                                             \
+      AdjustTranslationBufferPeak(TRANSLATION_REGION_BIOS);                   \
       break;                                                                  \
                                                                               \
     case 0x2:                                                                 \
       location = ewram_metadata + (pc & 0x3FFFC);                             \
-      block_lookup_translate(type, ram, 1);                                   \
+      block_lookup_translate(type, ewram, 1);                                 \
+      AdjustTranslationBufferPeak(TRANSLATION_REGION_EWRAM);                  \
       break;                                                                  \
                                                                               \
     case 0x3:                                                                 \
       location = iwram_metadata + (pc & 0x7FFC);                              \
-      block_lookup_translate(type, ram, 1);                                   \
+      block_lookup_translate(type, iwram, 1);                                 \
+      AdjustTranslationBufferPeak(TRANSLATION_REGION_IWRAM);                  \
       break;                                                                  \
                                                                               \
     case 0x8 ... 0xD:                                                         \
@@ -2933,6 +2950,7 @@ static inline void AdjustTranslationBufferPeaks() {}
         /* if(translation_recursion_level == 0)                                  \
           translate_invalidate_dcache(); */                                      \
       }                                                                       \
+      AdjustTranslationBufferPeak(TRANSLATION_REGION_ROM);                    \
       break;                                                                  \
     }                                                                         \
                                                                               \
@@ -2962,7 +2980,6 @@ static inline void AdjustTranslationBufferPeaks() {}
 {\
     dump_translation_cache(); \
 }*/\
-  AdjustTranslationBufferPeaks();                                             \
   return block_address;                                                       \
 }                                                                             \
 
@@ -3220,17 +3237,10 @@ block_data_type block_data[MAX_BLOCK_SIZE];
   switch (block_end_pc >> 24)                                                 \
   {                                                                           \
     case 0x02: /* EWRAM */                                                    \
-      ewram_metadata[(block_end_pc & 0x3FFFC) | 3] |= 1;                      \
+      ewram_metadata[(block_end_pc & 0x3FFFC) | 3] |= 0x2;                    \
       break;                                                                  \
     case 0x03: /* IWRAM */                                                    \
-      iwram_metadata[(block_end_pc & 0x7FFC) | 3] |= 1;                       \
-      break;                                                                  \
-    default:                                                                  \
-      if(ADDRESS32(pc_address_block, (block_end_pc & 0x7FFC) - 0x8000) == 0)  \
-      {                                                                       \
-        ADDRESS32(pc_address_block, (block_end_pc & 0x7FFC) - 0x8000) =       \
-         0xFFFFFFFF;                                                          \
-      }                                                                       \
+      iwram_metadata[(block_end_pc & 0x7FFC) | 3] |= 0x2;                     \
       break;                                                                  \
   }                                                                           \
 
@@ -3238,23 +3248,49 @@ block_data_type block_data[MAX_BLOCK_SIZE];
   switch (block_end_pc >> 24)                                                 \
   {                                                                           \
     case 0x02: /* EWRAM */                                                    \
-      ewram_metadata[(block_end_pc & 0x3FFFC) | 3] |= 1;                      \
+      ewram_metadata[(block_end_pc & 0x3FFFC) | 3] |= 0x1;                    \
       break;                                                                  \
     case 0x03: /* IWRAM */                                                    \
-      iwram_metadata[(block_end_pc & 0x7FFC) | 3] |= 1;                       \
-      break;                                                                  \
-    default:                                                                  \
-      if(ADDRESS16(pc_address_block, (block_end_pc & 0x7FFE) - 0x8000) == 0)  \
-      {                                                                       \
-        ADDRESS16(pc_address_block, (block_end_pc & 0x7FFE) - 0x8000) =       \
-         0xFFFF;                                                              \
-      }                                                                       \
+      iwram_metadata[(block_end_pc & 0x7FFC) | 3] |= 0x1;                     \
       break;                                                                  \
   }                                                                           \
 
 #define smc_write_arm_no()                                                    \
 
 #define smc_write_thumb_no()                                                  \
+
+#define unconditional_branch_write_arm_yes()                                  \
+  {                                                                           \
+    u32 previous_pc = block_end_pc - arm_instruction_width;                   \
+    switch (previous_pc >> 24)                                                \
+    {                                                                         \
+      case 0x02: /* EWRAM */                                                  \
+        ewram_metadata[(previous_pc & 0x3FFFC) | 3] |= 0x8;                   \
+        break;                                                                \
+      case 0x03: /* IWRAM */                                                  \
+        iwram_metadata[(previous_pc & 0x7FFC) | 3] |= 0x8;                    \
+        break;                                                                \
+    }                                                                         \
+  }                                                                           \
+
+#define unconditional_branch_write_thumb_yes()                                \
+  if ((block_end_pc & 2) == 0) /* Previous instruction is in 2nd half-word */ \
+  {                                                                           \
+    u32 previous_pc = block_end_pc - thumb_instruction_width;                 \
+    switch (previous_pc >> 24)                                                \
+    {                                                                         \
+      case 0x02: /* EWRAM */                                                  \
+        ewram_metadata[(previous_pc & 0x3FFFC) | 3] |= 0x4;                   \
+        break;                                                                \
+      case 0x03: /* IWRAM */                                                  \
+        iwram_metadata[(previous_pc & 0x7FFC) | 3] |= 0x4;                    \
+        break;                                                                \
+    }                                                                         \
+  }                                                                           \
+
+#define unconditional_branch_write_arm_no()                                   \
+
+#define unconditional_branch_write_thumb_no()                                 \
 
 /*
  * Inserts Value into a sorted Array of unique values (or doesn't), of
@@ -3387,6 +3423,7 @@ static s32 BinarySearch(u32* Array, u32 Value, u32 Size)
           BinarySearch(branch_targets_sorted, block_end_pc,                   \
           sorted_branch_count) == -1)                                         \
           continue_block = 0;                                                 \
+        unconditional_branch_write_##type##_##smc_write_op();                 \
       }                                                                       \
       if(block_exit_position == MAX_EXITS)                                    \
       {                                                                       \
@@ -3484,23 +3521,23 @@ s32 translate_block_##type(u32 pc, TRANSLATION_REGION_TYPE                    \
                                                                               \
   switch(translation_region)                                                  \
   {                                                                           \
-    case TRANSLATION_REGION_RAM:                                              \
-      if(pc >= 0x3000000)                                                     \
-      {                                                                       \
-        if((pc < iwram_code_min) || (iwram_code_min == 0xFFFFFFFF))           \
-          iwram_code_min = pc;                                                \
-      }                                                                       \
-      else                                                                    \
+    case TRANSLATION_REGION_IWRAM:                                            \
+      if((pc < iwram_code_min) || (iwram_code_min == 0xFFFFFFFF))             \
+        iwram_code_min = pc;                                                  \
                                                                               \
-      if(pc >= 0x2000000)                                                     \
-      {                                                                       \
-        if((pc < ewram_code_min) || (ewram_code_min == 0xFFFFFFFF))           \
-          ewram_code_min = pc;                                                \
-      }                                                                       \
-                                                                              \
-      translation_ptr = ram_translation_ptr;                                  \
+      translation_ptr = iwram_translation_ptr;                                \
       translation_cache_limit =                                               \
-       ram_translation_cache + RAM_TRANSLATION_CACHE_SIZE -                   \
+       iwram_translation_cache + IWRAM_TRANSLATION_CACHE_SIZE -               \
+       TRANSLATION_CACHE_LIMIT_THRESHOLD;                                     \
+      break;                                                                  \
+                                                                              \
+    case TRANSLATION_REGION_EWRAM:                                            \
+      if((pc < ewram_code_min) || (ewram_code_min == 0xFFFFFFFF))             \
+        ewram_code_min = pc;                                                  \
+                                                                              \
+      translation_ptr = ewram_translation_ptr;                                \
+      translation_cache_limit =                                               \
+       ewram_translation_cache + EWRAM_TRANSLATION_CACHE_SIZE -               \
        TRANSLATION_CACHE_LIMIT_THRESHOLD;                                     \
       break;                                                                  \
                                                                               \
@@ -3580,20 +3617,7 @@ s32 translate_block_##type(u32 pc, TRANSLATION_REGION_TYPE                    \
     {                                                                         \
       translation_flush_count++;                                              \
                                                                               \
-      switch(translation_region)                                              \
-      {                                                                       \
-        case TRANSLATION_REGION_RAM:                                          \
-          flush_translation_cache_ram();                                      \
-          break;                                                              \
-                                                                              \
-        case TRANSLATION_REGION_ROM:                                          \
-          flush_translation_cache_rom();                                      \
-          break;                                                              \
-                                                                              \
-        case TRANSLATION_REGION_BIOS:                                         \
-          flush_translation_cache_bios();                                     \
-          break;                                                              \
-      }                                                                       \
+      flush_translation_cache(translation_region, FLUSH_REASON_FULL_CACHE);   \
                                                                               \
       return -1;                                                              \
     }                                                                         \
@@ -3647,21 +3671,18 @@ s32 translate_block_##type(u32 pc, TRANSLATION_REGION_TYPE                    \
                                                                               \
   switch(translation_region)                                                  \
   {                                                                           \
-    case TRANSLATION_REGION_RAM:                                              \
-      if(pc >= 0x3000000)                                                     \
-      {                                                                       \
-        if((pc > iwram_code_max) || (iwram_code_max == 0xFFFFFFFF))           \
-          iwram_code_max = pc;                                                \
-      }                                                                       \
-      else                                                                    \
+    case TRANSLATION_REGION_IWRAM:                                            \
+      if((pc > iwram_code_max) || (iwram_code_max == 0xFFFFFFFF))             \
+        iwram_code_max = pc;                                                  \
                                                                               \
-      if(pc >= 0x2000000)                                                     \
-      {                                                                       \
-        if((pc > ewram_code_max) || (ewram_code_max == 0xFFFFFFFF))           \
-          ewram_code_max = pc;                                                \
-      }                                                                       \
+      iwram_translation_ptr = translation_ptr;                                \
+      break;                                                                  \
                                                                               \
-      ram_translation_ptr = translation_ptr;                                  \
+    case TRANSLATION_REGION_EWRAM:                                            \
+      if((pc > ewram_code_max) || (ewram_code_max == 0xFFFFFFFF))             \
+        ewram_code_max = pc;                                                  \
+                                                                              \
+      ewram_translation_ptr = translation_ptr;                                \
       break;                                                                  \
                                                                               \
     case TRANSLATION_REGION_ROM:                                              \
@@ -3722,11 +3743,8 @@ void partial_flush_ram(u32 address)
 
   // 2. If there was a Metadata Entry, and it's not code, the Partial Flush
   // is done. Otherwise, flush that Metadata Entry.
-  if ((metadata[3] & 1) == 0)
+  if ((metadata[3] & 0x3) == 0)
     return;
-  metadata[3] &= ~1;
-  metadata[0] /* Thumb 1 */ = metadata[1] /* ARM */ =
-    metadata[2] /* Thumb 2 */ = 0x0000;
 
   // 3. Prepare for wrapping in the Metadata Area if there's code at the
   // boundaries of the Data Area.
@@ -3750,11 +3768,11 @@ void partial_flush_ram(u32 address)
     metadata = metadata - 4;
     if (metadata < metadata_area)
       metadata = metadata_area_end - 4; // Wrap to the end
-    if ((metadata[3] & 1) != 0)
-    {
-      metadata[3] &= ~1;
+    if ((metadata[3] & 0x3) != 0 &&
+        (metadata[3] & 0x3) != ((metadata[3] & 0xC) >> 2))
+    { // code, and not an unconditional branch for all modes where it's code
       metadata[0] /* Thumb 1 */ = metadata[1] /* ARM */ =
-        metadata[2] /* Thumb 2 */ = 0x0000;
+        metadata[2] /* Thumb 2 */ = metadata[3] /* flags */ = 0x0000;
     }
     else break;
   }
@@ -3763,127 +3781,137 @@ void partial_flush_ram(u32 address)
   metadata = metadata_right;
   while (1)
   {
+    u16 contents = metadata[3];
+    if ((contents & 0x3) != 0)
+    { // code
+      metadata[0] /* Thumb 1 */ = metadata[1] /* ARM */ =
+        metadata[2] /* Thumb 2 */ = metadata[3] /* flags */ = 0x0000;
+      if ((contents & 0x3) == ((contents & 0xC) >> 2))
+      { // code, and an unconditional branch for all modes where it's code
+        break;
+      }
+    }
+    else break;
     metadata = metadata + 4;
     if (metadata == metadata_area_end)
       metadata = metadata_area; // Wrap to the beginning
-    if ((metadata[3] & 1) != 0)
-    {
-      metadata[3] &= ~1;
-      metadata[0] /* Thumb 1 */ = metadata[1] /* ARM */ =
-        metadata[2] /* Thumb 2 */ = 0x0000;
-    }
-    else break;
   }
 }
 
-static void flush_translation_cache_ram_internal();
-static void flush_translation_cache_rom_internal();
-static void flush_translation_cache_bios_internal();
-
-void flush_translation_cache_ram()
+void flush_translation_cache(TRANSLATION_REGION_TYPE translation_region,
+  FLUSH_REASON_TYPE flush_reason)
 {
-  flush_translation_cache_ram_internal();
+	Stats.TranslationFlushCount[translation_region][flush_reason]++;
+	switch (translation_region)
+	{
+		case TRANSLATION_REGION_IWRAM:
+			Stats.TranslationBytesFlushed[translation_region] +=
+				iwram_translation_ptr - iwram_translation_cache;
+			if (flush_reason == FLUSH_REASON_INITIALIZING)
+				memset(iwram_metadata, 0, sizeof(iwram_metadata));
+			else
+			{
+				iwram_translation_ptr = iwram_translation_cache;
+				iwram_block_tag_top = MIN_TAG;
+
+				if(iwram_code_min != 0xFFFFFFFF)
+				{ // iwramのキャッシュを使用していた場合
+					iwram_code_min &= 0x7FFC;
+					iwram_code_max &= 0x7FFE;
+					if (iwram_code_max & 2)
+						// Catch the last Metadata Entry for a 4-byte-aligned Thumb instruction
+						iwram_code_max += 2;
+					memset(iwram_metadata + iwram_code_min, 0, (iwram_code_max - iwram_code_min) * sizeof(u16));
+					iwram_code_min = 0xFFFFFFFF;
+					iwram_code_max = 0xFFFFFFFF;
+				}
+			}
+			break;
+		case TRANSLATION_REGION_EWRAM:
+			Stats.TranslationBytesFlushed[translation_region] +=
+				ewram_translation_ptr - ewram_translation_cache;
+			if (flush_reason == FLUSH_REASON_INITIALIZING)
+				memset(ewram_metadata, 0, sizeof(ewram_metadata));
+			else
+			{
+				ewram_translation_ptr = ewram_translation_cache;
+				ewram_block_tag_top = MIN_TAG;
+
+				if(ewram_code_min != 0xFFFFFFFF)
+				{
+					ewram_code_min &= 0x3FFFC;
+					ewram_code_max &= 0x3FFFE;
+					if (ewram_code_max & 2)
+						// Catch the last Metadata Entry for a 4-byte-aligned Thumb instruction
+						ewram_code_max += 2;
+					memset(ewram_metadata + ewram_code_min, 0, (ewram_code_max - ewram_code_min) * sizeof(u16));
+					ewram_code_min = 0xFFFFFFFF;
+					ewram_code_max = 0xFFFFFFFF;
+				}
+			}
+			break;
+		case TRANSLATION_REGION_ROM:
+			Stats.TranslationBytesFlushed[translation_region] +=
+				rom_translation_ptr - rom_translation_cache;
+			rom_translation_ptr = rom_translation_cache;
+			memset(rom_branch_hash, 0, sizeof(rom_branch_hash));
+			/* All other regions will have branches into the ROM patched in.
+			 * Flush them all. */
+			if (flush_reason != FLUSH_REASON_NATIVE_BRANCHING)
+			{
+				flush_translation_cache(TRANSLATION_REGION_BIOS,
+					FLUSH_REASON_NATIVE_BRANCHING);
+				flush_translation_cache(TRANSLATION_REGION_IWRAM,
+					FLUSH_REASON_NATIVE_BRANCHING);
+				flush_translation_cache(TRANSLATION_REGION_EWRAM,
+					FLUSH_REASON_NATIVE_BRANCHING);
+			}
+			break;
+		case TRANSLATION_REGION_BIOS:
+			Stats.TranslationBytesFlushed[translation_region] +=
+				bios_translation_ptr - bios_translation_cache;
+			bios_block_tag_top = MIN_TAG;
+			bios_translation_ptr = bios_translation_cache;
+			memset(bios_metadata, 0, sizeof(bios_metadata));
+			/* All other regions will have branches into the BIOS patched in.
+			 * Flush them all. */
+			if (flush_reason != FLUSH_REASON_NATIVE_BRANCHING)
+			{
+				flush_translation_cache(TRANSLATION_REGION_ROM,
+					FLUSH_REASON_NATIVE_BRANCHING);
+				flush_translation_cache(TRANSLATION_REGION_IWRAM,
+					FLUSH_REASON_NATIVE_BRANCHING);
+				flush_translation_cache(TRANSLATION_REGION_EWRAM,
+					FLUSH_REASON_NATIVE_BRANCHING);
+			}
+			break;
+	}
 }
 
-static void flush_translation_cache_ram_internal()
-{
-  Stats.RAMTranslationFlushCount++;
-  Stats.RAMTranslationBytesFlushed += ram_translation_ptr
-   - ram_translation_cache;
-/*
-  invalidate_icache_region(ram_translation_cache,
-   (ram_translation_ptr - ram_translation_cache) + CACHE_LINE_SIZE);
-*/
-
-  ram_translation_ptr = ram_translation_cache;
-  ram_block_tag_top = MIN_TAG;
-
-  if(iwram_code_min != 0xFFFFFFFF)
-  { // iwramのキャッシュを使用していた場合
-    iwram_code_min &= 0x7FFC;
-    iwram_code_max &= 0x7FFE;
-    if (iwram_code_max & 2)
-      // Catch the last Metadata Entry for a 4-byte-aligned Thumb instruction
-      iwram_code_max += 2;
-    memset(iwram_metadata + iwram_code_min, 0, (iwram_code_max - iwram_code_min) * sizeof(u16));
-    iwram_code_min = 0xFFFFFFFF;
-    iwram_code_max = 0xFFFFFFFF;
-  }
-
-  if(ewram_code_min != 0xFFFFFFFF)
-  {
-    ewram_code_min &= 0x3FFFC;
-    ewram_code_max &= 0x3FFFE;
-    if (ewram_code_max & 2)
-      // Catch the last Metadata Entry for a 4-byte-aligned Thumb instruction
-      ewram_code_max += 2;
-    memset(ewram_metadata + ewram_code_min, 0, (ewram_code_max - ewram_code_min) * sizeof(u16));
-    ewram_code_min = 0xFFFFFFFF;
-    ewram_code_max = 0xFFFFFFFF;
-  }
-}
-
-void flush_translation_cache_rom()
-{
-  /* If flushing the ROM cache, we must also flush the others, because
-   * we have patched native code offsets for the branches into the ROM */
-  flush_translation_cache_rom_internal();
-  flush_translation_cache_bios_internal();
-  flush_translation_cache_ram_internal();
-}
-
-static void flush_translation_cache_rom_internal()
-{
-  Stats.ROMTranslationFlushCount++;
-  Stats.ROMTranslationBytesFlushed += rom_translation_ptr
-   - rom_translation_cache;
-/*
-  invalidate_icache_region(rom_translation_cache,
-   rom_translation_ptr - rom_translation_cache + CACHE_LINE_SIZE);
-*/
-
-  rom_translation_ptr = rom_translation_cache;
-  memset(rom_branch_hash, 0, sizeof(rom_branch_hash));
-}
-
-void flush_translation_cache_bios()
-{
-  /* If flushing the BIOS cache, we must also flush the others, because
-   * we have patched native code offsets for the branches into the BIOS */
-  flush_translation_cache_bios_internal();
-  flush_translation_cache_rom_internal();
-  flush_translation_cache_ram_internal();
-}
-
-static void flush_translation_cache_bios_internal()
-{
-  Stats.BIOSTranslationFlushCount++;
-  Stats.BIOSTranslationBytesFlushed += bios_translation_ptr
-   - bios_translation_cache;
-/*
-  invalidate_icache_region(bios_translation_cache,
-   bios_translation_ptr - bios_translation_cache + CACHE_LINE_SIZE);
-*/
-
-  bios_block_tag_top = MIN_TAG;
-  bios_translation_ptr = bios_translation_cache;
-  memset(bios_metadata, 0, 0x4000 * sizeof(u16));
-}
-
-unsigned int last_ram= 0;
+unsigned int last_iwram= 0;
+unsigned int last_ewram= 0;
 unsigned int last_rom= 0;
 unsigned int last_bios= 0;
 void dump_translation_cache()
 {
 //  FILE_OPEN(FILE *fp, "fat:/ram_cache.bin", WRITE);
 	FILE *fp;
-if(last_ram != (ram_translation_ptr - ram_translation_cache))
+if(last_iwram != (iwram_translation_ptr - iwram_translation_cache))
 {
-  fp = fopen("fat:/ram_cache.bin", "wb");
-  fwrite(ram_translation_cache, 1, ram_translation_ptr - ram_translation_cache, fp);
+  fp = fopen("fat:/iwram_cache.bin", "wb");
+  fwrite(iwram_translation_cache, 1, iwram_translation_ptr - iwram_translation_cache, fp);
   fclose(fp);
 
-  last_ram = ram_translation_ptr - ram_translation_cache;
+  last_iwram = iwram_translation_ptr - iwram_translation_cache;
+}
+
+if(last_ewram != (ewram_translation_ptr - ewram_translation_cache))
+{
+  fp = fopen("fat:/ewram_cache.bin", "wb");
+  fwrite(ewram_translation_cache, 1, ewram_translation_ptr - ewram_translation_cache, fp);
+  fclose(fp);
+
+  last_ewram = ewram_translation_ptr - ewram_translation_cache;
 }
 
 if(last_rom != (rom_translation_ptr - rom_translation_cache))
@@ -3904,10 +3932,7 @@ if(last_bios != (bios_translation_ptr - bios_translation_cache))
   last_bios = bios_translation_ptr - bios_translation_cache;
 }
 
-/*  char print_buffer[256];
-  sprintf(print_buffer, "RAM:%08X ROM:%08X BIOS:%08X", ram_translation_ptr - ram_translation_cache, rom_translation_ptr - rom_translation_cache, bios_translation_ptr - bios_translation_cache);
-  PRINT_STRING_BG(print_buffer, 0xFFFF, 0x000, 0, 10);*/
-  printf("RAM:%08X ROM:%08X BIOS:%08X \n", ram_translation_ptr - ram_translation_cache, rom_translation_ptr - rom_translation_cache, bios_translation_ptr - bios_translation_cache);
+  printf("IWRAM:%08X EWRAM:%08X ROM:%08X BIOS:%08X \n", iwram_translation_ptr - iwram_translation_cache, ewram_translation_ptr - ewram_translation_cache, rom_translation_ptr - rom_translation_cache, bios_translation_ptr - bios_translation_cache);
 }
 
 void init_cpu() 

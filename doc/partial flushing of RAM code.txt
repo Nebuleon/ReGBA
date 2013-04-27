@@ -6,6 +6,7 @@ Modification history:
 2013-04-23 [Nebuleon]: Rewrote the mechanism used to signify code writes.
 2013-04-23 [pcercuei]: Unaligned writes cannot happen on the GBA. Clarify
   Code Write Counts.
+2013-04-26 [Nebuleon]: Scrap Code Write Counts after brokenness.
 
 Alright. Here's my idea for partially flushing the translation buffer for
 writable areas.
@@ -89,21 +90,23 @@ lowest address and 3 at the highest. All of them are interpreted as unsigned.
 * [3] contains a code metadata word. It contains 0000h if the Data Word, or
   either half of it, has never been compiled in ARM or Thumb mode for the
   current ROM. Otherwise, it contains:
-   15            8 7           1 0
-  [W r i t e C n t 0 0 0 0 0 0 0 c]
-   |             |               |
-    -------------                |
-          |                      |
-   Code Write Count        Currently Code
+   15                      3 2 1 0
+  [0 0 0 0 0 0 0 0 0 0 0 0 A T a t]
+                               | |
+                               | |
+                    Unconditional ARM branch
+                    Unconditional Thumb branch
+                          Currently ARM
+                          Currently Thumb
 
-  The Code Write Count is a measure of the number of times the corresponding
-  Data Word has been rewritten while it was compiled as code, either wholly or
-  partially. It is only incremented when Currently Code is set.
-  The Currently Code flag is present for a Data Word if, despite its tag being
-  0, it currently contains code. That code can be at the start or middle of a
-  basic block of native code compiled from it, but it is code nonetheless.
-  Adjacent blocks having this flag set may be cleared during a Partial Flush
-  (see the section on Partial Flushes below for more information).
+  The Currently Code flags are set for a Data Word if, despite its tag being
+  0, it currently contains an ARM or a Thumb instruction, respectively.
+  The Unconditional Branch flags are set for a Data Word if the Data Word
+  consists of an unconditional branch in ARM mode, or if the second half of
+  the Data Word consists of an unconditional branch in Thumb mode. This is a
+  hint that the Partial Flush operation can take, but it is not obligated to
+  honour it.
+  See the section on Partial Flushes below for more information.
 
 == Tags ==
 
@@ -130,18 +133,8 @@ The lookup is made in constant time.
 The process of writing to a Data Area, via DMA or the memory storage functions
 of the stub, is thus as follows:
 * Perform the write.
-* Get the Metadata Entry describing the first Data Word to be written into.
-* If [3] & 1 == 1, trigger a Partial Flush targetting the first Data Word,
-  then increment the Code Write Count unless it's already 255.
-
-The increment must be done after the Partial Flush, because if the first Data
-Word has a Code Write Count of 255 and the next Data Word has a Code Write
-Count of 254, the compiler will have isolated the first from the second,
-creating a block for the first instruction alone. (See the compilation
-modification below for more information.) It follows that the Partial Flush
-should be erasing that block and isolate the next one until its Code Write
-Count has also reached 255. (See the Partial Flush definition below for more
-information.)
+* Get the Metadata Entry describing the Data Word to be written into.
+* If [3] & 1 == 1, trigger a Partial Flush targetting the Data Word.
 
 After a Partial Flush, the stub needs to ensure that it is returning to native
 code that matches the GBA code at the next GBA instruction. It does that by
@@ -155,35 +148,12 @@ Compilation is also slightly modified:
   If the current tag, before being incremented, is FFFFh, a Full Flush is
   forced, and its cause will be "Last Tag".
 * Compilation shall set the Metadata Entry of any Data Word it newly compiles:
-  It shall set [3]'s Currently Code bit (bit 0) for a Data Word it compiles
-  wholly in ARM mode or wholly or partially in Thumb mode.
-* Compilation shall stop immediately at any Data Word whose Code Write Count,
-  as stored in the Metadata Entry's [3], bits 15..8, is 255 if the compilation
-  has so far only read Data Words whose Code Write Counts were all less than
-  255. Similarly, it shall stop immediately at any Data Word whose Code Write
-  Count is less than 255 if the compilation has so far only read Data Words
-  whose Code Write Counts were all 255. A translation gate (which reloads the
-  PC and forces an indirect branch to the next instruction) shall be emitted
-  if the last instruction of an interrupted block is not an unconditional
-  branch instruction.
-  This rule is there to isolate small, often-modified blocks from their
-  surroundings.
-* If compiling code in a writable Data Area whose Metadata Entry's Code Write
-  Count is 255, the block is expected to be recompiled very often, so remove
-  dead flag elimination and anything superfluous, and stop a block after an
-  unconditional branch. If an instruction earlier in the block is a branch
-  to the next instruction after that unconditional branch:
-
-  [Start: CMP x, y | BNE End: | Other instructions | B Elsewhere | End: ]
-
-  then it will be resolved indirectly. The hope is that the next instruction
-  will have a Code Write Count of less than 255.
-* If compiling code whose Code Write Count is less than 255, perform dead flag
-  elimination, and stop a block at the first instruction that is not a branch
-  target after an unconditional branch (or any instruction whose Code Write
-  Count is 255). That way, there are no native code links that could survive a
-  Partial Flush that erases the block, but any branches leading to the
-  instruction after an unconditional branch are still optimised.
+  It shall set [3]'s Currently Code bits (bit 0 and bit 1) for a Data Word it
+  compiles wholly in ARM mode (bit 1) or wholly or partially in Thumb mode
+  (bit 0).
+  It shall set [3]'s Unconditional Branch bits (bit 2 and bit 3) for a Data
+  Word if it is an ARM unconditional branch (bit 3) or if its second half-word
+  is a Thumb unconditional branch (bit 2).
 
 == Partial Flushes ==
 
@@ -193,26 +163,44 @@ All of this to finally define a Partial Flush targetting a certain Data Word:
 * Make a call to partial_flush_ram.
   partial_flush_ram is a C function that will take care of the Partial Flush.
 * Start with the Metadata Entry for the specified Data Word. Make it not code
-  anymore, by setting [0..2] -> 0000h, and by clearing the Currently Code bit
-  (bit 0) of [3]. If the Write Count in that Metadata Entry's [3], bits 15..8,
-  is 255, a Partial Flush shall affect only adjacent Metadata Entries whose
-  Write Count is also 255. The same happens if the Write Count is less than
-  255, affecting adjacent Metadata Entries whose Write Count is less than 255.
+  anymore, by setting [0..2] -> 0000h, and by clearing the Currently Code and
+  Unconditional Branch bits (bits 0-3) of [3].
 * Going to the left (and wrapping to the right if the memory is mirrored),
-  if the Metadata Entry for a Data Word has [3] & 1 == 1, make it not code, by
-  setting [0..2] -> 0000h, and by clearing the Currently Code bit (bit 0) of
-  [3]. Stop at the first Data Word whose Metadata Entry has [3] & 1 == 0. This
-  is to flush all native code that is a superset of the block which is being
-  flushed:
-
-  [Start: MOV|SUBS|CMP|...|BEQ|SUB|B Start]
-                              [SUB|B Start] <- Flushing this
-
+  clear Metadata Entries for any Data Word, stopping at (but NOT clearing; see
+  below) any Metadata Entry whose Data Word:
+  a) is not code in any mode ([3] & 3 == 0); or
+  b) is an unconditional branch in all of the modes (ARM and Thumb) for which
+     it is code ([3] & 3 == [3] & 12).
+  The search stops at an unconditional branch but doesn't clear it, because
+  that branch is part of the still-valid block to the left of the Data Word
+  around which code is being flushed.
 * Going to the right (and wrapping to the left if the memory is mirrored),
-  repeat the above procedure. It is needed to go forward past the end of the
-  flushed block, because it is not known which block is being flushed. Its tag
-  has become 0000h, and the Data Word was not necessarily the first
-  instruction in its block either.
+  clear Metadata Entries for any Data Word, stopping at any Metadata Entry
+  whose Data Word:
+  a) is not code in any mode ([3] & 3 == 0), in which case don't clear it; or
+  b) is an unconditional branch in all of the modes (ARM and Thumb) for which
+     it is code ([3] & 3 == [3] & 12), in which case clear it.
+  The search stops at an unconditional branch and clears it, because that
+  branch is part of the now-invalid block to which the Data Word belongs.
+
+  This will flush all native code that is a subset of the block which is
+  being flushed:
+
+  [Start: MOV|SUBS|CMP|...|BEQ|SUB|B Start] <- Flushing this
+                              [SUB|B Start] <- will also clear this
+
+  Since blocks in writable areas are ended at the first unconditional branch,
+  all surrounding blocks are either:
+  a) Subsets that will end at that same branch;
+  b) Supersets that will end at that same branch:
+     {A: ? ? ?}     [SUBS|CMP|...|BEQ A|B Elsewhere] <- Flushing this
+     [A: MOV|LDR|MOV|SUBS|CMP|...|BEQ A|B Elsewhere] <- will also clear this
+  c) Blocks that will end at an unconditional branch earlier than the block
+     to be flushed, the next instruction being in a block that will end at
+     that same branch:
+     [B Elsewhere][Start: LDR|MOV|...|B Start]  <- Flushing the LDR
+     [B Elsewhere] - - - - - - - - - - - - -    <- does not clear before it
+
 * Return. The return address will be after the instruction that triggered the
   Partial Flush, which is responsible for looking up the native code address
   of the following instruction. This will cause recompilation if the next
@@ -223,8 +211,8 @@ All of this to finally define a Partial Flush targetting a certain Data Word:
 The next instruction may be a subset of a larger block, which will be
 recompiled separately. For example:
 
-  {Start: ? ? ?}              [SUB|B Start] <- Flushed this
-  [Start: MOV|SUBS|CMP|...|BEQ|SUB|B Start] <- At Start, not yet compiled
+  {Start: ? ? ?}              [SUB|B Start] <- Flushed this, PC is at SUB
+  [Start: MOV|SUBS|CMP|...|BEQ|SUB|B Start] <- Start not yet compiled
 
 This creates a few subset blocks, which should be small enough not to affect
 the Translation Cache in any meaningful way. I posit (without any proof, ha!)
