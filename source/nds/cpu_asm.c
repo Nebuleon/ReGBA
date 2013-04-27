@@ -3586,12 +3586,8 @@ s32 translate_block_##type(u32 pc, TRANSLATION_REGION_TYPE                    \
                                                                               \
   /* Dead flag elimination is a sort of second pass. It works on the          \
    * instructions in reverse, skipping processing to calculate the status of  \
-   * the flags if they will soon be overwritten. Dead flag elimination itself \
-   * takes a fair bit of time, so skip it for the RAM, given that the         \
-   * recompiler is expected to be called VERY often there. */                 \
-  if (translation_region_read_only) {                                         \
-    type##_dead_flag_eliminate();                                             \
-  }                                                                           \
+   * the flags if they will soon be overwritten. */                           \
+  type##_dead_flag_eliminate();                                               \
                                                                               \
   block_exit_position = 0;                                                    \
   block_data_position = 0;                                                    \
