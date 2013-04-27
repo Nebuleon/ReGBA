@@ -28,10 +28,10 @@ u8 *g_state_buffer_ptr;
 //u8 PACKROM_MEM[ PACKROM_MEM_SIZE ] __attribute__ ((aligned (4))) ;
 //u8 PACKROM_MEM_MAP[ PACKROM_MEM_SIZE/(32*1024)*8 ];
 
-#define SAVESTATE_FAST_SIZE (SAVESTATE_FAST_LEN*SAVESTATE_FAST_NUM)	//~6MB
+#define SAVESTATE_FAST_SIZE (SAVESTATE_FAST_LEN*SAVESTATE_FAST_NUM)	//~4MB
 //fast save state length: 0x68e3f
 #define SAVESTATE_FAST_LEN (0x68e40)
-#define SAVESTATE_FAST_NUM (14)
+#define SAVESTATE_FAST_NUM (10)
 u8 SAVEFAST_MEM[ SAVESTATE_FAST_SIZE ] __attribute__ ((aligned (4))) ;
 
 const u8 SVS_HEADER_E[SVS_HEADER_SIZE] = {'N', 'G', 'B', 'A', 'R', 'T', 'S',
@@ -158,25 +158,32 @@ u8 cpu_waitstate_cycles_seq[2][16] =
 };
 #endif
 
-// GBAのROM/RAM 合計962kb
-// パレットRAM 1kb
-u16 palette_ram[512];
-// オブジェクトアトリビュートRAM 1kb
-u16 oam_ram[512];
-// IOレジスタ 32kb
-u16 io_registers[1024 * 16];
-// ExtワークRAM 256KB x2
-u8 ewram[1024 * 256 * 2];
-// IntワークRAM 32KB x2
-u8 iwram[1024 * 32 * 2];
-// VRAM 192kb
-u8 vram[1024 * 96 * 2];
+// GBA memory areas.
+u16 palette_ram   [  0x200]; // Palette RAM             (05000000h)      1 KiB
+u16 oam_ram       [  0x200]; // Object Attribute Memory (07000000h)      1 KiB
+u16 io_registers  [ 0x4000]; // I/O Registers           (04000000h)     32 KiB
+u8  ewram_data    [0x40000]; // External Working RAM    (02000000h)    256 KiB
+u8  iwram_data    [ 0x8000]; // Internal Working RAM    (03000000h)     32 KiB
+u8  vram          [0x18000]; // Video RAM               (06000000h)     96 KiB
+u8  bios_data     [ 0x4000]; // BIOS ROM                (00000000h)     16 KiB
+u8  gamepak_backup[0x20000]; // Backup flash/EEPROM...  (0E000000h)    128 KiB
+                             // ----------------------------------------------
+                             // Total                                  562 KiB
 
-// BIOS ROM 32kb - only the first 16 KiB are used, but 32 KiB is needed [Neb]
-u8 bios_rom[0x8000];
+#ifndef USE_C_CORE
+/*
+ * These are Metadata Areas corresponding to the Data Areas above. They
+ * contain information about the native code compilation status of each
+ * Data Word in that Data Area. For more information about these, see
+ * "doc/partial flushing of RAM code.txt" in your source tree.
+ */
+u16 iwram_metadata[ 0x8000]; // Internal Working RAM code metadata      64 KiB
+u16 ewram_metadata[0x40000]; // External Working RAM code metadata     512 KiB
+u16 bios_metadata [ 0x4000]; // BIOS ROM code tags (no modification)    32 KiB
+                             // ----------------------------------------------
+                             // Total                                  608 KiB
+#endif
 
-// SRAM/flash/EEPROM 128kb
-u8 gamepak_backup[1024 * 128];
 u32 flash_bank_offset = 0;
 
 u32 bios_read_protect;
@@ -566,18 +573,17 @@ u32 read_eeprom()
         }                                                                     \
       }                                                                       \
       else                                                                    \
-        value = ADDRESS##type(bios_rom, address & 0x3FFF);                    \
+        value = ADDRESS##type(bios_data, address & 0x3FFF);                   \
       break;                                                                  \
                                                                               \
     case 0x02:                                                                \
       /* external work RAM */                                                 \
-      address = (address & 0x7FFF) + ((address & 0x38000) << 1) + 0x8000;     \
-      value = ADDRESS##type(ewram, address);                                  \
+      value = ADDRESS##type(ewram_data, address & 0x3FFFF);                   \
       break;                                                                  \
                                                                               \
     case 0x03:                                                                \
       /* internal work RAM */                                                 \
-      value = ADDRESS##type(iwram, (address & 0x7FFF) + 0x8000);              \
+      value = ADDRESS##type(iwram_data, address & 0x7FFF);                    \
       break;                                                                  \
                                                                               \
     case 0x04:                                                                \
@@ -2092,13 +2098,12 @@ void write_rtc(u32 address, u32 value)
   {                                                                           \
     case 0x02:                                                                \
       /* external work RAM */                                                 \
-      address = (address & 0x7FFF) + ((address & 0x38000) * 2) + 0x8000;      \
-      ADDRESS##type(ewram, address) = value;                                  \
+      ADDRESS##type(ewram_data, address & 0x3FFFF) = value;                   \
       break;                                                                  \
                                                                               \
     case 0x03:                                                                \
       /* internal work RAM */                                                 \
-      ADDRESS##type(iwram, (address & 0x7FFF) + 0x8000) = value;              \
+      ADDRESS##type(iwram_data, address & 0x7FFF) = value;                    \
       break;                                                                  \
                                                                               \
     case 0x04:                                                                \
@@ -2410,8 +2415,8 @@ s32 load_game_config(char *gamepak_title, char *gamepak_code, char *gamepak_make
   idle_loop_targets = 0;
   idle_loop_target_pc[0] = 0xFFFFFFFF;
   iwram_stack_optimize = 1;
-  bios_rom[0x39] = 0x00;
-  bios_rom[0x2C] = 0x00;
+  bios_data[0x39] = 0x00;
+  bios_data[0x2C] = 0x00;
   translation_gate_targets = 0;
   flash_device_id = FLASH_DEVICE_MACRONIX_64KB;
   backup_type = BACKUP_NONE;
@@ -2496,13 +2501,13 @@ s32 load_game_config(char *gamepak_title, char *gamepak_code, char *gamepak_make
             if(!strcasecmp(current_variable, "bios_rom_hack_39") &&
               !strcasecmp(current_value, "yes"))
             {
-              bios_rom[0x39] = 0xC0;
+              bios_data[0x39] = 0xC0;
             }
 
             if(!strcasecmp(current_variable, "bios_rom_hack_2C") &&
               !strcasecmp(current_value, "yes"))
             {
-               bios_rom[0x2C] = 0x02;
+               bios_data[0x2C] = 0x02;
             }
           }
         }
@@ -2671,10 +2676,10 @@ s32 load_bios(char *name)
 
   if(FILE_CHECK_VALID(bios_file))
   {
-    FILE_READ(bios_file, bios_rom, 0x4000);
+    FILE_READ(bios_file, bios_data, 0x4000);
     FILE_CLOSE(bios_file);
     // 获得BIOS的MD5
-//    sceKernelUtilsMd5Digest(bios_rom, 0x4000, md5);
+//    sceKernelUtilsMd5Digest(bios_data, 0x4000, md5);
 //    if (memcmp(md5,gba_md5,16) == 0)
       return 0;
 //    if (memcmp(md5,nds_md5,16) == 0)
@@ -2793,21 +2798,10 @@ dma_region_type dma_region_map[16] =
 
 #define dma_vars_ewram(type)                                                  \
   dma_smc_vars_##type();                                                      \
-  u32 type##_new_region;                                                      \
-  u32 type##_current_region = type##_ptr >> 15;                               \
-  u8 *type##_address_block = dma_segmented_load_##type()                      \
 
 #define dma_vars_bios(type)                                                   \
 
 #define dma_vars_ext(type)                                                    \
-
-#define dma_ewram_check_region(type)                                          \
-  type##_new_region = (type##_ptr >> 15);                                     \
-  if(type##_new_region != type##_current_region)                              \
-  {                                                                           \
-    type##_current_region = type##_new_region;                                \
-    type##_address_block = dma_segmented_load_##type();                       \
-  }                                                                           \
 
 #define dma_gamepak_check_region(type)                                        \
   type##_new_region = (type##_ptr >> 15);                                     \
@@ -2823,7 +2817,7 @@ dma_region_type dma_region_map[16] =
   }                                                                           \
 
 #define dma_read_iwram(type, transfer_size)                                   \
-  read_value = ADDRESS##transfer_size(iwram + 0x8000, type##_ptr & 0x7FFF)    \
+  read_value = ADDRESS##transfer_size(iwram_data, type##_ptr & 0x7FFF)        \
 
 #define dma_read_vram(type, transfer_size)                                    \
   read_value = ADDRESS##transfer_size(vram, type##_ptr & 0x1FFFF)             \
@@ -2838,9 +2832,7 @@ dma_region_type dma_region_map[16] =
   read_value = ADDRESS##transfer_size(palette_ram, type##_ptr & 0x3FF)        \
 
 #define dma_read_ewram(type, transfer_size)                                   \
-  dma_ewram_check_region(type);                                               \
-  read_value = ADDRESS##transfer_size(type##_address_block,                   \
-   type##_ptr & 0x7FFF)                                                       \
+  read_value = ADDRESS##transfer_size(ewram_data, type##_ptr & 0x3FFFF)       \
 
 #define dma_read_gamepak(type, transfer_size)                                 \
   dma_gamepak_check_region(type);                                             \
@@ -2855,30 +2847,17 @@ dma_region_type dma_region_map[16] =
 #define dma_read_ext(type, transfer_size)                                     \
   read_value = read_memory##transfer_size(type##_ptr)                         \
 
-#ifdef PERFORMANCE_IMPACTING_STATISTICS
-static inline void StatsDMAToRAM(u32 bits)
-{
-	Stats.DMABytesToRAM += bits / 8;
-}
-
-static inline void StatsModifiedDMAToRAM(u32 bits)
-{
-	Stats.ModifiedDMABytesToRAM += bits / 8;
-}
-#else
-static inline void StatsDMAToRAM(u32 bits) {}
-
-static inline void StatsModifiedDMAToRAM(u32 bits) {}
-#endif
-
 #define dma_write_iwram(type, transfer_size)                                  \
-  if (ADDRESS##transfer_size(iwram + 0x8000, type##_ptr & 0x7FFF) != read_value) \
+  ADDRESS##transfer_size(iwram_data, type##_ptr & 0x7FFF) = read_value;       \
   {                                                                           \
-    ADDRESS##transfer_size(iwram + 0x8000, type##_ptr & 0x7FFF) = read_value; \
-    smc_trigger |= ADDRESS##transfer_size(iwram, type##_ptr & 0x7FFF);        \
-    StatsModifiedDMAToRAM(transfer_size);                                     \
+    /* Get the Metadata Entry's [3], bits 0-1, to see if there's code at this \
+     * location. See "doc/partial flushing of RAM code.txt" for more info. */ \
+    u16 smc = iwram_metadata[(type##_ptr & 0x7FFC) | 3] & 0x3;                \
+    if (smc) {                                                                \
+      partial_flush_ram(type##_ptr);                                          \
+    }                                                                         \
+    smc_trigger |= smc;                                                       \
   }                                                                           \
-  StatsDMAToRAM(transfer_size)                                                \
 
 #define dma_write_vram(type, transfer_size)                                   \
   ADDRESS##transfer_size(vram, type##_ptr & 0x1FFFF) = read_value             \
@@ -2896,18 +2875,16 @@ static inline void StatsModifiedDMAToRAM(u32 bits) {}
   write_memory##transfer_size(type##_ptr, read_value)                         \
 
 #define dma_write_ewram(type, transfer_size)                                  \
-  dma_ewram_check_region(type);                                               \
-                                                                              \
-  if (ADDRESS##transfer_size(type##_address_block, type##_ptr & 0x7FFF) !=    \
-    read_value)                                                               \
+  ADDRESS##transfer_size(ewram_data, type##_ptr & 0x3FFFF) = read_value;      \
   {                                                                           \
-    ADDRESS##transfer_size(type##_address_block, type##_ptr & 0x7FFF) =       \
-      read_value;                                                             \
-    smc_trigger |= ADDRESS##transfer_size(type##_address_block,               \
-     (type##_ptr & 0x7FFF) - 0x8000);                                         \
-    StatsModifiedDMAToRAM(transfer_size);                                     \
+    /* Get the Metadata Entry's [3], bits 0-1, to see if there's code at this \
+     * location. See "doc/partial flushing of RAM code.txt" for more info. */ \
+    u16 smc = ewram_metadata[(type##_ptr & 0x3FFFC) | 3] & 0x3;               \
+    if (smc) {                                                                \
+      partial_flush_ram(type##_ptr);                                          \
+    }                                                                         \
+    smc_trigger |= smc;                                                       \
   }                                                                           \
-  StatsDMAToRAM(transfer_size)                                                \
 
 #define dma_epilogue_iwram()                                                  \
   if(smc_trigger)                                                             \
@@ -3501,10 +3478,10 @@ void init_memory()
 {
   u32 map_offset = 0;
 
-  memory_regions[0x00] = (u8 *)bios_rom;
-  memory_regions[0x01] = (u8 *)bios_rom;
-  memory_regions[0x02] = (u8 *)ewram;
-  memory_regions[0x03] = (u8 *)iwram + 0x8000;
+  memory_regions[0x00] = (u8 *)bios_data;
+  memory_regions[0x01] = (u8 *)bios_data;
+  memory_regions[0x02] = (u8 *)ewram_data;
+  memory_regions[0x03] = (u8 *)iwram_data;
   memory_regions[0x04] = (u8 *)io_registers;
   memory_regions[0x05] = (u8 *)palette_ram;
   memory_regions[0x06] = (u8 *)vram;
@@ -3534,10 +3511,10 @@ void init_memory()
   memory_limits[0x0E] = 0xFFFF;
 
   // Fill memory map regions, areas marked as NULL must be checked directly
-  map_region(read, 0x0000000, 0x1000000, 1, bios_rom);
+  map_region(read, 0x0000000, 0x1000000, 1, bios_data);
   map_null(read, 0x1000000, 0x2000000);
-  map_ram_region(read, 0x2000000, 0x3000000, 8, ewram);
-  map_ram_region(read, 0x3000000, 0x4000000, 1, iwram);
+  map_region(read, 0x2000000, 0x3000000, 8, ewram_data);
+  map_region(read, 0x3000000, 0x4000000, 1, iwram_data);
   map_region(read, 0x4000000, 0x5000000, 1, io_registers);
   map_null(read, 0x5000000, 0x6000000);
   map_vram(read);
@@ -3547,8 +3524,8 @@ void init_memory()
 
   // Fill memory map regions, areas marked as NULL must be checked directly
   map_null(write, 0x0000000, 0x2000000);
-  map_ram_region(write, 0x2000000, 0x3000000, 8, ewram);
-  map_ram_region(write, 0x3000000, 0x4000000, 1, iwram);
+  map_region(write, 0x2000000, 0x3000000, 8, ewram_data);
+  map_region(write, 0x3000000, 0x4000000, 1, iwram_data);
   map_null(write, 0x4000000, 0x5000000);
   map_null(write, 0x5000000, 0x6000000);
 
@@ -3580,8 +3557,8 @@ void init_memory()
   memset(io_registers, 0, sizeof(io_registers));
   memset(oam_ram, 0, sizeof(oam_ram));
   memset(palette_ram, 0, sizeof(palette_ram));
-  memset(iwram, 0, sizeof(iwram));
-  memset(ewram, 0, sizeof(ewram));
+  memset(iwram_data, 0, sizeof(iwram_data));
+  memset(ewram_data, 0, sizeof(ewram_data));
   memset(vram, 0, sizeof(vram));
 
   io_registers[REG_DISPCNT] = 0x80;
@@ -3619,7 +3596,7 @@ void init_memory()
 
 void bios_region_read_allow()
 {
-  memory_map_read[0] = bios_rom;
+  memory_map_read[0] = bios_data;
 }
 
 void bios_region_read_protect()
@@ -3691,9 +3668,8 @@ void loadstate_fast(void)
 	g_state_buffer_ptr = SAVEFAST_MEM + savefast_queue_wr_len * SAVESTATE_FAST_LEN;
 	savestate_block_fast(read_mem);
 
-	flush_translation_cache_ram();
-	flush_translation_cache_rom();
-	flush_translation_cache_bios();
+	flush_translation_cache(TRANSLATION_REGION_IWRAM, FLUSH_REASON_LOADING_STATE);
+	flush_translation_cache(TRANSLATION_REGION_EWRAM, FLUSH_REASON_LOADING_STATE);
 
 	oam_update = 1;
 	gbc_sound_update = 1;
@@ -3772,9 +3748,8 @@ u32 load_state(char *savestate_filename, u32 slot_num)
   savestate_block(read_mem);
   update_progress();
 
-  flush_translation_cache_ram();
-  flush_translation_cache_rom();
-  flush_translation_cache_bios();
+  flush_translation_cache(TRANSLATION_REGION_IWRAM, FLUSH_REASON_LOADING_STATE);
+  flush_translation_cache(TRANSLATION_REGION_EWRAM, FLUSH_REASON_LOADING_STATE);
   update_progress();
 
   oam_update = 1;
@@ -3897,9 +3872,8 @@ printf("gamepak_filename0: %s\n", gamepak_filename);
 
 	// End fixups.
 
-        flush_translation_cache_ram();
-        flush_translation_cache_rom();
-        flush_translation_cache_bios();
+	flush_translation_cache(TRANSLATION_REGION_IWRAM, FLUSH_REASON_LOADING_STATE);
+	flush_translation_cache(TRANSLATION_REGION_EWRAM, FLUSH_REASON_LOADING_STATE);
 
         oam_update = 1;
         gbc_sound_update = 1;
@@ -3998,41 +3972,38 @@ u32 save_state(char *savestate_filename, u16 *screen_capture)
   char fullname[MAX_FILE];                                                    \
   memset(fullname, 0, sizeof(fullname));                                      \
                                                                               \
-  FILE_##type##_VARIABLE(g_state_buffer_ptr, backup_type);                \
-  FILE_##type##_VARIABLE(g_state_buffer_ptr, sram_size);                  \
-  FILE_##type##_VARIABLE(g_state_buffer_ptr, flash_mode);                 \
-  FILE_##type##_VARIABLE(g_state_buffer_ptr, flash_command_position);     \
-  FILE_##type##_VARIABLE(g_state_buffer_ptr, flash_bank_offset);          \
-  FILE_##type##_VARIABLE(g_state_buffer_ptr, flash_device_id);            \
-  FILE_##type##_VARIABLE(g_state_buffer_ptr, flash_manufacturer_id);      \
-  FILE_##type##_VARIABLE(g_state_buffer_ptr, flash_size);                 \
-  FILE_##type##_VARIABLE(g_state_buffer_ptr, eeprom_size);                \
-  FILE_##type##_VARIABLE(g_state_buffer_ptr, eeprom_mode);                \
-  FILE_##type##_VARIABLE(g_state_buffer_ptr, eeprom_address_length);      \
-  FILE_##type##_VARIABLE(g_state_buffer_ptr, eeprom_address);             \
-  FILE_##type##_VARIABLE(g_state_buffer_ptr, eeprom_counter);             \
-  FILE_##type##_VARIABLE(g_state_buffer_ptr, rtc_state);                  \
-  FILE_##type##_VARIABLE(g_state_buffer_ptr, rtc_write_mode);             \
-  FILE_##type##_ARRAY(g_state_buffer_ptr, rtc_registers);                 \
-  FILE_##type##_VARIABLE(g_state_buffer_ptr, rtc_command);                \
-  FILE_##type##_ARRAY(g_state_buffer_ptr, rtc_data);                      \
-  FILE_##type##_VARIABLE(g_state_buffer_ptr, rtc_status);                 \
-  FILE_##type##_VARIABLE(g_state_buffer_ptr, rtc_data_bytes);             \
-  FILE_##type##_VARIABLE(g_state_buffer_ptr, rtc_bit_count);              \
-  FILE_##type##_ARRAY(g_state_buffer_ptr, eeprom_buffer);                 \
-  SAVESTATE_##type##_FILENAME(fullname);                                  \
-  /*FILE_##type##_ARRAY(g_state_buffer_ptr, gamepak_filename);*/          \
-  FILE_##type##_ARRAY(g_state_buffer_ptr, dma);                           \
+  FILE_##type##_VARIABLE(g_state_buffer_ptr, backup_type);                    \
+  FILE_##type##_VARIABLE(g_state_buffer_ptr, sram_size);                      \
+  FILE_##type##_VARIABLE(g_state_buffer_ptr, flash_mode);                     \
+  FILE_##type##_VARIABLE(g_state_buffer_ptr, flash_command_position);         \
+  FILE_##type##_VARIABLE(g_state_buffer_ptr, flash_bank_offset);              \
+  FILE_##type##_VARIABLE(g_state_buffer_ptr, flash_device_id);                \
+  FILE_##type##_VARIABLE(g_state_buffer_ptr, flash_manufacturer_id);          \
+  FILE_##type##_VARIABLE(g_state_buffer_ptr, flash_size);                     \
+  FILE_##type##_VARIABLE(g_state_buffer_ptr, eeprom_size);                    \
+  FILE_##type##_VARIABLE(g_state_buffer_ptr, eeprom_mode);                    \
+  FILE_##type##_VARIABLE(g_state_buffer_ptr, eeprom_address_length);          \
+  FILE_##type##_VARIABLE(g_state_buffer_ptr, eeprom_address);                 \
+  FILE_##type##_VARIABLE(g_state_buffer_ptr, eeprom_counter);                 \
+  FILE_##type##_VARIABLE(g_state_buffer_ptr, rtc_state);                      \
+  FILE_##type##_VARIABLE(g_state_buffer_ptr, rtc_write_mode);                 \
+  FILE_##type##_ARRAY(g_state_buffer_ptr, rtc_registers);                     \
+  FILE_##type##_VARIABLE(g_state_buffer_ptr, rtc_command);                    \
+  FILE_##type##_ARRAY(g_state_buffer_ptr, rtc_data);                          \
+  FILE_##type##_VARIABLE(g_state_buffer_ptr, rtc_status);                     \
+  FILE_##type##_VARIABLE(g_state_buffer_ptr, rtc_data_bytes);                 \
+  FILE_##type##_VARIABLE(g_state_buffer_ptr, rtc_bit_count);                  \
+  FILE_##type##_ARRAY(g_state_buffer_ptr, eeprom_buffer);                     \
+  SAVESTATE_##type##_FILENAME(fullname);                                      \
+  /*FILE_##type##_ARRAY(g_state_buffer_ptr, gamepak_filename);*/              \
+  FILE_##type##_ARRAY(g_state_buffer_ptr, dma);                               \
                                                                               \
-  FILE_##type(g_state_buffer_ptr, iwram + 0x8000, 0x8000);                \
-  for(i = 0; i < 8; i++)                                                      \
-  {                                                                           \
-    FILE_##type(g_state_buffer_ptr, ewram + (i * 0x10000) + 0x8000, 0x8000); \
-  }                                                                           \
-  FILE_##type(g_state_buffer_ptr, vram, 0x18000);                         \
-  FILE_##type(g_state_buffer_ptr, oam_ram, 0x400);                        \
-  FILE_##type(g_state_buffer_ptr, palette_ram, 0x400);                    \
-  FILE_##type(g_state_buffer_ptr, io_registers, 0x8000);                  \
+  FILE_##type##_ARRAY(g_state_buffer_ptr, iwram_data);                        \
+  FILE_##type##_ARRAY(g_state_buffer_ptr, ewram_data);                        \
+  FILE_##type(g_state_buffer_ptr, vram, 0x18000);                             \
+  FILE_##type(g_state_buffer_ptr, oam_ram, 0x400);                            \
+  FILE_##type(g_state_buffer_ptr, palette_ram, 0x400);                        \
+  FILE_##type(g_state_buffer_ptr, io_registers, 0x8000);                      \
 }                                                                             \
 
 void memory_read_mem_savestate()
@@ -4070,11 +4041,8 @@ memory_savestate_body(WRITE_MEM);
   FILE_##type##_ARRAY(g_state_buffer_ptr, eeprom_buffer);					  \
   FILE_##type##_ARRAY(g_state_buffer_ptr, dma);								  \
                                                                               \
-  FILE_##type(g_state_buffer_ptr, iwram + 0x8000, 0x8000);					  \
-  for(i = 0; i < 8; i++)                                                      \
-  {                                                                           \
-    FILE_##type(g_state_buffer_ptr, ewram + (i * 0x10000) + 0x8000, 0x8000);  \
-  }                                                                           \
+  FILE_##type##_ARRAY(g_state_buffer_ptr, iwram_data);				 \
+  FILE_##type##_ARRAY(g_state_buffer_ptr, ewram_data);				 \
   FILE_##type(g_state_buffer_ptr, vram, 0x18000);							  \
   FILE_##type(g_state_buffer_ptr, oam_ram, 0x400);							  \
   FILE_##type(g_state_buffer_ptr, palette_ram, 0x400);						  \

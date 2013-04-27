@@ -199,17 +199,17 @@ New game
 #MSG_VIDEO_REWINDING_0
 Disabled
 #MSG_VIDEO_REWINDING_1
-0.25 s (3.5 s total)
+0.25 s (2.5 s total)
 #MSG_VIDEO_REWINDING_2
-0.5 s (7 s total)
+0.5 s (5 s total)
 #MSG_VIDEO_REWINDING_3
-1 s (14 s total)
+1 s (10 s total)
 #MSG_VIDEO_REWINDING_4
-2 s (28 s total)
+2 s (20 s total)
 #MSG_VIDEO_REWINDING_5
-5 s (1:10 min total)
+5 s (50 s total)
 #MSG_VIDEO_REWINDING_6
-10 s (2:20 min total)
+10 s (1:40 min total)
 #MSG_GENERAL_OFF
 Off
 #MSG_GENERAL_ON
@@ -460,17 +460,17 @@ You can press two buttons at once to delete this mapping.
 #MSG_VIDEO_REWINDING_0
 Disabled
 #MSG_VIDEO_REWINDING_1
-0.25 s (3.5 s total)
+0.25 s (2.5 s total)
 #MSG_VIDEO_REWINDING_2
-0.5 s (7 s total)
+0.5 s (5 s total)
 #MSG_VIDEO_REWINDING_3
-1 s (14 s total)
+1 s (10 s total)
 #MSG_VIDEO_REWINDING_4
-2 s (28 s total)
+2 s (20 s total)
 #MSG_VIDEO_REWINDING_5
-5 s (1:10 min total)
+5 s (50 s total)
 #MSG_VIDEO_REWINDING_6
-10 s (2:20 min total)
+10 s (1:40 min total)
 #MSG_GENERAL_OFF
 关
 #MSG_GENERAL_ON
@@ -721,17 +721,17 @@ Nouveau jeu
 #MSG_VIDEO_REWINDING_0
 Hors fonction
 #MSG_VIDEO_REWINDING_1
-0.25 s (3.5 s au total)
+0.25 s (2.5 s au total)
 #MSG_VIDEO_REWINDING_2
-0.5 s (7 s au total)
+0.5 s (5 s au total)
 #MSG_VIDEO_REWINDING_3
-1 s (14 s au total)
+1 s (10 s au total)
 #MSG_VIDEO_REWINDING_4
-2 s (28 s au total)
+2 s (20 s au total)
 #MSG_VIDEO_REWINDING_5
-5 s (1:10 min au total)
+5 s (50 s au total)
 #MSG_VIDEO_REWINDING_6
-10 s (2:20 min au total)
+10 s (1:40 min au total)
 #MSG_GENERAL_OFF
 Hors fonction
 #MSG_GENERAL_ON
@@ -983,17 +983,17 @@ Neues Spiel
 #MSG_VIDEO_REWINDING_0
 Disabled
 #MSG_VIDEO_REWINDING_1
-0.25 s (3.5 s total)
+0.25 s (2.5 s total)
 #MSG_VIDEO_REWINDING_2
-0.5 s (7 s total)
+0.5 s (5 s total)
 #MSG_VIDEO_REWINDING_3
-1 s (14 s total)
+1 s (10 s total)
 #MSG_VIDEO_REWINDING_4
-2 s (28 s total)
+2 s (20 s total)
 #MSG_VIDEO_REWINDING_5
-5 s (1:10 min total)
+5 s (50 s total)
 #MSG_VIDEO_REWINDING_6
-10 s (2:20 min total)
+10 s (1:40 min total)
 #MSG_GENERAL_OFF
 Aus
 #MSG_GENERAL_ON
@@ -1245,17 +1245,17 @@ Nieuw spel
 #MSG_VIDEO_REWINDING_0
 Uitgeschakeld
 #MSG_VIDEO_REWINDING_1
-0.25 s (3.5 s totaal)
+0.25 s (2.5 s totaal)
 #MSG_VIDEO_REWINDING_2
-0.5 s (7 s totaal)
+0.5 s (5 s totaal)
 #MSG_VIDEO_REWINDING_3
-1 s (14 s totaal)
+1 s (10 s totaal)
 #MSG_VIDEO_REWINDING_4
-2 s (28 s totaal)
+2 s (20 s totaal)
 #MSG_VIDEO_REWINDING_5
-5 s (1:10 min totaal)
+5 s (50 s totaal)
 #MSG_VIDEO_REWINDING_6
-10 s (2:20 min totaal)
+10 s (1:40 min totaal)
 #MSG_GENERAL_OFF
 Uit
 #MSG_GENERAL_ON
@@ -1507,17 +1507,17 @@ Nuevo juego
 #MSG_VIDEO_REWINDING_0
 Desactivado
 #MSG_VIDEO_REWINDING_1
-0.25 s (total 3.5 s)
+0.25 s (total 2.5 s)
 #MSG_VIDEO_REWINDING_2
-0.5 s (total 7 s)
+0.5 s (total 5 s)
 #MSG_VIDEO_REWINDING_3
-1 s (total 14 s)
+1 s (total 10 s)
 #MSG_VIDEO_REWINDING_4
-2 s (total 28 s)
+2 s (total 20 s)
 #MSG_VIDEO_REWINDING_5
-5 s (total 1:10 min)
+5 s (total 50 s)
 #MSG_VIDEO_REWINDING_6
-10 s (total 2:20 min)
+10 s (total 1:40 min)
 #MSG_GENERAL_OFF
 Apagado
 #MSG_GENERAL_ON
@@ -1768,17 +1768,17 @@ Nuovo gioco
 #MSG_VIDEO_REWINDING_0
 Disabled
 #MSG_VIDEO_REWINDING_1
-0.25 s (3.5 s total)
+0.25 s (2.5 s total)
 #MSG_VIDEO_REWINDING_2
-0.5 s (7 s total)
+0.5 s (5 s total)
 #MSG_VIDEO_REWINDING_3
-1 s (14 s total)
+1 s (10 s total)
 #MSG_VIDEO_REWINDING_4
-2 s (28 s total)
+2 s (20 s total)
 #MSG_VIDEO_REWINDING_5
-5 s (1:10 min total)
+5 s (50 s total)
 #MSG_VIDEO_REWINDING_6
-10 s (2:20 min total)
+10 s (1:40 min total)
 #MSG_GENERAL_OFF
 Disabilita
 #MSG_GENERAL_ON
@@ -2029,17 +2029,17 @@ Novo jogo
 #MSG_VIDEO_REWINDING_0
 Desativado
 #MSG_VIDEO_REWINDING_1
-0.25 s (3.5 s no total)
+0.25 s (2.5 s no total)
 #MSG_VIDEO_REWINDING_2
-0.5 s (7 s no total)
+0.5 s (5 s no total)
 #MSG_VIDEO_REWINDING_3
-1 s (14 s no total)
+1 s (10 s no total)
 #MSG_VIDEO_REWINDING_4
-2 s (28 s no total)
+2 s (20 s no total)
 #MSG_VIDEO_REWINDING_5
-5 s (1:10 min no total)
+5 s (50 s no total)
 #MSG_VIDEO_REWINDING_6
-10 s (2:20 min no total)
+10 s (1:40 min no total)
 #MSG_GENERAL_OFF
 Desligado
 #MSG_GENERAL_ON

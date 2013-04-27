@@ -36,24 +36,23 @@ void StatsInit(void)
 void StatsInitGame(void)
 {
 #ifndef USE_C_CORE
-	Stats.ROMTranslationBytesFlushed = 0;
-	Stats.RAMTranslationBytesFlushed = 0;
-	Stats.BIOSTranslationBytesFlushed = 0;
-	Stats.ROMTranslationFlushCount = 0;
-	Stats.RAMTranslationFlushCount = 0;
-	Stats.BIOSTranslationFlushCount = 0;
+	u32 cache, reason;
+	for (cache = 0; cache < TRANSLATION_REGION_COUNT; cache++)
+	{
+		Stats.TranslationBytesFlushed[cache] = 0;
+		Stats.TranslationBytesPeak[cache] = 0;
+		for (reason = 0; reason < FLUSH_REASON_COUNT; reason++)
+		{
+			Stats.TranslationFlushCount[cache][reason] = 0;
+		}
+	}
 #endif
 	Stats.SoundBufferUnderrunCount = 0;
 	Stats.InSoundBufferUnderrun = 0;
 	Stats.TotalEmulatedFrames = 0;
 #ifdef PERFORMANCE_IMPACTING_STATISTICS
-	Stats.ROMTranslationBytesPeak = 0;
-	Stats.RAMTranslationBytesPeak = 0;
-	Stats.BIOSTranslationBytesPeak = 0;
 	Stats.ARMOpcodesDecoded = 0;
 	Stats.ThumbOpcodesDecoded = 0;
-	Stats.DMABytesToRAM = 0;
-	Stats.ModifiedDMABytesToRAM = 0;
 #endif
 }
 

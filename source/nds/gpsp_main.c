@@ -176,6 +176,8 @@ u32 into_suspend();
 //  jz_pm_pllconvert(clock_speed_table[num]*1000000, sdram_speed_table[num]);	//pllin= clock, sdram_clk= pllin/div
 //}
 
+static u8 caches_inited = 0;
+
 void init_main()
 {
   u32 i;
@@ -202,9 +204,21 @@ void init_main()
 
   // bios_mode = USE_BIOS;
 
-  flush_translation_cache_rom();
-  flush_translation_cache_ram();
-  flush_translation_cache_bios();
+  FLUSH_REASON_TYPE flush_reason = (caches_inited)
+    ? FLUSH_REASON_LOADING_ROM
+    : FLUSH_REASON_INITIALIZING;
+  // It is necessary to flush the BIOS cache when loading a new ROM, because
+  // the BIOS has a direct jump to 0x08000000 to execute the ROM. However,
+  // flushing the ROM causes a flush of the BIOS automatically, for the reason
+  // FLUSH_REASON_NATIVE_BRANCHING. So init the cache only before the first
+  // ROM.
+  if (!caches_inited)
+    flush_translation_cache(TRANSLATION_REGION_BIOS, FLUSH_REASON_INITIALIZING);
+  flush_translation_cache(TRANSLATION_REGION_ROM, flush_reason);
+  flush_translation_cache(TRANSLATION_REGION_IWRAM, flush_reason);
+  flush_translation_cache(TRANSLATION_REGION_EWRAM, flush_reason);
+
+  caches_inited = 1;
 
   StatsInitGame();
 }

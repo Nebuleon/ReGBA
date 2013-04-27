@@ -31,6 +31,23 @@
 #define NO_VOLATILE_SOUND
 #endif
 
+/* Tunable parameters for the code emitter go here. Adjust them for your
+ * platform, then add an #ifdef here for it. */
+#ifdef NDS_LAYER /* Supercard DSTwo */
+#  include "tune/mips/dstwo.h"
+#else
+#  define CACHE_LINE_SIZE 4 /* This will most likely be wrong */
+#  define IWRAM_TRANSLATION_CACHE_SIZE      (1024 * 384)
+#  define EWRAM_TRANSLATION_CACHE_SIZE      (1024 * 768)
+#  define ROM_TRANSLATION_CACHE_SIZE        (1024 * 1024 * 2)
+#  define BIOS_TRANSLATION_CACHE_SIZE       (1024 * 128)
+   /* The following parameter needs to be at least enough bytes to hold
+    * the generated code for the largest instruction on your platform.
+    * In most cases, that will be the ARM instruction
+    * STMDB R0!, {R0,R1,R2,R3,R4,R5,R6,R7,R8,R9,R10,R11,R12,R13,R14,R15} */
+#  define TRANSLATION_CACHE_LIMIT_THRESHOLD (1024)
+#endif
+
 /******************************************************************************
  * 
  ******************************************************************************/

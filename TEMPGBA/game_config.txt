@@ -427,9 +427,9 @@ idle_loop_eliminate_target = 0800041a
 game_name = Golden_Sun_A
 game_code = AGSE
 vender_code = 01
-translation_gate_target = 03000820
-translation_gate_target = 030009ac
-translation_gate_target = 03007dac
+#translation_gate_target = 03000820
+#translation_gate_target = 030009ac
+#translation_gate_target = 03007dac
 
 # Golden Sun: The Lost Age (U)
 # Probably the most horrifically coded GBA game in existence.
@@ -437,7 +437,7 @@ game_name = GOLDEN_SUN_B
 game_code = AGFE
 vender_code = 01
 idle_loop_eliminate_target = 08013542
-translation_gate_target = 030009ac
+#translation_gate_target = 030009ac
 #translation_gate_target = 03007d70
 
 # Nothing to see here :/
@@ -464,8 +464,8 @@ game_code = BMGE
 vender_code = 01
 iwram_stack_optimize = no
 idle_loop_eliminate_target = 08014e0a
-translation_gate_target = 03000d00
-translation_gate_target = 03000a30
+#translation_gate_target = 03000d00
+#translation_gate_target = 03000a30
 
 # Mario Golf: Advance Tour (E)
 game_name = MARIOGOLFGBA
@@ -473,17 +473,17 @@ game_code = BMGP
 vender_code = 01
 iwram_stack_optimize = no
 idle_loop_eliminate_target = 08014e0a
-translation_gate_target = 03000d00
-translation_gate_target = 03000a30
+#translation_gate_target = 03000d00
+#translation_gate_target = 03000a30
 
 # Mario Golf: Advance Tour (S)
 game_name = MARIOGOLFGBA
 game_code = BMGS
 vender_code = 01
 iwram_stack_optimize = no
-idle_loop_eliminate_target = 08014e0a
-translation_gate_target = 03000d00
-translation_gate_target = 03000a30
+#idle_loop_eliminate_target = 08014e0a
+#translation_gate_target = 03000d00
+#translation_gate_target = 03000a30
 
 # Mario Golf: Advance Tour (F)
 game_name = MARIOGOLFGBA
@@ -491,8 +491,8 @@ game_code = BMGF
 vender_code = 01
 iwram_stack_optimize = no
 idle_loop_eliminate_target = 08014e0a
-translation_gate_target = 03000d00
-translation_gate_target = 03000a30
+#translation_gate_target = 03000d00
+#translation_gate_target = 03000a30
 
 # Mario Golf: Advance Tour (I)
 game_name = MARIOGOLFGBA
@@ -500,8 +500,8 @@ game_code = BMGI
 vender_code = 01
 iwram_stack_optimize = no
 idle_loop_eliminate_target = 08014e0a
-translation_gate_target = 03000d00
-translation_gate_target = 03000a30
+#translation_gate_target = 03000d00
+#translation_gate_target = 03000a30
 
 # Mario Golf: Advance Tour (G)
 game_name = MARIOGOLFGBA
@@ -509,8 +509,8 @@ game_code = BMGD
 vender_code = 01
 iwram_stack_optimize = no
 idle_loop_eliminate_target = 08014e0a
-translation_gate_target = 03000d00
-translation_gate_target = 03000a30
+#translation_gate_target = 03000d00
+#translation_gate_target = 03000a30
 
 # Mario Golf: Advance Tour (A)
 game_name = MARIOGOLFGBA
@@ -518,8 +518,8 @@ game_code = BMGU
 vender_code = 01
 iwram_stack_optimize = no
 idle_loop_eliminate_target = 08014e0a
-translation_gate_target = 03000d00
-translation_gate_target = 03000a30
+#translation_gate_target = 03000d00
+#translation_gate_target = 03000a30
 
 # Tales of Phantasia (U)
 game_name = PHANTASIA
@@ -791,8 +791,8 @@ iwram_stack_optimize = no
 game_name = DOOM II
 game_code = A9DE
 vender_code = 52
-translation_gate_target = 030041c8
-translation_gate_target = 03004fa0
+#translation_gate_target = 030041c8
+#translation_gate_target = 03004fa0
 
 # Shining Soul (U)
 game_name = SHINING SOUL

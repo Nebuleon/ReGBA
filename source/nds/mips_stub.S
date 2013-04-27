@@ -721,53 +721,46 @@ mips_indirect_branch_dual:
 
 
 .macro translate_region_ewram_core mask
-  andi $1, $4, \mask              # generate 15bit offset
-#  ext $4, $4, 15, 3               # isolate top 3 bits of offset
-#  ins $1, $4, 16, 3               # reinsert into top 4 bits
-  srl $4, $4, 15
-  andi $4, $4, 7
-  lui $2, 7
-  nor $2, $0, $2
-  and $1, $1, $2
-  sll $2, $4, 16
-  or  $1, $1, $2                  # emulate INS instruction
-  lui $2, %hi(ewram + 0x8000)     # generate upper address (delay)
-  addu $2, $2, $1
+  lui  $1, 3                      # size of EWRAM = 0x40000; load 3 in 31..16
+  ori  $1, $1, \mask              # now append the rest of the mask, 0x3XXXX
+  and  $4, $4, $1
+  lui  $2, %hi(ewram_data)        # generate upper address (delay)
+  addu $2, $2, $4
 .endm
 
 .macro translate_region_ewram patch_handler
   region_check 2, \patch_handler
-  translate_region_ewram_core 0x7FFF # partially in BNE delay slot
+  translate_region_ewram_core 0xFFFF # partially in BNE delay slot
 .endm
 
 .macro translate_region_ewram_load_align align_bits, alignment, patch_handler
   region_check_align 2, \align_bits, \alignment, \patch_handler
-  translate_region_ewram_core 0x7FFF # partially in BNE delay slot
+  translate_region_ewram_core 0xFFFF # partially in BNE delay slot
 .endm
 
 .macro translate_region_ewram_load_align16 align_bits, alignment, patch_handler
   region_check_align 2, \align_bits, \alignment, \patch_handler
-  translate_region_ewram_core 0x7FFE # partially in BNE delay slot
+  translate_region_ewram_core 0xFFFE # partially in BNE delay slot
 .endm
 
 .macro translate_region_ewram_load_align32 align_bits, alignment, patch_handler
   region_check_align 2, \align_bits, \alignment, \patch_handler
-  translate_region_ewram_core 0x7FFC # partially in BNE delay slot
+  translate_region_ewram_core 0xFFFC # partially in BNE delay slot
 .endm
 
 .macro translate_region_ewram_store_align16 patch_handler
   region_check 2, \patch_handler
-  translate_region_ewram_core 0x7FFE # partially in BNE delay slot
+  translate_region_ewram_core 0xFFFE # partially in BNE delay slot
 .endm
 
 .macro translate_region_ewram_store_align32 patch_handler
   region_check 2, \patch_handler
-  translate_region_ewram_core 0x7FFC # partially in BNE delay slot
+  translate_region_ewram_core 0xFFFC # partially in BNE delay slot
 .endm
 
 
 .macro translate_region_vram_core
-  addiu $2, $2, -3                # see if it's 3
+  addiu $2, $2, -3                # see if it's 3 (the mirror of last 32 KiB)
 #  ext $4, $4, 0, 17               # generate 17bit offset
   sll $4, $4, 15
   srl $4, $4, 15		  # emulate EXT instruction
@@ -1412,61 +1405,56 @@ mips_indirect_branch_dual:
 .endm
 
 
-# Store the values and check if it overwrote code there
+# Store the values and check if it overwrote code there, by way of a Metadata
+# Area. A Metadata Area has 4 half-words for each word of the Data Area it
+# describes, so data[0] is at metadata[0] and data[4] is at metadata[8] and so
+# on, when the offsets are taken as bytes. The entries all have [3]'s bit 0
+# stating whether the Data Word is a code word: 1 if it is, 0 if it isn't.
+# [3] is at byte offset 6 because this is an assembly file.
 
-.macro store_u8_smc base
-  addiu $2, $2, %lo(\base)        # offset the address
+# Register assignment:
+#   $1, $5 available
+#   $2 (incoming) = MIPS address that was written to
+#   $4 (outgoing) = Data Area offset
+#   $6 (invariant) = PC
+# See smc_write for its register assignment.
+.macro post_write_metadata base, metabase, gba_addr_line
+  la $1, \base                    # load the Data Area's starting address
+  sub $4, $2, $1                  # regenerate the offset after base -> $4
+  srl $2, $4, 2                   # $2 = (address & ~3) [>> 2]
+  sll $2, $2, 3                   # byte offset into a 16-bit array: * 2
+  la $1, \metabase                # load the Metadata Area's address
+  add $1, $1, $2                  # $1 = &metabase[offset] (u16)
 
-  lb $1, ($2)                     # if we are about to write the current value
-  andi $5, $5, 0xFF               # (a byte)
-  beq $1, $5, 1f                  # get out
-  lb $1, -32768($2)               # load the SMC status (branch delay)
-
+  lhu $5, 6($1)                   # load the code modification status
 #ifndef NO_LOAD_DELAY_SLOT
   nop
 #endif
-  bne $1, $0, smc_write           # is there code there?
+  andi $5, $5, 0x3                # and extract the Currently Code bits
+
+  bne $5, $0, smc_write           # if there has been code there, go flush RAM
+  lui $2, \gba_addr_line          # load $2 with the address line (delay)
+  jr $ra                          # if there has not been code there, return
+  nop                             # cannot usefully delay here
+.endm
+
+.macro store_u8_metadata base, metabase, gba_addr_line
+  addiu $2, $2, %lo(\base)        # offset the address
   sb $5, ($2)                     # store value at base[offset] (delay)
-1:jr $ra                          # return
-  nop                             # cannot usefully delay here
+  post_write_metadata \base, \metabase, \gba_addr_line
 .endm
 
-.macro store_u16_smc base
+.macro store_u16_metadata base, metabase, gba_addr_line
   addiu $2, $2, %lo(\base)        # offset the address
-
-  lh $1, ($2)                     # if we are about to write the current value
-  andi $5, $5, 0xFFFF             # (a halfword)
-  beq $1, $5, 1f                  # get out
-  lh $1, -32768($2)               # load the SMC status (branch delay)
-
-#ifndef NO_LOAD_DELAY_SLOT
-  nop
-#endif
-  bne $1, $0, smc_write           # is there code there?
   sh $5, ($2)                     # store value at base[offset] (delay)
-1:jr $ra                          # return
-  nop                             # cannot usefully delay here
+  post_write_metadata \base, \metabase, \gba_addr_line
 .endm
 
-.macro store_u32_smc base
+.macro store_u32_metadata base, metabase, gba_addr_line
   addiu $2, $2, %lo(\base)        # offset the address
-
-  lw $1, ($2)                     # if we are about to write the current value
-  beq $1, $5, 1f                  # get out
-  lw $1, -32768($2)               # load the SMC status (branch delay)
-
-#ifndef NO_LOAD_DELAY_SLOT
-  nop
-#endif
-  bne $1, $0, smc_write           # is there code there?
   sw $5, ($2)                     # store value at base[offset] (delay)
-  
-#  syscall 8
-
-1:jr $ra                          # return
-  nop                             # cannot usefully delay here
+  post_write_metadata \base, \metabase, \gba_addr_line
 .endm
-
 
 
 # Unsigned 8bit load handlers
@@ -1477,11 +1465,11 @@ execute_load_bios_u8:
   bne $2, $0, 2f                  # if not, perform open read
   srl $1, $5, 14                  # check if PC is in BIOS region (delay)
   bne $1, $0, 1f                  # if not, perform BIOS protected read
-  lui $2, %hi(bios_rom)           # generate upper address (delay)
+  lui $2, %hi(bios_data)          # generate upper address (delay)
 
   andi $4, $4, 0x3FFF             # generate offset
   addu $2, $2, $4
-  load_u8 bios_rom
+  load_u8 bios_data
 
 1:
   lui $2, %hi(bios_read_protect)  # generate upper address
@@ -1496,15 +1484,15 @@ execute_load_bios_u8:
 
 execute_load_ewram_u8:
   translate_region_ewram patch_load_u8
-  load_u8 (ewram + 0x8000)
+  load_u8 ewram_data
 
 # Put the generic address over the handler you want to be default
 # IWRAM is typically the most frequently read and written to.
 
 execute_load_u8:
 execute_load_iwram_u8:
-  translate_region 3, patch_load_u8, (iwram + 0x8000), 0x7FFF
-  load_u8 (iwram + 0x8000)
+  translate_region 3, patch_load_u8, iwram_data, 0x7FFF
+  load_u8 iwram_data
 
 execute_load_io_u8:
   translate_region 4, patch_load_u8, io_registers, 0x3FF
@@ -1582,11 +1570,11 @@ execute_load_bios_s8:
   bne $2, $0, 2f
   srl $1, $5, 14                  # check if PC is in BIOS region (delay)
   bne $1, $0, 1f                  # if not, perform BIOS protected read
-  lui $2, %hi(bios_rom)           # generate upper address (delay)
+  lui $2, %hi(bios_data)          # generate upper address (delay)
 
   andi $4, $4, 0x3FFF             # generate offset
   addu $2, $2, $4
-  load_s8 bios_rom
+  load_s8 bios_data
 
 1:
   lui $2, %hi(bios_read_protect)  # generate upper address
@@ -1601,12 +1589,12 @@ execute_load_bios_s8:
 
 execute_load_ewram_s8:
   translate_region_ewram patch_load_s8
-  load_s8 (ewram + 0x8000)
+  load_s8 ewram_data
 
 execute_load_s8:
 execute_load_iwram_s8:
-  translate_region 3, patch_load_s8, (iwram + 0x8000), 0x7FFF
-  load_s8 (iwram + 0x8000)
+  translate_region 3, patch_load_s8, iwram_data, 0x7FFF
+  load_s8 iwram_data
 
 execute_load_io_s8:
   translate_region 4, patch_load_s8, io_registers, 0x3FF
@@ -1684,11 +1672,11 @@ execute_load_bios_u16:
   bne $2, $0, 2f                  # if not, perform open read
   srl $1, $5, 14                  # check if PC is in BIOS region (delay)
   bne $1, $0, 1f                  # if not, perform BIOS protected read
-  lui $2, %hi(bios_rom)           # generate upper address (delay)
+  lui $2, %hi(bios_data)          # generate upper address (delay)
 
   andi $4, $4, 0x3FFF             # generate offset
   addu $2, $2, $4
-  load_u16 bios_rom
+  load_u16 bios_data
 
 1:
   lui $2, %hi(bios_read_protect)  # generate upper address
@@ -1702,12 +1690,12 @@ execute_load_bios_u16:
 
 execute_load_ewram_u16:
   translate_region_ewram_load_align 1, 0, patch_load_u16
-  load_u16 (ewram + 0x8000)
+  load_u16 ewram_data
 
 execute_load_u16:
 execute_load_iwram_u16:
-  translate_region_align 3, 1, 0, patch_load_u16, (iwram + 0x8000), 0x7FFF
-  load_u16 (iwram + 0x8000)
+  translate_region_align 3, 1, 0, patch_load_u16, iwram_data, 0x7FFF
+  load_u16 iwram_data
 
 execute_load_io_u16:
   translate_region_align 4, 1, 0, patch_load_u16, io_registers, 0x3FF
@@ -1763,11 +1751,11 @@ execute_load_bios_u16u:
   bne $2, $0, 2f                  # if not, perform open read
   srl $1, $5, 14                  # check if PC is in BIOS region (delay)
   bne $1, $0, 1f                  # if not, perform BIOS protected read
-  lui $2, %hi(bios_rom)           # generate upper address (delay)
+  lui $2, %hi(bios_data)          # generate upper address (delay)
 
   andi $4, $4, 0x3FFE             # generate offset
   addu $2, $2, $4
-  load_u16_unaligned bios_rom
+  load_u16_unaligned bios_data
 
 1:
   lui $2, %hi(bios_read_protect)  # generate upper address
@@ -1783,11 +1771,11 @@ execute_load_bios_u16u:
 
 execute_load_ewram_u16u:
   translate_region_ewram_load_align16 1, 1, patch_load_u16
-  load_u16_unaligned (ewram + 0x8000)
+  load_u16_unaligned ewram_data
 
 execute_load_iwram_u16u:
-  translate_region_align 3, 1, 1, patch_load_u16, (iwram + 0x8000), 0x7FFE
-  load_u16_unaligned (iwram + 0x8000)
+  translate_region_align 3, 1, 1, patch_load_u16, iwram_data, 0x7FFE
+  load_u16_unaligned iwram_data
 
 execute_load_io_u16u:
   translate_region_align 4, 1, 1, patch_load_u16, io_registers, 0x3FE
@@ -1917,11 +1905,11 @@ execute_load_bios_s16:
   bne $2, $0, 2f                  # if not, perform open read
   srl $1, $5, 14                  # check if PC is in BIOS region (delay)
   bne $1, $0, 1f                  # if not, perform BIOS protected read
-  lui $2, %hi(bios_rom)           # generate upper address (delay)
+  lui $2, %hi(bios_data)          # generate upper address (delay)
 
   andi $4, $4, 0x3FFF             # generate offset
   addu $2, $2, $4
-  load_s16 bios_rom
+  load_s16 bios_data
 
 1:
   lui $2, %hi(bios_read_protect)  # generate upper address
@@ -1935,12 +1923,12 @@ execute_load_bios_s16:
 
 execute_load_ewram_s16:
   translate_region_ewram_load_align 1, 0, patch_load_s16
-  load_s16 (ewram + 0x8000)
+  load_s16 ewram_data
 
 execute_load_s16:
 execute_load_iwram_s16:
-  translate_region_align 3, 1, 0, patch_load_s16, (iwram + 0x8000), 0x7FFF
-  load_s16 (iwram + 0x8000)
+  translate_region_align 3, 1, 0, patch_load_s16, iwram_data, 0x7FFF
+  load_s16 iwram_data
 
 execute_load_io_s16:
   translate_region_align 4, 1, 0, patch_load_s16, io_registers, 0x3FF
@@ -1996,11 +1984,11 @@ execute_load_bios_s16u:
   bne $2, $0, 2f                  # if not, perform open read
   srl $1, $5, 14                  # check if PC is in BIOS region (delay)
   bne $1, $0, 1f                  # if not, perform BIOS protected read
-  lui $2, %hi(bios_rom)           # generate upper address (delay)
+  lui $2, %hi(bios_data)          # generate upper address (delay)
 
   andi $4, $4, 0x3FFE             # generate offset
   addu $2, $2, $4
-  load_s16_unaligned bios_rom
+  load_s16_unaligned bios_data
 
 1:
   lui $2, %hi(bios_read_protect)  # generate upper address
@@ -2015,11 +2003,11 @@ execute_load_bios_s16u:
 
 execute_load_ewram_s16u:
   translate_region_ewram_load_align16 1, 1, patch_load_s16
-  load_s16_unaligned (ewram + 0x8000)
+  load_s16_unaligned ewram_data
 
 execute_load_iwram_s16u:
-  translate_region_align 3, 1, 1, patch_load_s16, (iwram + 0x8000), 0x7FFE
-  load_s16_unaligned (iwram + 0x8000)
+  translate_region_align 3, 1, 1, patch_load_s16, iwram_data, 0x7FFE
+  load_s16_unaligned iwram_data
 
 execute_load_io_s16u:
   translate_region_align 4, 1, 1, patch_load_s16, io_registers, 0x3FE
@@ -2114,11 +2102,11 @@ execute_load_bios_u32:
   bne $2, $0, 2f                  # if not, perform open read
   srl $1, $5, 14                  # check if PC is in BIOS region (delay)
   bne $1, $0, 1f                  # if not, perform BIOS protected read
-  lui $2, %hi(bios_rom)           # generate upper address (delay)
+  lui $2, %hi(bios_data)          # generate upper address (delay)
 
   andi $4, $4, 0x3FFF             # generate offset
   addu $2, $2, $4
-  load_u32 bios_rom
+  load_u32 bios_data
 
 1:
   lui $2, %hi(bios_read_protect)  # generate upper address
@@ -2130,13 +2118,13 @@ execute_load_bios_u32:
 
 execute_load_ewram_u32:
   translate_region_ewram_load_align 2, 0, patch_load_u32
-  load_u32 (ewram + 0x8000)
+  load_u32 ewram_data
 
   .ent execute_load_u32
 execute_load_u32:
 execute_load_iwram_u32:
-  translate_region_align 3, 2, 0, patch_load_u32, (iwram + 0x8000), 0x7FFF
-  load_u32 (iwram + 0x8000)
+  translate_region_align 3, 2, 0, patch_load_u32, iwram_data, 0x7FFF
+  load_u32 iwram_data
   .end execute_load_u32
  
 execute_load_io_u32:
@@ -2193,11 +2181,11 @@ execute_load_bios_u32u1:
   bne $2, $0, 2f                  # if not, perform open read
   srl $1, $5, 14                  # check if PC is in BIOS region (delay)
   bne $1, $0, 1f                  # if not, perform BIOS protected read
-  lui $2, %hi(bios_rom)           # generate upper address (delay)
+  lui $2, %hi(bios_data)          # generate upper address (delay)
 
   andi $4, $4, 0x3FFC             # generate offset
   addu $2, $2, $4
-  load_u32_unaligned bios_rom, 1
+  load_u32_unaligned bios_data, 1
 
 1:
   lui $2, %hi(bios_read_protect)  # generate upper address
@@ -2208,11 +2196,11 @@ execute_load_bios_u32u1:
 
 execute_load_ewram_u32u1:
   translate_region_ewram_load_align32 2, 1, patch_load_u32
-  load_u32_unaligned (ewram + 0x8000), 1
+  load_u32_unaligned ewram_data, 1
 
 execute_load_iwram_u32u1:
-  translate_region_align 3, 2, 1, patch_load_u32, (iwram + 0x8000), 0x7FFC
-  load_u32_unaligned (iwram + 0x8000), 1
+  translate_region_align 3, 2, 1, patch_load_u32, iwram_data, 0x7FFC
+  load_u32_unaligned iwram_data, 1
 
 execute_load_io_u32u1:
   translate_region_align 4, 2, 1, patch_load_u32, io_registers, 0x3FC
@@ -2267,11 +2255,11 @@ execute_load_bios_u32u2:
   bne $2, $0, 2f                  # if not, perform open read
   srl $1, $5, 14                  # check if PC is in BIOS region (delay)
   bne $1, $0, 1f                  # if not, perform BIOS protected read
-  lui $2, %hi(bios_rom)           # generate upper address (delay)
+  lui $2, %hi(bios_data)          # generate upper address (delay)
 
   andi $4, $4, 0x3FFC             # generate offset
   addu $2, $2, $4
-  load_u32_unaligned bios_rom, 2
+  load_u32_unaligned bios_data, 2
 
 1:
   lui $2, %hi(bios_read_protect)  # generate upper address
@@ -2282,11 +2270,11 @@ execute_load_bios_u32u2:
 
 execute_load_ewram_u32u2:
   translate_region_ewram_load_align32 2, 2, patch_load_u32
-  load_u32_unaligned (ewram + 0x8000), 2
+  load_u32_unaligned ewram_data, 2
 
 execute_load_iwram_u32u2:
-  translate_region_align 3, 2, 2, patch_load_u32, (iwram + 0x8000), 0x7FFC
-  load_u32_unaligned (iwram + 0x8000), 2
+  translate_region_align 3, 2, 2, patch_load_u32, iwram_data, 0x7FFC
+  load_u32_unaligned iwram_data, 2
 
 execute_load_io_u32u2:
   translate_region_align 4, 2, 2, patch_load_u32, io_registers, 0x3FC
@@ -2341,11 +2329,11 @@ execute_load_bios_u32u3:
   bne $2, $0, 2f                  # if not, perform open read
   srl $1, $5, 14                  # check if PC is in BIOS region (delay)
   bne $1, $0, 1f                  # if not, perform BIOS protected read
-  lui $2, %hi(bios_rom)           # generate upper address (delay)
+  lui $2, %hi(bios_data)          # generate upper address (delay)
 
   andi $4, $4, 0x3FFC             # generate offset
   addu $2, $2, $4
-  load_u32_unaligned bios_rom, 3
+  load_u32_unaligned bios_data, 3
 
 1:
   lui $2, %hi(bios_read_protect)  # generate upper address
@@ -2356,11 +2344,11 @@ execute_load_bios_u32u3:
 
 execute_load_ewram_u32u3:
   translate_region_ewram_load_align32 2, 3, patch_load_u32
-  load_u32_unaligned (ewram + 0x8000), 3
+  load_u32_unaligned ewram_data, 3
 
 execute_load_iwram_u32u3:
-  translate_region_align 3, 2, 3, patch_load_u32, (iwram + 0x8000), 0x7FFC
-  load_u32_unaligned (iwram + 0x8000), 3
+  translate_region_align 3, 2, 3, patch_load_u32, iwram_data, 0x7FFC
+  load_u32_unaligned iwram_data, 3
 
 execute_load_io_u32u3:
   translate_region_align 4, 2, 3, patch_load_u32, io_registers, 0x3FC
@@ -2490,11 +2478,11 @@ execute_load_bios_u32a:
   bne $2, $0, 2f                  # if not, perform open read
   srl $1, $5, 14                  # check if PC is in BIOS region (delay)
   bne $1, $0, 1f                  # if not, perform BIOS protected read
-  lui $2, %hi(bios_rom)           # generate upper address (delay)
+  lui $2, %hi(bios_data)          # generate upper address (delay)
 
   andi $4, $4, 0x3FFF             # generate offset
   addu $2, $2, $4
-  load_u32 bios_rom
+  load_u32 bios_data
 
 1:
   lui $2, %hi(bios_read_protect)  # generate upper address
@@ -2505,12 +2493,12 @@ execute_load_bios_u32a:
 
 execute_load_ewram_u32a:
   translate_region_ewram patch_load_u32a
-  load_u32 (ewram + 0x8000)
+  load_u32 ewram_data
 
 execute_aligned_load32:
 execute_load_iwram_u32a:
-  translate_region 3, patch_load_u32a, (iwram + 0x8000), 0x7FFF
-  load_u32 (iwram + 0x8000)
+  translate_region 3, patch_load_u32a, iwram_data, 0x7FFF
+  load_u32 iwram_data
 
 execute_load_io_u32a:
   translate_region 4, patch_load_u32a, io_registers, 0x3FF
@@ -2589,12 +2577,12 @@ execute_store_ignore1_u8:
 
 execute_store_ewram_u8:
   translate_region_ewram patch_store_u8
-  store_u8_smc (ewram + 0x8000)
+  store_u8_metadata ewram_data, ewram_metadata, 0x0200
 
 execute_store_u8:
 execute_store_iwram_u8:
-  translate_region 3, patch_store_u8, (iwram + 0x8000), 0x7FFF
-  store_u8_smc (iwram + 0x8000)
+  translate_region 3, patch_store_u8, iwram_data, 0x7FFF
+  store_u8_metadata iwram_data, iwram_metadata, 0x0300
 
 execute_store_io_u8:
   region_check 4, patch_store_u8
@@ -2691,12 +2679,12 @@ execute_store_ignore1_u16:
 
 execute_store_ewram_u16:
   translate_region_ewram_store_align16 patch_store_u16
-  store_u16_smc (ewram + 0x8000)
+  store_u16_metadata ewram_data, ewram_metadata, 0x0200
 
 execute_store_u16:
 execute_store_iwram_u16:
-  translate_region 3, patch_store_u16, (iwram + 0x8000), 0x7FFE
-  store_u16_smc (iwram + 0x8000)
+  translate_region 3, patch_store_u16, iwram_data, 0x7FFE
+  store_u16_metadata iwram_data, iwram_metadata, 0x0300
 
 execute_store_io_u16:
   region_check 4, patch_store_u16
@@ -2789,12 +2777,12 @@ execute_store_ignore1_u32:
 
 execute_store_ewram_u32:
   translate_region_ewram_store_align32 patch_store_u32
-  store_u32_smc (ewram + 0x8000)
+  store_u32_metadata ewram_data, ewram_metadata, 0x0200
 
 execute_store_u32:
 execute_store_iwram_u32:
-  translate_region 3, patch_store_u32, (iwram + 0x8000), 0x7FFC
-  store_u32_smc (iwram + 0x8000)
+  translate_region 3, patch_store_u32, iwram_data, 0x7FFC
+  store_u32_metadata iwram_data, iwram_metadata, 0x0300
 
 execute_store_io_u32:
   region_check 4, patch_store_u32
@@ -2886,12 +2874,12 @@ execute_store_ignore1_u32a:
 
 execute_store_ewram_u32a:
   translate_region_ewram_store_align32 patch_store_u32a
-  store_u32 (ewram + 0x8000)
+  store_u32 ewram_data
 
 execute_aligned_store32:
 execute_store_iwram_u32a:
-  translate_region 3, patch_store_u32a, (iwram + 0x8000), 0x7FFC
-  store_u32 (iwram + 0x8000)
+  translate_region 3, patch_store_u32a, iwram_data, 0x7FFC
+  store_u32 iwram_data
 
 execute_store_io_u32a:
   region_check 4, patch_store_u32a
@@ -3255,10 +3243,8 @@ no_alert:
   addiu $sp, $sp, 4               # fix the stack (delay)
 
 smc_dma:
-  jal flush_translation_cache_ram # flush translation cache
-  addiu $sp, $sp, 4               # fix the stack (delay)
   j lookup_pc
-  nop
+  addiu $sp, $sp, 4               # fix the stack (delay)
 
 
 ext_store_eeprom:
@@ -3300,7 +3286,7 @@ ext_store_vram8:
   or   $5, $5, $1
   sll  $4, $4, 15
   srl  $4, $4, 15		  # emulate INS and EXT instructions
-  lui $1, %hi(0x18000)            # $1 = 0x18000
+  li $1, 0x18000
   sltu $1, $4, $1                 # if $4 >= $1 then $1 = 0 else $1 = 1
   bne $1, $0, ext_store_vram8b    # if $1 != 0 then j ext_store_vram8b
   lui $2, %hi(vram)               # start loading vram address (delay)
@@ -3422,7 +3408,7 @@ ext_store_vram16:
 #  ext $4, $4, 0, 17               # address = adress & 0x1FFFF
   sll $4, $4, 15
   srl $4, $4, 15		  # emulate EXT instruction
-  lui $1, %hi(0x18000)            # $1 = 0x18000
+  li $1, 0x18000
   sltu $1, $4, $1                 # see if address < 0x18000
   bne $1, $0, ext_store_vram16b
   lui $2, %hi(vram)               # start loading vram address (delay)
@@ -3533,7 +3519,7 @@ ext_store_vram32:
 #  ext $4, $4, 0, 17               # address = adress & 0x1FFFF
   sll $4, $4, 15
   srl $4, $4, 15		  # emulate EXT instruction
-  lui $1, %hi(0x18000)            # $1 = 0x18000
+  li $1, 0x18000
   sltu $1, $4, $1                 # see if address < 0x18000
   bne $1, $0, ext_store_vram32b
   lui $2, %hi(vram)               # start loading vram address (delay)
@@ -3682,9 +3668,14 @@ ext_aligned_store32:
 #  jr $ra                          # return
 #  sw $5, ($1)                     # write the value
 
+# smc_write expects three registers to be set:
+# $2 = GBA address line (0x02000000, 0x03000000, 0x06000000, etc.)
+# $4 = offset into the Data Area, canonical (address AND (size - 1))
+# $6 = Program Counter, which is immediately looked up
 smc_write:
   save_registers
-  jal flush_translation_cache_ram # flush translation cache
+  or  $4, $2, $4                  # $4 (param 1) = (address line << 24) | offs
+  jal partial_flush_ram           # flush some of the translation cache
   sw $6, REG_PC($16)              # save PC (delay slot)
 
 lookup_pc:
