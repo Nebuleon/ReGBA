@@ -3716,6 +3716,9 @@ s32 translate_block_##type(u32 pc, TRANSLATION_REGION_TYPE                    \
 translate_block_builder(arm);
 translate_block_builder(thumb);
 
+static void partial_flush_ram_arm(u16* metadata, u16* metadata_area_start, u16* metadata_area_end);
+static void partial_flush_ram_thumb(u16* metadata, u16* metadata_area_start, u16* metadata_area_end);
+
 /*
  * Starts a Partial Flush of the code residing in the Data Word at the given
  * GBA address, and all adjacent code words.
@@ -3738,14 +3741,15 @@ void partial_flush_ram(u32 address)
   }
 
   // 2. If there was a Metadata Entry, and it's not code, the Partial Flush
-  // is done. Otherwise, flush that Metadata Entry.
+  // is done.
   if ((metadata[3] & 0x3) == 0)
     return;
 
+  Stats.PartialFlushCount++;
+
   // 3. Prepare for wrapping in the Metadata Area if there's code at the
   // boundaries of the Data Area.
-  u16 *metadata_area, *metadata_area_end, *metadata_right;
-  metadata_right = metadata; // Save this pointer to go to the right later
+  u16 *metadata_area, *metadata_area_end;
   switch (address >> 24)
   {
     case 0x02: /* EWRAM */
@@ -3758,17 +3762,27 @@ void partial_flush_ram(u32 address)
       break;
   }
 
+  if (metadata[3] & 0x1)
+    partial_flush_ram_thumb(metadata, metadata_area, metadata_area_end);
+  if (metadata[3] & 0x2)
+    partial_flush_ram_arm(metadata, metadata_area, metadata_area_end);
+}
+
+static void partial_flush_ram_thumb(u16* metadata, u16* metadata_area_start, u16* metadata_area_end)
+{
+  u16* metadata_right = metadata; // Save this pointer to go to the right later
   // 4. Clear tags for code to the left.
   while (1)
   {
     metadata = metadata - 4;
-    if (metadata < metadata_area)
+    if (metadata < metadata_area_start)
       metadata = metadata_area_end - 4; // Wrap to the end
-    if ((metadata[3] & 0x3) != 0 &&
-        (metadata[3] & 0x3) != ((metadata[3] & 0xC) >> 2))
-    { // code, and not an unconditional branch for all modes where it's code
-      metadata[0] /* Thumb 1 */ = metadata[1] /* ARM */ =
-        metadata[2] /* Thumb 2 */ = metadata[3] /* flags */ = 0x0000;
+    if ((metadata[3] & 0x1) != 0 &&
+        (metadata[3] & 0x4) == 0)
+    { // code, and NOT an unconditional branch in Thumb
+      metadata[3] &= ~0x5;
+      metadata[0] /* Thumb 1 */ =
+        metadata[2] /* Thumb 2 */ = 0x0000;
     }
     else break;
   }
@@ -3778,19 +3792,59 @@ void partial_flush_ram(u32 address)
   while (1)
   {
     u16 contents = metadata[3];
-    if ((contents & 0x3) != 0)
+    if ((contents & 0x1) != 0)
     { // code
-      metadata[0] /* Thumb 1 */ = metadata[1] /* ARM */ =
-        metadata[2] /* Thumb 2 */ = metadata[3] /* flags */ = 0x0000;
-      if ((contents & 0x3) == ((contents & 0xC) >> 2))
-      { // code, and an unconditional branch for all modes where it's code
+      metadata[3] &= ~0x5;
+      metadata[0] /* Thumb 1 */ =
+        metadata[2] /* Thumb 2 */ = 0x0000;
+      if ((contents & 0x4) != 0)
+      { // code, AND an unconditional branch, in Thumb
         break;
       }
     }
     else break;
     metadata = metadata + 4;
     if (metadata == metadata_area_end)
-      metadata = metadata_area; // Wrap to the beginning
+      metadata = metadata_area_start; // Wrap to the beginning
+  }
+}
+
+static void partial_flush_ram_arm(u16* metadata, u16* metadata_area_start, u16* metadata_area_end)
+{
+  u16* metadata_right = metadata; // Save this pointer to go to the right later
+  // 4. Clear tags for code to the left.
+  while (1)
+  {
+    metadata = metadata - 4;
+    if (metadata < metadata_area_start)
+      metadata = metadata_area_end - 4; // Wrap to the end
+    if ((metadata[3] & 0x2) != 0 &&
+        (metadata[3] & 0x8) == 0)
+    { // code, and NOT an unconditional branch in ARM
+      metadata[3] &= ~0xA;
+      metadata[1] /* ARM */ = 0x0000;
+    }
+    else break;
+  }
+
+  // 5. Clear tags for code to the right.
+  metadata = metadata_right;
+  while (1)
+  {
+    u16 contents = metadata[3];
+    if ((contents & 0x2) != 0)
+    { // code
+      metadata[3] &= ~0xA;
+      metadata[1] /* ARM */ = 0x0000;
+      if ((contents & 0x8) != 0)
+      { // code, AND an unconditional branch, in ARM
+        break;
+      }
+    }
+    else break;
+    metadata = metadata + 4;
+    if (metadata == metadata_area_end)
+      metadata = metadata_area_start; // Wrap to the beginning
   }
 }
 

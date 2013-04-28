@@ -46,6 +46,7 @@ void StatsInitGame(void)
 			Stats.TranslationFlushCount[cache][reason] = 0;
 		}
 	}
+	Stats.PartialFlushCount = 0;
 #endif
 	Stats.SoundBufferUnderrunCount = 0;
 	Stats.InSoundBufferUnderrun = 0;

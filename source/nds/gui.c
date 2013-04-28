@@ -4214,6 +4214,9 @@ u32 menu(u16 *screen, int FirstInvocation)
 				PRINT_STRING_BG(down_screen_addr, line_buffer, COLOR_INACTIVE_ITEM, COLOR_TRANS, x, y);
 			}
 		}
+		PRINT_STRING_BG(down_screen_addr, "Partial flushes", COLOR_INACTIVE_ITEM, COLOR_TRANS, OPTION_TEXT_X, GUI_ROW1_Y + 6 * GUI_ROW_SY + TEXT_OFFSET_Y);
+		sprintf(line_buffer, "%u", Stats.PartialFlushCount);
+		PRINT_STRING_BG(down_screen_addr, line_buffer, COLOR_INACTIVE_ITEM, COLOR_TRANS, NDS_SCREEN_WIDTH / 2, GUI_ROW1_Y + 6 * GUI_ROW_SY + TEXT_OFFSET_Y);
 	}
 
 	void reload_cheats_page()

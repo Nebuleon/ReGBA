@@ -30,6 +30,8 @@ struct GPSP_STATS {
 	u32	TranslationFlushCount[TRANSLATION_REGION_COUNT][FLUSH_REASON_COUNT];
 	/* Up to how many bytes of MIPS code must we hold for this game? */
 	u32	TranslationBytesPeak[TRANSLATION_REGION_COUNT];
+	/* How many times have we gone through a Partial Flush? */
+	u32	PartialFlushCount;
 #endif
 	/* How many times have we detected an underrun of the sound buffer? */
 	u32	SoundBufferUnderrunCount;
