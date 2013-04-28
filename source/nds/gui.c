@@ -752,10 +752,10 @@ s32 load_file(char **wildcards, char *result, char *default_dir_name)
 				// ___ 60        above or below these are ignored.
 				// . . . (+27)
 				// ___ 192
-				if(inputdata.y <= 33 || inputdata.y > 192)
+				if(inputdata.y <= GUI_ROW1_Y || inputdata.y > NDS_SCREEN_HEIGHT)
 					break;
 				else
-					mod = (inputdata.y - 33) / 27;
+					mod = (inputdata.y - GUI_ROW1_Y) / GUI_ROW_SY;
 
 				if(selected_item_on_list - selected_item_on_screen + mod >= total_items_num)
 					break;
