@@ -171,13 +171,24 @@ extern DMA_TRANSFER_TYPE dma[4];
 extern u8 savestate_write_buffer[];
 extern u8 *g_state_buffer_ptr;
 
+struct BIOS_DATA
+{
+  // These need to be consecutive because separated areas break Lufia games.
+  // Somehow, some code is accessing the metadata's first half as if it were
+  // a "second half" of the BIOS, and having all-zeroes in that area breaks
+  // everything. Also do not reorder the members, because the assembly files
+  // expect "bios" to mean "bios.rom".
+  u8  rom     [0x4000];
+  u16 metadata[0x4000];
+};
+
 extern u16 palette_ram   [  0x200];
 extern u16 oam_ram       [  0x200];
 extern u16 io_registers  [ 0x4000];
 extern u8  ewram_data    [0x40000];
 extern u8  iwram_data    [ 0x8000];
 extern u8  vram          [0x18000];
-extern u8  bios_data     [ 0x4000];
+struct BIOS_DATA bios;
 extern u8  gamepak_backup[0x20000];
 
 #ifndef USE_C_CORE
@@ -186,7 +197,6 @@ extern u8  gamepak_backup[0x20000];
 
 extern u16 iwram_metadata[ 0x8000];
 extern u16 ewram_metadata[0x40000];
-extern u16 bios_metadata [ 0x4000];
 #endif
 
 extern u32 bios_read_protect;

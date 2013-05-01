@@ -159,16 +159,17 @@ u8 cpu_waitstate_cycles_seq[2][16] =
 #endif
 
 // GBA memory areas.
+
 u16 palette_ram   [  0x200]; // Palette RAM             (05000000h)      1 KiB
 u16 oam_ram       [  0x200]; // Object Attribute Memory (07000000h)      1 KiB
 u16 io_registers  [ 0x4000]; // I/O Registers           (04000000h)     32 KiB
 u8  ewram_data    [0x40000]; // External Working RAM    (02000000h)    256 KiB
 u8  iwram_data    [ 0x8000]; // Internal Working RAM    (03000000h)     32 KiB
 u8  vram          [0x18000]; // Video RAM               (06000000h)     96 KiB
-u8  bios_data     [ 0x4000]; // BIOS ROM                (00000000h)     16 KiB
+struct BIOS_DATA bios;       // BIOS ROM and code tags  (00000000h)     48 KiB
 u8  gamepak_backup[0x20000]; // Backup flash/EEPROM...  (0E000000h)    128 KiB
                              // ----------------------------------------------
-                             // Total                                  562 KiB
+                             // Total                                  594 KiB
 
 #ifndef USE_C_CORE
 /*
@@ -179,9 +180,8 @@ u8  gamepak_backup[0x20000]; // Backup flash/EEPROM...  (0E000000h)    128 KiB
  */
 u16 iwram_metadata[ 0x8000]; // Internal Working RAM code metadata      64 KiB
 u16 ewram_metadata[0x40000]; // External Working RAM code metadata     512 KiB
-u16 bios_metadata [ 0x4000]; // BIOS ROM code tags (no modification)    32 KiB
                              // ----------------------------------------------
-                             // Total                                  608 KiB
+                             // Total                                  576 KiB
 #endif
 
 u32 flash_bank_offset = 0;
@@ -573,7 +573,7 @@ u32 read_eeprom()
         }                                                                     \
       }                                                                       \
       else                                                                    \
-        value = ADDRESS##type(bios_data, address & 0x3FFF);                   \
+        value = ADDRESS##type(bios.rom, address & 0x3FFF);                   \
       break;                                                                  \
                                                                               \
     case 0x02:                                                                \
@@ -2415,8 +2415,8 @@ s32 load_game_config(char *gamepak_title, char *gamepak_code, char *gamepak_make
   idle_loop_targets = 0;
   idle_loop_target_pc[0] = 0xFFFFFFFF;
   iwram_stack_optimize = 1;
-  bios_data[0x39] = 0x00;
-  bios_data[0x2C] = 0x00;
+  bios.rom[0x39] = 0x00;
+  bios.rom[0x2C] = 0x00;
   translation_gate_targets = 0;
   flash_device_id = FLASH_DEVICE_MACRONIX_64KB;
   backup_type = BACKUP_NONE;
@@ -2501,13 +2501,13 @@ s32 load_game_config(char *gamepak_title, char *gamepak_code, char *gamepak_make
             if(!strcasecmp(current_variable, "bios_rom_hack_39") &&
               !strcasecmp(current_value, "yes"))
             {
-              bios_data[0x39] = 0xC0;
+              bios.rom[0x39] = 0xC0;
             }
 
             if(!strcasecmp(current_variable, "bios_rom_hack_2C") &&
               !strcasecmp(current_value, "yes"))
             {
-               bios_data[0x2C] = 0x02;
+               bios.rom[0x2C] = 0x02;
             }
           }
         }
@@ -2676,10 +2676,10 @@ s32 load_bios(char *name)
 
   if(FILE_CHECK_VALID(bios_file))
   {
-    FILE_READ(bios_file, bios_data, 0x4000);
+    FILE_READ(bios_file, bios.rom, 0x4000);
     FILE_CLOSE(bios_file);
     // 获得BIOS的MD5
-//    sceKernelUtilsMd5Digest(bios_data, 0x4000, md5);
+//    sceKernelUtilsMd5Digest(bios.rom, 0x4000, md5);
 //    if (memcmp(md5,gba_md5,16) == 0)
       return 0;
 //    if (memcmp(md5,nds_md5,16) == 0)
@@ -3478,8 +3478,8 @@ void init_memory()
 {
   u32 map_offset = 0;
 
-  memory_regions[0x00] = (u8 *)bios_data;
-  memory_regions[0x01] = (u8 *)bios_data;
+  memory_regions[0x00] = (u8 *)bios.rom;
+  memory_regions[0x01] = (u8 *)bios.rom;
   memory_regions[0x02] = (u8 *)ewram_data;
   memory_regions[0x03] = (u8 *)iwram_data;
   memory_regions[0x04] = (u8 *)io_registers;
@@ -3511,7 +3511,7 @@ void init_memory()
   memory_limits[0x0E] = 0xFFFF;
 
   // Fill memory map regions, areas marked as NULL must be checked directly
-  map_region(read, 0x0000000, 0x1000000, 1, bios_data);
+  map_region(read, 0x0000000, 0x1000000, 1, bios.rom);
   map_null(read, 0x1000000, 0x2000000);
   map_region(read, 0x2000000, 0x3000000, 8, ewram_data);
   map_region(read, 0x3000000, 0x4000000, 1, iwram_data);
@@ -3596,7 +3596,7 @@ void init_memory()
 
 void bios_region_read_allow()
 {
-  memory_map_read[0] = bios_data;
+  memory_map_read[0] = bios.rom;
 }
 
 void bios_region_read_protect()

@@ -2883,7 +2883,7 @@ static inline void AdjustTranslationBufferPeak(TRANSLATION_REGION_TYPE translati
   {                                                                           \
     case 0x0:                                                                 \
       bios_region_read_allow();                                               \
-      location = bios_metadata + (pc & 0x3FFC);                               \
+      location = bios.metadata + (pc & 0x3FFC);                               \
       block_lookup_translate(type, bios, 0);                                  \
       if(translation_recursion_level == 0)                                    \
         bios_region_read_allow();                                             \
@@ -3922,7 +3922,7 @@ void flush_translation_cache(TRANSLATION_REGION_TYPE translation_region,
 				bios_translation_ptr - bios_translation_cache;
 			bios_block_tag_top = MIN_TAG;
 			bios_translation_ptr = bios_translation_cache;
-			memset(bios_metadata, 0, sizeof(bios_metadata));
+			memset(bios.metadata, 0, sizeof(bios.metadata));
 			/* All other regions will have branches into the BIOS patched in.
 			 * Flush them all. */
 			if (flush_reason != FLUSH_REASON_NATIVE_BRANCHING)
