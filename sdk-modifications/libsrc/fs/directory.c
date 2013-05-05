@@ -135,7 +135,7 @@ bool _FAT_directory_isValidLfn (const char* name) {
 	return true;
 }
 bool _FAT_directory_isValidAlias (const char* name) {
-	return false;//disables this function to preserve file name casing
+	//return false;//disables this function to preserve file name casing
 
 	u32 i;
 	u32 nameLength;
@@ -159,7 +159,7 @@ bool _FAT_directory_isValidAlias (const char* name) {
 	// Make sure the name doesn't contain any control codes
 	//if name isn't all capitals, then it is not a valid short name
 	for (i = 0; i < nameLength; i++) {
-		if (name[i] < 0x5A && name[i]!=0x20) {
+		if (name[i] > 0x5A && name[i]!= 0x20) {
 			return false;
 		}
 	}
@@ -756,7 +756,37 @@ static bool _FAT_directory_entryExists (PARTITION* partition, const char* name, 
 	return false;
 }
 
+//a fix for checking if a short file name is already in use.
+static bool _FAT_directory_entryExistsSFN (PARTITION* partition, const char* name, u32 dirCluster) {
+	DIR_ENTRY tempEntry;
+	bool foundFile;
+	char alias[MAX_ALIAS_LENGTH];
+	u32 dirnameLength;
 
+	dirnameLength = strnlen(name, MAX_FILENAME_LENGTH);
+
+	if (dirnameLength >= MAX_FILENAME_LENGTH) {
+		return false;
+	}
+
+
+	// Make sure the entry doesn't already exist
+	foundFile = _FAT_directory_getFirstEntry (partition, &tempEntry, dirCluster);
+
+	while (foundFile) {			// It hasn't already found the file
+		if(!strcasecmp(name, tempEntry.d_name))
+			return true;
+
+		// Check if the alias matches
+		_FAT_directory_entryGetAlias (tempEntry.entryData, alias);
+		if ((dirnameLength == strnlen(alias, MAX_ALIAS_LENGTH))
+			&& (strcasecmp(alias, name) == 0)) {
+				return true;
+		}
+		foundFile = _FAT_directory_getNextEntry (partition, &tempEntry);
+	}
+	return false;
+}
 
 bool _FAT_directory_addEntry (PARTITION* partition, DIR_ENTRY* entry, u32 dirCluster) {
 	u32 entrySize;
@@ -833,7 +863,7 @@ bool _FAT_directory_addEntry (PARTITION* partition, DIR_ENTRY* entry, u32 dirClu
 			++ j;
 		}
 		// Short filename
-		strupr (entry->d_name);
+		strupr (entry->entryData);
 	}else {
 		// Long filename needed
 		//memset( entry->unicodeFilename, 0, 512 );
@@ -883,7 +913,7 @@ bool _FAT_directory_addEntry (PARTITION* partition, DIR_ENTRY* entry, u32 dirClu
 			i++;
 			alias[6] = '0' + ((i / 10) % 10);	// 10's digit
 			alias[7] = '0' + (i % 10);	// 1's digit
-		} while (_FAT_directory_entryExists (partition, alias, dirCluster) && (i < 100));
+		} while (_FAT_directory_entryExistsSFN (partition, alias, dirCluster) && (i < 100));
 		if (i == 100) {
 			// Couldn't get a tail number
 			return false;
