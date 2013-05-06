@@ -997,16 +997,16 @@ static int pp= 0;
 		s16 left = 0, right = 0;
 		for (j = 0; j < OUTPUT_FREQUENCY_DIVISOR; j++) {
 			sample = sound_buffer[sound_read_offset];
-			if(sample > 1023) sample= 1023;
-			if(sample < -1024) sample= -1024;
-			left += (sample << 5) / OUTPUT_FREQUENCY_DIVISOR;
+			if(sample > 2047) sample= 2047;
+			if(sample < -2048) sample= -2048;
+			left += (sample << 4) / OUTPUT_FREQUENCY_DIVISOR;
 			sound_buffer[sound_read_offset] = 0;
 			sound_read_offset = (sound_read_offset + 1) & BUFFER_SIZE;
 
 			sample = sound_buffer[sound_read_offset];
-			if(sample > 1023) sample= 1023;
-			if(sample < -1024) sample= -1024;
-			right += (sample << 5) / OUTPUT_FREQUENCY_DIVISOR;
+			if(sample > 2047) sample= 2047;
+			if(sample < -2048) sample= -2048;
+			right += (sample << 4) / OUTPUT_FREQUENCY_DIVISOR;
 			sound_buffer[sound_read_offset] = 0;
 			sound_read_offset = (sound_read_offset + 1) & BUFFER_SIZE;
 		}
