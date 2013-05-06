@@ -51,6 +51,30 @@ game_config.txt receives updates from the community occasionally.
 For the latest version, see:
 <http://filetrip.net/nds-downloads/flashcart-files/latest-x-f12630.html>
 
+# Using NDSGBA saved states
+
+The NDSGBA saved state format was not suitable for modifying the emulator,
+because each vew version meant that older saved states could corrupt the new
+version's memory.
+
+To play a NDSGBA saved state, you may do the following:
+
+1. Load the version of NDSGBA you used to create your saved state.
+2. Load the game, then the saved state. Save in-game, then exit NDSGBA.
+   (Exiting NDSGBA is what creates the .sav file. TempGBA would not need
+    to exit.)
+3. Using your computer, copy the .sav file from the /NDSGBA/GAMERTS directory
+   on your storage card into /TEMPGBA/SAVES. You can do this step for multiple
+   games at once if you repeated steps 1 and 2 for them.
+4. Load TempGBA.
+5. If you want to create a saved state (a .sav file works too), load the game,
+   which will load the .sav file, and then create a TempGBA saved state.
+
+# Game compatibility
+
+The GBATemp community maintains a compatibility list for TempGBA. You can
+see and edit it here: <http://wiki.gbatemp.net/wiki/TempGBA_Compatibility>
+
 # Cheats
 
 The cheat support in TempGBA is untested, but should be equivalent to that of
