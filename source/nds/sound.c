@@ -105,7 +105,7 @@
         break;                                                                \
       }                                                                       \
                                                                               \
-      frequency_step = FLOAT_TO_FP16_16(((131072.0 / (2048.0 - rate)) * 8.0) / SOUND_FREQUENCY); \
+      frequency_step = FLOAT_TO_FP16_16((1048576.0 / SOUND_FREQUENCY) / (2048 - rate)); \
                                                                               \
       gs->frequency_step = frequency_step;                                    \
       gs->rate = rate;                                                        \
@@ -471,7 +471,7 @@ extern u32 temporary_fast_forward;
 void update_gbc_sound(u32 cpu_ticks)
   {
     // TODO 実数部のビット数を多くした方がいい？
-    FIXED16_16 buffer_ticks= FLOAT_TO_FP16_16(((float)(cpu_ticks - gbc_sound_last_cpu_ticks) * SOUND_FREQUENCY) / SYS_CLOCK);
+    FIXED16_16 buffer_ticks= FLOAT_TO_FP16_16((cpu_ticks - gbc_sound_last_cpu_ticks) * (SOUND_FREQUENCY / SYS_CLOCK));
     u32 i, i2;
     GBC_SOUND_STRUCT *gs = gbc_sound_channel;
     FIXED16_16 sample_index, frequency_step;

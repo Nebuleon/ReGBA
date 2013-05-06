@@ -146,7 +146,7 @@ typedef struct
 {                                                                             \
   u32 rate = value & 0x7FF;                                                   \
   gbc_sound_channel[channel].rate = rate;                                     \
-  gbc_sound_channel[channel].frequency_step = FLOAT_TO_FP16_16(((131072.0 / (2048.0 - rate)) * 8.0) / SOUND_FREQUENCY);  \
+  gbc_sound_channel[channel].frequency_step = FLOAT_TO_FP16_16((1048576.0 / SOUND_FREQUENCY) / (2048 - rate));  \
   gbc_sound_channel[channel].length_status = (value >> 14) & 0x01;            \
   if(value & 0x8000)                                                          \
   {                                                                           \
@@ -213,7 +213,7 @@ typedef struct
 {                                                                             \
   u32 rate = value & 0x7FF;                                                   \
   gbc_sound_channel[2].rate = rate;                                           \
-  gbc_sound_channel[2].frequency_step = FLOAT_TO_FP16_16((2097152.0 / (2048.0 - rate)) / SOUND_FREQUENCY);         \
+  gbc_sound_channel[2].frequency_step = FLOAT_TO_FP16_16((2097152.0 / SOUND_FREQUENCY) / (2048 - rate));         \
   gbc_sound_channel[2].length_status = (value >> 14) & 0x01;                  \
   if(value & 0x8000)                                                          \
   {                                                                           \
@@ -231,14 +231,14 @@ typedef struct
   if(dividing_ratio == 0)                                                     \
   {                                                                           \
     gbc_sound_channel[3].frequency_step =                                     \
-     FLOAT_TO_FP16_16(1048576.0 / (1 << (frequency_shift + 1)) /              \
-     SOUND_FREQUENCY);                                                        \
+     FLOAT_TO_FP16_16((1048576.0 / SOUND_FREQUENCY) /                         \
+       (2 << frequency_shift));                                               \
   }                                                                           \
   else                                                                        \
   {                                                                           \
     gbc_sound_channel[3].frequency_step =                                     \
-     FLOAT_TO_FP16_16(524288.0 / (dividing_ratio *                            \
-     (1 << (frequency_shift + 1))) / SOUND_FREQUENCY);                        \
+     FLOAT_TO_FP16_16((524288.0 / SOUND_FREQUENCY) / (dividing_ratio *        \
+     (2 << frequency_shift)));                                                \
   }                                                                           \
   gbc_sound_channel[3].noise_type = (value >> 3) & 0x01;                      \
   gbc_sound_channel[3].length_status = (value >> 14) & 0x01;                  \
@@ -308,7 +308,7 @@ typedef struct
 
 #define SOUND_UPDATE_FREQUENCY_STEP(timer_number)                             \
   timer[timer_number].frequency_step =                                        \
-   FLOAT_TO_FP16_16(SYS_CLOCK / (timer_reload * SOUND_FREQUENCY))             \
+   FLOAT_TO_FP16_16((SYS_CLOCK / SOUND_FREQUENCY) / timer_reload)             \
 
 /******************************************************************************
  * グローバル変数の宣言
