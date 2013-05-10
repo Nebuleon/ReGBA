@@ -28,10 +28,10 @@ u8 *g_state_buffer_ptr;
 //u8 PACKROM_MEM[ PACKROM_MEM_SIZE ] __attribute__ ((aligned (4))) ;
 //u8 PACKROM_MEM_MAP[ PACKROM_MEM_SIZE/(32*1024)*8 ];
 
-#define SAVESTATE_FAST_SIZE (SAVESTATE_FAST_LEN*SAVESTATE_FAST_NUM)	//~4MB
+#define SAVESTATE_FAST_SIZE (SAVESTATE_FAST_LEN*SAVESTATE_FAST_NUM)	//~2.6MB
 //fast save state length: 0x68e3f
 #define SAVESTATE_FAST_LEN (0x68e40)
-#define SAVESTATE_FAST_NUM (10)
+#define SAVESTATE_FAST_NUM (7)
 u8 SAVEFAST_MEM[ SAVESTATE_FAST_SIZE ] __attribute__ ((aligned (4))) ;
 
 const u8 SVS_HEADER_E[SVS_HEADER_SIZE] = {'N', 'G', 'B', 'A', 'R', 'T', 'S',
@@ -180,8 +180,9 @@ u8  gamepak_backup[0x20000]; // Backup flash/EEPROM...  (0E000000h)    128 KiB
  */
 u16 iwram_metadata[ 0x8000]; // Internal Working RAM code metadata      64 KiB
 u16 ewram_metadata[0x40000]; // External Working RAM code metadata     512 KiB
+u16 vram_metadata [0x18000]; // Video RAM code metadata                192 KiB
                              // ----------------------------------------------
-                             // Total                                  576 KiB
+                             // Total                                  768 KiB
 #endif
 
 u32 flash_bank_offset = 0;
@@ -2765,7 +2766,8 @@ dma_region_type dma_region_map[16] =
 #define dma_vars_vram(type)                                                   \
   type##_ptr &= 0x1FFFF;                                                      \
   if(type##_ptr >= 0x18000)                                                   \
-    type##_ptr -= 0x8000                                                      \
+    type##_ptr -= 0x8000;                                                     \
+  dma_smc_vars_##type();                                                      \
 
 #define dma_vars_palette_ram(type)                                            \
 
@@ -2860,7 +2862,20 @@ dma_region_type dma_region_map[16] =
   }                                                                           \
 
 #define dma_write_vram(type, transfer_size)                                   \
-  ADDRESS##transfer_size(vram, type##_ptr & 0x1FFFF) = read_value             \
+  ADDRESS##transfer_size(vram, type##_ptr & 0x1FFFF) = read_value;            \
+  {                                                                           \
+    /* Get the Metadata Entry's [3], bits 0-1, to see if there's code at this \
+     * location. See "doc/partial flushing of RAM code.txt" for more info. */ \
+    u16 smc;                                                                  \
+    if (type##_ptr & 0x10000)                                                 \
+      smc = vram_metadata[(type##_ptr & 0x17FFC) | 3] & 0x3;                  \
+    else                                                                      \
+      smc = vram_metadata[(type##_ptr & 0xFFFC) | 3] & 0x3;                   \
+    if (smc) {                                                                \
+      partial_flush_ram(type##_ptr);                                          \
+    }                                                                         \
+    smc_trigger |= smc;                                                       \
+  }                                                                           \
 
 #define dma_write_io(type, transfer_size)                                     \
   write_io_register##transfer_size(type##_ptr & 0x3FF, read_value)            \
@@ -2901,6 +2916,11 @@ dma_region_type dma_region_map[16] =
   }                                                                           \
 
 #define dma_epilogue_vram()                                                   \
+  if(smc_trigger)                                                             \
+  {                                                                           \
+    /* Special return code indicating to retranslate to the CPU code */       \
+    return_value |= CPU_ALERT_SMC;                                             \
+  }                                                                           \
 
 #define dma_epilogue_io()                                                     \
 

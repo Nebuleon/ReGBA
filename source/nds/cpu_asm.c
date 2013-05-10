@@ -73,10 +73,14 @@ u8 iwram_translation_cache[IWRAM_TRANSLATION_CACHE_SIZE];
 u8 *iwram_translation_ptr = iwram_translation_cache;
 u8 ewram_translation_cache[EWRAM_TRANSLATION_CACHE_SIZE];
 u8 *ewram_translation_ptr = ewram_translation_cache;
+u8 vram_translation_cache[VRAM_TRANSLATION_CACHE_SIZE];
+u8 *vram_translation_ptr = vram_translation_cache;
 u32 iwram_code_min = 0xFFFFFFFF;
 u32 iwram_code_max = 0xFFFFFFFF;
 u32 ewram_code_min = 0xFFFFFFFF;
 u32 ewram_code_max = 0xFFFFFFFF;
+u32 vram_code_min  = 0xFFFFFFFF;
+u32 vram_code_max  = 0xFFFFFFFF;
 
 u8 bios_translation_cache[BIOS_TRANSLATION_CACHE_SIZE];
 u8 *bios_translation_ptr = bios_translation_cache;
@@ -2694,6 +2698,8 @@ u8 *iwram_block_ptrs[MAX_TAG + 1];
 u32 iwram_block_tag_top = MIN_TAG;
 u8 *ewram_block_ptrs[MAX_TAG + 1];
 u32 ewram_block_tag_top = MIN_TAG;
+u8 *vram_block_ptrs[MAX_TAG + 1];
+u32 vram_block_tag_top = MIN_TAG;
 
 u8 *bios_block_ptrs[MAX_TAG + 1];
 u32 bios_block_tag_top = MIN_TAG;
@@ -2727,6 +2733,7 @@ u32 bios_block_tag_top = MIN_TAG;
 
 #define iwram_translation_region TRANSLATION_REGION_IWRAM
 #define ewram_translation_region TRANSLATION_REGION_EWRAM
+#define vram_translation_region  TRANSLATION_REGION_VRAM
 #define rom_translation_region   TRANSLATION_REGION_ROM
 #define bios_translation_region  TRANSLATION_REGION_BIOS
 
@@ -2853,6 +2860,9 @@ static inline void AdjustTranslationBufferPeak(TRANSLATION_REGION_TYPE translati
 		case TRANSLATION_REGION_EWRAM:
 			Size = ewram_translation_ptr - ewram_translation_cache;
 			break;
+		case TRANSLATION_REGION_VRAM:
+			Size = vram_translation_ptr - vram_translation_cache;
+			break;
 		case TRANSLATION_REGION_ROM:
 			Size = rom_translation_ptr - rom_translation_cache;
 			break;
@@ -2900,6 +2910,15 @@ static inline void AdjustTranslationBufferPeak(TRANSLATION_REGION_TYPE translati
       location = iwram_metadata + (pc & 0x7FFC);                              \
       block_lookup_translate(type, iwram, 1);                                 \
       AdjustTranslationBufferPeak(TRANSLATION_REGION_IWRAM);                  \
+      break;                                                                  \
+                                                                              \
+    case 0x6:                                                                 \
+      if (pc & 0x10000)                                                       \
+        location = vram_metadata + (pc & 0x17FFC);                            \
+      else                                                                    \
+        location = vram_metadata + (pc & 0xFFFC);                             \
+      block_lookup_translate(type, vram, 1);                                  \
+      AdjustTranslationBufferPeak(TRANSLATION_REGION_VRAM);                   \
       break;                                                                  \
                                                                               \
     case 0x8 ... 0xD:                                                         \
@@ -3242,6 +3261,12 @@ block_data_type block_data[MAX_BLOCK_SIZE];
     case 0x03: /* IWRAM */                                                    \
       iwram_metadata[(block_end_pc & 0x7FFC) | 3] |= 0x2;                     \
       break;                                                                  \
+    case 0x06: /* VRAM */                                                     \
+      if (block_end_pc & 0x10000)                                             \
+        vram_metadata[(block_end_pc & 0x17FFC) | 3] |= 0x2;                   \
+      else                                                                    \
+        vram_metadata[(block_end_pc & 0xFFFC) | 3] |= 0x2;                    \
+      break;                                                                  \
   }                                                                           \
 
 #define smc_write_thumb_yes()                                                 \
@@ -3252,6 +3277,12 @@ block_data_type block_data[MAX_BLOCK_SIZE];
       break;                                                                  \
     case 0x03: /* IWRAM */                                                    \
       iwram_metadata[(block_end_pc & 0x7FFC) | 3] |= 0x1;                     \
+      break;                                                                  \
+    case 0x06: /* VRAM */                                                     \
+      if (block_end_pc & 0x10000)                                             \
+        vram_metadata[(block_end_pc & 0x17FFC) | 3] |= 0x1;                   \
+      else                                                                    \
+        vram_metadata[(block_end_pc & 0xFFFC) | 3] |= 0x1;                    \
       break;                                                                  \
   }                                                                           \
 
@@ -3270,6 +3301,12 @@ block_data_type block_data[MAX_BLOCK_SIZE];
       case 0x03: /* IWRAM */                                                  \
         iwram_metadata[(previous_pc & 0x7FFC) | 3] |= 0x8;                    \
         break;                                                                \
+      case 0x06: /* VRAM */                                                   \
+        if (previous_pc & 0x10000)                                            \
+          vram_metadata[(previous_pc & 0x17FFC) | 3] |= 0x8;                  \
+        else                                                                  \
+          vram_metadata[(previous_pc & 0xFFFC) | 3] |= 0x8;                   \
+        break;                                                                \
     }                                                                         \
   }                                                                           \
 
@@ -3284,6 +3321,12 @@ block_data_type block_data[MAX_BLOCK_SIZE];
         break;                                                                \
       case 0x03: /* IWRAM */                                                  \
         iwram_metadata[(previous_pc & 0x7FFC) | 3] |= 0x4;                    \
+        break;                                                                \
+      case 0x06: /* VRAM */                                                   \
+        if (previous_pc & 0x10000)                                            \
+          vram_metadata[(previous_pc & 0x17FFC) | 3] |= 0x4;                  \
+        else                                                                  \
+          vram_metadata[(previous_pc & 0xFFFC) | 3] |= 0x4;                   \
         break;                                                                \
     }                                                                         \
   }                                                                           \
@@ -3541,6 +3584,16 @@ s32 translate_block_##type(u32 pc, TRANSLATION_REGION_TYPE                    \
        TRANSLATION_CACHE_LIMIT_THRESHOLD;                                     \
       break;                                                                  \
                                                                               \
+    case TRANSLATION_REGION_VRAM:                                             \
+      if((pc < vram_code_min) || (vram_code_min == 0xFFFFFFFF))               \
+        vram_code_min = pc;                                                   \
+                                                                              \
+      translation_ptr = vram_translation_ptr;                                 \
+      translation_cache_limit =                                               \
+       vram_translation_cache + VRAM_TRANSLATION_CACHE_SIZE -                 \
+       TRANSLATION_CACHE_LIMIT_THRESHOLD;                                     \
+      break;                                                                  \
+                                                                              \
     case TRANSLATION_REGION_ROM:                                              \
       translation_ptr = rom_translation_ptr;                                  \
       translation_cache_limit =                                               \
@@ -3681,6 +3734,13 @@ s32 translate_block_##type(u32 pc, TRANSLATION_REGION_TYPE                    \
       ewram_translation_ptr = translation_ptr;                                \
       break;                                                                  \
                                                                               \
+    case TRANSLATION_REGION_VRAM:                                             \
+      if((pc > vram_code_max) || (vram_code_max == 0xFFFFFFFF))               \
+        vram_code_max = pc;                                                   \
+                                                                              \
+      vram_translation_ptr = translation_ptr;                                 \
+      break;                                                                  \
+                                                                              \
     case TRANSLATION_REGION_ROM:                                              \
       rom_translation_ptr = translation_ptr;                                  \
       break;                                                                  \
@@ -3736,6 +3796,12 @@ void partial_flush_ram(u32 address)
     case 0x03: /* IWRAM */
       metadata = iwram_metadata + (address & 0x7FFC);
       break;
+    case 0x06: /* VRAM */
+      if (address & 0x10000)
+        metadata = vram_metadata + (address & 0x17FFC);
+      else
+        metadata = vram_metadata + (address & 0xFFFC);
+      break;
     default:   /* no metadata */
       return;
   }
@@ -3759,6 +3825,10 @@ void partial_flush_ram(u32 address)
     case 0x03: /* IWRAM */
       metadata_area = iwram_metadata;
       metadata_area_end = iwram_metadata + 0x8000;
+      break;
+    case 0x06: /* VRAM */
+      metadata_area = vram_metadata;
+      metadata_area_end = vram_metadata + 0x18000;
       break;
   }
 
@@ -3900,6 +3970,20 @@ void flush_translation_cache(TRANSLATION_REGION_TYPE translation_region,
 				}
 			}
 			break;
+		case TRANSLATION_REGION_VRAM:
+			Stats.TranslationBytesFlushed[translation_region] +=
+				vram_translation_ptr - vram_translation_cache;
+			if (flush_reason == FLUSH_REASON_INITIALIZING)
+				memset(vram_metadata, 0, sizeof(vram_metadata));
+			else
+			{
+				vram_translation_ptr = vram_translation_cache;
+				vram_block_tag_top = MIN_TAG;
+
+				// TODO [Opt] Handle the mirroring in this area
+				memset(vram_metadata, 0, sizeof(vram_metadata));
+			}
+			break;
 		case TRANSLATION_REGION_ROM:
 			Stats.TranslationBytesFlushed[translation_region] +=
 				rom_translation_ptr - rom_translation_cache;
@@ -3914,6 +3998,8 @@ void flush_translation_cache(TRANSLATION_REGION_TYPE translation_region,
 				flush_translation_cache(TRANSLATION_REGION_IWRAM,
 					FLUSH_REASON_NATIVE_BRANCHING);
 				flush_translation_cache(TRANSLATION_REGION_EWRAM,
+					FLUSH_REASON_NATIVE_BRANCHING);
+				flush_translation_cache(TRANSLATION_REGION_VRAM,
 					FLUSH_REASON_NATIVE_BRANCHING);
 			}
 			break;
@@ -3933,6 +4019,8 @@ void flush_translation_cache(TRANSLATION_REGION_TYPE translation_region,
 					FLUSH_REASON_NATIVE_BRANCHING);
 				flush_translation_cache(TRANSLATION_REGION_EWRAM,
 					FLUSH_REASON_NATIVE_BRANCHING);
+				flush_translation_cache(TRANSLATION_REGION_VRAM,
+					FLUSH_REASON_NATIVE_BRANCHING);
 			}
 			break;
 	}
@@ -3940,6 +4028,7 @@ void flush_translation_cache(TRANSLATION_REGION_TYPE translation_region,
 
 unsigned int last_iwram= 0;
 unsigned int last_ewram= 0;
+unsigned int last_vram= 0;
 unsigned int last_rom= 0;
 unsigned int last_bios= 0;
 void dump_translation_cache()
@@ -3964,6 +4053,15 @@ if(last_ewram != (ewram_translation_ptr - ewram_translation_cache))
   last_ewram = ewram_translation_ptr - ewram_translation_cache;
 }
 
+if(last_vram != (vram_translation_ptr - vram_translation_cache))
+{
+  fp = fopen("fat:/vram_cache.bin", "wb");
+  fwrite(vram_translation_cache, 1, vram_translation_ptr - vram_translation_cache, fp);
+  fclose(fp);
+
+  last_vram = vram_translation_ptr - vram_translation_cache;
+}
+
 if(last_rom != (rom_translation_ptr - rom_translation_cache))
 {
   fp = fopen("fat:/rom_cache.bin", "wb");
@@ -3982,7 +4080,7 @@ if(last_bios != (bios_translation_ptr - bios_translation_cache))
   last_bios = bios_translation_ptr - bios_translation_cache;
 }
 
-  printf("IWRAM:%08X EWRAM:%08X ROM:%08X BIOS:%08X \n", iwram_translation_ptr - iwram_translation_cache, ewram_translation_ptr - ewram_translation_cache, rom_translation_ptr - rom_translation_cache, bios_translation_ptr - bios_translation_cache);
+  printf("IWRAM:%08X EWRAM:%08X VRAM:%08X ROM:%08X BIOS:%08X \n", iwram_translation_ptr - iwram_translation_cache, ewram_translation_ptr - ewram_translation_cache, vram_translation_ptr - vram_translation_cache, rom_translation_ptr - rom_translation_cache, bios_translation_ptr - bios_translation_cache);
 }
 
 void init_cpu() 

@@ -4134,7 +4134,7 @@ u32 menu(u16 *screen, int FirstInvocation)
     }
 
 	char* CACHE_NAMES[TRANSLATION_REGION_COUNT] = {
-		"IWRAM", "EWRAM", "ROM", "BIOS"
+		"IWRAM", "EWRAM", "VRAM", "ROM", "BIOS"
 	};
 	char* REASON_NAMES[FLUSH_REASON_COUNT] = {
 		"Init", "ROM", "Link", "Full", "Tag", "State"
@@ -4170,6 +4170,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 			{
 				case TRANSLATION_REGION_IWRAM: Current = iwram_translation_ptr - iwram_translation_cache; break;
 				case TRANSLATION_REGION_EWRAM: Current = ewram_translation_ptr - ewram_translation_cache; break;
+				case TRANSLATION_REGION_VRAM: Current = ewram_translation_ptr - ewram_translation_cache; break;
 				case TRANSLATION_REGION_ROM:   Current = rom_translation_ptr   - rom_translation_cache;   break;
 				case TRANSLATION_REGION_BIOS:  Current = bios_translation_ptr  - bios_translation_cache;  break;
 			}

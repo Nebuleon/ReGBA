@@ -197,6 +197,7 @@ extern u8  gamepak_backup[0x20000];
 
 extern u16 iwram_metadata[ 0x8000];
 extern u16 ewram_metadata[0x40000];
+extern u16 vram_metadata [0x18000];
 #endif
 
 extern u32 bios_read_protect;

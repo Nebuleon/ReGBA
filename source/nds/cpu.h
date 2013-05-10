@@ -90,11 +90,12 @@ typedef enum
 {
   TRANSLATION_REGION_IWRAM,
   TRANSLATION_REGION_EWRAM,
+  TRANSLATION_REGION_VRAM,
   TRANSLATION_REGION_ROM,
   TRANSLATION_REGION_BIOS
 } TRANSLATION_REGION_TYPE;
 
-#define TRANSLATION_REGION_COUNT 4
+#define TRANSLATION_REGION_COUNT 5
 
 typedef enum {
   /* All caches are being thoroughly flushed during initialisation. */
@@ -149,10 +150,12 @@ s32 translate_block_thumb(u32 pc, TRANSLATION_REGION_TYPE translation_region,
 extern u8 rom_translation_cache[ROM_TRANSLATION_CACHE_SIZE];
 extern u8 iwram_translation_cache[IWRAM_TRANSLATION_CACHE_SIZE];
 extern u8 ewram_translation_cache[EWRAM_TRANSLATION_CACHE_SIZE];
+extern u8 vram_translation_cache[VRAM_TRANSLATION_CACHE_SIZE];
 extern u8 bios_translation_cache[BIOS_TRANSLATION_CACHE_SIZE];
 extern u8 *rom_translation_ptr;
 extern u8 *iwram_translation_ptr;
 extern u8 *ewram_translation_ptr;
+extern u8 *vram_translation_ptr;
 extern u8 *bios_translation_ptr;
 
 #define MAX_TRANSLATION_GATES 8
