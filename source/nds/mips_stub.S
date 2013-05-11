@@ -555,6 +555,16 @@ mips_indirect_branch_dual:
   sync
   cache 0x10, ($ra)               # invalidate icache line  
 
+#ifdef PERFORMANCE_IMPACTING_STATISTICS
+  la $1, Stats
+  lw $2, 0($1)
+#  ifndef NO_LOAD_DELAY_SLOT
+  nop
+#  endif
+  addiu $2, $2, 1
+  sw $2, 0($1)
+#endif
+
 #  syscall 11
 
   jr $ra                          # return
@@ -1392,10 +1402,10 @@ mips_indirect_branch_dual:
 .endm
 
 post_write_metadata_ewram:
-  post_write_metadata_core ewram, ewram_metadata, 0x0200
+  post_write_metadata_core ewram_data, ewram_metadata, 0x0200
 
 post_write_metadata_iwram:
-  post_write_metadata_core iwram, iwram_metadata, 0x0300
+  post_write_metadata_core iwram_data, iwram_metadata, 0x0300
 
 post_write_metadata_vram:
   post_write_metadata_core vram, vram_metadata, 0x0600
@@ -2539,12 +2549,12 @@ execute_store_ignore1_u8:
 
 execute_store_ewram_u8:
   translate_region_ewram patch_store_u8
-  store_u8_metadata ewram, post_write_metadata_ewram
+  store_u8_metadata ewram_data, post_write_metadata_ewram
 
 execute_store_u8:
 execute_store_iwram_u8:
   translate_region 3, patch_store_u8, iwram_data, 0x7FFF
-  store_u8_metadata iwram, post_write_metadata_iwram
+  store_u8_metadata iwram_data, post_write_metadata_iwram
 
 execute_store_io_u8:
   region_check 4, patch_store_u8
@@ -2643,12 +2653,12 @@ execute_store_ignore1_u16:
 
 execute_store_ewram_u16:
   translate_region_ewram_store_align16 patch_store_u16
-  store_u16_metadata ewram, post_write_metadata_ewram
+  store_u16_metadata ewram_data, post_write_metadata_ewram
 
 execute_store_u16:
 execute_store_iwram_u16:
   translate_region 3, patch_store_u16, iwram_data, 0x7FFE
-  store_u16_metadata iwram, post_write_metadata_iwram
+  store_u16_metadata iwram_data, post_write_metadata_iwram
 
 execute_store_io_u16:
   region_check 4, patch_store_u16
@@ -2741,12 +2751,12 @@ execute_store_ignore1_u32:
 
 execute_store_ewram_u32:
   translate_region_ewram_store_align32 patch_store_u32
-  store_u32_metadata ewram, post_write_metadata_ewram
+  store_u32_metadata ewram_data, post_write_metadata_ewram
 
 execute_store_u32:
 execute_store_iwram_u32:
   translate_region 3, patch_store_u32, iwram_data, 0x7FFC
-  store_u32_metadata iwram, post_write_metadata_iwram
+  store_u32_metadata iwram_data, post_write_metadata_iwram
 
 execute_store_io_u32:
   region_check 4, patch_store_u32

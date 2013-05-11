@@ -3201,6 +3201,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 	char* FRAMES_EMULATED        = "Frames emulated                %u";
 	char* ARM_OPCODES_DECODED    = "ARM opcodes decoded         %u";
 	char* THUMB_OPCODES_DECODED  = "Thumb opcodes decoded    %u";
+	char* WRONG_ADDRESS_LINES    = "Mem. accessors patched    %u";
 
   /*--------------------------------------------------------
      Tools - Debugging - Execution stats
@@ -3221,6 +3222,9 @@ u32 menu(u16 *screen, int FirstInvocation)
 
 	/* 04 */ NUMERIC_SELECTION_HIDE_OPTION(NULL, NULL, &THUMB_OPCODES_DECODED,
         &Stats.ThumbOpcodesDecoded, 2, NULL, 4),
+
+	/* 04 */ NUMERIC_SELECTION_HIDE_OPTION(NULL, NULL, &WRONG_ADDRESS_LINES,
+        &Stats.WrongAddressLineCount, 2, NULL, 4),
 #endif
     };
     MAKE_MENU(tools_debug_statistics, NULL, NULL, NULL, NULL, 0, 0);

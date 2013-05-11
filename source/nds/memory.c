@@ -2764,9 +2764,6 @@ dma_region_type dma_region_map[16] =
   dma_smc_vars_##type()                                                       \
 
 #define dma_vars_vram(type)                                                   \
-  type##_ptr &= 0x1FFFF;                                                      \
-  if(type##_ptr >= 0x18000)                                                   \
-    type##_ptr -= 0x8000;                                                     \
   dma_smc_vars_##type();                                                      \
 
 #define dma_vars_palette_ram(type)                                            \
@@ -2822,7 +2819,10 @@ dma_region_type dma_region_map[16] =
   read_value = ADDRESS##transfer_size(iwram_data, type##_ptr & 0x7FFF)        \
 
 #define dma_read_vram(type, transfer_size)                                    \
-  read_value = ADDRESS##transfer_size(vram, type##_ptr & 0x1FFFF)             \
+  if (type##_ptr & 0x10000)                                                   \
+    read_value = ADDRESS##transfer_size(vram, type##_ptr & 0x17FFF);          \
+  else                                                                        \
+    read_value = ADDRESS##transfer_size(vram, type##_ptr & 0xFFFF)            \
 
 #define dma_read_io(type, transfer_size)                                      \
   read_value = ADDRESS##transfer_size(io_registers, type##_ptr & 0x7FFF)      \
@@ -2862,7 +2862,10 @@ dma_region_type dma_region_map[16] =
   }                                                                           \
 
 #define dma_write_vram(type, transfer_size)                                   \
-  ADDRESS##transfer_size(vram, type##_ptr & 0x1FFFF) = read_value;            \
+  if (type##_ptr & 0x10000)                                                   \
+    ADDRESS##transfer_size(vram, type##_ptr & 0x17FFF) = read_value;          \
+  else                                                                        \
+    ADDRESS##transfer_size(vram, type##_ptr & 0xFFFF) = read_value;           \
   {                                                                           \
     /* Get the Metadata Entry's [3], bits 0-1, to see if there's code at this \
      * location. See "doc/partial flushing of RAM code.txt" for more info. */ \

@@ -54,6 +54,7 @@ void StatsInitGame(void)
 #ifdef PERFORMANCE_IMPACTING_STATISTICS
 	Stats.ARMOpcodesDecoded = 0;
 	Stats.ThumbOpcodesDecoded = 0;
+	Stats.WrongAddressLineCount = 0;
 #endif
 }
 

@@ -10,6 +10,9 @@
 #include "common.h"
 
 struct GPSP_STATS {
+#ifdef PERFORMANCE_IMPACTING_STATISTICS
+	u32	WrongAddressLineCount;
+#endif
 	/* For FPS display. The first 3 variables are updated by the
 	 * emulation and read by StatsDisplayFPS. The last 2 variables are
 	 * updated and read by StatsDisplayFPS. */
