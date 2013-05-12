@@ -283,7 +283,7 @@ static inline void StatsAddThumbOpcode() {}
   condition = block_data.arm[block_data_position].condition;                  \
   u32 has_condition_header = 0;                                               \
                                                                               \
-  if((condition != last_condition) || (condition >= 0x20))                    \
+  if((condition != 0x0E) || (condition >= 0x20))                              \
   {                                                                           \
     condition &= 0x0F;                                                        \
                                                                               \
@@ -1671,7 +1671,9 @@ static inline void StatsAddThumbOpcode() {}
                                                                               \
   pc += 4                                                                     \
 
-#define arm_flag_status()                                                     \
+static void arm_flag_status(block_data_arm_type* block_data)
+{
+}
 
 #define translate_thumb_instruction()                                         \
   flag_status = block_data.thumb[block_data_position].flag_data;              \
@@ -2139,109 +2141,110 @@ static inline void StatsAddThumbOpcode() {}
 #define thumb_flag_requires_all()                                             \
   flag_status |= 0xF00                                                        \
 
-#define thumb_flag_status()                                                   \
-{                                                                             \
-  u16 flag_status = 0;                                                        \
-  switch((opcode >> 8) & 0xFF)                                                \
-  {                                                                           \
-    /* left shift by imm */                                                   \
-    case 0x00 ... 0x07:                                                       \
-      thumb_flag_modifies_zn();                                               \
-      if(((opcode >> 6) & 0x1F) != 0)                                         \
-      {                                                                       \
-        thumb_flag_modifies_c();                                              \
-      }                                                                       \
-      break;                                                                  \
-                                                                              \
-    /* right shift by imm */                                                  \
-    case 0x08 ... 0x17:                                                       \
-      thumb_flag_modifies_znc();                                              \
-      break;                                                                  \
-                                                                              \
-    /* add, subtract */                                                       \
-    case 0x18 ... 0x1F:                                                       \
-    /* cmp reg, imm; add, subtract */                                         \
-    case 0x28 ... 0x3F:                                                       \
-    case 0x45:                                                                \
-      /* CMP rd, rs */                                                        \
-      thumb_flag_modifies_all();                                              \
-      break;                                                                  \
-                                                                              \
-    /* mov reg, imm */                                                        \
-    case 0x20 ... 0x27:                                                       \
-    /* ORR, MUL, BIC, MVN */                                                  \
-    case 0x43:                                                                \
-      thumb_flag_modifies_zn();                                               \
-      break;                                                                  \
-                                                                              \
-    case 0x40:                                                                \
-      switch((opcode >> 6) & 0x03)                                            \
-      {                                                                       \
-        case 0x00:                                                            \
-          /* AND rd, rs */                                                    \
-        case 0x01:                                                            \
-          /* EOR rd, rs */                                                    \
-          thumb_flag_modifies_zn();                                           \
-          break;                                                              \
-                                                                              \
-        case 0x02:                                                            \
-          /* LSL rd, rs */                                                    \
-        case 0x03:                                                            \
-          /* LSR rd, rs */                                                    \
-          thumb_flag_modifies_zn_maybe_c();                                   \
-          break;                                                              \
-      }                                                                       \
-      break;                                                                  \
-                                                                              \
-    case 0x41:                                                                \
-      switch((opcode >> 6) & 0x03)                                            \
-      {                                                                       \
-        case 0x00:                                                            \
-          /* ASR rd, rs */                                                    \
-        case 0x03:                                                            \
-          /* ROR rd, rs */                                                    \
-          thumb_flag_modifies_zn_maybe_c();                                   \
-          break;                                                              \
-                                                                              \
-        case 0x01:                                                            \
-          /* ADC rd, rs */                                                    \
-        case 0x02:                                                            \
-          /* SBC rd, rs */                                                    \
-          thumb_flag_modifies_all();                                          \
-          thumb_flag_requires_c();                                            \
-          break;                                                              \
-      }                                                                       \
-      break;                                                                  \
-                                                                              \
-    /* TST, NEG, CMP, CMN */                                                  \
-    case 0x42:                                                                \
-      if((opcode >> 6) & 0x03)                                                \
-      {                                                                       \
-        /* NEG, CMP, CMN */                                                   \
-        thumb_flag_modifies_all();                                            \
-      }                                                                       \
-      else                                                                    \
-      {                                                                       \
-        /* TST rd, rs */                                                      \
-        thumb_flag_modifies_zn();                                             \
-      }                                                                       \
-      break;                                                                  \
-                                                                              \
-    /* mov might change PC (fall through if so) */                            \
-    case 0x46:                                                                \
-      if((opcode & 0xFF87) != 0x4687)                                         \
-        break;                                                                \
-                                                                              \
-    /* branches (can change PC) */                                            \
-    case 0x47:                                                                \
-    case 0xBD:                                                                \
-    case 0xD0 ... 0xE7:                                                       \
-    case 0xF0 ... 0xFF:                                                       \
-      thumb_flag_requires_all();                                              \
-      break;                                                                  \
-  }                                                                           \
-  block_data.thumb[block_data_position].flag_data = flag_status;              \
-}                                                                             \
+static void thumb_flag_status(block_data_thumb_type* block_data)
+{
+  u32 opcode = block_data->opcode;
+  u16 flag_status = 0;
+  switch((opcode >> 8) & 0xFF)
+  {
+    /* left shift by imm */
+    case 0x00 ... 0x07:
+      thumb_flag_modifies_zn();
+      if(((opcode >> 6) & 0x1F) != 0)
+      {
+        thumb_flag_modifies_c();
+      }
+      break;
+
+    /* right shift by imm */
+    case 0x08 ... 0x17:
+      thumb_flag_modifies_znc();
+      break;
+
+    /* add, subtract */
+    case 0x18 ... 0x1F:
+    /* cmp reg, imm; add, subtract */
+    case 0x28 ... 0x3F:
+    case 0x45:
+      /* CMP rd, rs */
+      thumb_flag_modifies_all();
+      break;
+
+    /* mov reg, imm */
+    case 0x20 ... 0x27:
+    /* ORR, MUL, BIC, MVN */
+    case 0x43:
+      thumb_flag_modifies_zn();
+      break;
+
+    case 0x40:
+      switch((opcode >> 6) & 0x03)
+      {
+        case 0x00:
+          /* AND rd, rs */
+        case 0x01:
+          /* EOR rd, rs */
+          thumb_flag_modifies_zn();
+          break;
+
+        case 0x02:
+          /* LSL rd, rs */
+        case 0x03:
+          /* LSR rd, rs */
+          thumb_flag_modifies_zn_maybe_c();
+          break;
+      }
+      break;
+
+    case 0x41:
+      switch((opcode >> 6) & 0x03)
+      {
+        case 0x00:
+          /* ASR rd, rs */
+        case 0x03:
+          /* ROR rd, rs */
+          thumb_flag_modifies_zn_maybe_c();
+          break;
+
+        case 0x01:
+          /* ADC rd, rs */
+        case 0x02:
+          /* SBC rd, rs */
+          thumb_flag_modifies_all();
+          thumb_flag_requires_c();
+          break;
+      }
+      break;
+
+    /* TST, NEG, CMP, CMN */
+    case 0x42:
+      if((opcode >> 6) & 0x03)
+      {
+        /* NEG, CMP, CMN */
+        thumb_flag_modifies_all();
+      }
+      else
+      {
+        /* TST rd, rs */
+        thumb_flag_modifies_zn();
+      }
+      break;
+
+    /* mov might change PC (fall through if so) */
+    case 0x46:
+      if((opcode & 0xFF87) != 0x4687)
+        break;
+
+    /* branches (can change PC) */
+    case 0x47:
+    case 0xBD:
+    case 0xD0 ... 0xE7:
+    case 0xF0 ... 0xFF:
+      thumb_flag_requires_all();
+      break;
+  }
+  block_data->flag_data = flag_status;
+}
 
 u8 *iwram_block_ptrs[MAX_TAG + 1];
 u32 iwram_block_tag_top = MIN_TAG;
@@ -2266,45 +2269,17 @@ u32 bios_block_tag_top = MIN_TAG;
 #define block_lookup_address_pc_thumb()                                       \
   pc &= ~0x01                                                                 \
 
-#define block_lookup_address_pc_dual()                                        \
-  u32 thumb = pc & 0x01;                                                      \
-                                                                              \
-  if(thumb)                                                                   \
-  {                                                                           \
-    pc &= ~0x01;                                                              \
-    reg[REG_CPSR] |= 0x20;                                                    \
-  }                                                                           \
-  else                                                                        \
-  {                                                                           \
-    pc = (pc + 2) & ~0x03;                                                    \
-    reg[REG_CPSR] &= ~0x20;                                                   \
-  }                                                                           \
-
 #define iwram_translation_region TRANSLATION_REGION_IWRAM
 #define ewram_translation_region TRANSLATION_REGION_EWRAM
 #define vram_translation_region  TRANSLATION_REGION_VRAM
 #define rom_translation_region   TRANSLATION_REGION_ROM
 #define bios_translation_region  TRANSLATION_REGION_BIOS
 
-#define block_lookup_translate_arm(mem_type, smc_enable)                      \
-  translation_result = translate_block_arm(pc, mem_type##_translation_region, \
-   smc_enable)                                                                \
+#define block_lookup_translate_arm()                                          \
+  translation_result = translate_block_arm(pc)                                \
 
-#define block_lookup_translate_thumb(mem_type, smc_enable)                    \
-  translation_result = translate_block_thumb(pc,                              \
-   mem_type##_translation_region, smc_enable)                                 \
-
-#define block_lookup_translate_dual(mem_type, smc_enable)                     \
-  if(thumb)                                                                   \
-  {                                                                           \
-    translation_result = translate_block_thumb(pc,                            \
-     mem_type##_translation_region, smc_enable);                              \
-  }                                                                           \
-  else                                                                        \
-  {                                                                           \
-    translation_result = translate_block_arm(pc,                              \
-     mem_type##_translation_region, smc_enable);                              \
-  }                                                                           \
+#define block_lookup_translate_thumb()                                        \
+  translation_result = translate_block_thumb(pc)                              \
 
 /*
  * MIN_TAG is the smallest tag that can be used. 0xFFFF is off-limits because
@@ -2323,22 +2298,13 @@ u32 bios_block_tag_top = MIN_TAG;
 #define get_tag_thumb()                                                       \
   (location[pc & 2])                                                          \
 
-#define get_tag_dual()                                                        \
-  ((thumb) ? (get_tag_thumb()) : (get_tag_arm()))                             \
-
 #define fill_tag_arm(mem_type)                                                \
   location[1] = mem_type##_block_tag_top                                      \
 
 #define fill_tag_thumb(mem_type)                                              \
   location[pc & 2] = mem_type##_block_tag_top                                 \
 
-#define fill_tag_dual(mem_type)                                               \
-  if(thumb)                                                                   \
-    fill_tag_thumb(mem_type);                                                 \
-  else                                                                        \
-    fill_tag_arm(mem_type)                                                    \
-
-#define block_lookup_translate(instruction_type, mem_type, smc_enable)        \
+#define block_lookup_translate(instruction_type, mem_type)                    \
   block_tag = get_tag_##instruction_type();                                   \
   if((block_tag < MIN_TAG) || (block_tag > MAX_TAG))                          \
   {                                                                           \
@@ -2359,7 +2325,7 @@ u32 bios_block_tag_top = MIN_TAG;
     fill_tag_##instruction_type(mem_type);                                    \
     mem_type##_block_tag_top++;                                               \
                                                                               \
-    block_lookup_translate_##instruction_type(mem_type, smc_enable);          \
+    block_lookup_translate_##instruction_type();                              \
     translation_recursion_level--;                                            \
                                                                               \
     /* If the translation failed then pass that failure on if we're in        \
@@ -2443,7 +2409,7 @@ static inline void AdjustTranslationBufferPeak(TRANSLATION_REGION_TYPE translati
     case 0x0:                                                                 \
       bios_region_read_allow();                                               \
       location = bios.metadata + (pc & 0x3FFC);                               \
-      block_lookup_translate(type, bios, 0);                                  \
+      block_lookup_translate(type, bios);                                     \
       if(translation_recursion_level == 0)                                    \
         bios_region_read_allow();                                             \
       AdjustTranslationBufferPeak(TRANSLATION_REGION_BIOS);                   \
@@ -2451,13 +2417,13 @@ static inline void AdjustTranslationBufferPeak(TRANSLATION_REGION_TYPE translati
                                                                               \
     case 0x2:                                                                 \
       location = ewram_metadata + (pc & 0x3FFFC);                             \
-      block_lookup_translate(type, ewram, 1);                                 \
+      block_lookup_translate(type, ewram);                                    \
       AdjustTranslationBufferPeak(TRANSLATION_REGION_EWRAM);                  \
       break;                                                                  \
                                                                               \
     case 0x3:                                                                 \
       location = iwram_metadata + (pc & 0x7FFC);                              \
-      block_lookup_translate(type, iwram, 1);                                 \
+      block_lookup_translate(type, iwram);                                    \
       AdjustTranslationBufferPeak(TRANSLATION_REGION_IWRAM);                  \
       break;                                                                  \
                                                                               \
@@ -2466,7 +2432,7 @@ static inline void AdjustTranslationBufferPeak(TRANSLATION_REGION_TYPE translati
         location = vram_metadata + (pc & 0x17FFC);                            \
       else                                                                    \
         location = vram_metadata + (pc & 0xFFFC);                             \
-      block_lookup_translate(type, vram, 1);                                  \
+      block_lookup_translate(type, vram);                                     \
       AdjustTranslationBufferPeak(TRANSLATION_REGION_VRAM);                   \
       break;                                                                  \
                                                                               \
@@ -2502,7 +2468,7 @@ static inline void AdjustTranslationBufferPeak(TRANSLATION_REGION_TYPE translati
         *block_ptr_address = (u32 *)rom_translation_ptr;                      \
         rom_translation_ptr += 8;                                             \
         block_address = rom_translation_ptr + block_prologue_size;            \
-        block_lookup_translate_##type(rom, 0);                                \
+        block_lookup_translate_##type();                                      \
         translation_recursion_level--;                                        \
                                                                               \
         /* If the translation failed then pass that failure on if we're in    \
@@ -2565,7 +2531,18 @@ u8 *block_lookup_address_thumb(u32 pc)
 block_lookup_address_body(thumb);
 
 u8 *block_lookup_address_dual(u32 pc)
-block_lookup_address_body(dual);
+{
+  if(pc & 0x01)
+  {
+    reg[REG_CPSR] |= 0x20;
+    return block_lookup_address_thumb(pc & ~0x01);
+  }
+  else
+  {
+    reg[REG_CPSR] &= ~0x20;
+    return block_lookup_address_arm((pc + 2) & ~0x03);
+  }
+}
 
 // Potential exit point: If the rd field is pc for instructions is 0x0F,
 // the instruction is b/bl/bx, or the instruction is ldm with PC in the
@@ -2970,7 +2947,7 @@ static s32 BinarySearch(u32* Array, u32 Value, u32 Size)
     smc_write_##type##_##smc_write_op();                                      \
     type##_load_opcode();                                                     \
     block_data.type[block_data_position].opcode = opcode;                     \
-    type##_flag_status();                                                     \
+    type##_flag_status(&block_data.type[block_data_position]);                \
                                                                               \
     if(type##_exit_point)                                                     \
     {                                                                         \
@@ -3083,13 +3060,11 @@ static inline void FlushCacheLine(void* CacheLine)
 #endif
 
 #define translate_block_builder(type)                                         \
-s32 translate_block_##type(u32 pc, TRANSLATION_REGION_TYPE                    \
- translation_region, u32 smc_enable)                                          \
+s32 translate_block_##type(u32 pc)                                            \
 {                                                                             \
-  u32 opcode = 0;                                                             \
+  u32 opcode;                                                                 \
   u32 last_opcode;                                                            \
   u32 condition;                                                              \
-  u32 last_condition;                                                         \
   u32 pc_region = (pc >> 15);                                                 \
   u32 new_pc_region;                                                          \
   u8 *pc_address_block = memory_map_read[pc_region];                          \
@@ -3110,26 +3085,14 @@ s32 translate_block_##type(u32 pc, TRANSLATION_REGION_TYPE                    \
                                                                               \
   generate_block_extra_vars_##type();                                         \
   type##_fix_pc();                                                            \
-  u32 translation_region_read_only =                                          \
-    (translation_region == TRANSLATION_REGION_ROM ||                          \
-     translation_region == TRANSLATION_REGION_BIOS);                          \
+  u32 translation_region_read_only;                          \
                                                                               \
   if(pc_address_block == NULL)                                                \
     pc_address_block = load_gamepak_page(pc_region & 0x3FF);                  \
                                                                               \
-  switch(translation_region)                                                  \
+  switch(pc >> 24)                                                            \
   {                                                                           \
-    case TRANSLATION_REGION_IWRAM:                                            \
-      if((pc < iwram_code_min) || (iwram_code_min == 0xFFFFFFFF))             \
-        iwram_code_min = pc;                                                  \
-                                                                              \
-      translation_ptr = iwram_translation_ptr;                                \
-      translation_cache_limit =                                               \
-       iwram_translation_cache + IWRAM_TRANSLATION_CACHE_SIZE -               \
-       TRANSLATION_CACHE_LIMIT_THRESHOLD;                                     \
-      break;                                                                  \
-                                                                              \
-    case TRANSLATION_REGION_EWRAM:                                            \
+    case 0x02: /* EWRAM */                                                    \
       if((pc < ewram_code_min) || (ewram_code_min == 0xFFFFFFFF))             \
         ewram_code_min = pc;                                                  \
                                                                               \
@@ -3137,9 +3100,21 @@ s32 translate_block_##type(u32 pc, TRANSLATION_REGION_TYPE                    \
       translation_cache_limit =                                               \
        ewram_translation_cache + EWRAM_TRANSLATION_CACHE_SIZE -               \
        TRANSLATION_CACHE_LIMIT_THRESHOLD;                                     \
+      translation_region_read_only = 0;                                       \
       break;                                                                  \
                                                                               \
-    case TRANSLATION_REGION_VRAM:                                             \
+    case 0x03: /* IWRAM */                                                    \
+      if((pc < iwram_code_min) || (iwram_code_min == 0xFFFFFFFF))             \
+        iwram_code_min = pc;                                                  \
+                                                                              \
+      translation_ptr = iwram_translation_ptr;                                \
+      translation_cache_limit =                                               \
+       iwram_translation_cache + IWRAM_TRANSLATION_CACHE_SIZE -               \
+       TRANSLATION_CACHE_LIMIT_THRESHOLD;                                     \
+      translation_region_read_only = 0;                                       \
+      break;                                                                  \
+                                                                              \
+    case 0x06: /* VRAM */                                                     \
       if((pc < vram_code_min) || (vram_code_min == 0xFFFFFFFF))               \
         vram_code_min = pc;                                                   \
                                                                               \
@@ -3147,19 +3122,23 @@ s32 translate_block_##type(u32 pc, TRANSLATION_REGION_TYPE                    \
       translation_cache_limit =                                               \
        vram_translation_cache + VRAM_TRANSLATION_CACHE_SIZE -                 \
        TRANSLATION_CACHE_LIMIT_THRESHOLD;                                     \
+      translation_region_read_only = 0;                                       \
       break;                                                                  \
                                                                               \
-    case TRANSLATION_REGION_ROM:                                              \
+    case 0x08 ... 0x0D: /* ROM */                                             \
       translation_ptr = rom_translation_ptr;                                  \
       translation_cache_limit =                                               \
        rom_translation_cache + ROM_TRANSLATION_CACHE_SIZE -                   \
        TRANSLATION_CACHE_LIMIT_THRESHOLD;                                     \
+      translation_region_read_only = 1;                                       \
       break;                                                                  \
                                                                               \
-    case TRANSLATION_REGION_BIOS:                                             \
+    case 0x00: /* BIOS */                                                     \
       translation_ptr = bios_translation_ptr;                                 \
       translation_cache_limit = bios_translation_cache +                      \
-       BIOS_TRANSLATION_CACHE_SIZE;                                           \
+       BIOS_TRANSLATION_CACHE_SIZE -                                          \
+       TRANSLATION_CACHE_LIMIT_THRESHOLD;                                     \
+      translation_region_read_only = 1;                                       \
       break;                                                                  \
   }                                                                           \
                                                                               \
@@ -3171,7 +3150,7 @@ s32 translate_block_##type(u32 pc, TRANSLATION_REGION_TYPE                    \
    * determines basically what kind of instructions they are, the branch      \
    * targets, the condition codes atop each instruction, as well  as the need \
    * for a translation gate to be placed at the end. */                       \
-  if(smc_enable)                                                              \
+  if(!translation_region_read_only)                                           \
   {                                                                           \
     scan_block(type, yes);                                                    \
   }                                                                           \
@@ -3200,8 +3179,6 @@ s32 translate_block_##type(u32 pc, TRANSLATION_REGION_TYPE                    \
   block_exit_position = 0;                                                    \
   block_data_position = 0;                                                    \
                                                                               \
-  last_condition = 0x0E;                                                      \
-                                                                              \
   /* Finally, we take all of that data and actually generate native code. */  \
   while(pc != block_end_pc)                                                   \
   {                                                                           \
@@ -3221,7 +3198,33 @@ s32 translate_block_##type(u32 pc, TRANSLATION_REGION_TYPE                    \
     {                                                                         \
       translation_flush_count++;                                              \
                                                                               \
-      flush_translation_cache(translation_region, FLUSH_REASON_FULL_CACHE);   \
+      switch (pc >> 24)                                                       \
+      {                                                                       \
+        case 0x00: /* BIOS */                                                 \
+          flush_translation_cache(TRANSLATION_REGION_BIOS,                    \
+           FLUSH_REASON_FULL_CACHE);                                          \
+          break;                                                              \
+                                                                              \
+        case 0x02: /* EWRAM */                                                \
+          flush_translation_cache(TRANSLATION_REGION_EWRAM,                   \
+           FLUSH_REASON_FULL_CACHE);                                          \
+          break;                                                              \
+                                                                              \
+        case 0x03: /* IWRAM */                                                \
+          flush_translation_cache(TRANSLATION_REGION_IWRAM,                   \
+           FLUSH_REASON_FULL_CACHE);                                          \
+          break;                                                              \
+                                                                              \
+        case 0x06: /* VRAM */                                                 \
+          flush_translation_cache(TRANSLATION_REGION_VRAM,                    \
+           FLUSH_REASON_FULL_CACHE);                                          \
+          break;                                                              \
+                                                                              \
+        case 0x08 ... 0x0D: /* ROM */                                         \
+          flush_translation_cache(TRANSLATION_REGION_ROM,                     \
+           FLUSH_REASON_FULL_CACHE);                                          \
+          break;                                                              \
+      }                                                                       \
                                                                               \
       return -1;                                                              \
     }                                                                         \
@@ -3273,34 +3276,34 @@ s32 translate_block_##type(u32 pc, TRANSLATION_REGION_TYPE                    \
     }                                                                         \
   }                                                                           \
                                                                               \
-  switch(translation_region)                                                  \
+  switch(pc >> 24)                                                            \
   {                                                                           \
-    case TRANSLATION_REGION_IWRAM:                                            \
-      if((pc > iwram_code_max) || (iwram_code_max == 0xFFFFFFFF))             \
-        iwram_code_max = pc;                                                  \
-                                                                              \
-      iwram_translation_ptr = translation_ptr;                                \
-      break;                                                                  \
-                                                                              \
-    case TRANSLATION_REGION_EWRAM:                                            \
+    case 0x02: /* EWRAM */                                                    \
       if((pc > ewram_code_max) || (ewram_code_max == 0xFFFFFFFF))             \
         ewram_code_max = pc;                                                  \
                                                                               \
       ewram_translation_ptr = translation_ptr;                                \
       break;                                                                  \
                                                                               \
-    case TRANSLATION_REGION_VRAM:                                             \
+    case 0x03: /* IWRAM */                                                    \
+      if((pc > iwram_code_max) || (iwram_code_max == 0xFFFFFFFF))             \
+        iwram_code_max = pc;                                                  \
+                                                                              \
+      iwram_translation_ptr = translation_ptr;                                \
+      break;                                                                  \
+                                                                              \
+    case 0x06: /* VRAM */                                                     \
       if((pc > vram_code_max) || (vram_code_max == 0xFFFFFFFF))               \
         vram_code_max = pc;                                                   \
                                                                               \
       vram_translation_ptr = translation_ptr;                                 \
       break;                                                                  \
                                                                               \
-    case TRANSLATION_REGION_ROM:                                              \
+    case 0x08 ... 0x0D: /* ROM */                                             \
       rom_translation_ptr = translation_ptr;                                  \
       break;                                                                  \
                                                                               \
-    case TRANSLATION_REGION_BIOS:                                             \
+    case 0x00: /* BIOS */                                                     \
       bios_translation_ptr = translation_ptr;                                 \
       break;                                                                  \
   }                                                                           \
@@ -3387,9 +3390,10 @@ void partial_flush_ram(u32 address)
       break;
   }
 
-  if (metadata[3] & 0x1)
+  u16 contents = metadata[3];
+  if (contents & 0x1)
     partial_flush_ram_thumb(metadata, metadata_area, metadata_area_end);
-  if (metadata[3] & 0x2)
+  if (contents & 0x2)
     partial_flush_ram_arm(metadata, metadata_area, metadata_area_end);
 }
 
