@@ -103,10 +103,19 @@ u32 iwram_stack_optimize = 1;
 typedef struct
 {
   u8 *block_offset;
+  u32 opcode;
   u16 flag_data;
   u8 condition;
   u8 update_cycles;
-} block_data_type;
+} block_data_arm_type;
+
+typedef struct
+{
+  u8 *block_offset;
+  u32 opcode;
+  u16 flag_data;
+  u8 update_cycles;
+} block_data_thumb_type;
 
 typedef struct
 {
@@ -270,9 +279,8 @@ static inline void StatsAddThumbOpcode() {}
 #endif
 
 #define translate_arm_instruction()                                           \
-  check_pc_region(pc);                                                        \
-  opcode = ADDRESS32(pc_address_block, (pc & 0x7FFF));                        \
-  condition = block_data[block_data_position].condition;                      \
+  opcode = block_data.arm[block_data_position].opcode;                        \
+  condition = block_data.arm[block_data_position].condition;                  \
   u32 has_condition_header = 0;                                               \
                                                                               \
   if((condition != last_condition) || (condition >= 0x20))                    \
@@ -1200,19 +1208,13 @@ static inline void StatsAddThumbOpcode() {}
                                                                               \
     case 0x40:                                                                \
       /* STR rd, [rn], -imm */                                                \
-      arm_access_memory(store, down, post, u32, imm);                         \
-      break;                                                                  \
-                                                                              \
-    case 0x41:                                                                \
-      /* LDR rd, [rn], -imm */                                                \
-      arm_access_memory(load, down, post, u32, imm);                          \
-      break;                                                                  \
-                                                                              \
     case 0x42:                                                                \
       /* STRT rd, [rn], -imm */                                               \
       arm_access_memory(store, down, post, u32, imm);                         \
       break;                                                                  \
                                                                               \
+    case 0x41:                                                                \
+      /* LDR rd, [rn], -imm */                                                \
     case 0x43:                                                                \
       /* LDRT rd, [rn], -imm */                                               \
       arm_access_memory(load, down, post, u32, imm);                          \
@@ -1220,19 +1222,13 @@ static inline void StatsAddThumbOpcode() {}
                                                                               \
     case 0x44:                                                                \
       /* STRB rd, [rn], -imm */                                               \
-      arm_access_memory(store, down, post, u8, imm);                          \
-      break;                                                                  \
-                                                                              \
-    case 0x45:                                                                \
-      /* LDRB rd, [rn], -imm */                                               \
-      arm_access_memory(load, down, post, u8, imm);                           \
-      break;                                                                  \
-                                                                              \
     case 0x46:                                                                \
       /* STRBT rd, [rn], -imm */                                              \
       arm_access_memory(store, down, post, u8, imm);                          \
       break;                                                                  \
                                                                               \
+    case 0x45:                                                                \
+      /* LDRB rd, [rn], -imm */                                               \
     case 0x47:                                                                \
       /* LDRBT rd, [rn], -imm */                                              \
       arm_access_memory(load, down, post, u8, imm);                           \
@@ -1240,19 +1236,13 @@ static inline void StatsAddThumbOpcode() {}
                                                                               \
     case 0x48:                                                                \
       /* STR rd, [rn], +imm */                                                \
-      arm_access_memory(store, up, post, u32, imm);                           \
-      break;                                                                  \
-                                                                              \
-    case 0x49:                                                                \
-      /* LDR rd, [rn], +imm */                                                \
-      arm_access_memory(load, up, post, u32, imm);                            \
-      break;                                                                  \
-                                                                              \
     case 0x4A:                                                                \
       /* STRT rd, [rn], +imm */                                               \
       arm_access_memory(store, up, post, u32, imm);                           \
       break;                                                                  \
                                                                               \
+    case 0x49:                                                                \
+      /* LDR rd, [rn], +imm */                                                \
     case 0x4B:                                                                \
       /* LDRT rd, [rn], +imm */                                               \
       arm_access_memory(load, up, post, u32, imm);                            \
@@ -1260,19 +1250,13 @@ static inline void StatsAddThumbOpcode() {}
                                                                               \
     case 0x4C:                                                                \
       /* STRB rd, [rn], +imm */                                               \
-      arm_access_memory(store, up, post, u8, imm);                            \
-      break;                                                                  \
-                                                                              \
-    case 0x4D:                                                                \
-      /* LDRB rd, [rn], +imm */                                               \
-      arm_access_memory(load, up, post, u8, imm);                             \
-      break;                                                                  \
-                                                                              \
     case 0x4E:                                                                \
       /* STRBT rd, [rn], +imm */                                              \
       arm_access_memory(store, up, post, u8, imm);                            \
       break;                                                                  \
                                                                               \
+    case 0x4D:                                                                \
+      /* LDRB rd, [rn], +imm */                                               \
     case 0x4F:                                                                \
       /* LDRBT rd, [rn], +imm */                                              \
       arm_access_memory(load, up, post, u8, imm);                             \
@@ -1360,19 +1344,13 @@ static inline void StatsAddThumbOpcode() {}
                                                                               \
     case 0x60:                                                                \
       /* STR rd, [rn], -rm */                                                 \
-      arm_access_memory(store, down, post, u32, reg);                         \
-      break;                                                                  \
-                                                                              \
-    case 0x61:                                                                \
-      /* LDR rd, [rn], -rm */                                                 \
-      arm_access_memory(load, down, post, u32, reg);                          \
-      break;                                                                  \
-                                                                              \
     case 0x62:                                                                \
       /* STRT rd, [rn], -rm */                                                \
       arm_access_memory(store, down, post, u32, reg);                         \
       break;                                                                  \
                                                                               \
+    case 0x61:                                                                \
+      /* LDR rd, [rn], -rm */                                                 \
     case 0x63:                                                                \
       /* LDRT rd, [rn], -rm */                                                \
       arm_access_memory(load, down, post, u32, reg);                          \
@@ -1380,19 +1358,13 @@ static inline void StatsAddThumbOpcode() {}
                                                                               \
     case 0x64:                                                                \
       /* STRB rd, [rn], -rm */                                                \
-      arm_access_memory(store, down, post, u8, reg);                          \
-      break;                                                                  \
-                                                                              \
-    case 0x65:                                                                \
-      /* LDRB rd, [rn], -rm */                                                \
-      arm_access_memory(load, down, post, u8, reg);                           \
-      break;                                                                  \
-                                                                              \
     case 0x66:                                                                \
       /* STRBT rd, [rn], -rm */                                               \
       arm_access_memory(store, down, post, u8, reg);                          \
       break;                                                                  \
                                                                               \
+    case 0x65:                                                                \
+      /* LDRB rd, [rn], -rm */                                                \
     case 0x67:                                                                \
       /* LDRBT rd, [rn], -rm */                                               \
       arm_access_memory(load, down, post, u8, reg);                           \
@@ -1400,19 +1372,13 @@ static inline void StatsAddThumbOpcode() {}
                                                                               \
     case 0x68:                                                                \
       /* STR rd, [rn], +rm */                                                 \
-      arm_access_memory(store, up, post, u32, reg);                           \
-      break;                                                                  \
-                                                                              \
-    case 0x69:                                                                \
-      /* LDR rd, [rn], +rm */                                                 \
-      arm_access_memory(load, up, post, u32, reg);                            \
-      break;                                                                  \
-                                                                              \
     case 0x6A:                                                                \
       /* STRT rd, [rn], +rm */                                                \
       arm_access_memory(store, up, post, u32, reg);                           \
       break;                                                                  \
                                                                               \
+    case 0x69:                                                                \
+      /* LDR rd, [rn], +rm */                                                 \
     case 0x6B:                                                                \
       /* LDRT rd, [rn], +rm */                                                \
       arm_access_memory(load, up, post, u32, reg);                            \
@@ -1420,19 +1386,13 @@ static inline void StatsAddThumbOpcode() {}
                                                                               \
     case 0x6C:                                                                \
       /* STRB rd, [rn], +rm */                                                \
-      arm_access_memory(store, up, post, u8, reg);                            \
-      break;                                                                  \
-                                                                              \
-    case 0x6D:                                                                \
-      /* LDRB rd, [rn], +rm */                                                \
-      arm_access_memory(load, up, post, u8, reg);                             \
-      break;                                                                  \
-                                                                              \
     case 0x6E:                                                                \
       /* STRBT rd, [rn], +rm */                                               \
       arm_access_memory(store, up, post, u8, reg);                            \
       break;                                                                  \
                                                                               \
+    case 0x6D:                                                                \
+      /* LDRB rd, [rn], +rm */                                                \
     case 0x6F:                                                                \
       /* LDRBT rd, [rn], +rm */                                               \
       arm_access_memory(load, up, post, u8, reg);                             \
@@ -1714,10 +1674,9 @@ static inline void StatsAddThumbOpcode() {}
 #define arm_flag_status()                                                     \
 
 #define translate_thumb_instruction()                                         \
-  flag_status = block_data[block_data_position].flag_data;                    \
-  check_pc_region(pc);                                                        \
+  flag_status = block_data.thumb[block_data_position].flag_data;              \
   last_opcode = opcode;                                                       \
-  opcode = ADDRESS16(pc_address_block, (pc & 0x7FFF));                        \
+  opcode = block_data.thumb[block_data_position].opcode;                      \
                                                                               \
   StatsAddThumbOpcode();                                                      \
                                                                               \
@@ -1758,164 +1717,26 @@ static inline void StatsAddThumbOpcode() {}
       thumb_data_proc(add_sub_imm, subs, imm, rd, rs, imm);                   \
       break;                                                                  \
                                                                               \
-    case 0x20:                                                                \
-      /* MOV r0, imm */                                                       \
-      thumb_data_proc_unary(imm, movs, imm, 0, imm);                          \
+    case 0x20 ... 0x27:                                                       \
+      /* MOV r0..r7, imm */                                                   \
+      thumb_data_proc_unary(imm, movs, imm, (opcode >> 8) & 0xFF - 0x20, imm);\
       break;                                                                  \
                                                                               \
-    case 0x21:                                                                \
-      /* MOV r1, imm */                                                       \
-      thumb_data_proc_unary(imm, movs, imm, 1, imm);                          \
+    case 0x28 ... 0x2F:                                                       \
+      /* CMP r0..r7, imm */                                                   \
+      thumb_data_proc_test(imm, cmp, imm, (opcode >> 8) & 0xFF - 0x28, imm);  \
       break;                                                                  \
                                                                               \
-    case 0x22:                                                                \
-      /* MOV r2, imm */                                                       \
-      thumb_data_proc_unary(imm, movs, imm, 2, imm);                          \
+    case 0x30 ... 0x37:                                                       \
+      /* ADD r0..r7, imm */                                                   \
+      thumb_data_proc(imm, adds, imm, (opcode >> 8) & 0xFF - 0x30,            \
+        (opcode >> 8) & 0xFF - 0x30, imm);                                    \
       break;                                                                  \
                                                                               \
-    case 0x23:                                                                \
-      /* MOV r3, imm */                                                       \
-      thumb_data_proc_unary(imm, movs, imm, 3, imm);                          \
-      break;                                                                  \
-                                                                              \
-    case 0x24:                                                                \
-      /* MOV r4, imm */                                                       \
-      thumb_data_proc_unary(imm, movs, imm, 4, imm);                          \
-      break;                                                                  \
-                                                                              \
-    case 0x25:                                                                \
-      /* MOV r5, imm */                                                       \
-      thumb_data_proc_unary(imm, movs, imm, 5, imm);                          \
-      break;                                                                  \
-                                                                              \
-    case 0x26:                                                                \
-      /* MOV r6, imm */                                                       \
-      thumb_data_proc_unary(imm, movs, imm, 6, imm);                          \
-      break;                                                                  \
-                                                                              \
-    case 0x27:                                                                \
-      /* MOV r7, imm */                                                       \
-      thumb_data_proc_unary(imm, movs, imm, 7, imm);                          \
-      break;                                                                  \
-                                                                              \
-    case 0x28:                                                                \
-      /* CMP r0, imm */                                                       \
-      thumb_data_proc_test(imm, cmp, imm, 0, imm);                            \
-      break;                                                                  \
-                                                                              \
-    case 0x29:                                                                \
-      /* CMP r1, imm */                                                       \
-      thumb_data_proc_test(imm, cmp, imm, 1, imm);                            \
-      break;                                                                  \
-                                                                              \
-    case 0x2A:                                                                \
-      /* CMP r2, imm */                                                       \
-      thumb_data_proc_test(imm, cmp, imm, 2, imm);                            \
-      break;                                                                  \
-                                                                              \
-    case 0x2B:                                                                \
-      /* CMP r3, imm */                                                       \
-      thumb_data_proc_test(imm, cmp, imm, 3, imm);                            \
-      break;                                                                  \
-                                                                              \
-    case 0x2C:                                                                \
-      /* CMP r4, imm */                                                       \
-      thumb_data_proc_test(imm, cmp, imm, 4, imm);                            \
-      break;                                                                  \
-                                                                              \
-    case 0x2D:                                                                \
-      /* CMP r5, imm */                                                       \
-      thumb_data_proc_test(imm, cmp, imm, 5, imm);                            \
-      break;                                                                  \
-                                                                              \
-    case 0x2E:                                                                \
-      /* CMP r6, imm */                                                       \
-      thumb_data_proc_test(imm, cmp, imm, 6, imm);                            \
-      break;                                                                  \
-                                                                              \
-    case 0x2F:                                                                \
-      /* CMP r7, imm */                                                       \
-      thumb_data_proc_test(imm, cmp, imm, 7, imm);                            \
-      break;                                                                  \
-                                                                              \
-    case 0x30:                                                                \
-      /* ADD r0, imm */                                                       \
-      thumb_data_proc(imm, adds, imm, 0, 0, imm);                             \
-      break;                                                                  \
-                                                                              \
-    case 0x31:                                                                \
-      /* ADD r1, imm */                                                       \
-      thumb_data_proc(imm, adds, imm, 1, 1, imm);                             \
-      break;                                                                  \
-                                                                              \
-    case 0x32:                                                                \
-      /* ADD r2, imm */                                                       \
-      thumb_data_proc(imm, adds, imm, 2, 2, imm);                             \
-      break;                                                                  \
-                                                                              \
-    case 0x33:                                                                \
-      /* ADD r3, imm */                                                       \
-      thumb_data_proc(imm, adds, imm, 3, 3, imm);                             \
-      break;                                                                  \
-                                                                              \
-    case 0x34:                                                                \
-      /* ADD r4, imm */                                                       \
-      thumb_data_proc(imm, adds, imm, 4, 4, imm);                             \
-      break;                                                                  \
-                                                                              \
-    case 0x35:                                                                \
-      /* ADD r5, imm */                                                       \
-      thumb_data_proc(imm, adds, imm, 5, 5, imm);                             \
-      break;                                                                  \
-                                                                              \
-    case 0x36:                                                                \
-      /* ADD r6, imm */                                                       \
-      thumb_data_proc(imm, adds, imm, 6, 6, imm);                             \
-      break;                                                                  \
-                                                                              \
-    case 0x37:                                                                \
-      /* ADD r7, imm */                                                       \
-      thumb_data_proc(imm, adds, imm, 7, 7, imm);                             \
-      break;                                                                  \
-                                                                              \
-    case 0x38:                                                                \
-      /* SUB r0, imm */                                                       \
-      thumb_data_proc(imm, subs, imm, 0, 0, imm);                             \
-      break;                                                                  \
-                                                                              \
-    case 0x39:                                                                \
-      /* SUB r1, imm */                                                       \
-      thumb_data_proc(imm, subs, imm, 1, 1, imm);                             \
-      break;                                                                  \
-                                                                              \
-    case 0x3A:                                                                \
-      /* SUB r2, imm */                                                       \
-      thumb_data_proc(imm, subs, imm, 2, 2, imm);                             \
-      break;                                                                  \
-                                                                              \
-    case 0x3B:                                                                \
-      /* SUB r3, imm */                                                       \
-      thumb_data_proc(imm, subs, imm, 3, 3, imm);                             \
-      break;                                                                  \
-                                                                              \
-    case 0x3C:                                                                \
-      /* SUB r4, imm */                                                       \
-      thumb_data_proc(imm, subs, imm, 4, 4, imm);                             \
-      break;                                                                  \
-                                                                              \
-    case 0x3D:                                                                \
-      /* SUB r5, imm */                                                       \
-      thumb_data_proc(imm, subs, imm, 5, 5, imm);                             \
-      break;                                                                  \
-                                                                              \
-    case 0x3E:                                                                \
-      /* SUB r6, imm */                                                       \
-      thumb_data_proc(imm, subs, imm, 6, 6, imm);                             \
-      break;                                                                  \
-                                                                              \
-    case 0x3F:                                                                \
-      /* SUB r7, imm */                                                       \
-      thumb_data_proc(imm, subs, imm, 7, 7, imm);                             \
+    case 0x38 ... 0x3F:                                                       \
+      /* SUB r0..r7, imm */                                                   \
+      thumb_data_proc(imm, subs, imm, (opcode >> 8) & 0xFF - 0x38,            \
+        (opcode >> 8) & 0xFF - 0x38, imm);                                    \
       break;                                                                  \
                                                                               \
     case 0x40:                                                                \
@@ -2039,52 +1860,10 @@ static inline void StatsAddThumbOpcode() {}
       thumb_bx();                                                             \
       break;                                                                  \
                                                                               \
-    case 0x48:                                                                \
-      /* LDR r0, [pc + imm] */                                                \
-      thumb_access_memory(load, imm, 0, 0, 0, pc_relative,                    \
-       ((pc & ~2) + (imm << 2) + 4), u32);                                      \
-      break;                                                                  \
-                                                                              \
-    case 0x49:                                                                \
-      /* LDR r1, [pc + imm] */                                                \
-      thumb_access_memory(load, imm, 1, 0, 0, pc_relative,                    \
-       ((pc & ~2) + (imm << 2) + 4), u32);                                      \
-      break;                                                                  \
-                                                                              \
-    case 0x4A:                                                                \
-      /* LDR r2, [pc + imm] */                                                \
-      thumb_access_memory(load, imm, 2, 0, 0, pc_relative,                    \
-       ((pc & ~2) + (imm << 2) + 4), u32);                                      \
-      break;                                                                  \
-                                                                              \
-    case 0x4B:                                                                \
-      /* LDR r3, [pc + imm] */                                                \
-      thumb_access_memory(load, imm, 3, 0, 0, pc_relative,                    \
-       ((pc & ~2) + (imm << 2) + 4), u32);                                      \
-      break;                                                                  \
-                                                                              \
-    case 0x4C:                                                                \
-      /* LDR r4, [pc + imm] */                                                \
-      thumb_access_memory(load, imm, 4, 0, 0, pc_relative,                    \
-       ((pc & ~2) + (imm << 2) + 4), u32);                                      \
-      break;                                                                  \
-                                                                              \
-    case 0x4D:                                                                \
-      /* LDR r5, [pc + imm] */                                                \
-      thumb_access_memory(load, imm, 5, 0, 0, pc_relative,                    \
-       ((pc & ~2) + (imm << 2) + 4), u32);                                      \
-      break;                                                                  \
-                                                                              \
-    case 0x4E:                                                                \
-      /* LDR r6, [pc + imm] */                                                \
-      thumb_access_memory(load, imm, 6, 0, 0, pc_relative,                    \
-       ((pc & ~2) + (imm << 2) + 4), u32);                                      \
-      break;                                                                  \
-                                                                              \
-    case 0x4F:                                                                \
-      /* LDR r7, [pc + imm] */                                                \
-      thumb_access_memory(load, imm, 7, 0, 0, pc_relative,                    \
-       ((pc & ~2) + (imm << 2) + 4), u32);                                      \
+    case 0x48 ... 0x4F:                                                       \
+      /* LDR r0..r7, [pc + imm] */                                            \
+      thumb_access_memory(load, imm, (opcode >> 8) & 0xFF - 0x48, 0, 0,       \
+       pc_relative, ((pc & ~2) + (imm << 2) + 4), u32);                       \
       break;                                                                  \
                                                                               \
     case 0x50 ... 0x51:                                                       \
@@ -2159,164 +1938,26 @@ static inline void StatsAddThumbOpcode() {}
       thumb_access_memory(load, mem_imm, rd, rb, 0, reg_imm, (imm << 1), u16);\
       break;                                                                  \
                                                                               \
-    case 0x90:                                                                \
-      /* STR r0, [sp + imm] */                                                \
-      thumb_access_memory(store, imm, 0, 13, 0, reg_imm_sp, imm, u32);        \
+    case 0x90 ... 0x97:                                                       \
+      /* STR r0..r7, [sp + imm] */                                            \
+      thumb_access_memory(store, imm, (opcode >> 8) & 0xFF - 0x90, 13, 0,     \
+       reg_imm_sp, imm, u32);                                                 \
       break;                                                                  \
                                                                               \
-    case 0x91:                                                                \
-      /* STR r1, [sp + imm] */                                                \
-      thumb_access_memory(store, imm, 1, 13, 0, reg_imm_sp, imm, u32);        \
+    case 0x98 ... 0x9F:                                                       \
+      /* LDR r0..r7, [sp + imm] */                                            \
+      thumb_access_memory(load, imm, (opcode >> 8) & 0xFF - 0x98, 13, 0,      \
+       reg_imm_sp, imm, u32);                                                 \
       break;                                                                  \
                                                                               \
-    case 0x92:                                                                \
-      /* STR r2, [sp + imm] */                                                \
-      thumb_access_memory(store, imm, 2, 13, 0, reg_imm_sp, imm, u32);        \
+    case 0xA0 ... 0xA7:                                                       \
+      /* ADD r0..r7, pc, +imm */                                              \
+      thumb_load_pc((opcode >> 8) & 0xFF - 0xA0);                             \
       break;                                                                  \
                                                                               \
-    case 0x93:                                                                \
-      /* STR r3, [sp + imm] */                                                \
-      thumb_access_memory(store, imm, 3, 13, 0, reg_imm_sp, imm, u32);        \
-      break;                                                                  \
-                                                                              \
-    case 0x94:                                                                \
-      /* STR r4, [sp + imm] */                                                \
-      thumb_access_memory(store, imm, 4, 13, 0, reg_imm_sp, imm, u32);        \
-      break;                                                                  \
-                                                                              \
-    case 0x95:                                                                \
-      /* STR r5, [sp + imm] */                                                \
-      thumb_access_memory(store, imm, 5, 13, 0, reg_imm_sp, imm, u32);        \
-      break;                                                                  \
-                                                                              \
-    case 0x96:                                                                \
-      /* STR r6, [sp + imm] */                                                \
-      thumb_access_memory(store, imm, 6, 13, 0, reg_imm_sp, imm, u32);        \
-      break;                                                                  \
-                                                                              \
-    case 0x97:                                                                \
-      /* STR r7, [sp + imm] */                                                \
-      thumb_access_memory(store, imm, 7, 13, 0, reg_imm_sp, imm, u32);        \
-      break;                                                                  \
-                                                                              \
-    case 0x98:                                                                \
-      /* LDR r0, [sp + imm] */                                                \
-      thumb_access_memory(load, imm, 0, 13, 0, reg_imm_sp, imm, u32);         \
-      break;                                                                  \
-                                                                              \
-    case 0x99:                                                                \
-      /* LDR r1, [sp + imm] */                                                \
-      thumb_access_memory(load, imm, 1, 13, 0, reg_imm_sp, imm, u32);         \
-      break;                                                                  \
-                                                                              \
-    case 0x9A:                                                                \
-      /* LDR r2, [sp + imm] */                                                \
-      thumb_access_memory(load, imm, 2, 13, 0, reg_imm_sp, imm, u32);         \
-      break;                                                                  \
-                                                                              \
-    case 0x9B:                                                                \
-      /* LDR r3, [sp + imm] */                                                \
-      thumb_access_memory(load, imm, 3, 13, 0, reg_imm_sp, imm, u32);         \
-      break;                                                                  \
-                                                                              \
-    case 0x9C:                                                                \
-      /* LDR r4, [sp + imm] */                                                \
-      thumb_access_memory(load, imm, 4, 13, 0, reg_imm_sp, imm, u32);         \
-      break;                                                                  \
-                                                                              \
-    case 0x9D:                                                                \
-      /* LDR r5, [sp + imm] */                                                \
-      thumb_access_memory(load, imm, 5, 13, 0, reg_imm_sp, imm, u32);         \
-      break;                                                                  \
-                                                                              \
-    case 0x9E:                                                                \
-      /* LDR r6, [sp + imm] */                                                \
-      thumb_access_memory(load, imm, 6, 13, 0, reg_imm_sp, imm, u32);         \
-      break;                                                                  \
-                                                                              \
-    case 0x9F:                                                                \
-      /* LDR r7, [sp + imm] */                                                \
-      thumb_access_memory(load, imm, 7, 13, 0, reg_imm_sp, imm, u32);         \
-      break;                                                                  \
-                                                                              \
-    case 0xA0:                                                                \
-      /* ADD r0, pc, +imm */                                                  \
-      thumb_load_pc(0);                                                       \
-      break;                                                                  \
-                                                                              \
-    case 0xA1:                                                                \
-      /* ADD r1, pc, +imm */                                                  \
-      thumb_load_pc(1);                                                       \
-      break;                                                                  \
-                                                                              \
-    case 0xA2:                                                                \
-      /* ADD r2, pc, +imm */                                                  \
-      thumb_load_pc(2);                                                       \
-      break;                                                                  \
-                                                                              \
-    case 0xA3:                                                                \
-      /* ADD r3, pc, +imm */                                                  \
-      thumb_load_pc(3);                                                       \
-      break;                                                                  \
-                                                                              \
-    case 0xA4:                                                                \
-      /* ADD r4, pc, +imm */                                                  \
-      thumb_load_pc(4);                                                       \
-      break;                                                                  \
-                                                                              \
-    case 0xA5:                                                                \
-      /* ADD r5, pc, +imm */                                                  \
-      thumb_load_pc(5);                                                       \
-      break;                                                                  \
-                                                                              \
-    case 0xA6:                                                                \
-      /* ADD r6, pc, +imm */                                                  \
-      thumb_load_pc(6);                                                       \
-      break;                                                                  \
-                                                                              \
-    case 0xA7:                                                                \
-      /* ADD r7, pc, +imm */                                                  \
-      thumb_load_pc(7);                                                       \
-      break;                                                                  \
-                                                                              \
-    case 0xA8:                                                                \
-      /* ADD r0, sp, +imm */                                                  \
-      thumb_load_sp(0);                                                       \
-      break;                                                                  \
-                                                                              \
-    case 0xA9:                                                                \
-      /* ADD r1, sp, +imm */                                                  \
-      thumb_load_sp(1);                                                       \
-      break;                                                                  \
-                                                                              \
-    case 0xAA:                                                                \
-      /* ADD r2, sp, +imm */                                                  \
-      thumb_load_sp(2);                                                       \
-      break;                                                                  \
-                                                                              \
-    case 0xAB:                                                                \
-      /* ADD r3, sp, +imm */                                                  \
-      thumb_load_sp(3);                                                       \
-      break;                                                                  \
-                                                                              \
-    case 0xAC:                                                                \
-      /* ADD r4, sp, +imm */                                                  \
-      thumb_load_sp(4);                                                       \
-      break;                                                                  \
-                                                                              \
-    case 0xAD:                                                                \
-      /* ADD r5, sp, +imm */                                                  \
-      thumb_load_sp(5);                                                       \
-      break;                                                                  \
-                                                                              \
-    case 0xAE:                                                                \
-      /* ADD r6, sp, +imm */                                                  \
-      thumb_load_sp(6);                                                       \
-      break;                                                                  \
-                                                                              \
-    case 0xAF:                                                                \
-      /* ADD r7, sp, +imm */                                                  \
-      thumb_load_sp(7);                                                       \
+    case 0xA8 ... 0xAF:                                                       \
+      /* ADD r0..r7, sp, +imm */                                              \
+      thumb_load_sp((opcode >> 8) & 0xFF - 0xA8);                             \
       break;                                                                  \
                                                                               \
     case 0xB0:                                                                \
@@ -2356,84 +1997,14 @@ static inline void StatsAddThumbOpcode() {}
       mips_emit_syscall(12);\
       break;                                                                  \
                                                                               \
-    case 0xC0:                                                                \
-      /* STMIA r0!, rlist */                                                  \
-      thumb_block_memory(store, no, up, 0);                                   \
+    case 0xC0 ... 0xC7:                                                       \
+      /* STMIA r0..r7!, rlist */                                              \
+      thumb_block_memory(store, no, up, (opcode >> 8) & 0xFF - 0xC0);         \
       break;                                                                  \
                                                                               \
-    case 0xC1:                                                                \
-      /* STMIA r1!, rlist */                                                  \
-      thumb_block_memory(store, no, up, 1);                                   \
-      break;                                                                  \
-                                                                              \
-    case 0xC2:                                                                \
-      /* STMIA r2!, rlist */                                                  \
-      thumb_block_memory(store, no, up, 2);                                   \
-      break;                                                                  \
-                                                                              \
-    case 0xC3:                                                                \
-      /* STMIA r3!, rlist */                                                  \
-      thumb_block_memory(store, no, up, 3);                                   \
-      break;                                                                  \
-                                                                              \
-    case 0xC4:                                                                \
-      /* STMIA r4!, rlist */                                                  \
-      thumb_block_memory(store, no, up, 4);                                   \
-      break;                                                                  \
-                                                                              \
-    case 0xC5:                                                                \
-      /* STMIA r5!, rlist */                                                  \
-      thumb_block_memory(store, no, up, 5);                                   \
-      break;                                                                  \
-                                                                              \
-    case 0xC6:                                                                \
-      /* STMIA r6!, rlist */                                                  \
-      thumb_block_memory(store, no, up, 6);                                   \
-      break;                                                                  \
-                                                                              \
-    case 0xC7:                                                                \
-      /* STMIA r7!, rlist */                                                  \
-      thumb_block_memory(store, no, up, 7);                                   \
-      break;                                                                  \
-                                                                              \
-    case 0xC8:                                                                \
-      /* LDMIA r0!, rlist */                                                  \
-      thumb_block_memory(load, no, up, 0);                                    \
-      break;                                                                  \
-                                                                              \
-    case 0xC9:                                                                \
-      /* LDMIA r1!, rlist */                                                  \
-      thumb_block_memory(load, no, up, 1);                                    \
-      break;                                                                  \
-                                                                              \
-    case 0xCA:                                                                \
-      /* LDMIA r2!, rlist */                                                  \
-      thumb_block_memory(load, no, up, 2);                                    \
-      break;                                                                  \
-                                                                              \
-    case 0xCB:                                                                \
-      /* LDMIA r3!, rlist */                                                  \
-      thumb_block_memory(load, no, up, 3);                                    \
-      break;                                                                  \
-                                                                              \
-    case 0xCC:                                                                \
-      /* LDMIA r4!, rlist */                                                  \
-      thumb_block_memory(load, no, up, 4);                                    \
-      break;                                                                  \
-                                                                              \
-    case 0xCD:                                                                \
-      /* LDMIA r5!, rlist */                                                  \
-      thumb_block_memory(load, no, up, 5);                                    \
-      break;                                                                  \
-                                                                              \
-    case 0xCE:                                                                \
-      /* LDMIA r6!, rlist */                                                  \
-      thumb_block_memory(load, no, up, 6);                                    \
-      break;                                                                  \
-                                                                              \
-    case 0xCF:                                                                \
-      /* LDMIA r7!, rlist */                                                  \
-      thumb_block_memory(load, no, up, 7);                                    \
+    case 0xC8 ... 0xCF:                                                       \
+      /* LDMIA r0..r7!, rlist */                                              \
+      thumb_block_memory(load, no, up, (opcode >> 8) & 0xFF - 0xC8);          \
       break;                                                                  \
                                                                               \
     case 0xD0:                                                                \
@@ -2589,17 +2160,18 @@ static inline void StatsAddThumbOpcode() {}
                                                                               \
     /* add, subtract */                                                       \
     case 0x18 ... 0x1F:                                                       \
+    /* cmp reg, imm; add, subtract */                                         \
+    case 0x28 ... 0x3F:                                                       \
+    case 0x45:                                                                \
+      /* CMP rd, rs */                                                        \
       thumb_flag_modifies_all();                                              \
       break;                                                                  \
                                                                               \
     /* mov reg, imm */                                                        \
     case 0x20 ... 0x27:                                                       \
+    /* ORR, MUL, BIC, MVN */                                                  \
+    case 0x43:                                                                \
       thumb_flag_modifies_zn();                                               \
-      break;                                                                  \
-                                                                              \
-    /* cmp reg, imm; add, subtract */                                         \
-    case 0x28 ... 0x3F:                                                       \
-      thumb_flag_modifies_all();                                              \
       break;                                                                  \
                                                                               \
     case 0x40:                                                                \
@@ -2607,9 +2179,6 @@ static inline void StatsAddThumbOpcode() {}
       {                                                                       \
         case 0x00:                                                            \
           /* AND rd, rs */                                                    \
-          thumb_flag_modifies_zn();                                           \
-          break;                                                              \
-                                                                              \
         case 0x01:                                                            \
           /* EOR rd, rs */                                                    \
           thumb_flag_modifies_zn();                                           \
@@ -2617,9 +2186,6 @@ static inline void StatsAddThumbOpcode() {}
                                                                               \
         case 0x02:                                                            \
           /* LSL rd, rs */                                                    \
-          thumb_flag_modifies_zn_maybe_c();                                   \
-          break;                                                              \
-                                                                              \
         case 0x03:                                                            \
           /* LSR rd, rs */                                                    \
           thumb_flag_modifies_zn_maybe_c();                                   \
@@ -2632,24 +2198,17 @@ static inline void StatsAddThumbOpcode() {}
       {                                                                       \
         case 0x00:                                                            \
           /* ASR rd, rs */                                                    \
+        case 0x03:                                                            \
+          /* ROR rd, rs */                                                    \
           thumb_flag_modifies_zn_maybe_c();                                   \
           break;                                                              \
                                                                               \
         case 0x01:                                                            \
           /* ADC rd, rs */                                                    \
-          thumb_flag_modifies_all();                                          \
-          thumb_flag_requires_c();                                            \
-          break;                                                              \
-                                                                              \
         case 0x02:                                                            \
           /* SBC rd, rs */                                                    \
           thumb_flag_modifies_all();                                          \
           thumb_flag_requires_c();                                            \
-          break;                                                              \
-                                                                              \
-        case 0x03:                                                            \
-          /* ROR rd, rs */                                                    \
-          thumb_flag_modifies_zn_maybe_c();                                   \
           break;                                                              \
       }                                                                       \
       break;                                                                  \
@@ -2668,16 +2227,6 @@ static inline void StatsAddThumbOpcode() {}
       }                                                                       \
       break;                                                                  \
                                                                               \
-    /* ORR, MUL, BIC, MVN */                                                  \
-    case 0x43:                                                                \
-      thumb_flag_modifies_zn();                                               \
-      break;                                                                  \
-                                                                              \
-    case 0x45:                                                                \
-      /* CMP rd, rs */                                                        \
-      thumb_flag_modifies_all();                                              \
-      break;                                                                  \
-                                                                              \
     /* mov might change PC (fall through if so) */                            \
     case 0x46:                                                                \
       if((opcode & 0xFF87) != 0x4687)                                         \
@@ -2691,7 +2240,7 @@ static inline void StatsAddThumbOpcode() {}
       thumb_flag_requires_all();                                              \
       break;                                                                  \
   }                                                                           \
-  block_data[block_data_position].flag_data = flag_status;                    \
+  block_data.thumb[block_data_position].flag_data = flag_status;              \
 }                                                                             \
 
 u8 *iwram_block_ptrs[MAX_TAG + 1];
@@ -3060,7 +2609,7 @@ block_lookup_address_body(dual);
 // switch so it'd better be right this time.
 
 #define arm_set_condition(_condition)                                         \
-  block_data[block_data_position].condition = _condition;                     \
+  block_data.arm[block_data_position].condition = _condition;                 \
   switch((opcode >> 20) & 0xFF)                                               \
   {                                                                           \
     case 0x01:                                                                \
@@ -3070,7 +2619,7 @@ block_lookup_address_body(dual);
     case 0x0D:                                                                \
     case 0x0F:                                                                \
       if((((opcode >> 5) & 0x03) == 0) || ((opcode & 0x90) != 0x90))          \
-        block_data[block_data_position].condition |= 0x20;                    \
+        block_data.arm[block_data_position].condition |= 0x20;                \
       break;                                                                  \
                                                                               \
     case 0x05:                                                                \
@@ -3083,12 +2632,12 @@ block_lookup_address_body(dual);
     case 0x1D:                                                                \
     case 0x1F:                                                                \
       if((opcode & 0x90) != 0x90)                                             \
-        block_data[block_data_position].condition |= 0x20;                    \
+        block_data.arm[block_data_position].condition |= 0x20;                \
       break;                                                                  \
                                                                               \
     case 0x12:                                                                \
       if(((opcode & 0x90) != 0x90) && !(opcode & 0x10))                       \
-        block_data[block_data_position].condition |= 0x20;                    \
+        block_data.arm[block_data_position].condition |= 0x20;                \
       break;                                                                  \
                                                                               \
     case 0x21:                                                                \
@@ -3103,7 +2652,7 @@ block_lookup_address_body(dual);
     case 0x3B:                                                                \
     case 0x3D:                                                                \
     case 0x3F:                                                                \
-      block_data[block_data_position].condition |= 0x20;                      \
+      block_data.arm[block_data_position].condition |= 0x20;                  \
     break;                                                                    \
   }                                                                           \
 
@@ -3233,13 +2782,13 @@ block_lookup_address_body(dual);
 #define thumb_dead_flag_eliminate()                                           \
 {                                                                             \
   u32 needed_mask;                                                            \
-  needed_mask = block_data[block_data_position].flag_data >> 8;               \
+  needed_mask = block_data.thumb[block_data_position].flag_data >> 8;         \
                                                                               \
   block_data_position--;                                                      \
   while(block_data_position >= 0)                                             \
   {                                                                           \
-    flag_status = block_data[block_data_position].flag_data;                  \
-    block_data[block_data_position].flag_data =                               \
+    flag_status = block_data.thumb[block_data_position].flag_data;            \
+    block_data.thumb[block_data_position].flag_data =                         \
      (flag_status & needed_mask);                                             \
     needed_mask &= ~((flag_status >> 4) & 0x0F);                              \
     needed_mask |= flag_status >> 8;                                          \
@@ -3250,7 +2799,12 @@ block_lookup_address_body(dual);
 #define MAX_BLOCK_SIZE 8192
 #define MAX_EXITS      256
 
-block_data_type block_data[MAX_BLOCK_SIZE];
+typedef union {
+  block_data_arm_type arm[MAX_BLOCK_SIZE];
+  block_data_thumb_type thumb[MAX_BLOCK_SIZE];
+} block_data_type;
+
+block_data_type block_data;
 
 #define smc_write_arm_yes()                                                   \
   switch (block_end_pc >> 24)                                                 \
@@ -3415,6 +2969,7 @@ static s32 BinarySearch(u32* Array, u32 Value, u32 Size)
     check_pc_region(block_end_pc);                                            \
     smc_write_##type##_##smc_write_op();                                      \
     type##_load_opcode();                                                     \
+    block_data.type[block_data_position].opcode = opcode;                     \
     type##_flag_status();                                                     \
                                                                               \
     if(type##_exit_point)                                                     \
@@ -3479,7 +3034,7 @@ static s32 BinarySearch(u32* Array, u32 Value, u32 Size)
     {                                                                         \
       type##_set_condition(condition);                                        \
     }                                                                         \
-    block_data[block_data_position].update_cycles = 0;                        \
+    block_data.type[block_data_position].update_cycles = 0;                   \
     block_data_position++;                                                    \
                                                                               \
     if(block_end_pc == next_translation_gate)                                 \
@@ -3632,7 +3187,7 @@ s32 translate_block_##type(u32 pc, TRANSLATION_REGION_TYPE                    \
     if((branch_target > block_start_pc) &&                                    \
      (branch_target < block_end_pc))                                          \
     {                                                                         \
-      block_data[(branch_target - block_start_pc) /                           \
+      block_data.type[(branch_target - block_start_pc) /                      \
        type##_instruction_width].update_cycles = 1;                           \
     }                                                                         \
   }                                                                           \
@@ -3650,7 +3205,7 @@ s32 translate_block_##type(u32 pc, TRANSLATION_REGION_TYPE                    \
   /* Finally, we take all of that data and actually generate native code. */  \
   while(pc != block_end_pc)                                                   \
   {                                                                           \
-    block_data[block_data_position].block_offset = translation_ptr;           \
+    block_data.type[block_data_position].block_offset = translation_ptr;      \
     type##_base_cycles();                                                     \
                                                                               \
     translate_##type##_instruction();                                         \
@@ -3673,7 +3228,7 @@ s32 translate_block_##type(u32 pc, TRANSLATION_REGION_TYPE                    \
                                                                               \
     /* If the next instruction is a block entry point update the              \
        cycle counter and update */                                            \
-    if(block_data[block_data_position].update_cycles == 1)                    \
+    if(block_data.type[block_data_position].update_cycles == 1)               \
     {                                                                         \
       generate_cycle_update();                                                \
     }                                                                         \
@@ -3692,7 +3247,7 @@ s32 translate_block_##type(u32 pc, TRANSLATION_REGION_TYPE                    \
     {                                                                         \
       /* Internal branch, patch to recorded address */                        \
       translation_target =                                                    \
-       block_data[(branch_target - block_start_pc) /                          \
+       block_data.type[(branch_target - block_start_pc) /                     \
         type##_instruction_width].block_offset;                               \
                                                                               \
       generate_branch_patch_unconditional(block_exits[i].branch_source,       \
