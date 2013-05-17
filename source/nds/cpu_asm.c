@@ -3008,8 +3008,10 @@ static s32 BinarySearch(u32* Array, u32 Value, u32 Size)
         if (translation_region == TRANSLATION_REGION_WRITABLE ||              \
           BinarySearch(branch_targets_sorted, block_end_pc,                   \
           sorted_branch_count) == -1)                                         \
+        {                                                                     \
           continue_block = 0;                                                 \
-        unconditional_branch_write_##type##_##smc_write_op();                 \
+          unconditional_branch_write_##type##_##smc_write_op();               \
+        }                                                                     \
       }                                                                       \
       if(block_exit_position == MAX_EXITS)                                    \
       {                                                                       \
@@ -3104,23 +3106,8 @@ u8* translate_block_##type(u32 pc)                                            \
   switch(pc >> 24)                                                            \
   {                                                                           \
     case 0x02: /* EWRAM */                                                    \
-      if((pc < ewram_code_min) || (ewram_code_min == 0xFFFFFFFF))             \
-        ewram_code_min = pc;                                                  \
-                                                                              \
-      translation_region = TRANSLATION_REGION_WRITABLE;                       \
-      break;                                                                  \
-                                                                              \
     case 0x03: /* IWRAM */                                                    \
-      if((pc < iwram_code_min) || (iwram_code_min == 0xFFFFFFFF))             \
-        iwram_code_min = pc;                                                  \
-                                                                              \
-      translation_region = TRANSLATION_REGION_WRITABLE;                       \
-      break;                                                                  \
-                                                                              \
     case 0x06: /* VRAM */                                                     \
-      if((pc < vram_code_min) || (vram_code_min == 0xFFFFFFFF))               \
-        vram_code_min = pc;                                                   \
-                                                                              \
       translation_region = TRANSLATION_REGION_WRITABLE;                       \
       break;                                                                  \
                                                                               \
@@ -3144,6 +3131,7 @@ u8* translate_block_##type(u32 pc)                                            \
       translation_cache_limit =                                               \
        writable_code_cache + WRITABLE_CODE_CACHE_SIZE -                       \
        TRANSLATION_CACHE_LIMIT_THRESHOLD;                                     \
+      update_metadata_area_start(pc);                                         \
       break;                                                                  \
   }                                                                           \
                                                                               \
@@ -3156,8 +3144,8 @@ u8* translate_block_##type(u32 pc)                                            \
   if(translation_region == TRANSLATION_REGION_WRITABLE)                       \
   {                                                                           \
     scan_block(type, yes);                                                    \
-    u16 checksum = block_checksum_##type(block_data_position) &               \
-     (PERSISTENT_RAM_HASH_SIZE - 1);                                          \
+    u16 checksum = block_checksum_##type((block_end_pc - block_start_pc)      \
+     / type##_instruction_width) & (PERSISTENT_RAM_HASH_SIZE - 1);            \
     u32 *block_ptr = writable_area_checksum_hash[checksum];                   \
     u32 **block_ptr_address = writable_area_checksum_hash + checksum;         \
                                                                               \
@@ -3178,6 +3166,19 @@ u8* translate_block_##type(u32 pc)                                            \
             if (gba_code_size & 2) comparison_ptr += 2; /* Past the alignment */\
             StatsAddWritableReuse((block_end_pc - block_start_pc) /           \
              type##_instruction_width);                                       \
+                                                                              \
+            /* The Currently Code bits need to be set for the reused block,   \
+             * just as if it were freshly compiled by the below code. */      \
+            pc = block_end_pc;                                                \
+            for (block_end_pc = block_start_pc; block_end_pc < pc;            \
+              block_end_pc += type##_instruction_width)                       \
+            {                                                                 \
+              smc_write_##type##_yes();                                       \
+            }                                                                 \
+            unconditional_branch_write_##type##_yes();                        \
+                                                                              \
+            update_metadata_area_end(block_end_pc);                           \
+                                                                              \
             return comparison_ptr + block_prologue_size;                      \
           }                                                                   \
         }                                                                     \
@@ -3208,11 +3209,11 @@ u8* translate_block_##type(u32 pc)                                            \
      * block_ptr_address around so we could continue the linked list. */      \
     *(u8**) block_ptr_address = translation_ptr;                              \
     *(u32*) translation_ptr = block_start_pc;                                 \
-    translation_ptr = (u8*) ((u32*) translation_ptr + 1);                     \
+    translation_ptr += sizeof(u32);                                           \
     *(void**) translation_ptr = NULL; /* No Next yet */                       \
-    translation_ptr = (u8*) ((void**) translation_ptr + 1);                   \
+    translation_ptr += sizeof(void*);                                         \
     *(u32*) translation_ptr = block_end_pc - block_start_pc;                  \
-    translation_ptr = (u8*) ((u32*) translation_ptr + 1);                     \
+    translation_ptr += sizeof(u32);                                           \
                                                                               \
     memcpy(translation_ptr, opcodes.type, block_end_pc - block_start_pc);     \
     translation_ptr += block_end_pc - block_start_pc;                         \
@@ -3330,23 +3331,7 @@ u8* translate_block_##type(u32 pc)                                            \
       break;                                                                  \
   }                                                                           \
                                                                               \
-  switch(pc >> 24)                                                            \
-  {                                                                           \
-    case 0x02: /* EWRAM */                                                    \
-      if((pc > ewram_code_max) || (ewram_code_max == 0xFFFFFFFF))             \
-        ewram_code_max = pc;                                                  \
-      break;                                                                  \
-                                                                              \
-    case 0x03: /* IWRAM */                                                    \
-      if((pc > iwram_code_max) || (iwram_code_max == 0xFFFFFFFF))             \
-        iwram_code_max = pc;                                                  \
-      break;                                                                  \
-                                                                              \
-    case 0x06: /* VRAM */                                                     \
-      if((pc > vram_code_max) || (vram_code_max == 0xFFFFFFFF))               \
-        vram_code_max = pc;                                                   \
-      break;                                                                  \
-  }                                                                           \
+  update_metadata_area_end(pc);                                               \
                                                                               \
   /* Go compile all the external branches into read-only code areas. */       \
   for(i = 0; i < external_block_exit_position; i++)                           \
@@ -3374,36 +3359,81 @@ u8* translate_block_##type(u32 pc)                                            \
 static u16 block_checksum_arm(u32 block_data_count);
 static u16 block_checksum_thumb(u32 block_data_count);
 
+static void update_metadata_area_start(u32 pc);
+static void update_metadata_area_end(u32 pc);
+
 translate_block_builder(arm);
 translate_block_builder(thumb);
 
-static u16 block_checksum_arm(u32 block_data_count)
+static u16 block_checksum_arm(u32 opcode_count)
 {
 	// Init: Checksum = NOT Opcodes[0]
-	// assert block_data_count > 0;
+	// assert opcode_count > 0;
 	u32 result = ~opcodes.arm[0], i;
-	for (i = 1; i < block_data_count; i++)
+	for (i = 1; i < opcode_count; i++)
 	{
 		// Step: Checksum = (Checksum ROL 1) XOR Opcodes[N]
 		result = ((result << 1) | (result >> 31)) ^ opcodes.arm[i];
 	}
 	// Final: Map into bits 15..1, clear bit 0 to indicate ARM
-	return (u16) (((result >> 16) & 0xFFFE) ^ (result & 0xFFFE));
+	return (u16) (((result >> 16) ^ result) & 0xFFFE);
 }
 
-static u16 block_checksum_thumb(u32 block_data_count)
+static u16 block_checksum_thumb(u32 opcode_count)
 {
 	// Init: Checksum = NOT Opcodes[0]
-	// assert block_data_count > 0;
+	// assert opcode_count > 0;
 	u16 result = ~opcodes.thumb[0];
 	u32 i;
-	for (i = 1; i < block_data_count; i++)
+	for (i = 1; i < opcode_count; i++)
 	{
 		// Step: Checksum = (Checksum ROL 1) XOR Opcodes[N]
 		result = ((result << 1) | (result >> 15)) ^ opcodes.thumb[i];
 	}
 	// Final: Set bit 0 to indicate Thumb
 	return result | 0x0001;
+}
+
+static void update_metadata_area_start(u32 pc)
+{
+  switch(pc >> 24)
+  {
+    case 0x02: /* EWRAM */
+      if((pc < ewram_code_min) || (ewram_code_min == 0xFFFFFFFF))
+        ewram_code_min = pc;
+      break;
+
+    case 0x03: /* IWRAM */
+      if((pc < iwram_code_min) || (iwram_code_min == 0xFFFFFFFF))
+        iwram_code_min = pc;
+      break;
+
+    case 0x06: /* VRAM */
+      if((pc < vram_code_min) || (vram_code_min == 0xFFFFFFFF))
+        vram_code_min = pc;
+      break;
+  }
+}
+
+static void update_metadata_area_end(u32 pc)
+{
+  switch(pc >> 24)
+  {
+    case 0x02: /* EWRAM */
+      if((pc > ewram_code_max) || (ewram_code_max == 0xFFFFFFFF))
+        ewram_code_max = pc;
+      break;
+
+    case 0x03: /* IWRAM */
+      if((pc > iwram_code_max) || (iwram_code_max == 0xFFFFFFFF))
+        iwram_code_max = pc;
+      break;
+
+    case 0x06: /* VRAM */
+      if((pc > vram_code_max) || (vram_code_max == 0xFFFFFFFF))
+        vram_code_max = pc;
+      break;
+  }
 }
 
 static void partial_clear_metadata_arm(u16* metadata, u16* metadata_area_start, u16* metadata_area_end);
