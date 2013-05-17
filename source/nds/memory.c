@@ -28,10 +28,10 @@ u8 *g_state_buffer_ptr;
 //u8 PACKROM_MEM[ PACKROM_MEM_SIZE ] __attribute__ ((aligned (4))) ;
 //u8 PACKROM_MEM_MAP[ PACKROM_MEM_SIZE/(32*1024)*8 ];
 
-#define SAVESTATE_FAST_SIZE (SAVESTATE_FAST_LEN*SAVESTATE_FAST_NUM)	//~2.6MB
+#define SAVESTATE_FAST_SIZE (SAVESTATE_FAST_LEN*SAVESTATE_FAST_NUM)	//~1MB
 //fast save state length: 0x68e3f
 #define SAVESTATE_FAST_LEN (0x68e40)
-#define SAVESTATE_FAST_NUM (7)
+#define SAVESTATE_FAST_NUM (2)
 u8 SAVEFAST_MEM[ SAVESTATE_FAST_SIZE ] __attribute__ ((aligned (4))) ;
 
 const u8 SVS_HEADER_E[SVS_HEADER_SIZE] = {'N', 'G', 'B', 'A', 'R', 'T', 'S',
@@ -2856,7 +2856,7 @@ dma_region_type dma_region_map[16] =
      * location. See "doc/partial flushing of RAM code.txt" for more info. */ \
     u16 smc = iwram_metadata[(type##_ptr & 0x7FFC) | 3] & 0x3;                \
     if (smc) {                                                                \
-      partial_flush_ram(type##_ptr);                                          \
+      partial_clear_metadata(type##_ptr);                                     \
     }                                                                         \
     smc_trigger |= smc;                                                       \
   }                                                                           \
@@ -2875,7 +2875,7 @@ dma_region_type dma_region_map[16] =
     else                                                                      \
       smc = vram_metadata[(type##_ptr & 0xFFFC) | 3] & 0x3;                   \
     if (smc) {                                                                \
-      partial_flush_ram(type##_ptr);                                          \
+      partial_clear_metadata(type##_ptr);                                     \
     }                                                                         \
     smc_trigger |= smc;                                                       \
   }                                                                           \
@@ -2899,7 +2899,7 @@ dma_region_type dma_region_map[16] =
      * location. See "doc/partial flushing of RAM code.txt" for more info. */ \
     u16 smc = ewram_metadata[(type##_ptr & 0x3FFFC) | 3] & 0x3;               \
     if (smc) {                                                                \
-      partial_flush_ram(type##_ptr);                                          \
+      partial_clear_metadata(type##_ptr);                                     \
     }                                                                         \
     smc_trigger |= smc;                                                       \
   }                                                                           \
@@ -3691,8 +3691,9 @@ void loadstate_fast(void)
 	g_state_buffer_ptr = SAVEFAST_MEM + savefast_queue_wr_len * SAVESTATE_FAST_LEN;
 	savestate_block_fast(read_mem);
 
-	flush_translation_cache(TRANSLATION_REGION_IWRAM, FLUSH_REASON_LOADING_STATE);
-	flush_translation_cache(TRANSLATION_REGION_EWRAM, FLUSH_REASON_LOADING_STATE);
+	clear_metadata_area(METADATA_AREA_IWRAM, CLEAR_REASON_LOADING_STATE);
+	clear_metadata_area(METADATA_AREA_EWRAM, CLEAR_REASON_LOADING_STATE);
+	clear_metadata_area(METADATA_AREA_VRAM, CLEAR_REASON_LOADING_STATE);
 
 	oam_update = 1;
 	gbc_sound_update = 1;
@@ -3771,8 +3772,9 @@ u32 load_state(char *savestate_filename, u32 slot_num)
   savestate_block(read_mem);
   update_progress();
 
-  flush_translation_cache(TRANSLATION_REGION_IWRAM, FLUSH_REASON_LOADING_STATE);
-  flush_translation_cache(TRANSLATION_REGION_EWRAM, FLUSH_REASON_LOADING_STATE);
+  clear_metadata_area(METADATA_AREA_IWRAM, CLEAR_REASON_LOADING_STATE);
+  clear_metadata_area(METADATA_AREA_EWRAM, CLEAR_REASON_LOADING_STATE);
+  clear_metadata_area(METADATA_AREA_VRAM, CLEAR_REASON_LOADING_STATE);
   update_progress();
 
   oam_update = 1;
@@ -3895,8 +3897,9 @@ printf("gamepak_filename0: %s\n", gamepak_filename);
 
 	// End fixups.
 
-	flush_translation_cache(TRANSLATION_REGION_IWRAM, FLUSH_REASON_LOADING_STATE);
-	flush_translation_cache(TRANSLATION_REGION_EWRAM, FLUSH_REASON_LOADING_STATE);
+	clear_metadata_area(METADATA_AREA_IWRAM, CLEAR_REASON_LOADING_STATE);
+	clear_metadata_area(METADATA_AREA_EWRAM, CLEAR_REASON_LOADING_STATE);
+	clear_metadata_area(METADATA_AREA_VRAM, CLEAR_REASON_LOADING_STATE);
 
         oam_update = 1;
         gbc_sound_update = 1;

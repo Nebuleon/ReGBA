@@ -3181,8 +3181,37 @@ u32 menu(u16 *screen, int FirstInvocation)
 
     MENU_TYPE tools_debug_menu;
 
-	char* CACHE_USAGE  = "Nebuleon's code cache utilisation...";
-	char* FLUSH_COUNTS = "Nebuleon's code cache flush counts...";
+	char* CACHE_USAGE  = "Native code size...";
+	char* CLEAR_COUNTS = "Metadata clear count...";
+	char* REUSE_COUNTS = "Native code block reuse...";
+
+#ifdef PERFORMANCE_IMPACTING_STATISTICS
+	char* BLOCKS_RECOMPILED  = "Blocks recompiled          %u";
+	char* OPCODES_RECOMPILED = "Opcodes recompiled      %u";
+	char* BLOCKS_REUSED      = "Blocks reused                %u";
+	char* OPCODES_REUSED     = "Opcodes reused             %u";
+
+  /*--------------------------------------------------------
+     Tools - Debugging - Code block reuse
+  --------------------------------------------------------*/
+    MENU_OPTION_TYPE tools_debug_reuse_options[] =
+    {
+	/* 00 */ SUBMENU_OPTION(&tools_debug_menu, &REUSE_COUNTS, NULL, 0),
+
+	/* 01 */ NUMERIC_SELECTION_HIDE_OPTION(NULL, NULL, &BLOCKS_RECOMPILED,
+        &Stats.BlockRecompilationCount, 2, NULL, 1),
+
+	/* 02 */ NUMERIC_SELECTION_HIDE_OPTION(NULL, NULL, &OPCODES_RECOMPILED,
+        &Stats.OpcodeRecompilationCount, 2, NULL, 2),
+
+	/* 03 */ NUMERIC_SELECTION_HIDE_OPTION(NULL, NULL, &BLOCKS_REUSED,
+        &Stats.BlockReuseCount, 2, NULL, 3),
+
+	/* 04 */ NUMERIC_SELECTION_HIDE_OPTION(NULL, NULL, &OPCODES_REUSED,
+        &Stats.OpcodeReuseCount, 2, NULL, 4),
+    };
+    MAKE_MENU(tools_debug_reuse, NULL, NULL, NULL, NULL, 0, 0);
+#endif
 
     MENU_OPTION_TYPE tools_debug_utilisation_options[] =
     {
@@ -3192,7 +3221,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 
     MENU_OPTION_TYPE tools_debug_flush_options[] =
     {
-	/* 00 */ SUBMENU_OPTION(&tools_debug_menu, &FLUSH_COUNTS, NULL, 0)
+	/* 00 */ SUBMENU_OPTION(&tools_debug_menu, &CLEAR_COUNTS, NULL, 0)
     };
     MAKE_MENU(tools_debug_flush, NULL, tools_debug_flush_menu_passive, NULL, NULL, 0, 0);
 
@@ -3224,7 +3253,7 @@ u32 menu(u16 *screen, int FirstInvocation)
         &Stats.ThumbOpcodesDecoded, 2, NULL, 4),
 
 	/* 04 */ NUMERIC_SELECTION_HIDE_OPTION(NULL, NULL, &WRONG_ADDRESS_LINES,
-        &Stats.WrongAddressLineCount, 2, NULL, 4),
+        &Stats.WrongAddressLineCount, 2, NULL, 5),
 #endif
     };
     MAKE_MENU(tools_debug_statistics, NULL, NULL, NULL, NULL, 0, 0);
@@ -3242,7 +3271,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 	char* VENDER_CODE      = "vender_code     %s";
 
   /*--------------------------------------------------------
-     Tools - Debugging - Execution stats
+     Tools - Debugging - ROM information
   --------------------------------------------------------*/
     MENU_OPTION_TYPE tools_debug_rom_info_options[] =
     {
@@ -3270,11 +3299,27 @@ u32 menu(u16 *screen, int FirstInvocation)
 
 	/* 01 */ SUBMENU_OPTION(&tools_debug_utilisation_menu, &CACHE_USAGE, NULL, 1),
 
-	/* 01 */ SUBMENU_OPTION(&tools_debug_flush_menu, &FLUSH_COUNTS, NULL, 1),
+	/* 02 */ SUBMENU_OPTION(&tools_debug_flush_menu, &CLEAR_COUNTS, NULL, 2),
 
-	/* 02 */ SUBMENU_OPTION(&tools_debug_statistics_menu, &EXECUTION_STATISTICS, NULL, 2),
+#ifdef PERFORMANCE_IMPACTING_STATISTICS
+	/* 03 */ SUBMENU_OPTION(&tools_debug_reuse_menu, &REUSE_COUNTS, NULL, 3),
+#endif
 
-	/* 02 */ SUBMENU_OPTION(&tools_debug_rom_info_menu, &ROM_INFORMATION, NULL, 3),
+	/* 04 */ SUBMENU_OPTION(&tools_debug_statistics_menu, &EXECUTION_STATISTICS, NULL,
+#ifdef PERFORMANCE_IMPACTING_STATISTICS
+			4
+#else
+			3
+#endif
+		),
+
+	/* 05 */ SUBMENU_OPTION(&tools_debug_rom_info_menu, &ROM_INFORMATION, NULL,
+#ifdef PERFORMANCE_IMPACTING_STATISTICS
+			5
+#else
+			4
+#endif
+		),
     };
     INIT_MENU(tools_debug, NULL, NULL, NULL, NULL, 1, 1);
 
@@ -4138,9 +4183,16 @@ u32 menu(u16 *screen, int FirstInvocation)
     }
 
 	char* CACHE_NAMES[TRANSLATION_REGION_COUNT] = {
-		"IWRAM", "EWRAM", "VRAM", "ROM", "BIOS"
+		"Read-only", "Writable"
 	};
-	char* REASON_NAMES[FLUSH_REASON_COUNT] = {
+	char* FLUSH_REASON_NAMES[CACHE_FLUSH_REASON_COUNT] = {
+		"Init", "ROM", "Link", "Full"
+	};
+
+	char* METADATA_AREA_NAMES[METADATA_AREA_COUNT] = {
+		"BIOS", "EWRAM", "IWRAM", "VRAM", "ROM"
+	};
+	char* CLEAR_REASON_NAMES[METADATA_CLEAR_REASON_COUNT] = {
 		"Init", "ROM", "Link", "Full", "Tag", "State"
 	};
 
@@ -4172,11 +4224,8 @@ u32 menu(u16 *screen, int FirstInvocation)
 			u32 Current = 0;
 			switch (i)
 			{
-				case TRANSLATION_REGION_IWRAM: Current = iwram_translation_ptr - iwram_translation_cache; break;
-				case TRANSLATION_REGION_EWRAM: Current = ewram_translation_ptr - ewram_translation_cache; break;
-				case TRANSLATION_REGION_VRAM: Current = ewram_translation_ptr - ewram_translation_cache; break;
-				case TRANSLATION_REGION_ROM:   Current = rom_translation_ptr   - rom_translation_cache;   break;
-				case TRANSLATION_REGION_BIOS:  Current = bios_translation_ptr  - bios_translation_cache;  break;
+				case TRANSLATION_REGION_READONLY: Current = readonly_next_code - readonly_code_cache; break;
+				case TRANSLATION_REGION_WRITABLE: Current = writable_next_code - writable_code_cache; break;
 			}
 			sprintf(line_buffer, "%u", Current);
 			PRINT_STRING_BG(down_screen_addr, line_buffer, COLOR_INACTIVE_ITEM, COLOR_TRANS, OPTION_TEXT_X + 1 * (NDS_SCREEN_WIDTH - OPTION_TEXT_X * 2) / 4, GUI_ROW1_Y + (i + 1) * GUI_ROW_SY + TEXT_OFFSET_Y);
@@ -4205,21 +4254,21 @@ u32 menu(u16 *screen, int FirstInvocation)
 		strcpy(line_buffer, *(display_option->display_string));
 		draw_string_vcenter(down_screen_addr, 0, 9, 256, COLOR_ACTIVE_ITEM, line_buffer);
 
-		u32 reason, cache;
-		for (reason = 0; reason < FLUSH_REASON_COUNT; reason++)
-			PRINT_STRING_BG(down_screen_addr, REASON_NAMES[reason], COLOR_INACTIVE_ITEM, COLOR_TRANS, OPTION_TEXT_X + (reason + 1) * ((NDS_SCREEN_WIDTH - OPTION_TEXT_X * 2) / (FLUSH_REASON_COUNT + 1)), GUI_ROW1_Y + TEXT_OFFSET_Y);
-		for (cache = 0; cache < TRANSLATION_REGION_COUNT; cache++)
+		u32 reason, area;
+		for (reason = 0; reason < METADATA_CLEAR_REASON_COUNT; reason++)
+			PRINT_STRING_BG(down_screen_addr, CLEAR_REASON_NAMES[reason], COLOR_INACTIVE_ITEM, COLOR_TRANS, OPTION_TEXT_X + (reason + 1) * ((NDS_SCREEN_WIDTH - OPTION_TEXT_X * 2) / (METADATA_CLEAR_REASON_COUNT + 1)), GUI_ROW1_Y + TEXT_OFFSET_Y);
+		for (area = 0; area < METADATA_AREA_COUNT; area++)
 		{
-			u32 y = GUI_ROW1_Y + (cache + 1) * GUI_ROW_SY + TEXT_OFFSET_Y;
-			PRINT_STRING_BG(down_screen_addr, CACHE_NAMES[cache], COLOR_INACTIVE_ITEM, COLOR_TRANS, OPTION_TEXT_X, y);
-			for (reason = 0; reason < FLUSH_REASON_COUNT; reason++)
+			u32 y = GUI_ROW1_Y + (area + 1) * GUI_ROW_SY + TEXT_OFFSET_Y;
+			PRINT_STRING_BG(down_screen_addr, METADATA_AREA_NAMES[area], COLOR_INACTIVE_ITEM, COLOR_TRANS, OPTION_TEXT_X, y);
+			for (reason = 0; reason < METADATA_CLEAR_REASON_COUNT; reason++)
 			{
-				u32 x = OPTION_TEXT_X + (reason + 1) * ((NDS_SCREEN_WIDTH - OPTION_TEXT_X * 2) / (FLUSH_REASON_COUNT + 1));
-				sprintf(line_buffer, "%u", Stats.TranslationFlushCount[cache][reason]);
+				u32 x = OPTION_TEXT_X + (reason + 1) * ((NDS_SCREEN_WIDTH - OPTION_TEXT_X * 2) / (METADATA_CLEAR_REASON_COUNT + 1));
+				sprintf(line_buffer, "%u", Stats.MetadataClearCount[area][reason]);
 				PRINT_STRING_BG(down_screen_addr, line_buffer, COLOR_INACTIVE_ITEM, COLOR_TRANS, x, y);
 			}
 		}
-		PRINT_STRING_BG(down_screen_addr, "Partial flushes", COLOR_INACTIVE_ITEM, COLOR_TRANS, OPTION_TEXT_X, GUI_ROW1_Y + 6 * GUI_ROW_SY + TEXT_OFFSET_Y);
+		PRINT_STRING_BG(down_screen_addr, "Partial clears", COLOR_INACTIVE_ITEM, COLOR_TRANS, OPTION_TEXT_X, GUI_ROW1_Y + 6 * GUI_ROW_SY + TEXT_OFFSET_Y);
 		sprintf(line_buffer, "%u", Stats.PartialFlushCount);
 		PRINT_STRING_BG(down_screen_addr, line_buffer, COLOR_INACTIVE_ITEM, COLOR_TRANS, NDS_SCREEN_WIDTH / 2, GUI_ROW1_Y + 6 * GUI_ROW_SY + TEXT_OFFSET_Y);
 	}

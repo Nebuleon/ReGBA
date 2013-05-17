@@ -30,11 +30,14 @@ struct GPSP_STATS {
 	u32	TranslationBytesFlushed[TRANSLATION_REGION_COUNT];
 	/* How many times have we had to discard MIPS code since the current
 	 * game started running, in which code caches and for what reasons? */
-	u32	TranslationFlushCount[TRANSLATION_REGION_COUNT][FLUSH_REASON_COUNT];
+	u32	TranslationFlushCount[TRANSLATION_REGION_COUNT][CACHE_FLUSH_REASON_COUNT];
 	/* Up to how many bytes of MIPS code must we hold for this game? */
 	u32	TranslationBytesPeak[TRANSLATION_REGION_COUNT];
 	/* How many times have we gone through a Partial Flush? */
 	u32	PartialFlushCount;
+	/* How many times have we had to clear entire metadata areas since the
+	 * current game started running, which areas and for what reasons? */
+	u32	MetadataClearCount[METADATA_AREA_COUNT][METADATA_CLEAR_REASON_COUNT];
 #endif
 	/* How many times have we detected an underrun of the sound buffer? */
 	u32	SoundBufferUnderrunCount;
@@ -49,6 +52,16 @@ struct GPSP_STATS {
 	 * scratch since the current game started running? */
 	u32	ARMOpcodesDecoded;
 	u32	ThumbOpcodesDecoded;
+	/* How many times have we recompiled a block anew since the current
+	 * game started running? */
+	u32	BlockRecompilationCount;
+	/* And how many opcodes was that? */
+	u32	OpcodeRecompilationCount;
+	/* How many times have we reused a cached block of native code since
+	 * the current game started running? */
+	u32	BlockReuseCount;
+	/* And how many opcodes was that? */
+	u32	OpcodeReuseCount;
 #endif
 
 	/* Are we in a sound buffer underrun? If we are, ignore underrunning
