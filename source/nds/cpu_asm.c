@@ -3353,8 +3353,9 @@ static u16 block_checksum_arm(u32 opcode_count)
 	u32 result = ~opcodes.arm[0], i;
 	for (i = 1; i < opcode_count; i++)
 	{
-		// Step: Checksum = (Checksum ROL 1) XOR Opcodes[N]
-		result = ((result << 1) | (result >> 31)) ^ opcodes.arm[i];
+		// Step: Checksum = Checksum XOR (Opcodes[N] SHR (N AND 7))
+		// for fewer collisions if instructions are similar at different places
+		result ^= opcodes.arm[i] >> (i & 7);
 	}
 	// Final: Map into bits 15..1, clear bit 0 to indicate ARM
 	return (u16) (((result >> 16) ^ result) & 0xFFFE);
@@ -3368,8 +3369,9 @@ static u16 block_checksum_thumb(u32 opcode_count)
 	u32 i;
 	for (i = 1; i < opcode_count; i++)
 	{
-		// Step: Checksum = (Checksum ROL 1) XOR Opcodes[N]
-		result = ((result << 1) | (result >> 15)) ^ opcodes.thumb[i];
+		// Step: Checksum = Checksum XOR (Opcodes[N] SHR (N AND 7))
+		// for fewer collisions if instructions are similar at different places
+		result ^= opcodes.thumb[i] >> (i & 7);
 	}
 	// Final: Set bit 0 to indicate Thumb
 	return result | 0x0001;
