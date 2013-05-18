@@ -256,16 +256,6 @@ extern void call_bios_hle(void* func);
   }                                                                           \
 
 #ifdef PERFORMANCE_IMPACTING_STATISTICS
-static inline void StatsAddARMOpcode()
-{
-	Stats.ARMOpcodesDecoded++;
-}
-
-static inline void StatsAddThumbOpcode()
-{
-	Stats.ThumbOpcodesDecoded++;
-}
-
 static inline void StatsAddWritableReuse(u32 Opcodes)
 {
 	Stats.BlockReuseCount++;
@@ -278,10 +268,6 @@ static inline void StatsAddWritableRecompilation(u32 Opcodes)
 	Stats.OpcodeRecompilationCount += Opcodes;
 }
 #else
-static inline void StatsAddARMOpcode() {}
-
-static inline void StatsAddThumbOpcode() {}
-
 static inline void StatsAddWritableReuse(u32 Opcodes) {}
 
 static inline void StatsAddWritableRecompilation(u32 Opcodes) {}
@@ -302,8 +288,6 @@ static inline void StatsAddWritableRecompilation(u32 Opcodes) {}
       has_condition_header = 1;                                               \
     }                                                                         \
   }                                                                           \
-                                                                              \
-  StatsAddARMOpcode();                                                        \
                                                                               \
   switch((opcode >> 20) & 0xFF)                                               \
   {                                                                           \
@@ -1688,8 +1672,6 @@ static void arm_flag_status(block_data_arm_type* block_data, u32 opcode)
   flag_status = block_data.thumb[block_data_position].flag_data;              \
   last_opcode = opcode;                                                       \
   opcode = opcodes.thumb[block_data_position];                                \
-                                                                              \
-  StatsAddThumbOpcode();                                                      \
                                                                               \
   switch((opcode >> 8) & 0xFF)                                                \
   {                                                                           \
