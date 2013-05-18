@@ -553,17 +553,7 @@ mips_indirect_branch_dual:
   cache 0x15, ($ra)               # writeback-invalidate dcache line
 #endif
   sync
-  cache 0x10, ($ra)               # invalidate icache line  
-
-#ifdef PERFORMANCE_IMPACTING_STATISTICS
-  la $1, Stats
-  lw $2, 0($1)
-#  ifndef NO_LOAD_DELAY_SLOT
-  nop
-#  endif
-  addiu $2, $2, 1
-  sw $2, 0($1)
-#endif
+  cache 0x10, ($ra)               # invalidate icache line
 
 #  syscall 11
 
