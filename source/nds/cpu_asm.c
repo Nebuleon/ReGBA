@@ -2312,19 +2312,24 @@ u32 bios_block_tag_top = MIN_TAG;
 #define fill_tag_thumb(mem_type)                                              \
   location[pc & 2] = mem_type##_block_tag_top                                 \
 
+// TODO [Neb] Decouple the tag mechanism from the need to recompile a block.
 /*
  * In gpSP 0.9, assigning a tag to a Metadata Entry signifies that
  * translate_block_{instype} will compile something new, and that it WILL be
  * at address ({region}_next_code + block_prologue_size).
- * With the new writable translation region behaviour, it is possible for
- * translate_block_arm to signify that the new tag needs to reference code
- * that is not at {region}_next_code. So the return value of translate_block_
- * {instype} has changed from s32 to u8*, and it returns NULL on failure
- * instead of -1.
- * (It is possible for tags in one area to be exhausted, but this won't affect
- * unrelated areas -- which means that reaching MAX_TAG in IWRAM clears IWRAM,
- * but EWRAM and VRAM stay as is. IWRAM would then be forced to make lookups
- * for code reuse and possibly recompilation.)
+ * With the new writable translation region behaviour, it will be possible for
+ * translate_block_arm (or perhaps a block_reuse_lookup, to mirror the
+ * new process: block_lookup, block_reuse_lookup, translate) to signify that
+ * the new tag needs to reference code that is not at {region}_next_code. So
+ * the return value of block_lookup_translate_{instype} needs to change, and I
+ * need to carefully examine which GBA memory line (0x00, 0x02, 0x03, 0x06,
+ * 0x08..0x0D) goes into which translation region, which metadata area (sized
+ * twice as large as the data area) and which tag domain. (It is possible for
+ * tags to be for separate metadata areas -- which means that reaching MAX_TAG
+ * in IWRAM doesn't affect EWRAM --, or for them to be for a translation
+ * region instead -- which means that reaching MAX_TAG in IWRAM clears IWRAM,
+ * EWRAM and VRAM and forces reuse lookup and possibly translation in all of
+ * them.)
  */
 
 #define block_lookup_translate(instruction_type, mem_type, metadata_area)     \
