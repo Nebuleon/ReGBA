@@ -98,6 +98,7 @@ u32 iwram_stack_optimize = 1;
 typedef struct
 {
   u8 *block_offset;
+  u32 opcode;
   u16 flag_data;
   u8 condition;
   u8 update_cycles;
@@ -106,6 +107,7 @@ typedef struct
 typedef struct
 {
   u8 *block_offset;
+  u32 opcode;
   u16 flag_data;
   u8 update_cycles;
 } block_data_thumb_type;
@@ -288,7 +290,7 @@ static inline void StatsAddWritableRecompilation(u32 Opcodes) {}
 #endif
 
 #define translate_arm_instruction()                                           \
-  opcode = opcodes.arm[block_data_position];                                  \
+  opcode = block_data.arm[block_data_position].opcode;                        \
   condition = block_data.arm[block_data_position].condition;                  \
   u32 has_condition_header = 0;                                               \
                                                                               \
@@ -1680,14 +1682,14 @@ static inline void StatsAddWritableRecompilation(u32 Opcodes) {}
                                                                               \
   pc += 4                                                                     \
 
-static void arm_flag_status(block_data_arm_type* block_data, u32 opcode)
+static void arm_flag_status(block_data_arm_type* block_data)
 {
 }
 
 #define translate_thumb_instruction()                                         \
   flag_status = block_data.thumb[block_data_position].flag_data;              \
   last_opcode = opcode;                                                       \
-  opcode = opcodes.thumb[block_data_position];                                \
+  opcode = block_data.thumb[block_data_position].opcode;                      \
                                                                               \
   StatsAddThumbOpcode();                                                      \
                                                                               \
@@ -2150,8 +2152,9 @@ static void arm_flag_status(block_data_arm_type* block_data, u32 opcode)
 #define thumb_flag_requires_all()                                             \
   flag_status |= 0xF00                                                        \
 
-static void thumb_flag_status(block_data_thumb_type* block_data, u32 opcode)
+static void thumb_flag_status(block_data_thumb_type* block_data)
 {
+  u32 opcode = block_data->opcode;
   u16 flag_status = 0;
   switch((opcode >> 8) & 0xFF)
   {
@@ -2785,13 +2788,7 @@ typedef union {
   block_data_thumb_type thumb[MAX_BLOCK_SIZE];
 } block_data_type;
 
-typedef union {
-  u32 arm[MAX_BLOCK_SIZE];
-  u16 thumb[MAX_BLOCK_SIZE];
-} opcode_array_type;
-
 block_data_type block_data;
-opcode_array_type opcodes;
 
 #define smc_write_arm_yes()                                                   \
   switch (block_end_pc >> 24)                                                 \
@@ -2956,9 +2953,8 @@ static s32 BinarySearch(u32* Array, u32 Value, u32 Size)
     check_pc_region(block_end_pc);                                            \
     smc_write_##type##_##smc_write_op();                                      \
     type##_load_opcode();                                                     \
-    opcodes.type[block_data_position] = opcode;                               \
-    type##_flag_status(&block_data.type[block_data_position],                 \
-      opcodes.type[block_data_position]);                                     \
+    block_data.type[block_data_position].opcode = opcode;                     \
+    type##_flag_status(&block_data.type[block_data_position]);                \
                                                                               \
     if(type##_exit_point)                                                     \
     {                                                                         \
@@ -3171,10 +3167,20 @@ u8* translate_block_##type(u32 pc)                                            \
         if (gba_code_size == block_end_pc - block_start_pc)                   \
         {                                                                     \
           comparison_ptr += sizeof(u32); /* Past the GBA code size */         \
-                                                                              \
-          if (memcmp(opcodes.type, comparison_ptr, gba_code_size) == 0)       \
+          u32 identical = 1;                                                  \
+          for (i = 0; i < block_data_position; i++, comparison_ptr +=         \
+           type##_instruction_width)                                          \
           {                                                                   \
-            comparison_ptr += gba_code_size;                                  \
+            if (block_data.type[i].opcode != *(type##_instruction_type*)      \
+             comparison_ptr)                                                  \
+            {                                                                 \
+              identical = 0;                                                  \
+              break;                                                          \
+            }                                                                 \
+          }                                                                   \
+                                                                              \
+          if (identical)                                                      \
+          {                                                                   \
             if (gba_code_size & 2) comparison_ptr += 2; /* Past the alignment */\
             StatsAddWritableReuse((block_end_pc - block_start_pc) /           \
              type##_instruction_width);                                       \
@@ -3214,8 +3220,11 @@ u8* translate_block_##type(u32 pc)                                            \
     *(u32*) translation_ptr = block_end_pc - block_start_pc;                  \
     translation_ptr = (u8*) ((u32*) translation_ptr + 1);                     \
                                                                               \
-    memcpy(translation_ptr, opcodes.type, block_end_pc - block_start_pc);     \
-    translation_ptr += block_end_pc - block_start_pc;                         \
+    for (i = 0; i < block_data_position; i++, translation_ptr +=              \
+     type##_instruction_width)                                                \
+    {                                                                         \
+      *(type##_instruction_type*) translation_ptr = block_data.type[i].opcode;\
+    }                                                                         \
                                                                               \
     if ((block_end_pc - block_start_pc) & 2)                                  \
       translation_ptr += 2; /* Add the alignment */                           \
@@ -3381,11 +3390,11 @@ static u16 block_checksum_arm(u32 block_data_count)
 {
 	// Init: Checksum = NOT Opcodes[0]
 	// assert block_data_count > 0;
-	u32 result = ~opcodes.arm[0], i;
+	u32 result = ~block_data.arm[0].opcode, i;
 	for (i = 1; i < block_data_count; i++)
 	{
 		// Step: Checksum = (Checksum ROL 1) XOR Opcodes[N]
-		result = ((result << 1) | (result >> 31)) ^ opcodes.arm[i];
+		result = ((result << 1) | (result >> 31)) ^ block_data.arm[i].opcode;
 	}
 	// Final: Map into bits 15..1, clear bit 0 to indicate ARM
 	return (u16) (((result >> 16) & 0xFFFE) ^ (result & 0xFFFE));
@@ -3395,12 +3404,12 @@ static u16 block_checksum_thumb(u32 block_data_count)
 {
 	// Init: Checksum = NOT Opcodes[0]
 	// assert block_data_count > 0;
-	u16 result = ~opcodes.thumb[0];
+	u16 result = ~block_data.thumb[0].opcode;
 	u32 i;
 	for (i = 1; i < block_data_count; i++)
 	{
 		// Step: Checksum = (Checksum ROL 1) XOR Opcodes[N]
-		result = ((result << 1) | (result >> 15)) ^ opcodes.thumb[i];
+		result = ((result << 1) | (result >> 15)) ^ block_data.thumb[i].opcode;
 	}
 	// Final: Set bit 0 to indicate Thumb
 	return result | 0x0001;
