@@ -45,6 +45,10 @@ struct GPSP_STATS {
 #ifdef PERFORMANCE_IMPACTING_STATISTICS
 	/* Performance statistics collectors. This set impacts normal
 	 * performance of the emulator. */
+	/* How many times have we had to decode an ARM or a Thumb opcode from
+	 * scratch since the current game started running? */
+	u32	ARMOpcodesDecoded;
+	u32	ThumbOpcodesDecoded;
 	/* How many times have we recompiled a block anew since the current
 	 * game started running? */
 	u32	BlockRecompilationCount;

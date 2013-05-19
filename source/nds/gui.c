@@ -3228,6 +3228,8 @@ u32 menu(u16 *screen, int FirstInvocation)
 	char* EXECUTION_STATISTICS = "Execution statistics...";
 	char* SOUND_BUFFER_UNDERRUNS = "Sound buffer underruns     %u";
 	char* FRAMES_EMULATED        = "Frames emulated                %u";
+	char* ARM_OPCODES_DECODED    = "ARM opcodes decoded         %u";
+	char* THUMB_OPCODES_DECODED  = "Thumb opcodes decoded    %u";
 
   /*--------------------------------------------------------
      Tools - Debugging - Execution stats
@@ -3241,6 +3243,14 @@ u32 menu(u16 *screen, int FirstInvocation)
 
 	/* 02 */ NUMERIC_SELECTION_HIDE_OPTION(NULL, NULL, &FRAMES_EMULATED,
         &Stats.TotalEmulatedFrames, 2, NULL, 2),
+
+#ifdef PERFORMANCE_IMPACTING_STATISTICS
+	/* 03 */ NUMERIC_SELECTION_HIDE_OPTION(NULL, NULL, &ARM_OPCODES_DECODED,
+        &Stats.ARMOpcodesDecoded, 2, NULL, 3),
+
+	/* 04 */ NUMERIC_SELECTION_HIDE_OPTION(NULL, NULL, &THUMB_OPCODES_DECODED,
+        &Stats.ThumbOpcodesDecoded, 2, NULL, 4),
+#endif
     };
     MAKE_MENU(tools_debug_statistics, NULL, NULL, NULL, NULL, 0, 0);
 
