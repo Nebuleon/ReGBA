@@ -5227,7 +5227,7 @@ void reorder_latest_file(void)
 		char* RecentFileName = strrchr(gpsp_persistent_config.latest_file[i], '/');
 		if (RecentFileName)
 		{
-			if (strcasecmp(RecentFileName, gamepak_filename) == 0)
+			if (strcasecmp(RecentFileName + 1, gamepak_filename) == 0)
 			{
 				FoundIndex = i; // Yes.
 				break;
