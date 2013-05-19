@@ -31,6 +31,8 @@
 // reg_mode[new_mode][6]. When swapping to/from FIQ retire/load reg[8]
 // through reg[14] to/from reg_mode[MODE_FIQ][0] through reg_mode[MODE_FIQ][6].
 
+#define CACHE_LINE_SIZE 32
+
 u32 reg_mode[7][7];
  
 const u8 cpu_modes[32] =
@@ -2757,8 +2759,8 @@ u8 *block_lookup_address_dual(u32 pc)
   }                                                                           \
 }                                                                             \
 
-#define MAX_BLOCK_SIZE 2048
-#define MAX_EXITS      128
+#define MAX_BLOCK_SIZE 8192
+#define MAX_EXITS      256
 
 typedef union {
   block_data_arm_type arm[MAX_BLOCK_SIZE];
@@ -2982,13 +2984,12 @@ static s32 BinarySearch(u32* Array, u32 Value, u32 Size)
          * if so don't end the block. For efficiency, but to also keep the    \
          * correct order of the scanned branches for code emission, this is   \
          * using a separate sorted array with unique branch_targets.          \
-         * Look at exiting early if the current block has already reached     \
-         * half of the maximum allowed exit count or instruction count. */    \
+         * If we're in RAM, exit at the first unconditional branch, no        \
+         * questions asked. We can do that, since unconditional branches that \
+         * go outside the current block are made indirect. */                 \
         if (translation_region == TRANSLATION_REGION_WRITABLE ||              \
           BinarySearch(branch_targets_sorted, block_end_pc,                   \
-          sorted_branch_count) == -1                                          \
-          || block_exit_position >= MAX_EXITS / 2                             \
-          || block_data_position >= MAX_BLOCK_SIZE / 2)                       \
+          sorted_branch_count) == -1)                                         \
         {                                                                     \
           continue_block = 0;                                                 \
           unconditional_branch_write_##type##_##smc_write_op();               \
