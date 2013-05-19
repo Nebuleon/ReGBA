@@ -88,73 +88,38 @@ typedef enum
 
 typedef enum
 {
-  /* The region holding the native code corresponding to read-only areas of
-   * the GBA memory map: the BIOS and the ROM. */
-  TRANSLATION_REGION_READONLY,
-  /* The region holding the native code corresponding to writable areas of
-   * the GBA memory map: IWRAM, EWRAM and VRAM. Before each code block in this
-   * region, there is a header indicating which value is expected to be the
-   * Program Counter in this block (which is compiled into the block to allow
-   * it to resolve relative branches, etc.), then the length of the original
-   * (ARM or Thumb) code, then that code, then (after an alignment to 4 bytes)
-   * the native code, then an alignment to 4 bytes for the next header. One
-   * needs to compare the Program Counter to the stored one, then the length
-   * of the GBA code with the stored one, then the words or half-words of the
-   * GBA code with the stored ones, before reusing the native code and giving
-   * the Metadata Area a tag to point to it. */
-  TRANSLATION_REGION_WRITABLE
+  TRANSLATION_REGION_IWRAM,
+  TRANSLATION_REGION_EWRAM,
+  TRANSLATION_REGION_VRAM,
+  TRANSLATION_REGION_ROM,
+  TRANSLATION_REGION_BIOS
 } TRANSLATION_REGION_TYPE;
 
-#define TRANSLATION_REGION_COUNT 2
+#define TRANSLATION_REGION_COUNT 5
 
 typedef enum {
-  METADATA_AREA_BIOS,
-  METADATA_AREA_EWRAM,
-  METADATA_AREA_IWRAM,
-  METADATA_AREA_VRAM,
-  METADATA_AREA_ROM
-} METADATA_AREA_TYPE;
-
-#define METADATA_AREA_COUNT 5
-
-typedef enum {
-  /* Both caches are being thoroughly flushed during initialisation. */
+  /* All caches are being thoroughly flushed during initialisation. */
   FLUSH_REASON_INITIALIZING,
-  /* The read-only code cache is being cleared after a new ROM has been
-   * loaded. */
+  /* All caches are being flushed (and Code Write Counts reset) after a new
+   * ROM has been loaded. */
   FLUSH_REASON_LOADING_ROM,
-  /* The writable code cache is being cleared in response to the read-only one
-   * being flushed. The recompiler will have patched the branch addresses
-   * towards the read-only area, and they have become invalid. */
+  /* All other caches are being flushed in response to a cache of code for a
+   * read-only area being flushed. The recompiler will have patched the branch
+   * addresses towards that read-only area, and they have become invalid. */
   FLUSH_REASON_NATIVE_BRANCHING,
-  /* One of the caches is being flushed because it's full of code. */
-  FLUSH_REASON_FULL_CACHE
-} CACHE_FLUSH_REASON_TYPE;
+  /* One cache is being flushed due to it being full of code. (If that cache
+   * is for a read-only area, all others will follow suit.) */
+  FLUSH_REASON_FULL_CACHE,
+  /* One cache is being flushed before adding code in it because the tag that
+   * would be assigned to the code exceeds MAX_TAG. (If that's the BIOS cache,
+   * all others will follow suit.) */
+  FLUSH_REASON_LAST_TAG,
+  /* Caches of code for writable areas are being flushed because a saved state
+   * has been loaded. */
+  FLUSH_REASON_LOADING_STATE
+} FLUSH_REASON_TYPE;
 
-#define CACHE_FLUSH_REASON_COUNT 4
-
-typedef enum {
-  /* All metadata areas are being thoroughly cleared during initialisation. */
-  CLEAR_REASON_INITIALIZING,
-  /* All metadata areas are being cleared after a new ROM has been loaded. */
-  CLEAR_REASON_LOADING_ROM,
-  /* Writable metadata areas are being cleared in response to a read-only
-   * code cache being flushed. The recompiler will have patched the branch
-   * addresses towards the read-only area, and they have become invalid. */
-  CLEAR_REASON_NATIVE_BRANCHING,
-  /* All read-only metadata areas or all writable metadata areas are being
-   * cleared due to its code cache being full of code. (If that cache
-   * is for the read-only area, the writable one will follow suit.) */
-  CLEAR_REASON_FULL_CACHE,
-  /* One metadata area is being cleared before assigning a tag in it because
-   * the tag that would be assigned to the code exceeds MAX_TAG. */
-  CLEAR_REASON_LAST_TAG,
-  /* Writable metadata areas are being flushed because a saved state has been
-   * loaded. */
-  CLEAR_REASON_LOADING_STATE
-} METADATA_CLEAR_REASON_TYPE;
-
-#define METADATA_CLEAR_REASON_COUNT 6
+#define FLUSH_REASON_COUNT 6
 
 u32 execute_load_u8(u32 address);
 u32 execute_load_u16(u32 address);
@@ -177,13 +142,19 @@ void invalidate_icache_region(u8* addr, u32 length);
 u8 *block_lookup_address_arm(u32 pc);
 u8 *block_lookup_address_thumb(u32 pc);
 u8 *block_lookup_address_dual(u32 pc);
-u8 *translate_block_arm(u32 pc);
-u8 *translate_block_thumb(u32 pc);
+s32 translate_block_arm(u32 pc);
+s32 translate_block_thumb(u32 pc);
 
-extern u8 readonly_code_cache[READONLY_CODE_CACHE_SIZE];
-extern u8 writable_code_cache[WRITABLE_CODE_CACHE_SIZE];
-extern u8 *readonly_next_code;
-extern u8 *writable_next_code;
+extern u8 rom_translation_cache[ROM_TRANSLATION_CACHE_SIZE];
+extern u8 iwram_translation_cache[IWRAM_TRANSLATION_CACHE_SIZE];
+extern u8 ewram_translation_cache[EWRAM_TRANSLATION_CACHE_SIZE];
+extern u8 vram_translation_cache[VRAM_TRANSLATION_CACHE_SIZE];
+extern u8 bios_translation_cache[BIOS_TRANSLATION_CACHE_SIZE];
+extern u8 *rom_translation_ptr;
+extern u8 *iwram_translation_ptr;
+extern u8 *ewram_translation_ptr;
+extern u8 *vram_translation_ptr;
+extern u8 *bios_translation_ptr;
 
 #define MAX_TRANSLATION_GATES 8
 #define MAX_IDLE_LOOPS 8
@@ -204,16 +175,12 @@ extern u32 in_interrupt;
 // extern u32 bios_mode;
 
 #define ROM_BRANCH_HASH_SIZE (1024 * 64)
-#define PERSISTENT_RAM_HASH_SIZE (1024 * 64) /* Must be a power of 2, 2 <= n <= 65536 */
 
 extern u32 *rom_branch_hash[ROM_BRANCH_HASH_SIZE];
-extern u32 *writable_area_checksum_hash[PERSISTENT_RAM_HASH_SIZE];
 
-void partial_clear_metadata(u32 address);
+void partial_flush_ram();
 void flush_translation_cache(TRANSLATION_REGION_TYPE translation_region,
-  CACHE_FLUSH_REASON_TYPE flush_reason);
-void clear_metadata_area(METADATA_AREA_TYPE metadata_area,
-  METADATA_CLEAR_REASON_TYPE clear_reason);
+  FLUSH_REASON_TYPE flush_reason);
 void dump_translation_cache();
 
 extern u32 reg_mode[7][7];

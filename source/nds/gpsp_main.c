@@ -204,22 +204,23 @@ void init_main()
 
   // bios_mode = USE_BIOS;
 
-  StatsInitGame();
-
+  FLUSH_REASON_TYPE flush_reason = (caches_inited)
+    ? FLUSH_REASON_LOADING_ROM
+    : FLUSH_REASON_INITIALIZING;
+  // It is necessary to flush the BIOS cache when loading a new ROM, because
+  // the BIOS has a direct jump to 0x08000000 to execute the ROM. However,
+  // flushing the ROM causes a flush of the BIOS automatically, for the reason
+  // FLUSH_REASON_NATIVE_BRANCHING. So init the cache only before the first
+  // ROM.
   if (!caches_inited)
-  {
-    flush_translation_cache(TRANSLATION_REGION_READONLY, FLUSH_REASON_INITIALIZING);
-    flush_translation_cache(TRANSLATION_REGION_WRITABLE, FLUSH_REASON_INITIALIZING);
-  }
-  else
-  {
-    flush_translation_cache(TRANSLATION_REGION_READONLY, FLUSH_REASON_LOADING_ROM);
-    clear_metadata_area(METADATA_AREA_IWRAM, CLEAR_REASON_LOADING_ROM);
-    clear_metadata_area(METADATA_AREA_EWRAM, CLEAR_REASON_LOADING_ROM);
-    clear_metadata_area(METADATA_AREA_VRAM, CLEAR_REASON_LOADING_ROM);
-  }
+    flush_translation_cache(TRANSLATION_REGION_BIOS, FLUSH_REASON_INITIALIZING);
+  flush_translation_cache(TRANSLATION_REGION_ROM, flush_reason);
+  flush_translation_cache(TRANSLATION_REGION_IWRAM, flush_reason);
+  flush_translation_cache(TRANSLATION_REGION_EWRAM, flush_reason);
 
   caches_inited = 1;
+
+  StatsInitGame();
 }
 
 void quit(void)
