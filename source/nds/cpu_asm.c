@@ -3652,7 +3652,9 @@ void init_cpu()
   }
 
   reg[REG_SP] = 0x03007F00;
-  reg[REG_PC] = 0x08000000;
+  reg[REG_PC] = gpsp_persistent_config.BootFromBIOS
+    ? 0x00000000
+    : 0x08000000;
   reg[REG_CPSR] = 0x0000001F;
   reg[CPU_HALT_STATE] = CPU_ACTIVE;
   reg[CPU_MODE] = MODE_USER;

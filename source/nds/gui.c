@@ -2977,6 +2977,8 @@ u32 menu(u16 *screen, int FirstInvocation)
 
     char *sound_seletion[] = { (char*)&msg[MSG_AUDIO_MUTED], (char*)&msg[MSG_AUDIO_ENABLED] };
 
+    char *boot_mode_options[] = { (char*)&msg[MSG_VIDEO_BOOT_MODE_CARTRIDGE], (char*)&msg[MSG_VIDEO_BOOT_MODE_LOGO] };
+
 //    char *snap_frame_options[] = { (char*)&msg[MSG_SNAP_FRAME_0], (char*)&msg[MSG_SNAP_FRAME_1] };
 
   /*--------------------------------------------------------
@@ -2997,6 +2999,9 @@ u32 menu(u16 *screen, int FirstInvocation)
 
 	/* 04 */	STRING_SELECTION_OPTION(NULL, NULL, &msg[FMT_VIDEO_FRAMES_PER_SECOND_COUNTER], on_off_options,
 		&gpsp_persistent_config.DisplayFPS, 2, NULL, PASSIVE_TYPE, 4),
+
+	/* 05 */	STRING_SELECTION_OPTION(NULL, NULL, &msg[FMT_VIDEO_BOOT_MODE], boot_mode_options,
+		&gpsp_persistent_config.BootFromBIOS, 2, NULL, PASSIVE_TYPE, 5),
 	};
 
 	MAKE_MENU(graphics, NULL, NULL, NULL, NULL, 1, 1);

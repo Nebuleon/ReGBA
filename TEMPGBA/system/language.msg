@@ -66,6 +66,8 @@ FPS counter        %s
 Sound                  %s
 #FMT_VIDEO_REWINDING
 Rewinding       %s
+#FMT_VIDEO_BOOT_MODE
+Boot into            %s
 #FMT_SAVED_STATE_CREATE
 Create saved state      %d
 #FMT_SAVED_STATE_LOAD
@@ -210,6 +212,10 @@ Disabled
 5 s (50 s total)
 #MSG_VIDEO_REWINDING_6
 10 s (1:40 min total)
+#MSG_VIDEO_BOOT_MODE_CARTRIDGE
+Cartridge ROM
+#MSG_VIDEO_BOOT_MODE_LOGO
+GBA logo
 #MSG_GENERAL_OFF
 Off
 #MSG_GENERAL_ON
@@ -327,6 +333,8 @@ FPS counter        %s
 声音开关                 %s
 #FMT_VIDEO_REWINDING
 Rewinding       %s
+#FMT_VIDEO_BOOT_MODE
+Boot into       %s
 #FMT_SAVED_STATE_CREATE
 写入存档                 %d
 #FMT_SAVED_STATE_LOAD
@@ -471,6 +479,10 @@ Disabled
 5 s (50 s total)
 #MSG_VIDEO_REWINDING_6
 10 s (1:40 min total)
+#MSG_VIDEO_BOOT_MODE_CARTRIDGE
+Cartridge ROM
+#MSG_VIDEO_BOOT_MODE_LOGO
+GBA logo
 #MSG_GENERAL_OFF
 关
 #MSG_GENERAL_ON
@@ -588,6 +600,8 @@ Afficher images/s  %s
 Son                         %s
 #FMT_VIDEO_REWINDING
 Rembobinage       %s
+#FMT_VIDEO_BOOT_MODE
+Démarrage             %s
 #FMT_SAVED_STATE_CREATE
 Créer la sauvegarde       %d
 #FMT_SAVED_STATE_LOAD
@@ -732,6 +746,10 @@ Hors fonction
 5 s (50 s au total)
 #MSG_VIDEO_REWINDING_6
 10 s (1:40 min au total)
+#MSG_VIDEO_BOOT_MODE_CARTRIDGE
+ROM de la cartouche
+#MSG_VIDEO_BOOT_MODE_LOGO
+Logo GBA
 #MSG_GENERAL_OFF
 Hors fonction
 #MSG_GENERAL_ON
@@ -850,6 +868,8 @@ FPS counter        %s
 Ton                     %s
 #FMT_VIDEO_REWINDING
 Rewinding       %s
+#FMT_VIDEO_BOOT_MODE
+Boot into            %s
 #FMT_SAVED_STATE_CREATE
 Speicherstand erstellen      %d
 #FMT_SAVED_STATE_LOAD
@@ -994,6 +1014,10 @@ Disabled
 5 s (50 s total)
 #MSG_VIDEO_REWINDING_6
 10 s (1:40 min total)
+#MSG_VIDEO_BOOT_MODE_CARTRIDGE
+Cartridge ROM
+#MSG_VIDEO_BOOT_MODE_LOGO
+GBA logo
 #MSG_GENERAL_OFF
 Aus
 #MSG_GENERAL_ON
@@ -1112,6 +1136,8 @@ FPS-teller             %s
 Geluid                    %s
 #FMT_VIDEO_REWINDING
 Terugspoelen       %s
+#FMT_VIDEO_BOOT_MODE
+Boot into              %s
 #FMT_SAVED_STATE_CREATE
 Creëer spelstaat       %d
 #FMT_SAVED_STATE_LOAD
@@ -1256,6 +1282,10 @@ Uitgeschakeld
 5 s (50 s totaal)
 #MSG_VIDEO_REWINDING_6
 10 s (1:40 min totaal)
+#MSG_VIDEO_BOOT_MODE_CARTRIDGE
+Cartridge ROM
+#MSG_VIDEO_BOOT_MODE_LOGO
+GBA logo
 #MSG_GENERAL_OFF
 Uit
 #MSG_GENERAL_ON
@@ -1374,6 +1404,8 @@ Contador de FPS         %s
 Sonido                         %s
 #FMT_VIDEO_REWINDING
 Retroceso                              %s
+#FMT_VIDEO_BOOT_MODE
+Boot into                     %s
 #FMT_SAVED_STATE_CREATE
 Grabar partida  %d
 #FMT_SAVED_STATE_LOAD
@@ -1518,6 +1550,10 @@ Desactivado
 5 s (total 50 s)
 #MSG_VIDEO_REWINDING_6
 10 s (total 1:40 min)
+#MSG_VIDEO_BOOT_MODE_CARTRIDGE
+Cartridge ROM
+#MSG_VIDEO_BOOT_MODE_LOGO
+GBA logo
 #MSG_GENERAL_OFF
 Apagado
 #MSG_GENERAL_ON
@@ -1635,6 +1671,8 @@ FPS counter        %s
 Audio                       %s
 #FMT_VIDEO_REWINDING
 Rewinding       %s
+#FMT_VIDEO_BOOT_MODE
+Boot into              %s
 #FMT_SAVED_STATE_CREATE
 Crea salvataggio      %d
 #FMT_SAVED_STATE_LOAD
@@ -1779,6 +1817,10 @@ Disabled
 5 s (50 s total)
 #MSG_VIDEO_REWINDING_6
 10 s (1:40 min total)
+#MSG_VIDEO_BOOT_MODE_CARTRIDGE
+Cartridge ROM
+#MSG_VIDEO_BOOT_MODE_LOGO
+GBA logo
 #MSG_GENERAL_OFF
 Disabilita
 #MSG_GENERAL_ON
@@ -1896,6 +1938,8 @@ FPS counter        %s
 Som                       %s
 #FMT_VIDEO_REWINDING
 Retroceder     %s
+#FMT_VIDEO_BOOT_MODE
+Boot into              %s
 #FMT_SAVED_STATE_CREATE
 Criar estado         %d
 #FMT_SAVED_STATE_LOAD
@@ -2040,6 +2084,10 @@ Desativado
 5 s (50 s no total)
 #MSG_VIDEO_REWINDING_6
 10 s (1:40 min no total)
+#MSG_VIDEO_BOOT_MODE_CARTRIDGE
+Cartridge ROM
+#MSG_VIDEO_BOOT_MODE_LOGO
+GBA logo
 #MSG_GENERAL_OFF
 Desligado
 #MSG_GENERAL_ON
