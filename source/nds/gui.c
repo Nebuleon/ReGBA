@@ -5216,63 +5216,42 @@ s32 save_config_file()
  ******************************************************************************/
 void reorder_latest_file(void)
 {
-    char *pt, *ext_pos, *ext_pos1;
-    u32 i, len;
-    char full_file[512];
+	s32 i, FoundIndex = -1;
 
-    if(gamepak_filename[0] == '\0')
-        return;
+	if(gamepak_filename[0] == '\0')
+		return;
 
-    for(i= 0; i < 5; i++)
-    {
-        ext_pos= strrchr(gpsp_persistent_config.latest_file[i], '/');
-        if(ext_pos != NULL)
-        {
-            ext_pos1= strrchr(ext_pos + 1, '.');
-            len= ext_pos1 - ext_pos -1;
-            if(!strncasecmp(ext_pos + 1, gamepak_filename, len))
-                break;
-        }
-    }
+	// Is the file's name already here?
+	for (i = 0; i < 5; i++)
+	{
+		char* RecentFileName = strrchr(gpsp_persistent_config.latest_file[i], '/');
+		if (RecentFileName)
+		{
+			if (strcasecmp(RecentFileName, gamepak_filename) == 0)
+			{
+				FoundIndex = i; // Yes.
+				break;
+			}
+		}
+	}
 
-    //some one match, ly to last
-    if(i < 5)
-    {
-        if(i < 4)
-        {
-            strcpy(full_file, gpsp_persistent_config.latest_file[i]);
-            for(i+=1; i < 5; i++)
-            {
-                if(gpsp_persistent_config.latest_file[i][0] != '\0')
-                    strcpy(gpsp_persistent_config.latest_file[i-1], gpsp_persistent_config.latest_file[i]);
-                else
-                    break;
-            }
+	if (FoundIndex > -1)
+	{
+		// Already here, move all of those until the existing one 1 down
+		memmove(gpsp_persistent_config.latest_file[1],
+			gpsp_persistent_config.latest_file[0],
+			FoundIndex * sizeof(gpsp_persistent_config.latest_file[0]));
+	}
+	else
+	{
+		// Not here, move everything down
+		memmove(gpsp_persistent_config.latest_file[1],
+			gpsp_persistent_config.latest_file[0],
+			4 * sizeof(gpsp_persistent_config.latest_file[0]));
+	}
 
-            strcpy(gpsp_persistent_config.latest_file[i-1], full_file);
-        }
-        return ;
-    }
-
-    //none match
-    for(i= 0; i < 5; i++)
-    {
-        if(gpsp_persistent_config.latest_file[i][0] == '\0')
-        {
-            //Removing rom_path due to confusion, replacing with g_default_rom_dir
-            sprintf(gpsp_persistent_config.latest_file[i], "%s/%s", g_default_rom_dir, gamepak_filename);
-            break;
-        }
-    }
-
-    if(i < 5) return;
-
-    //queue full
-    for(i=1; i < 5; i++)
-        strcpy(gpsp_persistent_config.latest_file[i-1], gpsp_persistent_config.latest_file[i]);
-
-    //Removing rom_path due to confusion, replacing with g_default_rom_dir
-    sprintf(gpsp_persistent_config.latest_file[i-1], "%s/%s", g_default_rom_dir, gamepak_filename);
+	//Removing rom_path due to confusion, replacing with g_default_rom_dir
+	sprintf(gpsp_persistent_config.latest_file[0], "%s/%s", g_default_rom_dir, gamepak_filename);
 }
 
 
