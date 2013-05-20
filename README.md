@@ -1,4 +1,4 @@
-TempGBA beta version 14, 2013-05-05
+TempGBA version 1.40, 2013-05-20
 
 A Game Boy Advance emulator for the Supercard DSTWO.
 
@@ -82,8 +82,8 @@ the official NDSGBA, version 1.21.
 
 # Rewinding
 
-You can rewind the game up to 14 steps of a user-defined duration, ranging from
-a quarter of second to 10 seconds. You are granted 140 seconds of rewinding by
+You can rewind the game up to 10 steps of a user-defined duration, ranging from
+a quarter of second to 10 seconds. You are granted 100 seconds of rewinding by
 default, in steps of 10 seconds, using the button combination L+Y. This allows
 you to quickly back out of a dangerous situation in a game.
 
@@ -101,10 +101,10 @@ For some games, you may need to adjust frame skipping.
 * If a game runs at about 10 frames per second, setting frame skipping
   to 1 will allow you to jump, move or shoot at the right times.
 * If you want to show more frames per second in a game that already shows 20,
-  setting frame skipping to 1 or 0 will cause more frames to appear,
-  but your DS button input may stop responding for 2 entire seconds every so
-  often. The audio may also stop suddenly, be broken multiple times per second
-  or simply crackle more often.
+  setting frame skipping to 1 or 0 will cause more frames to appear.
+  If using frame skipping 0 and the audio crackles too much, the current game
+  may crash the Supercard DSTwo itself, and may require rebooting your Nintendo
+  DS.
 * Setting this to 10 will skip 10 frames and render one. You will find yourself
   unable to perform actions during the correct frame with the DS buttons. It is
   advised to set frame skipping to the lowest value with which you can play a
