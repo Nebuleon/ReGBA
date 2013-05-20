@@ -108,6 +108,9 @@ struct gui_iconlist gui_icon_list[]= {
 	/* 34 */ {"sbutto", 76, 16, NULL}
                         };
 
+u16 COLOR_INACTIVE_ITEM = COLOR16( 0,  0,  0);
+u16 COLOR_ACTIVE_ITEM   = COLOR16(31, 31, 31);
+
 
 /*
 *	Drawing string aroud center
@@ -1115,6 +1118,54 @@ int icon_init(u32 language_id)
 #endif
 
     return ret;
+}
+
+int color_init()
+{
+	char path[MAX_PATH];
+	char current_line[256];
+        sprintf(path, "%s/%s/%s", main_path, GUI_SOURCE_PATH, "uicolors.txt");
+	FILE* fp = fopen(path, "r");
+	if (fp != NULL)
+	{
+		while(fgets(current_line, 256, fp))
+		{
+			char* colon = strchr(current_line, ':');
+			if (colon)
+			{
+				*colon = '\0';
+				u16* color = NULL;
+				if (strcasecmp(current_line, "ActiveItem") == 0)
+					color = &COLOR_ACTIVE_ITEM;
+				else if (strcasecmp(current_line, "InactiveItem") == 0)
+					color = &COLOR_INACTIVE_ITEM;
+
+				if (color != NULL)
+				{
+					char* end = strchr(colon + 1, '\0') - 1;
+					while (*end && (*end == '\r' || *end == '\n'))
+						*end-- = '\0';
+					char* ptr = colon + 1;
+					while (*ptr && *ptr == ' ')
+						ptr++;
+					u32 color32;
+					u8  r, g, b;
+					if (strlen(ptr) == 7 && *ptr == '#')
+					{
+						color32 = strtol(ptr + 1, NULL, 16);
+						r = (color32 >> 16) & 0xFF;
+						g = (color32 >>  8) & 0xFF;
+						b =  color32        & 0xFF;
+						*color = COLOR16(r >> 3, g >> 3, b >> 3);
+					}
+				}
+			}
+		}
+		fclose(fp);
+		return 0;
+	}
+	else
+		return 1;
 }
 
 /*************************************************************/

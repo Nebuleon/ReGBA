@@ -68,8 +68,6 @@
 #define COLOR_BG            COLOR16(2,  4,  10)
 #define COLOR_BG32          COLOR32(2*8,  4*8,  10*8)
 #define COLOR_ROM_INFO      COLOR16(22, 18, 26)
-#define COLOR_ACTIVE_ITEM   COLOR16(31, 31, 31)
-#define COLOR_INACTIVE_ITEM COLOR16(11,  7, 19)
 #define COLOR_HELP_TEXT     COLOR16(16, 20, 24)
 #define COLOR_DIALOG        COLOR16(31, 31, 31)
 #define COLOR_DIALOG_SHADOW COLOR16( 0,  2,  8)
@@ -88,6 +86,9 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+extern u16 COLOR_INACTIVE_ITEM;
+extern u16 COLOR_ACTIVE_ITEM;
 
 struct background{
     char bgname[128];
@@ -183,6 +184,7 @@ extern void msg_screen_clear(void);
 extern void msg_set_text_color(u32 color);
 
 extern int icon_init(u32 language_id);
+extern int color_init(void);
 extern int gui_change_icon(u32 language_id);
 extern int show_background(void *screen, char *bgname);
 extern void show_icon(void* screen, struct gui_iconlist *icon, u32 x, u32 y);

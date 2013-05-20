@@ -5895,6 +5895,15 @@ int gui_init(u32 lang_id)
 		goto gui_init_err;
 	}
 
+	flag = color_init();
+	if(0 != flag)
+	{
+		char message[512];
+		sprintf(message, "SYSTEM/GUI/uicolors.txt\nis missing\nPress any key to return to\nthe menu\n\nSYSTEM/GUI/uicolors.txt\nest manquant\nAppuyer sur une touche pour\nretourner au menu");
+		err_msg(DOWN_SCREEN, message);
+		goto gui_init_err;
+	}
+
 	flag = load_font();
 	if(0 != flag)
 	{
