@@ -146,6 +146,8 @@ GBA key *L
 Rapid-fire *A
 #MSG_BUTTON_MAPPING_RAPID_B
 Rapid-fire *B
+#MSG_BUTTON_MAPPING_INHERITED_FROM_GLOBAL
+ (global)
 #MSG_PROGRESS_HOTKEY_WAITING_FOR_KEYS
 Press the buttons you wish to use to perform this action.
 #MSG_PROGRESS_MAPPING_WAITING_FOR_KEY
@@ -413,6 +415,8 @@ GBA key *L
 Rapid-fire *A
 #MSG_BUTTON_MAPPING_RAPID_B
 Rapid-fire *B
+#MSG_BUTTON_MAPPING_INHERITED_FROM_GLOBAL
+ (global)
 #MSG_PROGRESS_HOTKEY_WAITING_FOR_KEYS
 按下你想要设置为这个效果的按钮
 #MSG_PROGRESS_MAPPING_WAITING_FOR_KEY
@@ -621,7 +625,7 @@ Raccourcis pour ce jeu...
 #MSG_TOOLS_GLOBAL_BUTTON_MAPPING_GENERAL
 Affectations de boutons globales...
 #MSG_TOOLS_GAME_BUTTON_MAPPING_GENERAL
-Affectations de boutous pour ce jeu...
+Affectations de boutons pour ce jeu...
 #MSG_TOOLS_DEBUG_MENU_ENGLISH
 Débogage (en anglais)...
 #FMT_OPTIONS_LANGUAGE
@@ -680,6 +684,8 @@ Touche GBA *L
 Tir rapide *A
 #MSG_BUTTON_MAPPING_RAPID_B
 Tir rapide *B
+#MSG_BUTTON_MAPPING_INHERITED_FROM_GLOBAL
+ (globale)
 #MSG_PROGRESS_HOTKEY_WAITING_FOR_KEYS
 Appuyez sur les boutons que vous voulez utiliser pour effectuer cette action.
 #MSG_PROGRESS_MAPPING_WAITING_FOR_KEY
@@ -948,6 +954,8 @@ GBA key *L
 Rapid-fire *A
 #MSG_BUTTON_MAPPING_RAPID_B
 Rapid-fire *B
+#MSG_BUTTON_MAPPING_INHERITED_FROM_GLOBAL
+ (global)
 #MSG_PROGRESS_HOTKEY_WAITING_FOR_KEYS
 Knöpfe für dieses Ereignis drücken.
 #MSG_PROGRESS_MAPPING_WAITING_FOR_KEY
@@ -1216,6 +1224,8 @@ GBA-toets *L
 Snelvuurtoets *A
 #MSG_BUTTON_MAPPING_RAPID_B
 Snelvuurtoets *B
+#MSG_BUTTON_MAPPING_INHERITED_FROM_GLOBAL
+ (globaal)
 #MSG_PROGRESS_HOTKEY_WAITING_FOR_KEYS
 Druk op de gewenste toetsencombinatie.
 #MSG_PROGRESS_MAPPING_WAITING_FOR_KEY
@@ -1484,6 +1494,8 @@ Tecla GBA *L
 Disparo rápido *A
 #MSG_BUTTON_MAPPING_RAPID_B
 Disparo rápido *B
+#MSG_BUTTON_MAPPING_INHERITED_FROM_GLOBAL
+ (global)
 #MSG_PROGRESS_HOTKEY_WAITING_FOR_KEYS
 Presione la tecla para esta acción.
 #MSG_PROGRESS_MAPPING_WAITING_FOR_KEY
@@ -1751,6 +1763,8 @@ GBA key *L
 Rapid-fire *A
 #MSG_BUTTON_MAPPING_RAPID_B
 Rapid-fire *B
+#MSG_BUTTON_MAPPING_INHERITED_FROM_GLOBAL
+ (globale)
 #MSG_PROGRESS_HOTKEY_WAITING_FOR_KEYS
 Premi il pulsante che vuoi utilizzare per questa azione.
 #MSG_PROGRESS_MAPPING_WAITING_FOR_KEY
@@ -2018,6 +2032,8 @@ Botão do GBA *L
 Disparo rápido do botão *A
 #MSG_BUTTON_MAPPING_RAPID_B
 Disparo rápido do botão *B
+#MSG_BUTTON_MAPPING_INHERITED_FROM_GLOBAL
+ (global)
 #MSG_PROGRESS_HOTKEY_WAITING_FOR_KEYS
 Aperte os botões que você deseja para realizar esta ação.
 #MSG_PROGRESS_MAPPING_WAITING_FOR_KEY

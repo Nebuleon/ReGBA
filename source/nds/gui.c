@@ -3681,6 +3681,53 @@ u32 menu(u16 *screen, int FirstInvocation)
 		PRINT_STRING_BG(down_screen_addr, tmp_buf, color, COLOR_TRANS, HOTKEY_CONTENT_X, GUI_ROW1_Y + display_option-> line_number * GUI_ROW_SY + TEXT_OFFSET_Y);
 	}
 
+	void hotkey_inherited_passive_common(u32 HotkeyBitfield, u32 InheritedBitfield)
+	{
+		unsigned short color;
+		char tmp_buf[512];
+		unsigned int len;
+
+		if(display_option == current_option)
+			color= COLOR_ACTIVE_ITEM;
+		else
+			color= COLOR_INACTIVE_ITEM;
+
+		strcpy(tmp_buf, *(display_option->display_string));
+		PRINT_STRING_BG(down_screen_addr, tmp_buf, color, COLOR_TRANS, OPTION_TEXT_X, GUI_ROW1_Y + display_option-> line_number * GUI_ROW_SY + TEXT_OFFSET_Y);
+
+		u32 IsInherited;
+		if (HotkeyBitfield)
+		{
+			IsInherited = 0;
+		}
+		else
+		{
+			HotkeyBitfield = InheritedBitfield;
+			IsInherited = 1;
+		}
+
+		// Construct a UTF-8 string showing the buttons in the
+		// bitfield.
+		tmp_buf[0] = '\0';
+		if (HotkeyBitfield & KEY_L)      strcpy(tmp_buf, HOTKEY_L_DISPLAY);
+		if (HotkeyBitfield & KEY_R)      strcat(tmp_buf, HOTKEY_R_DISPLAY);
+		if (HotkeyBitfield & KEY_A)      strcat(tmp_buf, HOTKEY_A_DISPLAY);
+		if (HotkeyBitfield & KEY_B)      strcat(tmp_buf, HOTKEY_B_DISPLAY);
+		if (HotkeyBitfield & KEY_Y)      strcat(tmp_buf, HOTKEY_Y_DISPLAY);
+		if (HotkeyBitfield & KEY_X)      strcat(tmp_buf, HOTKEY_X_DISPLAY);
+		if (HotkeyBitfield & KEY_START)  strcat(tmp_buf, HOTKEY_START_DISPLAY);
+		if (HotkeyBitfield & KEY_SELECT) strcat(tmp_buf, HOTKEY_SELECT_DISPLAY);
+		if (HotkeyBitfield & KEY_UP)     strcat(tmp_buf, HOTKEY_UP_DISPLAY);
+		if (HotkeyBitfield & KEY_DOWN)   strcat(tmp_buf, HOTKEY_DOWN_DISPLAY);
+		if (HotkeyBitfield & KEY_LEFT)   strcat(tmp_buf, HOTKEY_LEFT_DISPLAY);
+		if (HotkeyBitfield & KEY_RIGHT)  strcat(tmp_buf, HOTKEY_RIGHT_DISPLAY);
+
+		if (IsInherited && HotkeyBitfield)
+			strcat(tmp_buf, msg[MSG_BUTTON_MAPPING_INHERITED_FROM_GLOBAL]);
+
+		PRINT_STRING_BG(down_screen_addr, tmp_buf, color, COLOR_TRANS, HOTKEY_CONTENT_X, GUI_ROW1_Y + display_option-> line_number * GUI_ROW_SY + TEXT_OFFSET_Y);
+	}
+
 	void global_hotkey_rewind_passive()
 	{
 		hotkey_option_passive_common(gpsp_persistent_config.HotkeyRewind);
@@ -3929,42 +3976,42 @@ u32 menu(u16 *screen, int FirstInvocation)
 
 	void game_specific_button_a_passive()
 	{
-		hotkey_option_passive_common(game_persistent_config.ButtonMappings[0]);
+		hotkey_inherited_passive_common(game_persistent_config.ButtonMappings[0], gpsp_persistent_config.ButtonMappings[0]);
 	}
 
 	void game_specific_button_b_passive()
 	{
-		hotkey_option_passive_common(game_persistent_config.ButtonMappings[1]);
+		hotkey_inherited_passive_common(game_persistent_config.ButtonMappings[1], gpsp_persistent_config.ButtonMappings[1]);
 	}
 
 	void game_specific_button_select_passive()
 	{
-		hotkey_option_passive_common(game_persistent_config.ButtonMappings[2]);
+		hotkey_inherited_passive_common(game_persistent_config.ButtonMappings[2], gpsp_persistent_config.ButtonMappings[2]);
 	}
 
 	void game_specific_button_start_passive()
 	{
-		hotkey_option_passive_common(game_persistent_config.ButtonMappings[3]);
+		hotkey_inherited_passive_common(game_persistent_config.ButtonMappings[3], gpsp_persistent_config.ButtonMappings[3]);
 	}
 
 	void game_specific_button_r_passive()
 	{
-		hotkey_option_passive_common(game_persistent_config.ButtonMappings[4]);
+		hotkey_inherited_passive_common(game_persistent_config.ButtonMappings[4], gpsp_persistent_config.ButtonMappings[4]);
 	}
 
 	void game_specific_button_l_passive()
 	{
-		hotkey_option_passive_common(game_persistent_config.ButtonMappings[5]);
+		hotkey_inherited_passive_common(game_persistent_config.ButtonMappings[5], gpsp_persistent_config.ButtonMappings[5]);
 	}
 
 	void game_specific_button_rapid_a_passive()
 	{
-		hotkey_option_passive_common(game_persistent_config.ButtonMappings[6]);
+		hotkey_inherited_passive_common(game_persistent_config.ButtonMappings[6], gpsp_persistent_config.ButtonMappings[6]);
 	}
 
 	void game_specific_button_rapid_b_passive()
 	{
-		hotkey_option_passive_common(game_persistent_config.ButtonMappings[7]);
+		hotkey_inherited_passive_common(game_persistent_config.ButtonMappings[7], gpsp_persistent_config.ButtonMappings[7]);
 	}
 
 	int lastest_game_menu_scroll_value;
