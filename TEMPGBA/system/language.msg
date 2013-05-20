@@ -887,15 +887,15 @@ Schnellvorlauf   %s
 #FMT_VIDEO_FRAME_SKIPPING
 Frames übersp.  %s
 #FMT_VIDEO_FRAMES_PER_SECOND_COUNTER
-FPS counter        %s
+FPS Zähler          %s
 #FMT_AUDIO_SOUND
 Ton                     %s
 #FMT_VIDEO_REWINDING
-Rewinding       %s
+Zurückspulen       %s
 #FMT_VIDEO_BOOT_MODE
-Boot into            %s
+Starten in           %s
 #FMT_VIDEO_GAME_SCREEN
-Game screen      %s
+Bildschirm           %s
 #FMT_SAVED_STATE_CREATE
 Speicherstand erstellen      %d
 #FMT_SAVED_STATE_LOAD
@@ -913,11 +913,11 @@ Globale Hotkeys...
 #MSG_TOOLS_GAME_HOTKEY_GENERAL
 Spielspezifische Hotkeys...
 #MSG_TOOLS_GLOBAL_BUTTON_MAPPING_GENERAL
-Global button mappings...
+Globale Tastenbelegung...
 #MSG_TOOLS_GAME_BUTTON_MAPPING_GENERAL
-Game-specific button mappings...
+Spielspezifische Tastenbelegung...
 #MSG_TOOLS_DEBUG_MENU_ENGLISH
-Debugging (in English)...
+Debug (in Englisch)...
 #FMT_OPTIONS_LANGUAGE
 Sprache                          %s
 #FMT_OPTIONS_CPU_FREQUENCY
@@ -945,7 +945,7 @@ Screenshot speichern
 #MSG_SCREENSHOT_BROWSE
 Screenshots durchsuchen
 #MSG_HOTKEY_REWIND
-Rewind
+Zurückspulen
 #MSG_HOTKEY_MAIN_MENU
 Hauptmenü
 #MSG_HOTKEY_TEMPORARY_FAST_FORWARD
@@ -959,31 +959,31 @@ Speicherstand 1 erstellen
 #MSG_HOTKEY_FULL_SCREEN_TOGGLE
 Vollbild umschalten
 #MSG_BUTTON_MAPPING_A
-GBA key *A
+GBA Knopf *A
 #MSG_BUTTON_MAPPING_B
-GBA key *B
+GBA Knopf *B
 #MSG_BUTTON_MAPPING_SELECT
-GBA key *s
+GBA Knopf *s
 #MSG_BUTTON_MAPPING_START
-GBA key *S
+GBA Knopf *S
 #MSG_BUTTON_MAPPING_R
-GBA key *R
+GBA Knopf *R
 #MSG_BUTTON_MAPPING_L
-GBA key *L
+GBA Knopf *L
 #MSG_BUTTON_MAPPING_RAPID_A
-Rapid-fire *A
+Turbo *A
 #MSG_BUTTON_MAPPING_RAPID_B
-Rapid-fire *B
+Turbo *B
 #MSG_BUTTON_MAPPING_INHERITED_FROM_GLOBAL
  (global)
 #MSG_PROGRESS_HOTKEY_WAITING_FOR_KEYS
 Knöpfe für dieses Ereignis drücken.
 #MSG_PROGRESS_MAPPING_WAITING_FOR_KEY
-Press the DS button you wish to map to this GBA button.
+Lege den gewünschten DS-Knopf als GBA-Knopf fest.
 #MSG_PROGRESS_MAPPING_WAITING_FOR_KEY_OR_CLEAR
-Press the DS button you wish to map to this GBA button.\n
+Lege den gewünschten DS-Knopf als GBA-Knopf fest.\n
 \n
-You can press two buttons at once to delete this mapping.
+Drücke 2 Knöpfe gleichzeitig um die Belegung zu entfernen.
 #MSG_HOTKEY_DELETE_WITH_A
 *A Löschen
 #MSG_HOTKEY_CANCEL_WITH_B
@@ -1029,7 +1029,7 @@ Neues Spiel
 #MSG_VIDEO_FRAME_SKIPPING_10
 [10] Zeige 1 von 11 Frames
 #MSG_VIDEO_REWINDING_0
-Disabled
+Deaktiviert
 #MSG_VIDEO_REWINDING_1
 0.25 s (2.5 s total)
 #MSG_VIDEO_REWINDING_2
@@ -1045,11 +1045,11 @@ Disabled
 #MSG_VIDEO_BOOT_MODE_CARTRIDGE
 Cartridge ROM
 #MSG_VIDEO_BOOT_MODE_LOGO
-GBA logo
+GBA Logo
 #MSG_VIDEO_GAME_SCREEN_TOP
-Upper Screen
+Oberer Bildschirm
 #MSG_VIDEO_GAME_SCREEN_BOTTOM
-Lower Screen
+Unterer Bildschirm
 #MSG_GENERAL_OFF
 Aus
 #MSG_GENERAL_ON
@@ -1085,7 +1085,7 @@ Fehlgeschlagen!
 #MSG_PROGRESS_SAVED_STATE_LOAD_SUCCEEDED
 OK!
 #FMT_STATUS_FRAMES_PER_SECOND
-FPS: %d rendered, %d/60 emulated
+FPS: %d gerendert, %d/60 emuliert
 #MSG_SAVED_STATE_DELETE_ALL
 Alle Speicherstände löschen
 #FMT_SAVED_STATE_DELETE_ONE
@@ -1169,9 +1169,9 @@ Geluid                    %s
 #FMT_VIDEO_REWINDING
 Terugspoelen       %s
 #FMT_VIDEO_BOOT_MODE
-Boot into              %s
+Opstarten in         %s
 #FMT_VIDEO_GAME_SCREEN
-Game screen        %s
+Spelscherm           %s
 #FMT_SAVED_STATE_CREATE
 Creëer spelstaat       %d
 #FMT_SAVED_STATE_LOAD
@@ -1189,7 +1189,7 @@ Globale sneltoetsen...
 #MSG_TOOLS_GAME_HOTKEY_GENERAL
 Spel-specifieke sneltoetsen...
 #MSG_TOOLS_GLOBAL_BUTTON_MAPPING_GENERAL
-Global sneltoets toewijzingen...
+Globale sneltoets toewijzingen...
 #MSG_TOOLS_GAME_BUTTON_MAPPING_GENERAL
 Spel-specifieke sneltoets toewijzingen...
 #MSG_TOOLS_DEBUG_MENU_ENGLISH
@@ -1319,13 +1319,13 @@ Uitgeschakeld
 #MSG_VIDEO_REWINDING_6
 10 s (1:40 min totaal)
 #MSG_VIDEO_BOOT_MODE_CARTRIDGE
-Cartridge ROM
+Spelcassette ROM
 #MSG_VIDEO_BOOT_MODE_LOGO
 GBA logo
 #MSG_VIDEO_GAME_SCREEN_TOP
-Upper Screen
+Bovenste scherm
 #MSG_VIDEO_GAME_SCREEN_BOTTOM
-Lower Screen
+Onderste scherm
 #MSG_GENERAL_OFF
 Uit
 #MSG_GENERAL_ON
@@ -1445,9 +1445,9 @@ Sonido                         %s
 #FMT_VIDEO_REWINDING
 Retroceso                              %s
 #FMT_VIDEO_BOOT_MODE
-Boot into                     %s
+Iniciar con                   %s
 #FMT_VIDEO_GAME_SCREEN
-Game screen               %s
+Pantalla de juego       %s
 #FMT_SAVED_STATE_CREATE
 Grabar partida  %d
 #FMT_SAVED_STATE_LOAD
@@ -1595,13 +1595,13 @@ Desactivado
 #MSG_VIDEO_REWINDING_6
 10 s (total 1:40 min)
 #MSG_VIDEO_BOOT_MODE_CARTRIDGE
-Cartridge ROM
+Cartucho ROM
 #MSG_VIDEO_BOOT_MODE_LOGO
-GBA logo
+Logo GBA
 #MSG_VIDEO_GAME_SCREEN_TOP
-Upper Screen
+Pantalla superior
 #MSG_VIDEO_GAME_SCREEN_BOTTOM
-Lower Screen
+Pantalla inferior
 #MSG_GENERAL_OFF
 Apagado
 #MSG_GENERAL_ON
@@ -1987,17 +1987,17 @@ Proporção            %s
 #FMT_VIDEO_FAST_FORWARD
 Avanço de quadro  %s
 #FMT_VIDEO_FRAME_SKIPPING
-Pulo de quadros   %s
+Pulo de quadros     %s
 #FMT_VIDEO_FRAMES_PER_SECOND_COUNTER
-FPS counter        %s
+Contador de FPS     %s
 #FMT_AUDIO_SOUND
-Som                       %s
+Som                         %s
 #FMT_VIDEO_REWINDING
 Retroceder     %s
 #FMT_VIDEO_BOOT_MODE
-Boot into              %s
+Iniciar em                %s
 #FMT_VIDEO_GAME_SCREEN
-Game screen        %s
+Tela de jogo           %s
 #FMT_SAVED_STATE_CREATE
 Criar estado         %d
 #FMT_SAVED_STATE_LOAD
@@ -2145,13 +2145,13 @@ Desativado
 #MSG_VIDEO_REWINDING_6
 10 s (1:40 min no total)
 #MSG_VIDEO_BOOT_MODE_CARTRIDGE
-Cartridge ROM
+ROM do cartucho
 #MSG_VIDEO_BOOT_MODE_LOGO
-GBA logo
+Logotipo do GBA
 #MSG_VIDEO_GAME_SCREEN_TOP
-Upper Screen
+Tela superior
 #MSG_VIDEO_GAME_SCREEN_BOTTOM
-Lower Screen
+Tela inferior
 #MSG_GENERAL_OFF
 Desligado
 #MSG_GENERAL_ON
