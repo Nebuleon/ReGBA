@@ -110,7 +110,7 @@ typedef struct
    */
   u32 ButtonMappings[8];
   u32 DisplayFPS;
-  u32 Reserved1; // Reserved for BottomScreenGame
+  u32 BottomScreenGame;
   u32 BootFromBIOS;
   u32 Reserved2[111];
 } GPSP_CONFIG_FILE;

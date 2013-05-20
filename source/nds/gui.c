@@ -2979,6 +2979,8 @@ u32 menu(u16 *screen, int FirstInvocation)
 
     char *boot_mode_options[] = { (char*)&msg[MSG_VIDEO_BOOT_MODE_CARTRIDGE], (char*)&msg[MSG_VIDEO_BOOT_MODE_LOGO] };
 
+    char *game_screen_options[] = { (char*)&msg[MSG_VIDEO_GAME_SCREEN_TOP], (char*)&msg[MSG_VIDEO_GAME_SCREEN_BOTTOM] };
+
 //    char *snap_frame_options[] = { (char*)&msg[MSG_SNAP_FRAME_0], (char*)&msg[MSG_SNAP_FRAME_1] };
 
   /*--------------------------------------------------------
@@ -3002,6 +3004,9 @@ u32 menu(u16 *screen, int FirstInvocation)
 
 	/* 05 */	STRING_SELECTION_OPTION(NULL, NULL, &msg[FMT_VIDEO_BOOT_MODE], boot_mode_options,
 		&gpsp_persistent_config.BootFromBIOS, 2, NULL, PASSIVE_TYPE, 5),
+
+	/* 06 */	STRING_SELECTION_OPTION(NULL, NULL, &msg[FMT_VIDEO_GAME_SCREEN], game_screen_options,
+		&gpsp_persistent_config.BottomScreenGame, 2, NULL, PASSIVE_TYPE, 6),
 	};
 
 	MAKE_MENU(graphics, NULL, NULL, NULL, NULL, 1, 1);
@@ -4331,6 +4336,8 @@ u32 menu(u16 *screen, int FirstInvocation)
 
 	repeat = 1;
 
+	gba_screen_addr_ptr = &up_screen_addr;
+	gba_screen_num = UP_SCREEN;
 	if(gamepak_filename[0] == 0)
 	{
 		first_load = 1;
@@ -4346,12 +4353,11 @@ u32 menu(u16 *screen, int FirstInvocation)
 	}
 	else
 	{
-		/*
-		 * It's pretty complicated. These two flips are needed because,
-		 * otherwise, the menu freezes if S9xAutoSaveSRAM was called after
-		 * loading from a save state.
-		 */
+		ds2_clearScreen(UP_SCREEN, COLOR16(0, 0, 0));
+		blit_to_screen(screen, GBA_SCREEN_WIDTH, GBA_SCREEN_HEIGHT, -1, -1);
 		ds2_flipScreen(UP_SCREEN, 1);
+		ds2_clearScreen(UP_SCREEN, COLOR16(0, 0, 0));
+		blit_to_screen(screen, GBA_SCREEN_WIDTH, GBA_SCREEN_HEIGHT, -1, -1);
 		ds2_flipScreen(UP_SCREEN, 1);
 	}
 
@@ -4801,23 +4807,39 @@ u32 menu(u16 *screen, int FirstInvocation)
 
 	if(bg_screenp != NULL) free((void*)bg_screenp);
 
-	ds2_clearScreen(DOWN_SCREEN, 0);
-	ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
-	ds2_clearScreen(UP_SCREEN, RGB15(0, 0, 0));
+	if (gpsp_persistent_config.BottomScreenGame)
+	{
+		gba_screen_addr_ptr = &down_screen_addr;
+		gba_screen_num = DOWN_SCREEN;
+		// Clear the Upper Screen because it will be hidden.
+		ds2_clearScreen(UP_SCREEN, 0);
+		ds2_flipScreen(UP_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
+	}
+	else
+	{
+		gba_screen_addr_ptr = &up_screen_addr;
+		gba_screen_num = UP_SCREEN;
+		// Clear the Lower Screen because it will be hidden.
+		ds2_clearScreen(DOWN_SCREEN, 0);
+		ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
+	}
+
+	ds2_clearScreen(gba_screen_num, RGB15(0, 0, 0));
 	blit_to_screen(screen, GBA_SCREEN_WIDTH, GBA_SCREEN_HEIGHT, -1, -1);
-	ds2_flipScreen(UP_SCREEN, UP_SCREEN_UPDATE_METHOD);
-	ds2_clearScreen(UP_SCREEN, RGB15(0, 0, 0));
+	ds2_flipScreen(gba_screen_num, UP_SCREEN_UPDATE_METHOD);
+	ds2_clearScreen(gba_screen_num, RGB15(0, 0, 0));
 	blit_to_screen(screen, GBA_SCREEN_WIDTH, GBA_SCREEN_HEIGHT, -1, -1);
-	ds2_flipScreen(UP_SCREEN, UP_SCREEN_UPDATE_METHOD);
+	ds2_flipScreen(gba_screen_num, UP_SCREEN_UPDATE_METHOD);
 	wait_Allkey_release(0);
 
 	mdelay(100); // to prevent ds2_setBacklight() from crashing
-	ds2_setBacklight(2);
+	ds2_setBacklight(3 - gba_screen_num);
 
 	destroy_dynamic_cheats();
 
 	GameFrequencyCPU();
 
+	StatsStopFPS(); // FPS will be 0 if we return, so stop it showing
 	return return_value;
 }
 
@@ -5483,7 +5505,7 @@ void QuickLoadState (void)
 	sprintf(FullName, "%s/%s", DEFAULT_SAVE_DIR, BaseName);
 
 	mdelay(100); // needed to avoid ds2_setBacklight crashing
-	ds2_setBacklight(3);
+	ds2_setBacklight((3 - DOWN_SCREEN) | (3 - gba_screen_num));
 
 	ds2_clearScreen(DOWN_SCREEN, RGB15(0, 0, 0));
 	draw_message(down_screen_addr, NULL, 28, 31, 227, 165, 0);
@@ -5516,7 +5538,7 @@ void QuickLoadState (void)
 	ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
 
 	mdelay(100); // needed to avoid ds2_setBacklight crashing
-	ds2_setBacklight(2);
+	ds2_setBacklight(3 - gba_screen_num);
 }
 
 void QuickSaveState (void)
@@ -5525,7 +5547,7 @@ void QuickSaveState (void)
 	get_savestate_filename(0, BaseName);
 
 	mdelay(100); // needed to avoid ds2_setBacklight crashing
-	ds2_setBacklight(3);
+	ds2_setBacklight((3 - DOWN_SCREEN) | (3 - gba_screen_num));
 
 	ds2_clearScreen(DOWN_SCREEN, RGB15(0, 0, 0));
 	draw_message(down_screen_addr, NULL, 28, 31, 227, 165, 0);
@@ -5549,7 +5571,7 @@ void QuickSaveState (void)
 	ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
 
 	mdelay(100); // needed to avoid ds2_setBacklight crashing
-	ds2_setBacklight(2);
+	ds2_setBacklight(3 - gba_screen_num);
 }
 
 void get_newest_savestate(char *name_buffer)

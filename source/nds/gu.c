@@ -82,9 +82,12 @@ extern int jzlcd_init(void);
 extern struct jzfb_info jzfb;
 
 
-#ifdef NDS_LAYER
-u8 screen_buffer[256*192*2];
-u16 *screen_address= (u16*)screen_buffer;
+#ifdef NDS_LAYER /* Supercard DSTwo */
+//u8 screen_buffer[256*192*2];
+//u16 *screen_address= (u16*)screen_buffer;
+
+void** gba_screen_addr_ptr = &up_screen_addr;
+u32 gba_screen_num = UP_SCREEN;
 #else
 unsigned char screen_buffer[480*272*2];
 u16 *screen_address= (u16*)screen_buffer;
@@ -116,12 +119,14 @@ void init_video()
 
 
 void init_video()
-{  
+{
+#ifndef NDS_LAYER
 	memset((u8*)screen_buffer, 0x00, sizeof(screen_buffer));
+#endif
 	
 	// Need to show the loading screen here.
 	u8 *ptr;
-	ptr = (u8*)up_screen_addr;
+	ptr = (u8*) up_screen_addr;
     memset(ptr, 0, 256*192*2);
     gba_screen_address=(u16*)ptr + 16*256 + 8;
 	
@@ -132,12 +137,6 @@ void init_video()
 #ifdef NDS_LAYER
 void flip_screen(void)
 {
-	u32 i;
-	u32 *dst_ptr = down_screen_addr;
-    u32 *src_ptr= (u32*)screen_buffer;
-    for(i= 0; i< 128*192; i++)
-        *dst_ptr++ = *src_ptr++;
-		
 	ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
 }
 #else
@@ -171,10 +170,10 @@ void flip_gba_screen(void)
     // for(i= 0; i< 128*192; i++)
         // *dst_ptr++ = *src_ptr++;
 		
-	ds2_flipScreen(UP_SCREEN, UP_SCREEN_UPDATE_METHOD);
+	ds2_flipScreen(gba_screen_num, UP_SCREEN_UPDATE_METHOD);
 	
 	//Update screen address each flip otherwise flickering occurs
-    gba_screen_address=(u16*)up_screen_addr + 16*256 + 8;
+    gba_screen_address=(u16*) *gba_screen_addr_ptr + 16*256 + 8;
 }
 #endif
 
@@ -186,12 +185,16 @@ void video_resolution(u32 frame)
 
 void clear_screen(u16 color)
 {
+#ifdef NDS_LAYER
+	ds2_clearScreen(DOWN_SCREEN, color);
+#else
   u32 i;
   u16 *dst; 
 
   dst= screen_address;
   for(i= 0; i < screen_height * screen_width; i++)
       *dst++ = color;
+#endif
 
 //  memset((u8*)screen_address, 0, 480*272*2);
 
@@ -200,7 +203,7 @@ void clear_screen(u16 color)
 void clear_gba_screen(u16 color)
 {
 #ifdef NDS_LAYER
-	ds2_clearScreen(UP_SCREEN, color);
+	ds2_clearScreen(gba_screen_num, color);
 #endif
   flip_gba_screen();
 }
@@ -249,7 +252,7 @@ void copy_screen(u16 *buffer)
 
     for(y= 0; y < GBA_SCREEN_HEIGHT; y++)
     {
-        ptr= (u16*)up_screen_addr + (y+16)*256 + 8;
+        ptr= (u16*) *gba_screen_addr_ptr + (y+16)*256 + 8;
         for(x= 0; x < GBA_SCREEN_WIDTH; x++)
             *buffer++ = *ptr++;
     }
@@ -268,7 +271,7 @@ void blit_to_screen(u16 *src, u32 w, u32 h, u32 dest_x, u32 dest_y)
     if(dest_y == -1)
         dest_y= (NDS_SCREEN_HEIGHT - h)/2;
 
-    screenp= up_screen_addr;
+    screenp= *gba_screen_addr_ptr;
     for(y= 0; y < h; y++)
     {
         dst= screenp + (y+dest_y)*256 + dest_x;

@@ -68,6 +68,8 @@ Sound                  %s
 Rewinding       %s
 #FMT_VIDEO_BOOT_MODE
 Boot into            %s
+#FMT_VIDEO_GAME_SCREEN
+Game screen      %s
 #FMT_SAVED_STATE_CREATE
 Create saved state      %d
 #FMT_SAVED_STATE_LOAD
@@ -218,6 +220,10 @@ Disabled
 Cartridge ROM
 #MSG_VIDEO_BOOT_MODE_LOGO
 GBA logo
+#MSG_VIDEO_GAME_SCREEN_TOP
+Upper Screen
+#MSG_VIDEO_GAME_SCREEN_BOTTOM
+Lower Screen
 #MSG_GENERAL_OFF
 Off
 #MSG_GENERAL_ON
@@ -337,6 +343,8 @@ FPS counter        %s
 Rewinding       %s
 #FMT_VIDEO_BOOT_MODE
 Boot into       %s
+#FMT_VIDEO_GAME_SCREEN
+Game screen   %s
 #FMT_SAVED_STATE_CREATE
 写入存档                 %d
 #FMT_SAVED_STATE_LOAD
@@ -487,6 +495,10 @@ Disabled
 Cartridge ROM
 #MSG_VIDEO_BOOT_MODE_LOGO
 GBA logo
+#MSG_VIDEO_GAME_SCREEN_TOP
+Upper Screen
+#MSG_VIDEO_GAME_SCREEN_BOTTOM
+Lower Screen
 #MSG_GENERAL_OFF
 关
 #MSG_GENERAL_ON
@@ -606,6 +618,8 @@ Son                         %s
 Rembobinage       %s
 #FMT_VIDEO_BOOT_MODE
 Démarrage             %s
+#FMT_VIDEO_GAME_SCREEN
+Écran de jeu          %s
 #FMT_SAVED_STATE_CREATE
 Créer la sauvegarde       %d
 #FMT_SAVED_STATE_LOAD
@@ -756,6 +770,10 @@ Hors fonction
 ROM de la cartouche
 #MSG_VIDEO_BOOT_MODE_LOGO
 Logo GBA
+#MSG_VIDEO_GAME_SCREEN_TOP
+Écran supérieur
+#MSG_VIDEO_GAME_SCREEN_BOTTOM
+Écran inférieur
 #MSG_GENERAL_OFF
 Hors fonction
 #MSG_GENERAL_ON
@@ -876,6 +894,8 @@ Ton                     %s
 Rewinding       %s
 #FMT_VIDEO_BOOT_MODE
 Boot into            %s
+#FMT_VIDEO_GAME_SCREEN
+Game screen      %s
 #FMT_SAVED_STATE_CREATE
 Speicherstand erstellen      %d
 #FMT_SAVED_STATE_LOAD
@@ -1026,6 +1046,10 @@ Disabled
 Cartridge ROM
 #MSG_VIDEO_BOOT_MODE_LOGO
 GBA logo
+#MSG_VIDEO_GAME_SCREEN_TOP
+Upper Screen
+#MSG_VIDEO_GAME_SCREEN_BOTTOM
+Lower Screen
 #MSG_GENERAL_OFF
 Aus
 #MSG_GENERAL_ON
@@ -1146,6 +1170,8 @@ Geluid                    %s
 Terugspoelen       %s
 #FMT_VIDEO_BOOT_MODE
 Boot into              %s
+#FMT_VIDEO_GAME_SCREEN
+Game screen        %s
 #FMT_SAVED_STATE_CREATE
 Creëer spelstaat       %d
 #FMT_SAVED_STATE_LOAD
@@ -1296,6 +1322,10 @@ Uitgeschakeld
 Cartridge ROM
 #MSG_VIDEO_BOOT_MODE_LOGO
 GBA logo
+#MSG_VIDEO_GAME_SCREEN_TOP
+Upper Screen
+#MSG_VIDEO_GAME_SCREEN_BOTTOM
+Lower Screen
 #MSG_GENERAL_OFF
 Uit
 #MSG_GENERAL_ON
@@ -1416,6 +1446,8 @@ Sonido                         %s
 Retroceso                              %s
 #FMT_VIDEO_BOOT_MODE
 Boot into                     %s
+#FMT_VIDEO_GAME_SCREEN
+Game screen               %s
 #FMT_SAVED_STATE_CREATE
 Grabar partida  %d
 #FMT_SAVED_STATE_LOAD
@@ -1566,6 +1598,10 @@ Desactivado
 Cartridge ROM
 #MSG_VIDEO_BOOT_MODE_LOGO
 GBA logo
+#MSG_VIDEO_GAME_SCREEN_TOP
+Upper Screen
+#MSG_VIDEO_GAME_SCREEN_BOTTOM
+Lower Screen
 #MSG_GENERAL_OFF
 Apagado
 #MSG_GENERAL_ON
@@ -1685,6 +1721,8 @@ Audio                       %s
 Rewinding       %s
 #FMT_VIDEO_BOOT_MODE
 Boot into              %s
+#FMT_VIDEO_GAME_SCREEN
+Game screen        %s
 #FMT_SAVED_STATE_CREATE
 Crea salvataggio      %d
 #FMT_SAVED_STATE_LOAD
@@ -1835,6 +1873,10 @@ Disabled
 Cartridge ROM
 #MSG_VIDEO_BOOT_MODE_LOGO
 GBA logo
+#MSG_VIDEO_GAME_SCREEN_TOP
+Upper Screen
+#MSG_VIDEO_GAME_SCREEN_BOTTOM
+Lower Screen
 #MSG_GENERAL_OFF
 Disabilita
 #MSG_GENERAL_ON
@@ -1954,6 +1996,8 @@ Som                       %s
 Retroceder     %s
 #FMT_VIDEO_BOOT_MODE
 Boot into              %s
+#FMT_VIDEO_GAME_SCREEN
+Game screen        %s
 #FMT_SAVED_STATE_CREATE
 Criar estado         %d
 #FMT_SAVED_STATE_LOAD
@@ -2104,6 +2148,10 @@ Desativado
 Cartridge ROM
 #MSG_VIDEO_BOOT_MODE_LOGO
 GBA logo
+#MSG_VIDEO_GAME_SCREEN_TOP
+Upper Screen
+#MSG_VIDEO_GAME_SCREEN_BOTTOM
+Lower Screen
 #MSG_GENERAL_OFF
 Desligado
 #MSG_GENERAL_ON

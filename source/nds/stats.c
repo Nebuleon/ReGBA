@@ -24,17 +24,23 @@
 
 struct GPSP_STATS Stats;
 
-void StatsInit(void)
+void StatsStopFPS(void)
 {
-	Stats.RenderedFrames = 0;
-	Stats.EmulatedFrames = 0;
-	Stats.LastFPSCalculationTime = 0;
+	Stats.LastFPSCalculationTime = getSysTime();
 	Stats.RenderedFPS = -1;
 	Stats.EmulatedFPS = -1;
+	Stats.RenderedFrames = 0;
+	Stats.EmulatedFrames = 0;
+}
+
+void StatsInit(void)
+{
+	StatsStopFPS();
 }
 
 void StatsInitGame(void)
 {
+	StatsInit();
 #ifndef USE_C_CORE
 	u32 cache, reason;
 	for (cache = 0; cache < TRANSLATION_REGION_COUNT; cache++)
@@ -73,15 +79,15 @@ void StatsDisplayFPS(void)
 			Stats.LastFPSCalculationTime = Now;
 		}
 		else
-			Visible = Stats.RenderedFPS != -1 && Stats.EmulatedFrames != -1;
+			Visible = Stats.RenderedFPS != -1 && Stats.EmulatedFPS != -1;
 	}
 
 	// Blacken the bottom bar
-	memset((u16*) up_screen_addr + 177 * 256, 0, 15 * 256 * sizeof(u16));
+	memset((u16*) *gba_screen_addr_ptr + 177 * 256, 0, 15 * 256 * sizeof(u16));
 	if (Visible)
 	{
 		char line[512];
 		sprintf(line, msg[FMT_STATUS_FRAMES_PER_SECOND], Stats.RenderedFPS, Stats.EmulatedFPS);
-		PRINT_STRING_BG_UTF8(up_screen_addr, line, 0x7FFF, 0x0000, 1, 177);
+		PRINT_STRING_BG_UTF8(*gba_screen_addr_ptr, line, 0x7FFF, 0x0000, 1, 177);
 	}
 }

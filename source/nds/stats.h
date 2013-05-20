@@ -58,7 +58,9 @@ struct GPSP_STATS {
 
 extern struct GPSP_STATS Stats;
 
+extern void StatsStopFPS(void);
 extern void StatsInit(void);
+extern void StatsInitGame(void);
 extern void StatsDisplayFPS(void);
 
 #endif // !__GPSP_STATS_H__

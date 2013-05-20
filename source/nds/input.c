@@ -374,7 +374,7 @@ u32 update_input()
 		// Before starting to emulate again, turn off the lower
 		// screen's backlight.
 		mdelay(100); // needed to avoid ds2_setBacklight crashing
-		ds2_setBacklight(2);
+		ds2_setBacklight(3 - gba_screen_num);
 		GameFrequencyCPU();
 	}
 #endif

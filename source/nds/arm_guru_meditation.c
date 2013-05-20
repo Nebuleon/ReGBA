@@ -31,19 +31,19 @@ extern char gamepak_filename[MAX_FILE];
 
 void ARMBadJump(unsigned int SourcePC, unsigned int TargetPC)
 {
-	ds2_clearScreen(UP_SCREEN, COLOR16(15, 0, 0));
-	ds2_flipScreen(UP_SCREEN, 2);
+	ds2_clearScreen(gba_screen_num, COLOR16(15, 0, 0));
+	ds2_flipScreen(gba_screen_num, 2);
 	char Line[512];
 
-	draw_string_vcenter(up_screen_addr, 0, 0, 256, COLOR_WHITE, "Guru Meditation");
+	draw_string_vcenter(*gba_screen_addr_ptr, 0, 0, 256, COLOR_WHITE, "Guru Meditation");
 	sprintf(Line, "Jump to unmapped address %08X", TargetPC);
-	BDF_render_mix(up_screen_addr, NDS_SCREEN_WIDTH, 0, 32, 0, COLOR_TRANS, COLOR_WHITE, Line);
+	BDF_render_mix(*gba_screen_addr_ptr, NDS_SCREEN_WIDTH, 0, 32, 0, COLOR_TRANS, COLOR_WHITE, Line);
 
 	sprintf(Line, "at address %08X", SourcePC);
-	BDF_render_mix(up_screen_addr, NDS_SCREEN_WIDTH, 0, 48, 0, COLOR_TRANS, COLOR_WHITE, Line);
+	BDF_render_mix(*gba_screen_addr_ptr, NDS_SCREEN_WIDTH, 0, 48, 0, COLOR_TRANS, COLOR_WHITE, Line);
 
-	draw_string_vcenter(up_screen_addr, 0, 80, 256, COLOR_WHITE, "The game has encountered an unrecoverable error. Please restart the emulator to load another game.");
-	ds2_flipScreen(UP_SCREEN, 2);
+	draw_string_vcenter(*gba_screen_addr_ptr, 0, 80, 256, COLOR_WHITE, "The game has encountered an unrecoverable error. Please restart the emulator to load another game.");
+	ds2_flipScreen(gba_screen_num, 2);
 
 	while (1)
 		pm_idle(); // This is goodbye...
@@ -51,19 +51,19 @@ void ARMBadJump(unsigned int SourcePC, unsigned int TargetPC)
 
 void RecompilerMaxExitsReached(unsigned int BlockStartPC, unsigned int BlockEndPC, unsigned int Exits)
 {
-	ds2_clearScreen(UP_SCREEN, COLOR16(0, 0, 15));
-	ds2_flipScreen(UP_SCREEN, 2);
+	ds2_clearScreen(gba_screen_num, COLOR16(0, 0, 15));
+	ds2_flipScreen(gba_screen_num, 2);
 	char Line[512];
 
-	draw_string_vcenter(up_screen_addr, 0, 0, 256, COLOR_WHITE, "Guru Meditation");
+	draw_string_vcenter(*gba_screen_addr_ptr, 0, 0, 256, COLOR_WHITE, "Guru Meditation");
 	sprintf(Line, "Native code exit limit reached (%u)", Exits);
-	BDF_render_mix(up_screen_addr, NDS_SCREEN_WIDTH, 0, 32, 0, COLOR_TRANS, COLOR_WHITE, Line);
+	BDF_render_mix(*gba_screen_addr_ptr, NDS_SCREEN_WIDTH, 0, 32, 0, COLOR_TRANS, COLOR_WHITE, Line);
 
 	sprintf(Line, "at addresses %08X .. %08X", BlockStartPC, BlockEndPC);
-	BDF_render_mix(up_screen_addr, NDS_SCREEN_WIDTH, 0, 48, 0, COLOR_TRANS, COLOR_WHITE, Line);
+	BDF_render_mix(*gba_screen_addr_ptr, NDS_SCREEN_WIDTH, 0, 48, 0, COLOR_TRANS, COLOR_WHITE, Line);
 
-	draw_string_vcenter(up_screen_addr, 0, 80, 256, COLOR_WHITE, "The game has encountered a recoverable error. It has not crashed, but due to this, it soon may.");
-	ds2_flipScreen(UP_SCREEN, 2);
+	draw_string_vcenter(*gba_screen_addr_ptr, 0, 80, 256, COLOR_WHITE, "The game has encountered a recoverable error. It has not crashed, but due to this, it soon may.");
+	ds2_flipScreen(gba_screen_num, 2);
 
 	wait_Anykey_press(0);
 	wait_Allkey_release(0);
@@ -71,19 +71,19 @@ void RecompilerMaxExitsReached(unsigned int BlockStartPC, unsigned int BlockEndP
 
 void RecompilerMaxBlockSizeReached(unsigned int BlockStartPC, unsigned int BlockEndPC, unsigned int BlockSize)
 {
-	ds2_clearScreen(UP_SCREEN, COLOR16(0, 0, 15));
-	ds2_flipScreen(UP_SCREEN, 2);
+	ds2_clearScreen(gba_screen_num, COLOR16(0, 0, 15));
+	ds2_flipScreen(gba_screen_num, 2);
 	char Line[512];
 
-	draw_string_vcenter(up_screen_addr, 0, 0, 256, COLOR_WHITE, "Guru Meditation");
+	draw_string_vcenter(*gba_screen_addr_ptr, 0, 0, 256, COLOR_WHITE, "Guru Meditation");
 	sprintf(Line, "Native code block size reached (%u)", BlockSize);
-	BDF_render_mix(up_screen_addr, NDS_SCREEN_WIDTH, 0, 32, 0, COLOR_TRANS, COLOR_WHITE, Line);
+	BDF_render_mix(*gba_screen_addr_ptr, NDS_SCREEN_WIDTH, 0, 32, 0, COLOR_TRANS, COLOR_WHITE, Line);
 
 	sprintf(Line, "at addresses %08X .. %08X", BlockStartPC, BlockEndPC);
-	BDF_render_mix(up_screen_addr, NDS_SCREEN_WIDTH, 0, 48, 0, COLOR_TRANS, COLOR_WHITE, Line);
+	BDF_render_mix(*gba_screen_addr_ptr, NDS_SCREEN_WIDTH, 0, 48, 0, COLOR_TRANS, COLOR_WHITE, Line);
 
-	draw_string_vcenter(up_screen_addr, 0, 80, 256, COLOR_WHITE, "The game has encountered a recoverable error. It has not crashed, but due to this, it soon may.");
-	ds2_flipScreen(UP_SCREEN, 2);
+	draw_string_vcenter(*gba_screen_addr_ptr, 0, 80, 256, COLOR_WHITE, "The game has encountered a recoverable error. It has not crashed, but due to this, it soon may.");
+	ds2_flipScreen(gba_screen_num, 2);
 
 	wait_Anykey_press(0);
 	wait_Allkey_release(0);

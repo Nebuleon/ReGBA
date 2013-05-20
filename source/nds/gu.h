@@ -165,4 +165,9 @@ extern u16 *screen_address;
 extern u16 *gba_screen_address;
 extern u32 gba_screen_pitch;
 
+#ifdef NDS_LAYER /* Supercard DSTwo */
+extern void** gba_screen_addr_ptr;
+extern u32 gba_screen_num;
+#endif
+
 #endif
