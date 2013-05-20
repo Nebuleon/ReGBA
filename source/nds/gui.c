@@ -5545,6 +5545,8 @@ void QuickSaveState (void)
 {
 	char BaseName[MAX_PATH + 1];
 	get_savestate_filename(0, BaseName);
+	unsigned short screen[GBA_SCREEN_WIDTH*GBA_SCREEN_HEIGHT];
+	copy_screen(screen);
 
 	mdelay(100); // needed to avoid ds2_setBacklight crashing
 	ds2_setBacklight((3 - DOWN_SCREEN) | (3 - gba_screen_num));
@@ -5555,8 +5557,6 @@ void QuickSaveState (void)
 	ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
 
 	HighFrequencyCPU();
-	unsigned short screen[GBA_SCREEN_WIDTH*GBA_SCREEN_HEIGHT];
-	copy_screen(screen);
 	int flag = save_state(BaseName, screen);
 	GameFrequencyCPU();
 	if(flag < 0)
