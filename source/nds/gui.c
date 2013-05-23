@@ -3416,6 +3416,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 
 	void main_menu_passive()
 	{
+		u16 color;
 		show_icon(down_screen_addr, &ICON_MAINBG, 0, 0);
 
 		//Audio/Video
@@ -3423,93 +3424,117 @@ u32 menu(u16 *screen, int FirstInvocation)
 		if(display_option++ == current_option) {
 			show_icon(down_screen_addr, &ICON_AVO, 19, 2);
 			show_icon(down_screen_addr, &ICON_MSEL, 5, 57);
+			color = COLOR_ACTIVE_MAIN;
 		}
 		else {
 			show_icon(down_screen_addr, &ICON_NAVO, 19, 2);
 			show_icon(down_screen_addr, &ICON_MNSEL, 5, 57);
+			color = COLOR_INACTIVE_MAIN;
 		}
-		draw_string_vcenter(down_screen_addr, 7, 57, 75, COLOR_WHITE, line_buffer);
+		draw_string_vcenter(down_screen_addr, 7, 57, 75, color, line_buffer);
 
 		//Save
 		strcpy(line_buffer, *(display_option->display_string));
 		if(display_option++ == current_option) {
 			show_icon(down_screen_addr, &ICON_SAVO, 103, 2);
 			show_icon(down_screen_addr, &ICON_MSEL, 89, 57);
+			color = COLOR_ACTIVE_MAIN;
 		}
 		else {
 			show_icon(down_screen_addr, &ICON_NSAVO, 103, 2);
 			show_icon(down_screen_addr, &ICON_MNSEL, 89, 57);
+			color = COLOR_INACTIVE_MAIN;
 		}
-		draw_string_vcenter(down_screen_addr, 91, 57, 75, COLOR_WHITE, line_buffer);
+		draw_string_vcenter(down_screen_addr, 91, 57, 75, color, line_buffer);
 
 		//Cheat
 		strcpy(line_buffer, *(display_option->display_string));
 		if(display_option++ == current_option) {
 			show_icon(down_screen_addr, &ICON_CHEAT, 187, 2);
 			show_icon(down_screen_addr, &ICON_MSEL, 173, 57);
+			color = COLOR_ACTIVE_MAIN;
 		}
 		else {
 			show_icon(down_screen_addr, &ICON_NCHEAT, 187, 2);
 			show_icon(down_screen_addr, &ICON_MNSEL, 173, 57);
+			color = COLOR_INACTIVE_MAIN;
 		}
-		draw_string_vcenter(down_screen_addr, 175, 57, 75, COLOR_WHITE, line_buffer);
+		draw_string_vcenter(down_screen_addr, 175, 57, 75, color, line_buffer);
 
 		//Tools
 		strcpy(line_buffer, *(display_option->display_string));
 		if(display_option++ == current_option) {
 			show_icon(down_screen_addr, &ICON_TOOL, 19, 75);
 			show_icon(down_screen_addr, &ICON_MSEL, 5, 131);
+			color = COLOR_ACTIVE_MAIN;
 		}
 		else {
 			show_icon(down_screen_addr, &ICON_NTOOL, 19, 75);
 			show_icon(down_screen_addr, &ICON_MNSEL, 5, 131);
+			color = COLOR_INACTIVE_MAIN;
 		}
-		draw_string_vcenter(down_screen_addr, 7, 131, 75, COLOR_WHITE, line_buffer);
+		draw_string_vcenter(down_screen_addr, 7, 131, 75, color, line_buffer);
 
 		//Other
 		strcpy(line_buffer, *(display_option->display_string));
 		if(display_option++ == current_option) {
 			show_icon(down_screen_addr, &ICON_OTHER, 103, 75);
 			show_icon(down_screen_addr, &ICON_MSEL, 89, 131);
+			color = COLOR_ACTIVE_MAIN;
 		}
 		else {
 			show_icon(down_screen_addr, &ICON_NOTHER, 103, 75);
 			show_icon(down_screen_addr, &ICON_MNSEL, 89, 131);
+			color = COLOR_INACTIVE_MAIN;
 		}
-		draw_string_vcenter(down_screen_addr, 91, 131, 75, COLOR_WHITE, line_buffer);
+		draw_string_vcenter(down_screen_addr, 91, 131, 75, color, line_buffer);
 
 		//Exit
 		strcpy(line_buffer, *(display_option->display_string));
 		if(display_option++ == current_option) {
 			show_icon(down_screen_addr, &ICON_EXIT, 187, 75);
 			show_icon(down_screen_addr, &ICON_MSEL, 173, 131);
+			color = COLOR_ACTIVE_MAIN;
 		}
 		else {
 			show_icon(down_screen_addr, &ICON_NEXIT, 187, 75);
 			show_icon(down_screen_addr, &ICON_MNSEL, 173, 131);
+			color = COLOR_INACTIVE_MAIN;
 		}
-		draw_string_vcenter(down_screen_addr, 175, 131, 75, COLOR_WHITE, line_buffer);
+		draw_string_vcenter(down_screen_addr, 175, 131, 75, color, line_buffer);
 
 		//New
-		if(display_option++ == current_option)
+		if(display_option++ == current_option) {
 			show_icon(down_screen_addr, &ICON_MAINITEM, 0, 154);
-		else
+			color = COLOR_ACTIVE_MAIN;
+		}
+		else {
 			show_icon(down_screen_addr, &ICON_NMAINITEM, 0, 154);
-		draw_string_vcenter(down_screen_addr, 0, 165, 85, COLOR_WHITE, msg[MSG_MAIN_MENU_NEW_GAME]);
+			color = COLOR_INACTIVE_MAIN;
+		}
+		draw_string_vcenter(down_screen_addr, 0, 165, 85, color, msg[MSG_MAIN_MENU_NEW_GAME]);
 
 		//Restart
-		if(display_option++ == current_option)
+		if(display_option++ == current_option) {
 			show_icon(down_screen_addr, &ICON_MAINITEM, 85, 154);
-		else
+			color = COLOR_ACTIVE_MAIN;
+		}
+		else {
 			show_icon(down_screen_addr, &ICON_NMAINITEM, 85, 154);
-		draw_string_vcenter(down_screen_addr, 85, 165, 85, COLOR_WHITE, msg[MSG_MAIN_MENU_RETURN_TO_GAME]);
+			color = COLOR_INACTIVE_MAIN;
+		}
+		draw_string_vcenter(down_screen_addr, 85, 165, 85, color, msg[MSG_MAIN_MENU_RETURN_TO_GAME]);
 
 		//Return
-		if(display_option++ == current_option)
+		if(display_option++ == current_option) {
 			show_icon(down_screen_addr, &ICON_MAINITEM, 170, 154);
-		else
+			color = COLOR_ACTIVE_MAIN;
+		}
+		else {
 			show_icon(down_screen_addr, &ICON_NMAINITEM, 170, 154);
-		draw_string_vcenter(down_screen_addr, 170, 165, 85, COLOR_WHITE, msg[MSG_MAIN_MENU_RESET_GAME]);
+			color = COLOR_INACTIVE_MAIN;
+		}
+		draw_string_vcenter(down_screen_addr, 170, 165, 85, color, msg[MSG_MAIN_MENU_RESET_GAME]);
 	}
 
     void main_menu_key()

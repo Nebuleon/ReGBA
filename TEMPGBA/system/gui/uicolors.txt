@@ -1,2 +1,6 @@
+Background:   #000000
 InactiveItem: #461F99
 ActiveItem:   #FFFFFF
+MessageText:  #461F99
+InactiveMain: #FFFFFF
+ActiveMain:   #FFFFFF

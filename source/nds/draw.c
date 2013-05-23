@@ -108,8 +108,12 @@ struct gui_iconlist gui_icon_list[]= {
 	/* 34 */ {"sbutto", 76, 16, NULL}
                         };
 
+u16 COLOR_BG            = COLOR16( 0,  0,  0);
 u16 COLOR_INACTIVE_ITEM = COLOR16( 0,  0,  0);
 u16 COLOR_ACTIVE_ITEM   = COLOR16(31, 31, 31);
+u16 COLOR_MSSG          = COLOR16( 0,  0,  0);
+u16 COLOR_INACTIVE_MAIN = COLOR16(31, 31, 31);
+u16 COLOR_ACTIVE_MAIN   = COLOR16(31, 31, 31);
 
 
 /*
@@ -626,6 +630,7 @@ void draw_hscroll_over(u32 index)
 /*
 *	Drawing dialog
 */
+/*
 void draw_dialog(void* screen_addr, u32 sx, u32 sy, u32 ex, u32 ey)
 {
 	drawboxfill(screen_addr, sx + 5, sy + 5, ex + 5, ey + 5, COLOR_DIALOG_SHADOW);
@@ -652,6 +657,7 @@ void draw_dialog(void* screen_addr, u32 sx, u32 sy, u32 ex, u32 ey)
 
 	drawboxfill(screen_addr, sx, sy, ex, ey, COLOR_DIALOG);
 }
+*/
 
 /*
 *	Draw yes or no dialog
@@ -1135,10 +1141,18 @@ int color_init()
 			{
 				*colon = '\0';
 				u16* color = NULL;
-				if (strcasecmp(current_line, "ActiveItem") == 0)
+				if (strcasecmp(current_line, "Background") == 0)
+					color = &COLOR_BG;
+				else if (strcasecmp(current_line, "ActiveItem") == 0)
 					color = &COLOR_ACTIVE_ITEM;
 				else if (strcasecmp(current_line, "InactiveItem") == 0)
 					color = &COLOR_INACTIVE_ITEM;
+				else if (strcasecmp(current_line, "MessageText") == 0)
+					color = &COLOR_MSSG;
+				else if (strcasecmp(current_line, "ActiveMain") == 0)
+					color = &COLOR_ACTIVE_MAIN;
+				else if (strcasecmp(current_line, "InactiveMain") == 0)
+					color = &COLOR_INACTIVE_MAIN;
 
 				if (color != NULL)
 				{
