@@ -133,17 +133,17 @@ Create saved state 1
 #MSG_HOTKEY_FULL_SCREEN_TOGGLE
 Toggle full-screen
 #MSG_BUTTON_MAPPING_A
-GBA key *A
+GBA button *A
 #MSG_BUTTON_MAPPING_B
-GBA key *B
+GBA button *B
 #MSG_BUTTON_MAPPING_SELECT
-GBA key *s
+GBA button *s
 #MSG_BUTTON_MAPPING_START
-GBA key *S
+GBA button *S
 #MSG_BUTTON_MAPPING_R
-GBA key *R
+GBA button *R
 #MSG_BUTTON_MAPPING_L
-GBA key *L
+GBA button *L
 #MSG_BUTTON_MAPPING_RAPID_A
 Rapid-fire *A
 #MSG_BUTTON_MAPPING_RAPID_B
@@ -1185,13 +1185,13 @@ Laad valsspeelbestand
 #MSG_TOOLS_SCREENSHOT_GENERAL
 Beeldschermafdrukken...
 #MSG_TOOLS_GLOBAL_HOTKEY_GENERAL
-Globale sneltoetsen...
+Sneltoetsen...
 #MSG_TOOLS_GAME_HOTKEY_GENERAL
 Spel-specifieke sneltoetsen...
 #MSG_TOOLS_GLOBAL_BUTTON_MAPPING_GENERAL
-Globale sneltoets toewijzingen...
+Knoppen herconfigureren...
 #MSG_TOOLS_GAME_BUTTON_MAPPING_GENERAL
-Spel-specifieke sneltoets toewijzingen...
+Spel-specifiek knoppen herconfigureren...
 #MSG_TOOLS_DEBUG_MENU_ENGLISH
 Debuggen (in het Engels)...
 #FMT_OPTIONS_LANGUAGE
@@ -1235,31 +1235,31 @@ Sla spelstaat 1 op
 #MSG_HOTKEY_FULL_SCREEN_TOGGLE
 Schakel naar volledig scherm
 #MSG_BUTTON_MAPPING_A
-GBA-toets *A
+GBA-knop *A
 #MSG_BUTTON_MAPPING_B
-GBA-toets *B
+GBA-knop *B
 #MSG_BUTTON_MAPPING_SELECT
-GBA-toets *s
+GBA-knop *s
 #MSG_BUTTON_MAPPING_START
-GBA-toets *S
+GBA-knop *S
 #MSG_BUTTON_MAPPING_R
-GBA-toets *R
+GBA-knop *R
 #MSG_BUTTON_MAPPING_L
-GBA-toets *L
+GBA-knop *L
 #MSG_BUTTON_MAPPING_RAPID_A
-Snelvuurtoets *A
+Snelvuurknop *A
 #MSG_BUTTON_MAPPING_RAPID_B
-Snelvuurtoets *B
+Snelvuurknop *B
 #MSG_BUTTON_MAPPING_INHERITED_FROM_GLOBAL
  (globaal)
 #MSG_PROGRESS_HOTKEY_WAITING_FOR_KEYS
-Druk op de gewenste toetsencombinatie.
+Druk op de gewenste knoppencombinatie.
 #MSG_PROGRESS_MAPPING_WAITING_FOR_KEY
-Druk op de DS-toets die je aan deze GBA-toets wilt toewijzen.
+Druk op de DS-knop die je aan deze GBA-knop wilt toewijzen.
 #MSG_PROGRESS_MAPPING_WAITING_FOR_KEY_OR_CLEAR
-Druk op de DS-toets die je aan deze GBA-toets wilt toewijzen.\n
+Druk op de DS-knop die je aan deze GBA-knop wilt toewijzen.\n
 \n
-U kunt twee toetsen tegelijk indrukken om deze toetstoewijzing te verwijderen.
+U kunt twee knoppen tegelijk indrukken om deze knoptoewijzing te verwijderen.
 #MSG_HOTKEY_DELETE_WITH_A
 *A Wissen
 #MSG_HOTKEY_CANCEL_WITH_B
