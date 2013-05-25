@@ -681,7 +681,7 @@ u32 update_gba()
 
 		if (frameskip_0_hack_flag)
 			frameskip_0_hack_flag--;
-		skip_next_frame_flag = to_skip < SKIP_RATE || frameskip_0_hack_flag;
+		skip_next_frame_flag = to_skip < SKIP_RATE || frameskip_0_hack_flag == 2;
 
 //printf("SKIP_RATE %d %d\n", SKIP_RATE, to_skip);
         } //(vcount == 228)
