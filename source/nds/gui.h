@@ -210,6 +210,8 @@ s32 save_config_file();
 
 u32 menu(u16 *original_screen, int FirstInvocation);
 
+u32 save_menu_ss_bmp(u16 *image);
+
 u32 load_dircfg(char *file_name);
 u32 load_fontcfg(char *file_name);
 //u32 load_msgcfg(char *file_name);
