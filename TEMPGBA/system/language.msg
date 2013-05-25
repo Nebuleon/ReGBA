@@ -133,17 +133,17 @@ Create saved state 1
 #MSG_HOTKEY_FULL_SCREEN_TOGGLE
 Toggle full-screen
 #MSG_BUTTON_MAPPING_A
-GBA key *A
+GBA button *A
 #MSG_BUTTON_MAPPING_B
-GBA key *B
+GBA button *B
 #MSG_BUTTON_MAPPING_SELECT
-GBA key *s
+GBA button *s
 #MSG_BUTTON_MAPPING_START
-GBA key *S
+GBA button *S
 #MSG_BUTTON_MAPPING_R
-GBA key *R
+GBA button *R
 #MSG_BUTTON_MAPPING_L
-GBA key *L
+GBA button *L
 #MSG_BUTTON_MAPPING_RAPID_A
 Rapid-fire *A
 #MSG_BUTTON_MAPPING_RAPID_B
@@ -336,15 +336,15 @@ STARTCHINESESIM
 #FMT_VIDEO_FRAME_SKIPPING
 跳帧方式                 %s
 #FMT_VIDEO_FRAMES_PER_SECOND_COUNTER
-FPS counter        %s
+FPS 计数器               %s
 #FMT_AUDIO_SOUND
 声音开关                 %s
 #FMT_VIDEO_REWINDING
-Rewinding       %s
+倒退                     %s
 #FMT_VIDEO_BOOT_MODE
-Boot into       %s
+启动进入                 %s
 #FMT_VIDEO_GAME_SCREEN
-Game screen   %s
+游戏屏幕                 %s
 #FMT_SAVED_STATE_CREATE
 写入存档                 %d
 #FMT_SAVED_STATE_LOAD
@@ -360,17 +360,17 @@ Game screen   %s
 #MSG_TOOLS_GLOBAL_HOTKEY_GENERAL
 全局热键
 #MSG_TOOLS_GAME_HOTKEY_GENERAL
-游戏专用覆盖性热键
+特定游戏热键
 #MSG_TOOLS_GLOBAL_BUTTON_MAPPING_GENERAL
-Global button mappings...
+全局按键映射...
 #MSG_TOOLS_GAME_BUTTON_MAPPING_GENERAL
-Game-specific button mappings...
+特定游戏按键映射...
 #MSG_TOOLS_DEBUG_MENU_ENGLISH
-Debugging (in English)...
+调试 (英文)...
 #FMT_OPTIONS_LANGUAGE
-语言                               %s
+语言                                %s
 #FMT_OPTIONS_CPU_FREQUENCY
-CPU主频                          %s
+CPU 主频                         %s
 #MSG_OPTIONS_CPU_FREQUENCY_0
 [0] 240 MHz
 #MSG_OPTIONS_CPU_FREQUENCY_1
@@ -384,7 +384,7 @@ CPU主频                          %s
 #MSG_OPTIONS_CPU_FREQUENCY_5
 [5] 396 MHz
 #MSG_OPTIONS_CARD_CAPACITY
-卡容量
+卡带容量
 #MSG_OPTIONS_RESET
 缺省设置
 #MSG_OPTIONS_VERSION
@@ -394,7 +394,7 @@ CPU主频                          %s
 #MSG_SCREENSHOT_BROWSE
 浏览屏幕快照
 #MSG_HOTKEY_REWIND
-Rewind
+游戏倒退
 #MSG_HOTKEY_MAIN_MENU
 返回主菜单
 #MSG_HOTKEY_TEMPORARY_FAST_FORWARD
@@ -408,31 +408,31 @@ Rewind
 #MSG_HOTKEY_FULL_SCREEN_TOGGLE
 全屏开关
 #MSG_BUTTON_MAPPING_A
-GBA key *A
+GBA 按键 *A
 #MSG_BUTTON_MAPPING_B
-GBA key *B
+GBA 按键 *B
 #MSG_BUTTON_MAPPING_SELECT
-GBA key *s
+GBA 按键 *s
 #MSG_BUTTON_MAPPING_START
-GBA key *S
+GBA 按键 *S
 #MSG_BUTTON_MAPPING_R
-GBA key *R
+GBA 按键 *R
 #MSG_BUTTON_MAPPING_L
-GBA key *L
+GBA 按键 *L
 #MSG_BUTTON_MAPPING_RAPID_A
-Rapid-fire *A
+连打 *A
 #MSG_BUTTON_MAPPING_RAPID_B
-Rapid-fire *B
+连打 *B
 #MSG_BUTTON_MAPPING_INHERITED_FROM_GLOBAL
- (global)
+ (全局)
 #MSG_PROGRESS_HOTKEY_WAITING_FOR_KEYS
-按下你想要设置为这个效果的按钮
+按下你想要设置的热键组合。
 #MSG_PROGRESS_MAPPING_WAITING_FOR_KEY
-Press the DS button you wish to map to this GBA button.
+按下相应的 DS 按键来设置这个 GBA 按键。
 #MSG_PROGRESS_MAPPING_WAITING_FOR_KEY_OR_CLEAR
-Press the DS button you wish to map to this GBA button.\n
+按下相应的 DS 按键来设置这个 GBA 按键。\n
 \n
-You can press two buttons at once to delete this mapping.
+你可以一次按下两个按键来删除这个 映射。
 #MSG_HOTKEY_DELETE_WITH_A
 *A 清除
 #MSG_HOTKEY_CANCEL_WITH_B
@@ -478,27 +478,27 @@ You can press two buttons at once to delete this mapping.
 #MSG_VIDEO_FRAME_SKIPPING_10
 [10] 显示 1/11
 #MSG_VIDEO_REWINDING_0
-Disabled
+禁用
 #MSG_VIDEO_REWINDING_1
-0.25 s (2.5 s total)
+0.25 秒(总计 2.5 秒)
 #MSG_VIDEO_REWINDING_2
-0.5 s (5 s total)
+0.5 秒(总计 5 秒)
 #MSG_VIDEO_REWINDING_3
-1 s (10 s total)
+1 秒(总计 10 秒)
 #MSG_VIDEO_REWINDING_4
-2 s (20 s total)
+2 秒(总计 20 秒)
 #MSG_VIDEO_REWINDING_5
-5 s (50 s total)
+5 秒(总计 50 秒)
 #MSG_VIDEO_REWINDING_6
-10 s (1:40 min total)
+10 秒(总计 1 分 40 秒)
 #MSG_VIDEO_BOOT_MODE_CARTRIDGE
-Cartridge ROM
+卡带 ROM
 #MSG_VIDEO_BOOT_MODE_LOGO
-GBA logo
+GBA 图标
 #MSG_VIDEO_GAME_SCREEN_TOP
-Upper Screen
+上屏
 #MSG_VIDEO_GAME_SCREEN_BOTTOM
-Lower Screen
+下屏
 #MSG_GENERAL_OFF
 关
 #MSG_GENERAL_ON
@@ -516,25 +516,25 @@ Lower Screen
 #MSG_CHEAT_ELEMENT_NOT_LOADED
 <没有加载>
 #MSG_SAVESTATE_FULL
-当前存档槽已有存档文件,覆盖已有存档吗?
+当前存档槽已有存档文件,覆盖现有存档吗?
 #MSG_PROGRESS_SAVED_STATE_CREATING
 正在写入...
 #MSG_PROGRESS_SAVED_STATE_CREATION_FAILED
-写入存档失败!
+存档写入失败!
 #MSG_PROGRESS_SAVED_STATE_CREATION_SUCCEEDED
-写入存档成功!
+存档写入成功!
 #MSG_TOP_SCREEN_NO_SAVED_STATE_IN_SLOT
 没有游戏截图
 #MSG_PROGRESS_SAVED_STATE_CORRUPTED
-存档文件找不到或者损坏!
+存档文件不存在或者已损坏!
 #MSG_PROGRESS_SAVED_STATE_LOADING
 正在加载...
 #MSG_PROGRESS_SAVED_STATE_LOAD_FAILED
-加载存档失败
+存档加载失败
 #MSG_PROGRESS_SAVED_STATE_LOAD_SUCCEEDED
-加载存档成功
+存档加载成功
 #FMT_STATUS_FRAMES_PER_SECOND
-FPS: %d rendered, %d/60 emulated
+FPS:绘制 %d ,模拟 %d/60
 #MSG_SAVED_STATE_DELETE_ALL
 删除当前游戏的所有存档
 #FMT_SAVED_STATE_DELETE_ONE
@@ -558,12 +558,12 @@ FPS: %d rendered, %d/60 emulated
 #MSG_PAUSE_SLIDE
 已暂停
 #MSG_SCREENSHOT_SLIDESHOW_KEYS
-*u  加快播放\n
-*d  减慢播放\n
-*l  上一帧\n
-*r  下一帧\n
-*A   暂停\n
-*B   返回菜单
+*u   加快播放\n
+*d   减慢播放\n
+*l  上一帧    \n
+*r  下一帧    \n
+*A  暂停        \n
+*B  返回菜单
 #MSG_PROGRESS_LOADING_GAME
 正在装载游戏...
 #MSG_EMULATOR_NAME
@@ -571,7 +571,7 @@ GBA模拟器
 #MSG_WORD_EMULATOR_VERSION
 版本
 #MSG_DIALOG_RESET
-确定将 GBA模拟器恢复为出厂设置吗?
+确定将 GBA 模拟器恢复为出厂设置吗?
 #MSG_PROGRESS_RESETTING
 正在设置,请稍候...
 #MSG_UNCERTAIN
@@ -1185,13 +1185,13 @@ Laad valsspeelbestand
 #MSG_TOOLS_SCREENSHOT_GENERAL
 Beeldschermafdrukken...
 #MSG_TOOLS_GLOBAL_HOTKEY_GENERAL
-Globale sneltoetsen...
+Sneltoetsen...
 #MSG_TOOLS_GAME_HOTKEY_GENERAL
 Spel-specifieke sneltoetsen...
 #MSG_TOOLS_GLOBAL_BUTTON_MAPPING_GENERAL
-Globale sneltoets toewijzingen...
+Knoppen herconfigureren...
 #MSG_TOOLS_GAME_BUTTON_MAPPING_GENERAL
-Spel-specifieke sneltoets toewijzingen...
+Spel-specifiek knoppen herconfigureren...
 #MSG_TOOLS_DEBUG_MENU_ENGLISH
 Debuggen (in het Engels)...
 #FMT_OPTIONS_LANGUAGE
@@ -1235,31 +1235,31 @@ Sla spelstaat 1 op
 #MSG_HOTKEY_FULL_SCREEN_TOGGLE
 Schakel naar volledig scherm
 #MSG_BUTTON_MAPPING_A
-GBA-toets *A
+GBA-knop *A
 #MSG_BUTTON_MAPPING_B
-GBA-toets *B
+GBA-knop *B
 #MSG_BUTTON_MAPPING_SELECT
-GBA-toets *s
+GBA-knop *s
 #MSG_BUTTON_MAPPING_START
-GBA-toets *S
+GBA-knop *S
 #MSG_BUTTON_MAPPING_R
-GBA-toets *R
+GBA-knop *R
 #MSG_BUTTON_MAPPING_L
-GBA-toets *L
+GBA-knop *L
 #MSG_BUTTON_MAPPING_RAPID_A
-Snelvuurtoets *A
+Snelvuurknop *A
 #MSG_BUTTON_MAPPING_RAPID_B
-Snelvuurtoets *B
+Snelvuurknop *B
 #MSG_BUTTON_MAPPING_INHERITED_FROM_GLOBAL
  (globaal)
 #MSG_PROGRESS_HOTKEY_WAITING_FOR_KEYS
-Druk op de gewenste toetsencombinatie.
+Druk op de gewenste knoppencombinatie.
 #MSG_PROGRESS_MAPPING_WAITING_FOR_KEY
-Druk op de DS-toets die je aan deze GBA-toets wilt toewijzen.
+Druk op de DS-knop die je aan deze GBA-knop wilt toewijzen.
 #MSG_PROGRESS_MAPPING_WAITING_FOR_KEY_OR_CLEAR
-Druk op de DS-toets die je aan deze GBA-toets wilt toewijzen.\n
+Druk op de DS-knop die je aan deze GBA-knop wilt toewijzen.\n
 \n
-U kunt twee toetsen tegelijk indrukken om deze toetstoewijzing te verwijderen.
+U kunt twee knoppen tegelijk indrukken om deze knoptoewijzing te verwijderen.
 #MSG_HOTKEY_DELETE_WITH_A
 *A Wissen
 #MSG_HOTKEY_CANCEL_WITH_B

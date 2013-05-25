@@ -495,18 +495,10 @@ unsigned int DisassembleInstructionMIPS32JType(unsigned int Instruction,
 
 void GuruMeditation(struct ExceptionData* Data, unsigned int ExceptionNumber)
 {
-	sti(); // Allows communication to the DS
-
-	ds2_setCPUclocklevel(0);
-	mdelay(100); // to prevent ds2_setBacklight from crashing
-	ds2_setBacklight(3);
-
-	ds2_clearScreen(DOWN_SCREEN, RGB15(15, 0, 0));
-	ds2_flipScreen(DOWN_SCREEN, 2);
-	draw_string_vcenter(down_screen_addr, 0, 0, 256, COLOR_WHITE, "Guru Meditation");
-
 	char Line[512];
+	Line[0] = '\0';
 	char* Description;
+	unsigned int i;
 	switch (ExceptionNumber) {
 		case  1: Description = "TLB modification exception";    break;
 		case  2: Description = "TLB load exception";            break;
@@ -527,13 +519,67 @@ void GuruMeditation(struct ExceptionData* Data, unsigned int ExceptionNumber)
 		case 30: Description = "Cache consistency error";       break;
 		default: Description = "Unknown exception";             break;
 	}
+
+	sti(); // Allows communication to the DS
+
+	// --- BEGIN SERIAL LINE OUTPUT BLOCK ---
+
+	serial_timestamp_printf("Exception %02X: %s", ExceptionNumber, Description);
+
+	// Show the disassembly of the instruction at EPC if it's valid.
+	if (ADDRESS_VALID(Data->ExceptionPC)) {
+		char* ShortForm = ((char*) EMERGENCY_MEMORY);
+		char* CanonicalForm = (char*) EMERGENCY_MEMORY + 64;
+		memset(EMERGENCY_MEMORY, 0, 128);
+		DisassembleInstructionMIPS32(*((unsigned int*) Data->ExceptionPC), ShortForm, CanonicalForm);
+
+		serial_timestamp_printf("at address %08X: %s", Data->ExceptionPC, ShortForm);
+		if (strcmp(ShortForm, CanonicalForm) != 0) {
+			serial_timestamp_printf("                   = %s", CanonicalForm);
+		}
+	}
+	else if (((unsigned int) Data->ExceptionPC & 3) == 0)
+	{
+		serial_timestamp_printf("at address %08X: (Unaligned address)");
+	}
+	else
+	{
+		serial_timestamp_printf("at address %08X: (Unmapped address)");
+	}
+	serial_timestamp_printf("");
+
+	serial_timestamp_printf("Register values:");
+
+	for (i = 0; i < 28; i++) {
+		char Element[13];
+		sprintf(Element, "%2u: %08X", RegisterNumbers[i], *(unsigned int*) ((unsigned char*) Data + RegisterOffsets[i]));
+		strcat(Line, Element);
+
+		if ((i % 3) == 2)
+		{
+			serial_timestamp_printf("%s", Line);
+			Line[0] = '\0';
+		}
+		else
+			strcat(Line, "   ");
+	}
+	serial_timestamp_printf("%s", Line);
+
+	// --- END SERIAL LINE OUTPUT BLOCK ---
+
+	ds2_setCPUclocklevel(0);
+	mdelay(100); // to prevent ds2_setBacklight from crashing
+	ds2_setBacklight(3);
+
+	ds2_clearScreen(DOWN_SCREEN, RGB15(15, 0, 0));
+	ds2_flipScreen(DOWN_SCREEN, 2);
+	draw_string_vcenter(down_screen_addr, 0, 0, 256, COLOR_WHITE, "Guru Meditation");
 	sprintf(Line, "Exception %02X: %s", ExceptionNumber, Description);
 	BDF_render_mix(down_screen_addr, NDS_SCREEN_WIDTH, 0, 32, 0, COLOR_TRANS, COLOR_WHITE, Line);
 
 	sprintf(Line, "at address %08X", Data->ExceptionPC);
 	BDF_render_mix(down_screen_addr, NDS_SCREEN_WIDTH, 0, 48, 0, COLOR_TRANS, COLOR_WHITE, Line);
 
-	unsigned int i;
 	for (i = 0; i < 28; i++) {
 		// Display the register number.
 		sprintf(Line, "%u:", RegisterNumbers[i]);

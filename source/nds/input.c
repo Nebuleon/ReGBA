@@ -266,6 +266,15 @@ gui_action_type get_gui_input(void)
 		// ds2_setBacklight(3);
 	}
 
+	if ((inputdata.key & (KEY_L | KEY_R)) == (KEY_L | KEY_R))
+	{
+		save_menu_ss_bmp(down_screen_addr);
+		do {
+			ds2_getrawInput(&inputdata);
+			mdelay(1);
+		} while ((inputdata.key & (KEY_L | KEY_R)) == (KEY_L | KEY_R));
+	}
+
 	unsigned int i;
 	while (1)
 	{

@@ -911,7 +911,6 @@ static int sound_update()
   s16 *dst_ptr, *dst_ptr1;
   u32 n = ds2_checkAudiobuff();
   int ret;
-static int pp= 0;
 
 	u8 WasInUnderrun = Stats.InSoundBufferUnderrun;
 	Stats.InSoundBufferUnderrun = n == 0 && CHECK_BUFFER() < AUDIO_LEN * 4;
@@ -928,24 +927,21 @@ static int pp= 0;
 			if (n >= 2)
 			{
 				// We're in no hurry, because 2 buffers are still full.
-				if(pp > 0)
-				{ // Minimum skip 2
-					if(pp > 5 && SKIP_RATE > 2)
-						SKIP_RATE--;
-					if(SKIP_RATE == 2)
-						pp = 0;
-					else
-						pp++;
+				// Minimum skip 2
+				if(SKIP_RATE > 2)
+				{
+					serial_timestamp_printf("I: Decreasing automatic frameskip: %u..%u", SKIP_RATE, SKIP_RATE - 1);
+					SKIP_RATE--;
 				}
 			}
 			else
 			{
 				// Alright, we're in a hurry. Raise frameskip.
-				if(pp < 2)
-				{ // Maximum skip 9
-					if(SKIP_RATE < 8)
-						SKIP_RATE++;
-					pp = 1;
+				// Maximum skip 9
+				if(SKIP_RATE < 8)
+				{
+					serial_timestamp_printf("I: Increasing automatic frameskip: %u..%u", SKIP_RATE, SKIP_RATE + 1);
+					SKIP_RATE++;
 				}
 			}
 		}
@@ -958,8 +954,22 @@ static int pp= 0;
 		{
 			skip_next_frame_flag = 1;
 			frameskip_0_hack_flag = 2;
+			serial_timestamp_printf("I: Skipping a frame due to audio lag");
 		}
 		return -1;
+	}
+	else if (/* CHECK_BUFFER() >= AUDIO_LEN * 4 && */ AUTO_SKIP)
+	{
+		if (n >= 2 && SKIP_RATE > 2)
+		{
+			serial_timestamp_printf("I: Decreasing automatic frameskip: %u..%u", SKIP_RATE, SKIP_RATE - 1);
+			SKIP_RATE--;
+		}
+		else if (n < 2 && SKIP_RATE < 8)
+		{
+			serial_timestamp_printf("I: Increasing automatic frameskip: %u..%u", SKIP_RATE, SKIP_RATE + 1);
+			SKIP_RATE++;
+		}
 	}
 
 	// We have enough sound. Complete this update.

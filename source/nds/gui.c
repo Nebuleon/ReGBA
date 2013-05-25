@@ -68,7 +68,7 @@ char *language_options[] = { (char *) &lang[0], (char *) &lang[1], (char *) &lan
 
 #define SAVE_STATE_SLOT_NUM 16
 
-#define NDSGBA_VERSION "1.40"
+#define NDSGBA_VERSION "1.41"
 
 #define GPSP_CONFIG_FILENAME "SYSTEM/ndsgba.cfg"
 
@@ -3416,6 +3416,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 
 	void main_menu_passive()
 	{
+		u16 color;
 		show_icon(down_screen_addr, &ICON_MAINBG, 0, 0);
 
 		//Audio/Video
@@ -3423,93 +3424,117 @@ u32 menu(u16 *screen, int FirstInvocation)
 		if(display_option++ == current_option) {
 			show_icon(down_screen_addr, &ICON_AVO, 19, 2);
 			show_icon(down_screen_addr, &ICON_MSEL, 5, 57);
+			color = COLOR_ACTIVE_MAIN;
 		}
 		else {
 			show_icon(down_screen_addr, &ICON_NAVO, 19, 2);
 			show_icon(down_screen_addr, &ICON_MNSEL, 5, 57);
+			color = COLOR_INACTIVE_MAIN;
 		}
-		draw_string_vcenter(down_screen_addr, 7, 57, 75, COLOR_WHITE, line_buffer);
+		draw_string_vcenter(down_screen_addr, 7, 57, 75, color, line_buffer);
 
 		//Save
 		strcpy(line_buffer, *(display_option->display_string));
 		if(display_option++ == current_option) {
 			show_icon(down_screen_addr, &ICON_SAVO, 103, 2);
 			show_icon(down_screen_addr, &ICON_MSEL, 89, 57);
+			color = COLOR_ACTIVE_MAIN;
 		}
 		else {
 			show_icon(down_screen_addr, &ICON_NSAVO, 103, 2);
 			show_icon(down_screen_addr, &ICON_MNSEL, 89, 57);
+			color = COLOR_INACTIVE_MAIN;
 		}
-		draw_string_vcenter(down_screen_addr, 91, 57, 75, COLOR_WHITE, line_buffer);
+		draw_string_vcenter(down_screen_addr, 91, 57, 75, color, line_buffer);
 
 		//Cheat
 		strcpy(line_buffer, *(display_option->display_string));
 		if(display_option++ == current_option) {
 			show_icon(down_screen_addr, &ICON_CHEAT, 187, 2);
 			show_icon(down_screen_addr, &ICON_MSEL, 173, 57);
+			color = COLOR_ACTIVE_MAIN;
 		}
 		else {
 			show_icon(down_screen_addr, &ICON_NCHEAT, 187, 2);
 			show_icon(down_screen_addr, &ICON_MNSEL, 173, 57);
+			color = COLOR_INACTIVE_MAIN;
 		}
-		draw_string_vcenter(down_screen_addr, 175, 57, 75, COLOR_WHITE, line_buffer);
+		draw_string_vcenter(down_screen_addr, 175, 57, 75, color, line_buffer);
 
 		//Tools
 		strcpy(line_buffer, *(display_option->display_string));
 		if(display_option++ == current_option) {
 			show_icon(down_screen_addr, &ICON_TOOL, 19, 75);
 			show_icon(down_screen_addr, &ICON_MSEL, 5, 131);
+			color = COLOR_ACTIVE_MAIN;
 		}
 		else {
 			show_icon(down_screen_addr, &ICON_NTOOL, 19, 75);
 			show_icon(down_screen_addr, &ICON_MNSEL, 5, 131);
+			color = COLOR_INACTIVE_MAIN;
 		}
-		draw_string_vcenter(down_screen_addr, 7, 131, 75, COLOR_WHITE, line_buffer);
+		draw_string_vcenter(down_screen_addr, 7, 131, 75, color, line_buffer);
 
 		//Other
 		strcpy(line_buffer, *(display_option->display_string));
 		if(display_option++ == current_option) {
 			show_icon(down_screen_addr, &ICON_OTHER, 103, 75);
 			show_icon(down_screen_addr, &ICON_MSEL, 89, 131);
+			color = COLOR_ACTIVE_MAIN;
 		}
 		else {
 			show_icon(down_screen_addr, &ICON_NOTHER, 103, 75);
 			show_icon(down_screen_addr, &ICON_MNSEL, 89, 131);
+			color = COLOR_INACTIVE_MAIN;
 		}
-		draw_string_vcenter(down_screen_addr, 91, 131, 75, COLOR_WHITE, line_buffer);
+		draw_string_vcenter(down_screen_addr, 91, 131, 75, color, line_buffer);
 
 		//Exit
 		strcpy(line_buffer, *(display_option->display_string));
 		if(display_option++ == current_option) {
 			show_icon(down_screen_addr, &ICON_EXIT, 187, 75);
 			show_icon(down_screen_addr, &ICON_MSEL, 173, 131);
+			color = COLOR_ACTIVE_MAIN;
 		}
 		else {
 			show_icon(down_screen_addr, &ICON_NEXIT, 187, 75);
 			show_icon(down_screen_addr, &ICON_MNSEL, 173, 131);
+			color = COLOR_INACTIVE_MAIN;
 		}
-		draw_string_vcenter(down_screen_addr, 175, 131, 75, COLOR_WHITE, line_buffer);
+		draw_string_vcenter(down_screen_addr, 175, 131, 75, color, line_buffer);
 
 		//New
-		if(display_option++ == current_option)
+		if(display_option++ == current_option) {
 			show_icon(down_screen_addr, &ICON_MAINITEM, 0, 154);
-		else
+			color = COLOR_ACTIVE_MAIN;
+		}
+		else {
 			show_icon(down_screen_addr, &ICON_NMAINITEM, 0, 154);
-		draw_string_vcenter(down_screen_addr, 0, 165, 85, COLOR_WHITE, msg[MSG_MAIN_MENU_NEW_GAME]);
+			color = COLOR_INACTIVE_MAIN;
+		}
+		draw_string_vcenter(down_screen_addr, 0, 165, 85, color, msg[MSG_MAIN_MENU_NEW_GAME]);
 
 		//Restart
-		if(display_option++ == current_option)
+		if(display_option++ == current_option) {
 			show_icon(down_screen_addr, &ICON_MAINITEM, 85, 154);
-		else
+			color = COLOR_ACTIVE_MAIN;
+		}
+		else {
 			show_icon(down_screen_addr, &ICON_NMAINITEM, 85, 154);
-		draw_string_vcenter(down_screen_addr, 85, 165, 85, COLOR_WHITE, msg[MSG_MAIN_MENU_RETURN_TO_GAME]);
+			color = COLOR_INACTIVE_MAIN;
+		}
+		draw_string_vcenter(down_screen_addr, 85, 165, 85, color, msg[MSG_MAIN_MENU_RETURN_TO_GAME]);
 
 		//Return
-		if(display_option++ == current_option)
+		if(display_option++ == current_option) {
 			show_icon(down_screen_addr, &ICON_MAINITEM, 170, 154);
-		else
+			color = COLOR_ACTIVE_MAIN;
+		}
+		else {
 			show_icon(down_screen_addr, &ICON_NMAINITEM, 170, 154);
-		draw_string_vcenter(down_screen_addr, 170, 165, 85, COLOR_WHITE, msg[MSG_MAIN_MENU_RESET_GAME]);
+			color = COLOR_INACTIVE_MAIN;
+		}
+		draw_string_vcenter(down_screen_addr, 170, 165, 85, color, msg[MSG_MAIN_MENU_RESET_GAME]);
 	}
 
     void main_menu_key()
@@ -5784,6 +5809,53 @@ static u32 save_ss_bmp(u16 *image)
     fclose( ss );
 
     return 1;
+}
+
+u32 save_menu_ss_bmp(u16 *image)
+{
+    static unsigned char header[] ={ 'B',  'M',  0x00, 0x00, 0x00, 0x00, 0x00,
+                                    0x00, 0x00, 0x00, 0x36, 0x00, 0x00, 0x00,
+                                    0x28, 0x00, 0x00, 0x00, 0x00,    1, 0x00, /* <00 01> == 256 */
+                                    0x00,  192, 0x00, 0x00, 0x00, 0x01, 0x00,
+                                    0x18, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                                    0x00, 0x00, 0x00, 0x00, 0x00};
+
+	char save_ss_path[MAX_PATH];
+	struct rtc current_time;
+	unsigned char rgb_data[NDS_SCREEN_WIDTH*NDS_SCREEN_HEIGHT*3];
+	int x,y;
+	unsigned short col;
+	unsigned char r,g,b;
+
+	ds2_getTime(&current_time);
+	sprintf(save_ss_path, "%s/%s%02d%02d%02d%02d%02d.bmp", DEFAULT_SS_DIR, "gui_",
+		current_time.month, current_time.day,
+		current_time.hours, current_time.minutes, current_time.seconds);
+
+	for(y = 0; y < NDS_SCREEN_HEIGHT; y++)
+	{
+		for(x = 0; x < NDS_SCREEN_WIDTH; x++)
+		{
+			col = image[y * NDS_SCREEN_WIDTH + x];
+			r = (col >> 10) & 0x1F;
+			g = (col >> 5) & 0x1F;
+			b = (col) & 0x1F;
+
+			rgb_data[(NDS_SCREEN_HEIGHT-y-1)*NDS_SCREEN_WIDTH*3+x*3+2] = b << 3;
+			rgb_data[(NDS_SCREEN_HEIGHT-y-1)*NDS_SCREEN_WIDTH*3+x*3+1] = g << 3;
+			rgb_data[(NDS_SCREEN_HEIGHT-y-1)*NDS_SCREEN_WIDTH*3+x*3+0] = r << 3;
+		}
+	}
+
+	FILE *ss = fopen( save_ss_path, "wb" );
+	if( ss == NULL ) return 0;
+	fwrite( header, sizeof(header), 1, ss );
+	fwrite( rgb_data, 1, sizeof(rgb_data), ss);
+	fclose( ss );
+
+	return 1;
 }
 
 void game_disableAudio() {/* Nothing. sound_on applies immediately. */}

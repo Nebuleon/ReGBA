@@ -1,4 +1,4 @@
-TempGBA version 1.40, 2013-05-20
+TempGBA version 1.41, 2013-05-23
 
 A Game Boy Advance emulator for the Supercard DSTWO.
 

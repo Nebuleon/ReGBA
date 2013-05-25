@@ -61,25 +61,6 @@
 #define COLOR_TRANS         COLOR16(31, 31, 63)
 #define COLOR_WHITE         COLOR16(31, 31, 31)
 #define COLOR_BLACK         COLOR16( 0,  0,  0)
-#define COLOR_TEXT          COLOR16(31, 31, 31)
-#define COLOR_PROGRESS_TEXT COLOR16( 0,  0,  0)
-#define COLOR_PROGRESS_BAR  COLOR16(15, 15, 15)
-#define COLOR_ERROR         COLOR16(31,  0,  0)
-#define COLOR_BG            COLOR16(2,  4,  10)
-#define COLOR_BG32          COLOR32(2*8,  4*8,  10*8)
-#define COLOR_ROM_INFO      COLOR16(22, 18, 26)
-#define COLOR_HELP_TEXT     COLOR16(16, 20, 24)
-#define COLOR_DIALOG        COLOR16(31, 31, 31)
-#define COLOR_DIALOG_SHADOW COLOR16( 0,  2,  8)
-#define COLOR_FRAME         COLOR16( 0,  0,  0)
-#define COLOR_YESNO_TEXT    COLOR16( 0,  0,  0)
-#define COLOR_GREEN         COLOR16( 0, 31, 0 )
-#define COLOR_GREEN1        COLOR16( 0, 24, 0 )
-#define COLOR_GREEN2        COLOR16( 0, 18, 0 )
-#define COLOR_GREEN3        COLOR16( 0, 12, 0 )
-#define COLOR_GREEN4        COLOR16( 0, 6, 0 )
-#define COLOR_RED           COLOR16( 31, 0, 0 )
-#define COLOR_MSSG			COLOR16( 16, 8, 29)
 /******************************************************************************
  *
  ******************************************************************************/
@@ -87,8 +68,12 @@
 extern "C" {
 #endif
 
+extern u16 COLOR_BG;
 extern u16 COLOR_INACTIVE_ITEM;
 extern u16 COLOR_ACTIVE_ITEM;
+extern u16 COLOR_MSSG;
+extern u16 COLOR_INACTIVE_MAIN;
+extern u16 COLOR_ACTIVE_MAIN;
 
 struct background{
     char bgname[128];
