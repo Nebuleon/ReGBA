@@ -4220,7 +4220,7 @@ u32 menu(u16 *screen, int FirstInvocation)
     }
 
 	char* CACHE_NAMES[TRANSLATION_REGION_COUNT] = {
-		"IWRAM", "EWRAM", "VRAM", "ROM", "BIOS"
+		"IWRAM", "EWRAM", "VRAM", "ROM", "BIOS", "Reuse"
 	};
 	char* REASON_NAMES[FLUSH_REASON_COUNT] = {
 		"Init", "ROM", "Link", "Full", "Tag", "State"
@@ -4259,6 +4259,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 				case TRANSLATION_REGION_VRAM: Current = ewram_translation_ptr - ewram_translation_cache; break;
 				case TRANSLATION_REGION_ROM:   Current = rom_translation_ptr   - rom_translation_cache;   break;
 				case TRANSLATION_REGION_BIOS:  Current = bios_translation_ptr  - bios_translation_cache;  break;
+				case TRANSLATION_REGION_PERSISTENT: Current = persistent_translation_ptr  - persistent_translation_cache;  break;
 			}
 			sprintf(line_buffer, "%u", Current);
 			PRINT_STRING_BG(down_screen_addr, line_buffer, COLOR_INACTIVE_ITEM, COLOR_TRANS, OPTION_TEXT_X + 1 * (NDS_SCREEN_WIDTH - OPTION_TEXT_X * 2) / 4, GUI_ROW1_Y + (i + 1) * GUI_ROW_SY + TEXT_OFFSET_Y);
@@ -4301,9 +4302,9 @@ u32 menu(u16 *screen, int FirstInvocation)
 				PRINT_STRING_BG(down_screen_addr, line_buffer, COLOR_INACTIVE_ITEM, COLOR_TRANS, x, y);
 			}
 		}
-		PRINT_STRING_BG(down_screen_addr, "Partial flushes", COLOR_INACTIVE_ITEM, COLOR_TRANS, OPTION_TEXT_X, GUI_ROW1_Y + 6 * GUI_ROW_SY + TEXT_OFFSET_Y);
+		PRINT_STRING_BG(down_screen_addr, "Partial flushes", COLOR_INACTIVE_ITEM, COLOR_TRANS, OPTION_TEXT_X, GUI_ROW1_Y + 7 * GUI_ROW_SY + TEXT_OFFSET_Y);
 		sprintf(line_buffer, "%u", Stats.PartialFlushCount);
-		PRINT_STRING_BG(down_screen_addr, line_buffer, COLOR_INACTIVE_ITEM, COLOR_TRANS, NDS_SCREEN_WIDTH / 2, GUI_ROW1_Y + 6 * GUI_ROW_SY + TEXT_OFFSET_Y);
+		PRINT_STRING_BG(down_screen_addr, line_buffer, COLOR_INACTIVE_ITEM, COLOR_TRANS, NDS_SCREEN_WIDTH / 2, GUI_ROW1_Y + 7 * GUI_ROW_SY + TEXT_OFFSET_Y);
 	}
 
 	void reload_cheats_page()

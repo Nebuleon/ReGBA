@@ -92,10 +92,11 @@ typedef enum
   TRANSLATION_REGION_EWRAM,
   TRANSLATION_REGION_VRAM,
   TRANSLATION_REGION_ROM,
-  TRANSLATION_REGION_BIOS
+  TRANSLATION_REGION_BIOS,
+  TRANSLATION_REGION_PERSISTENT
 } TRANSLATION_REGION_TYPE;
 
-#define TRANSLATION_REGION_COUNT 5
+#define TRANSLATION_REGION_COUNT 6
 
 typedef enum {
   /* All caches are being thoroughly flushed during initialisation. */
@@ -150,11 +151,13 @@ extern u8 iwram_translation_cache[IWRAM_TRANSLATION_CACHE_SIZE];
 extern u8 ewram_translation_cache[EWRAM_TRANSLATION_CACHE_SIZE];
 extern u8 vram_translation_cache[VRAM_TRANSLATION_CACHE_SIZE];
 extern u8 bios_translation_cache[BIOS_TRANSLATION_CACHE_SIZE];
+extern u8 persistent_translation_cache[PERSISTENT_TRANSLATION_CACHE_SIZE];
 extern u8 *rom_translation_ptr;
 extern u8 *iwram_translation_ptr;
 extern u8 *ewram_translation_ptr;
 extern u8 *vram_translation_ptr;
 extern u8 *bios_translation_ptr;
+extern u8 *persistent_translation_ptr;
 
 #define MAX_TRANSLATION_GATES 8
 #define MAX_IDLE_LOOPS 8
@@ -174,9 +177,11 @@ extern u32 in_interrupt;
 
 // extern u32 bios_mode;
 
-#define ROM_BRANCH_HASH_SIZE (1024 * 64)
+#define ROM_BRANCH_HASH_SIZE 65536 /* Must be a power of 2, 2 <= n <= 65536 */
+#define PERSISTENT_HASH_SIZE 65536 /* Must be a power of 2, 2 <= n <= 65536 */
 
 extern u32 *rom_branch_hash[ROM_BRANCH_HASH_SIZE];
+extern void* persistent_hash[PERSISTENT_HASH_SIZE];
 
 void partial_flush_ram();
 void flush_translation_cache(TRANSLATION_REGION_TYPE translation_region,

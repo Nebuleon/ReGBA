@@ -2856,7 +2856,7 @@ dma_region_type dma_region_map[16] =
      * location. See "doc/partial flushing of RAM code.txt" for more info. */ \
     u16 smc = iwram_metadata[(type##_ptr & 0x7FFC) | 3] & 0x3;                \
     if (smc) {                                                                \
-      partial_flush_ram(type##_ptr);                                          \
+      partial_clear_metadata(type##_ptr);                                     \
     }                                                                         \
     smc_trigger |= smc;                                                       \
   }                                                                           \
@@ -2875,7 +2875,7 @@ dma_region_type dma_region_map[16] =
     else                                                                      \
       smc = vram_metadata[(type##_ptr & 0xFFFC) | 3] & 0x3;                   \
     if (smc) {                                                                \
-      partial_flush_ram(type##_ptr);                                          \
+      partial_clear_metadata(type##_ptr);                                     \
     }                                                                         \
     smc_trigger |= smc;                                                       \
   }                                                                           \
@@ -2899,7 +2899,7 @@ dma_region_type dma_region_map[16] =
      * location. See "doc/partial flushing of RAM code.txt" for more info. */ \
     u16 smc = ewram_metadata[(type##_ptr & 0x3FFFC) | 3] & 0x3;               \
     if (smc) {                                                                \
-      partial_flush_ram(type##_ptr);                                          \
+      partial_clear_metadata(type##_ptr);                                     \
     }                                                                         \
     smc_trigger |= smc;                                                       \
   }                                                                           \

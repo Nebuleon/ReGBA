@@ -217,6 +217,7 @@ void init_main()
   flush_translation_cache(TRANSLATION_REGION_ROM, flush_reason);
   flush_translation_cache(TRANSLATION_REGION_IWRAM, flush_reason);
   flush_translation_cache(TRANSLATION_REGION_EWRAM, flush_reason);
+  flush_translation_cache(TRANSLATION_REGION_PERSISTENT, flush_reason);
 
   caches_inited = 1;
 

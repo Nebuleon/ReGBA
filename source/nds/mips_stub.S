@@ -3664,7 +3664,7 @@ ext_aligned_store32:
 smc_write:
   save_registers
   or  $4, $2, $4                  # $4 (param 1) = (address line << 24) | offs
-  jal partial_flush_ram           # flush some of the translation cache
+  jal partial_clear_metadata      # flush some of the Metadata Entries
   sw $6, REG_PC($16)              # save PC (delay slot)
 
 lookup_pc:

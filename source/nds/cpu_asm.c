@@ -33,6 +33,9 @@
 
 #define CACHE_LINE_SIZE 32
 
+#define EXPAND_AS_STRING(x) AS_STRING(x)
+#define AS_STRING(x) #x
+
 u32 reg_mode[7][7];
  
 const u8 cpu_modes[32] =
@@ -75,6 +78,9 @@ u8 ewram_translation_cache[EWRAM_TRANSLATION_CACHE_SIZE];
 u8 *ewram_translation_ptr = ewram_translation_cache;
 u8 vram_translation_cache[VRAM_TRANSLATION_CACHE_SIZE];
 u8 *vram_translation_ptr = vram_translation_cache;
+u8 persistent_translation_cache[PERSISTENT_TRANSLATION_CACHE_SIZE];
+u8 *persistent_translation_ptr = persistent_translation_cache;
+void* persistent_hash[PERSISTENT_HASH_SIZE];
 u32 iwram_code_min = 0xFFFFFFFF;
 u32 iwram_code_max = 0xFFFFFFFF;
 u32 ewram_code_min = 0xFFFFFFFF;
@@ -103,7 +109,6 @@ u32 iwram_stack_optimize = 1;
 typedef struct
 {
   u8 *block_offset;
-  u32 opcode;
   u16 flag_data;
   u8 condition;
   u8 update_cycles;
@@ -112,7 +117,6 @@ typedef struct
 typedef struct
 {
   u8 *block_offset;
-  u32 opcode;
   u16 flag_data;
   u8 update_cycles;
 } block_data_thumb_type;
@@ -122,6 +126,13 @@ typedef struct
   u32 branch_target;
   u8 *branch_source;
 } block_exit_type;
+
+struct ReuseHeader {
+	u32 PC;
+	struct ReuseHeader* Next;
+	u32 GBACodeSize;
+	u32 NativeCodeSize;
+};
 
 #define arm_decode_data_proc_reg()                                            \
   u32 rn = (opcode >> 16) & 0x0F;                                             \
@@ -279,7 +290,7 @@ static inline void StatsAddThumbOpcode() {}
 #endif
 
 #define translate_arm_instruction()                                           \
-  opcode = block_data.arm[block_data_position].opcode;                        \
+  opcode = opcodes.arm[block_data_position];                                  \
   condition = block_data.arm[block_data_position].condition;                  \
   u32 has_condition_header = 0;                                               \
                                                                               \
@@ -1671,14 +1682,14 @@ static inline void StatsAddThumbOpcode() {}
                                                                               \
   pc += 4                                                                     \
 
-static void arm_flag_status(block_data_arm_type* block_data)
+static void arm_flag_status(block_data_arm_type* block_data, u32 opcode)
 {
 }
 
 #define translate_thumb_instruction()                                         \
   flag_status = block_data.thumb[block_data_position].flag_data;              \
   last_opcode = opcode;                                                       \
-  opcode = block_data.thumb[block_data_position].opcode;                      \
+  opcode = opcodes.thumb[block_data_position];                                \
                                                                               \
   StatsAddThumbOpcode();                                                      \
                                                                               \
@@ -2141,9 +2152,8 @@ static void arm_flag_status(block_data_arm_type* block_data)
 #define thumb_flag_requires_all()                                             \
   flag_status |= 0xF00                                                        \
 
-static void thumb_flag_status(block_data_thumb_type* block_data)
+static void thumb_flag_status(block_data_thumb_type* block_data, u16 opcode)
 {
-  u32 opcode = block_data->opcode;
   u16 flag_status = 0;
   switch((opcode >> 8) & 0xFF)
   {
@@ -2572,6 +2582,7 @@ u8 *block_lookup_address_dual(u32 pc)
 
 #define arm_load_opcode()                                                     \
   opcode = ADDRESS32(pc_address_block, (block_end_pc & 0x7FFF));              \
+  opcodes.arm[block_data_position] = opcode;                                  \
   condition = opcode >> 28;                                                   \
                                                                               \
   opcode &= 0xFFFFFFF;                                                        \
@@ -2637,6 +2648,8 @@ u8 *block_lookup_address_dual(u32 pc)
   translation_target = block_lookup_address_arm(branch_target)                \
 
 #define arm_instruction_width 4
+#define arm_instruction_nibbles 8
+#define arm_instruction_type u32
 
 #ifdef OLD_COUNT
 #define arm_base_cycles()                                                     \
@@ -2681,6 +2694,7 @@ u8 *block_lookup_address_dual(u32 pc)
 #define thumb_load_opcode()                                                   \
   last_opcode = opcode;                                                       \
   opcode = ADDRESS16(pc_address_block, (block_end_pc & 0x7FFF));              \
+  opcodes.thumb[block_data_position] = opcode;                                \
                                                                               \
   block_end_pc += 2                                                           \
 
@@ -2718,6 +2732,8 @@ u8 *block_lookup_address_dual(u32 pc)
     translation_target = block_lookup_address_arm(branch_target)              \
 
 #define thumb_instruction_width 2
+#define thumb_instruction_nibbles 4
+#define thumb_instruction_type u16
 
 #ifdef OLD_COUNT
 #define thumb_base_cycles()                                                   \
@@ -2781,7 +2797,13 @@ typedef union {
   block_data_thumb_type thumb[MAX_BLOCK_SIZE];
 } block_data_type;
 
+typedef union {
+  u32 arm[MAX_BLOCK_SIZE];
+  u16 thumb[MAX_BLOCK_SIZE];
+} opcode_data_type;
+
 block_data_type block_data;
+opcode_data_type opcodes;
 
 #define smc_write_arm_yes()                                                   \
   switch (block_end_pc >> 24)                                                 \
@@ -2946,8 +2968,8 @@ static s32 BinarySearch(u32* Array, u32 Value, u32 Size)
     check_pc_region(block_end_pc);                                            \
     smc_write_##type##_##smc_write_op();                                      \
     type##_load_opcode();                                                     \
-    block_data.type[block_data_position].opcode = opcode;                     \
-    type##_flag_status(&block_data.type[block_data_position]);                \
+    type##_flag_status(&block_data.type[block_data_position],                 \
+     opcodes.type[block_data_position]);                                      \
                                                                               \
     if(type##_exit_point)                                                     \
     {                                                                         \
@@ -3059,6 +3081,49 @@ static inline void FlushCacheLine(void* CacheLine)
 }
 #endif
 
+#if defined SERIAL_TRACE || defined SERIAL_TRACE_RECOMPILATION
+
+#define trace_recompilation(type)                                             \
+    serial_timestamp_printf("T: At %08X, block size %u, checksum %04X",       \
+     block_start_pc, block_end_pc - block_start_pc, checksum);                \
+    char Line[80], Element[10];                                               \
+    Line[0] = ' '; Line[1] = '\0';                                            \
+    u32 pc_itr;                                                               \
+    for (pc_itr = block_start_pc; pc_itr < block_end_pc;                      \
+         pc_itr += type##_instruction_width)                                  \
+    {                                                                         \
+      sprintf(Element, "%0" EXPAND_AS_STRING(type##_instruction_nibbles) "X ",\
+       opcodes.type[(pc_itr - block_start_pc) / type##_instruction_width]);   \
+      strcat(Line, Element);                                                  \
+      if (strlen(Line) >= 59)                                                 \
+      {                                                                       \
+        serial_timestamp_printf(Line);                                        \
+        Line[0] = ' '; Line[1] = '\0';                                        \
+      }                                                                       \
+    }                                                                         \
+    if (Line[1] != '\0')                                                      \
+    {                                                                         \
+      serial_timestamp_printf(Line);                                          \
+    }                                                                         \
+
+#else
+
+#define trace_recompilation(type)
+
+#endif
+
+#if defined SERIAL_TRACE || defined SERIAL_TRACE_REUSE
+
+#define trace_reuse()                                                         \
+        serial_timestamp_printf("T: At %08X, block size %u, checksum %04X, "  \
+         "reused", block_start_pc, block_end_pc - block_start_pc, checksum);  \
+
+#else
+
+#define trace_reuse()
+
+#endif
+
 #define translate_block_builder(type)                                         \
 s32 translate_block_##type(u32 pc)                                            \
 {                                                                             \
@@ -3093,9 +3158,6 @@ s32 translate_block_##type(u32 pc)                                            \
   switch(pc >> 24)                                                            \
   {                                                                           \
     case 0x02: /* EWRAM */                                                    \
-      if((pc < ewram_code_min) || (ewram_code_min == 0xFFFFFFFF))             \
-        ewram_code_min = pc;                                                  \
-                                                                              \
       translation_ptr = ewram_translation_ptr;                                \
       translation_cache_limit =                                               \
        ewram_translation_cache + EWRAM_TRANSLATION_CACHE_SIZE -               \
@@ -3104,9 +3166,6 @@ s32 translate_block_##type(u32 pc)                                            \
       break;                                                                  \
                                                                               \
     case 0x03: /* IWRAM */                                                    \
-      if((pc < iwram_code_min) || (iwram_code_min == 0xFFFFFFFF))             \
-        iwram_code_min = pc;                                                  \
-                                                                              \
       translation_ptr = iwram_translation_ptr;                                \
       translation_cache_limit =                                               \
        iwram_translation_cache + IWRAM_TRANSLATION_CACHE_SIZE -               \
@@ -3115,9 +3174,6 @@ s32 translate_block_##type(u32 pc)                                            \
       break;                                                                  \
                                                                               \
     case 0x06: /* VRAM */                                                     \
-      if((pc < vram_code_min) || (vram_code_min == 0xFFFFFFFF))               \
-        vram_code_min = pc;                                                   \
-                                                                              \
       translation_ptr = vram_translation_ptr;                                 \
       translation_cache_limit =                                               \
        vram_translation_cache + VRAM_TRANSLATION_CACHE_SIZE -                 \
@@ -3142,7 +3198,13 @@ s32 translate_block_##type(u32 pc)                                            \
       break;                                                                  \
   }                                                                           \
                                                                               \
-  generate_block_prologue();                                                  \
+  update_metadata_area_start(pc);                                             \
+                                                                              \
+  /* Where can we modify the address of the current header for linking? */    \
+  struct ReuseHeader** HeaderAddr;                                            \
+  /* Where is the current header? */                                          \
+  struct ReuseHeader* Header;                                                 \
+  u16 checksum;                                                               \
                                                                               \
   u8 translation_gate_required = 0; /* gets updated by scan_block */          \
                                                                               \
@@ -3153,11 +3215,94 @@ s32 translate_block_##type(u32 pc)                                            \
   if(!translation_region_read_only)                                           \
   {                                                                           \
     scan_block(type, yes);                                                    \
+                                                                              \
+    checksum = block_checksum_##type(block_data_position);                    \
+                                                                              \
+    /* Is a block with this checksum available? */                            \
+    HeaderAddr = (struct ReuseHeader **) &persistent_hash[checksum &          \
+     (PERSISTENT_HASH_SIZE - 1)];                                             \
+    Header = *HeaderAddr;                                                     \
+    while (Header != NULL)                                                    \
+    {                                                                         \
+      if (Header->PC == block_start_pc                                        \
+       && Header->GBACodeSize == block_end_pc - block_start_pc                \
+       && memcmp(opcodes.type, Header + 1, Header->GBACodeSize) == 0)         \
+      {                                                                       \
+        /* The code has been determined to be identical. Yay! */              \
+        trace_reuse();                                                        \
+                                                                              \
+        /* a) Is there enough space for the copy in the target cache? */      \
+        if(translation_ptr + Header->NativeCodeSize > translation_cache_limit)\
+        {                                                                     \
+          translation_flush_count++;                                          \
+                                                                              \
+          switch (pc >> 24)                                                   \
+          {                                                                   \
+            case 0x00: /* BIOS */                                             \
+              flush_translation_cache(TRANSLATION_REGION_BIOS,                \
+               FLUSH_REASON_FULL_CACHE);                                      \
+              break;                                                          \
+                                                                              \
+            case 0x02: /* EWRAM */                                            \
+              flush_translation_cache(TRANSLATION_REGION_EWRAM,               \
+               FLUSH_REASON_FULL_CACHE);                                      \
+              break;                                                          \
+                                                                              \
+            case 0x03: /* IWRAM */                                            \
+              flush_translation_cache(TRANSLATION_REGION_IWRAM,               \
+               FLUSH_REASON_FULL_CACHE);                                      \
+              break;                                                          \
+                                                                              \
+            case 0x06: /* VRAM */                                             \
+              flush_translation_cache(TRANSLATION_REGION_VRAM,                \
+               FLUSH_REASON_FULL_CACHE);                                      \
+              break;                                                          \
+                                                                              \
+            case 0x08 ... 0x0D: /* ROM */                                     \
+              flush_translation_cache(TRANSLATION_REGION_ROM,                 \
+               FLUSH_REASON_FULL_CACHE);                                      \
+              break;                                                          \
+          }                                                                   \
+                                                                              \
+          return -1;                                                          \
+        }                                                                     \
+                                                                              \
+        /* b) Enough space. Perform the copy. */                              \
+        u8* Source = (u8 *) (Header + 1) + Header->GBACodeSize;               \
+        if (Header->GBACodeSize & (CODE_ALIGN_SIZE - 1) != 0)                 \
+          Source += CODE_ALIGN_SIZE - (Header->GBACodeSize &                  \
+           (CODE_ALIGN_SIZE - 1));                                            \
+        update_trampoline = translation_ptr;                                  \
+        memcpy(translation_ptr, Source, Header->NativeCodeSize);              \
+        translation_ptr += Header->NativeCodeSize;                            \
+                                                                              \
+        /* c) Adjust the Metadata Entries for the GBA Data Words that were    \
+         *    just reused, as if they had been recompiled. */                 \
+        pc = block_end_pc;                                                    \
+        for (block_end_pc = block_start_pc;                                   \
+             block_end_pc < pc;                                               \
+             block_end_pc += type##_instruction_width)                        \
+        {                                                                     \
+          smc_write_##type##_yes();                                           \
+        }                                                                     \
+        unconditional_branch_write_##type##_yes();                            \
+                                                                              \
+        goto finalize; /* d) Make the new code visible to the processor */    \
+      }                                                                       \
+                                                                              \
+      HeaderAddr = &Header->Next;                                             \
+      Header = *HeaderAddr;                                                   \
+    }                                                                         \
+                                                                              \
+    /* If we get here, we could not reuse code. */                            \
+    trace_recompilation(type);                                                \
   }                                                                           \
   else                                                                        \
   {                                                                           \
     scan_block(type, no);                                                     \
   }                                                                           \
+                                                                              \
+  generate_block_prologue();                                                  \
                                                                               \
   for(i = 0; i < block_exit_position; i++)                                    \
   {                                                                           \
@@ -3242,60 +3387,97 @@ s32 translate_block_##type(u32 pc)                                            \
     generate_translation_gate(type);                                          \
   }                                                                           \
                                                                               \
-  for(i = 0; i < block_exit_position; i++)                                    \
+  if (translation_region_read_only)                                           \
   {                                                                           \
-    branch_target = block_exits[i].branch_target;                             \
-                                                                              \
-    if((branch_target >= block_start_pc) && (branch_target < block_end_pc))   \
-    {                                                                         \
-      /* Internal branch, patch to recorded address */                        \
-      translation_target =                                                    \
-       block_data.type[(branch_target - block_start_pc) /                     \
-        type##_instruction_width].block_offset;                               \
-                                                                              \
-      generate_branch_patch_unconditional(block_exits[i].branch_source,       \
-       translation_target);                                                   \
-    }                                                                         \
-    else                                                                      \
-    {                                                                         \
-      /* This branch exits the basic block. If the branch target is in a      \
-       * read-only code area (the BIOS or the Game Pak ROM), we can link the  \
-       * block statically below. THIS BEHAVIOUR NEEDS TO BE DUPLICATED IN THE \
-       * EMITTER. Please see your emitter's generate_branch_no_cycle_update   \
-       * macro for more information. */                                       \
-      if (branch_target < 0x00004000 /* BIOS */                               \
-      || (branch_target >= 0x08000000 && branch_target < 0x0E000000))         \
-      {                                                                       \
-        if (i != external_block_exit_position)                                \
-        {                                                                     \
-          memcpy(&block_exits[external_block_exit_position], &block_exits[i], \
-            sizeof(block_exit_type));                                         \
-        }                                                                     \
-        external_block_exit_position++;                                       \
-      }                                                                       \
-    }                                                                         \
+    for(i = 0; i < block_exit_position; i++)                                    \
+    {                                                                           \
+      branch_target = block_exits[i].branch_target;                             \
+                                                                                \
+      if((branch_target >= block_start_pc) && (branch_target < block_end_pc))   \
+      {                                                                         \
+        /* Internal branch, patch to recorded address */                        \
+        translation_target =                                                    \
+         block_data.type[(branch_target - block_start_pc) /                     \
+          type##_instruction_width].block_offset;                               \
+                                                                                \
+        generate_branch_patch_unconditional(block_exits[i].branch_source,       \
+         translation_target);                                                   \
+      }                                                                         \
+      else                                                                      \
+      {                                                                         \
+        /* This branch exits the basic block. If the branch target is in a      \
+         * read-only code area (the BIOS or the Game Pak ROM), we can link the  \
+         * block statically below. THIS BEHAVIOUR NEEDS TO BE DUPLICATED IN THE \
+         * EMITTER. Please see your emitter's generate_branch_no_cycle_update   \
+         * macro for more information. */                                       \
+        if (branch_target < 0x00004000 /* BIOS */                               \
+        || (branch_target >= 0x08000000 && branch_target < 0x0E000000))         \
+        {                                                                       \
+          if (i != external_block_exit_position)                                \
+          {                                                                     \
+            memcpy(&block_exits[external_block_exit_position], &block_exits[i], \
+              sizeof(block_exit_type));                                         \
+          }                                                                     \
+          external_block_exit_position++;                                       \
+        }                                                                       \
+      }                                                                         \
+    }                                                                           \
   }                                                                           \
+                                                                              \
+  if (!translation_region_read_only)                                          \
+  {                                                                           \
+    u32 Alignment = 0;                                                        \
+    if ((block_end_pc - block_start_pc) & (CODE_ALIGN_SIZE - 1) != 0)         \
+      Alignment = CODE_ALIGN_SIZE - ((block_end_pc - block_start_pc) &        \
+       (CODE_ALIGN_SIZE - 1));                                                \
+                                                                              \
+    if (persistent_translation_ptr + sizeof(struct ReuseHeader)               \
+      + (block_end_pc - block_start_pc) + Alignment                           \
+      + (translation_ptr - update_trampoline) + 3                             \
+      > persistent_translation_cache + PERSISTENT_TRANSLATION_CACHE_SIZE)     \
+    {                                                                         \
+      flush_translation_cache(TRANSLATION_REGION_PERSISTENT,                  \
+       FLUSH_REASON_FULL_CACHE);                                              \
+      HeaderAddr = (struct ReuseHeader **) &persistent_hash[checksum &        \
+       (PERSISTENT_HASH_SIZE - 1)];                                           \
+    }                                                                         \
+    Header = (struct ReuseHeader*) persistent_translation_ptr;                \
+    *HeaderAddr = Header;                                                     \
+                                                                              \
+    Header->PC = block_start_pc;                                              \
+    Header->Next = NULL;                                                      \
+    Header->GBACodeSize = block_end_pc - block_start_pc;                      \
+    Header->NativeCodeSize = translation_ptr - update_trampoline;             \
+                                                                              \
+    persistent_translation_ptr += sizeof(struct ReuseHeader);                 \
+    memcpy(persistent_translation_ptr, opcodes.type, block_end_pc -           \
+     block_start_pc);                                                         \
+                                                                              \
+    persistent_translation_ptr += (block_end_pc - block_start_pc) + Alignment;\
+    memcpy(persistent_translation_ptr, update_trampoline,                     \
+     translation_ptr - update_trampoline);                                    \
+                                                                              \
+    persistent_translation_ptr += translation_ptr - update_trampoline;        \
+    if (((unsigned int) persistent_translation_ptr & 3) != 0)                 \
+      persistent_translation_ptr += sizeof(u32) -                             \
+       ((unsigned int) persistent_translation_ptr & 3);                       \
+    AdjustTranslationBufferPeak(TRANSLATION_REGION_PERSISTENT);               \
+  }                                                                           \
+                                                                              \
+  finalize:                                                                   \
+  update_metadata_area_end(pc);                                               \
                                                                               \
   switch(pc >> 24)                                                            \
   {                                                                           \
     case 0x02: /* EWRAM */                                                    \
-      if((pc > ewram_code_max) || (ewram_code_max == 0xFFFFFFFF))             \
-        ewram_code_max = pc;                                                  \
-                                                                              \
       ewram_translation_ptr = translation_ptr;                                \
       break;                                                                  \
                                                                               \
     case 0x03: /* IWRAM */                                                    \
-      if((pc > iwram_code_max) || (iwram_code_max == 0xFFFFFFFF))             \
-        iwram_code_max = pc;                                                  \
-                                                                              \
       iwram_translation_ptr = translation_ptr;                                \
       break;                                                                  \
                                                                               \
     case 0x06: /* VRAM */                                                     \
-      if((pc > vram_code_max) || (vram_code_max == 0xFFFFFFFF))               \
-        vram_code_max = pc;                                                   \
-                                                                              \
       vram_translation_ptr = translation_ptr;                                 \
       break;                                                                  \
                                                                               \
@@ -3331,17 +3513,96 @@ s32 translate_block_##type(u32 pc)                                            \
   return 0;                                                                   \
 }                                                                             \
 
+static u16 block_checksum_arm(u32 block_data_count);
+static u16 block_checksum_thumb(u32 block_data_count);
+
+static void update_metadata_area_start(u32 pc);
+static void update_metadata_area_end(u32 pc);
+
 translate_block_builder(arm);
 translate_block_builder(thumb);
 
-static void partial_flush_ram_arm(u16* metadata, u16* metadata_area_start, u16* metadata_area_end);
-static void partial_flush_ram_thumb(u16* metadata, u16* metadata_area_start, u16* metadata_area_end);
+static u16 block_checksum_arm(u32 opcode_count)
+{
+	// Init: Checksum = NOT Opcodes[0]
+	// assert opcode_count > 0;
+	u32 result = ~opcodes.arm[0], i;
+	for (i = 1; i < opcode_count; i++)
+	{
+		// Step: Checksum = Checksum XOR (Opcodes[N] SHR (N AND 7))
+		// for fewer collisions if instructions are similar at different places
+		result ^= opcodes.arm[i] >> (i & 7);
+	}
+	// Final: Map into bits 15..1, clear bit 0 to indicate ARM
+	return (u16) (((result >> 16) ^ result) & 0xFFFE);
+}
+
+static u16 block_checksum_thumb(u32 opcode_count)
+{
+	// Init: Checksum = NOT Opcodes[0]
+	// assert opcode_count > 0;
+	u16 result = ~opcodes.thumb[0];
+	u32 i;
+	for (i = 1; i < opcode_count; i++)
+	{
+		// Step: Checksum = Checksum XOR (Opcodes[N] SHR (N AND 7))
+		// for fewer collisions if instructions are similar at different places
+		result ^= opcodes.thumb[i] >> (i & 7);
+	}
+	// Final: Set bit 0 to indicate Thumb
+	return result | 0x0001;
+}
+
+static void update_metadata_area_start(u32 pc)
+{
+  switch(pc >> 24)
+  {
+    case 0x02: /* EWRAM */
+      if((pc < ewram_code_min) || (ewram_code_min == 0xFFFFFFFF))
+        ewram_code_min = pc;
+      break;
+
+    case 0x03: /* IWRAM */
+      if((pc < iwram_code_min) || (iwram_code_min == 0xFFFFFFFF))
+        iwram_code_min = pc;
+      break;
+
+    case 0x06: /* VRAM */
+      if((pc < vram_code_min) || (vram_code_min == 0xFFFFFFFF))
+        vram_code_min = pc;
+      break;
+  }
+}
+
+static void update_metadata_area_end(u32 pc)
+{
+  switch(pc >> 24)
+  {
+    case 0x02: /* EWRAM */
+      if((pc > ewram_code_max) || (ewram_code_max == 0xFFFFFFFF))
+        ewram_code_max = pc;
+      break;
+
+    case 0x03: /* IWRAM */
+      if((pc > iwram_code_max) || (iwram_code_max == 0xFFFFFFFF))
+        iwram_code_max = pc;
+      break;
+
+    case 0x06: /* VRAM */
+      if((pc > vram_code_max) || (vram_code_max == 0xFFFFFFFF))
+        vram_code_max = pc;
+      break;
+  }
+}
+
+static void partial_clear_metadata_arm(u16* metadata, u16* metadata_area_start, u16* metadata_area_end);
+static void partial_clear_metadata_thumb(u16* metadata, u16* metadata_area_start, u16* metadata_area_end);
 
 /*
- * Starts a Partial Flush of the code residing in the Data Word at the given
- * GBA address, and all adjacent code words.
+ * Starts a Partial Clear of the Metadata Entry for the Data Word at the given
+ * GBA address, and all adjacent Metadata Entries.
  */
-void partial_flush_ram(u32 address)
+void partial_clear_metadata(u32 address)
 {
   // 1. Determine where the Metadata Entry for this Data Word is.
   u16 *metadata;
@@ -3392,12 +3653,12 @@ void partial_flush_ram(u32 address)
 
   u16 contents = metadata[3];
   if (contents & 0x1)
-    partial_flush_ram_thumb(metadata, metadata_area, metadata_area_end);
+    partial_clear_metadata_thumb(metadata, metadata_area, metadata_area_end);
   if (contents & 0x2)
-    partial_flush_ram_arm(metadata, metadata_area, metadata_area_end);
+    partial_clear_metadata_arm(metadata, metadata_area, metadata_area_end);
 }
 
-static void partial_flush_ram_thumb(u16* metadata, u16* metadata_area_start, u16* metadata_area_end)
+static void partial_clear_metadata_thumb(u16* metadata, u16* metadata_area_start, u16* metadata_area_end)
 {
   u16* metadata_right = metadata; // Save this pointer to go to the right later
   // 4. Clear tags for code to the left.
@@ -3438,7 +3699,7 @@ static void partial_flush_ram_thumb(u16* metadata, u16* metadata_area_start, u16
   }
 }
 
-static void partial_flush_ram_arm(u16* metadata, u16* metadata_area_start, u16* metadata_area_end)
+static void partial_clear_metadata_arm(u16* metadata, u16* metadata_area_start, u16* metadata_area_end)
 {
   u16* metadata_right = metadata; // Save this pointer to go to the right later
   // 4. Clear tags for code to the left.
@@ -3560,6 +3821,8 @@ void flush_translation_cache(TRANSLATION_REGION_TYPE translation_region,
 					FLUSH_REASON_NATIVE_BRANCHING);
 				flush_translation_cache(TRANSLATION_REGION_VRAM,
 					FLUSH_REASON_NATIVE_BRANCHING);
+				flush_translation_cache(TRANSLATION_REGION_PERSISTENT,
+					FLUSH_REASON_NATIVE_BRANCHING);
 			}
 			break;
 		case TRANSLATION_REGION_BIOS:
@@ -3580,7 +3843,15 @@ void flush_translation_cache(TRANSLATION_REGION_TYPE translation_region,
 					FLUSH_REASON_NATIVE_BRANCHING);
 				flush_translation_cache(TRANSLATION_REGION_VRAM,
 					FLUSH_REASON_NATIVE_BRANCHING);
+				flush_translation_cache(TRANSLATION_REGION_PERSISTENT,
+					FLUSH_REASON_NATIVE_BRANCHING);
 			}
+			break;
+		case TRANSLATION_REGION_PERSISTENT:
+			Stats.TranslationBytesFlushed[translation_region] +=
+				persistent_translation_ptr - persistent_translation_cache;
+			persistent_translation_ptr = persistent_translation_cache;
+			memset(persistent_hash, 0, sizeof(persistent_hash));
 			break;
 	}
 }
