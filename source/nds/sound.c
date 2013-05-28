@@ -930,7 +930,9 @@ static int sound_update()
 				// Minimum skip 2
 				if(SKIP_RATE > 2)
 				{
+#if defined SERIAL_TRACE || defined SERIAL_TRACE_FRAMESKIP
 					serial_timestamp_printf("I: Decreasing automatic frameskip: %u..%u", SKIP_RATE, SKIP_RATE - 1);
+#endif
 					SKIP_RATE--;
 				}
 			}
@@ -940,7 +942,9 @@ static int sound_update()
 				// Maximum skip 9
 				if(SKIP_RATE < 8)
 				{
+#if defined SERIAL_TRACE || defined SERIAL_TRACE_FRAMESKIP
 					serial_timestamp_printf("I: Increasing automatic frameskip: %u..%u", SKIP_RATE, SKIP_RATE + 1);
+#endif
 					SKIP_RATE++;
 				}
 			}
@@ -962,12 +966,16 @@ static int sound_update()
 	{
 		if (n >= 2 && SKIP_RATE > 2)
 		{
+#if defined SERIAL_TRACE || defined SERIAL_TRACE_FRAMESKIP
 			serial_timestamp_printf("I: Decreasing automatic frameskip: %u..%u", SKIP_RATE, SKIP_RATE - 1);
+#endif
 			SKIP_RATE--;
 		}
 		else if (n < 2 && SKIP_RATE < 8)
 		{
+#if defined SERIAL_TRACE || defined SERIAL_TRACE_FRAMESKIP
 			serial_timestamp_printf("I: Increasing automatic frameskip: %u..%u", SKIP_RATE, SKIP_RATE + 1);
+#endif
 			SKIP_RATE++;
 		}
 	}

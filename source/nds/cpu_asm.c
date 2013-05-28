@@ -2394,6 +2394,9 @@ static inline void AdjustTranslationBufferPeak(TRANSLATION_REGION_TYPE translati
 		case TRANSLATION_REGION_BIOS:
 			Size = bios_translation_ptr - bios_translation_cache;
 			break;
+		case TRANSLATION_REGION_PERSISTENT:
+			Size = persistent_translation_ptr - persistent_translation_cache;
+			break;
 	}
 	if (Size > Stats.TranslationBytesPeak[translation_region])
 		Stats.TranslationBytesPeak[translation_region] = Size;
@@ -3387,41 +3390,39 @@ s32 translate_block_##type(u32 pc)                                            \
     generate_translation_gate(type);                                          \
   }                                                                           \
                                                                               \
-  if (translation_region_read_only)                                           \
+  for(i = 0; i < block_exit_position; i++)                                    \
   {                                                                           \
-    for(i = 0; i < block_exit_position; i++)                                    \
-    {                                                                           \
-      branch_target = block_exits[i].branch_target;                             \
-                                                                                \
-      if((branch_target >= block_start_pc) && (branch_target < block_end_pc))   \
-      {                                                                         \
-        /* Internal branch, patch to recorded address */                        \
-        translation_target =                                                    \
-         block_data.type[(branch_target - block_start_pc) /                     \
-          type##_instruction_width].block_offset;                               \
-                                                                                \
-        generate_branch_patch_unconditional(block_exits[i].branch_source,       \
-         translation_target);                                                   \
-      }                                                                         \
-      else                                                                      \
-      {                                                                         \
-        /* This branch exits the basic block. If the branch target is in a      \
-         * read-only code area (the BIOS or the Game Pak ROM), we can link the  \
-         * block statically below. THIS BEHAVIOUR NEEDS TO BE DUPLICATED IN THE \
-         * EMITTER. Please see your emitter's generate_branch_no_cycle_update   \
-         * macro for more information. */                                       \
-        if (branch_target < 0x00004000 /* BIOS */                               \
-        || (branch_target >= 0x08000000 && branch_target < 0x0E000000))         \
-        {                                                                       \
-          if (i != external_block_exit_position)                                \
-          {                                                                     \
-            memcpy(&block_exits[external_block_exit_position], &block_exits[i], \
-              sizeof(block_exit_type));                                         \
-          }                                                                     \
-          external_block_exit_position++;                                       \
-        }                                                                       \
-      }                                                                         \
-    }                                                                           \
+    branch_target = block_exits[i].branch_target;                             \
+                                                                              \
+    if((branch_target >= block_start_pc) && (branch_target < block_end_pc)    \
+     && translation_region_read_only)                                         \
+    {                                                                         \
+      /* Internal branch, patch to recorded address */                        \
+      translation_target =                                                    \
+       block_data.type[(branch_target - block_start_pc) /                     \
+        type##_instruction_width].block_offset;                               \
+                                                                              \
+      generate_branch_patch_unconditional(block_exits[i].branch_source,       \
+       translation_target);                                                   \
+    }                                                                         \
+    else                                                                      \
+    {                                                                         \
+      /* This branch exits the basic block. If the branch target is in a      \
+       * read-only code area (the BIOS or the Game Pak ROM), we can link the  \
+       * block statically below. THIS BEHAVIOUR NEEDS TO BE DUPLICATED IN THE \
+       * EMITTER. Please see your emitter's generate_branch_no_cycle_update   \
+       * macro for more information. */                                       \
+      if (branch_target < 0x00004000 /* BIOS */                               \
+      || (branch_target >= 0x08000000 && branch_target < 0x0E000000))         \
+      {                                                                       \
+        if (i != external_block_exit_position)                                \
+        {                                                                     \
+          memcpy(&block_exits[external_block_exit_position], &block_exits[i], \
+            sizeof(block_exit_type));                                         \
+        }                                                                     \
+        external_block_exit_position++;                                       \
+      }                                                                       \
+    }                                                                         \
   }                                                                           \
                                                                               \
   if (!translation_region_read_only)                                          \
@@ -3491,18 +3492,15 @@ s32 translate_block_##type(u32 pc)                                            \
   }                                                                           \
                                                                               \
   /* Go compile all the external branches into read-only code areas. */       \
-  if (translation_region_read_only)                                           \
+  for(i = 0; i < external_block_exit_position; i++)                           \
   {                                                                           \
-    for(i = 0; i < external_block_exit_position; i++)                         \
-    {                                                                         \
-      branch_target = block_exits[i].branch_target;                           \
-  /*printf("link %08x\n", branch_target);*/\
-      type##_link_block();                                                    \
-      if(translation_target == NULL)                                          \
-        return -1;                                                            \
-      generate_branch_patch_unconditional(                                    \
-       block_exits[i].branch_source, translation_target);                     \
-    }                                                                         \
+    branch_target = block_exits[i].branch_target;                             \
+/*printf("link %08x\n", branch_target);*/\
+    type##_link_block();                                                      \
+    if(translation_target == NULL)                                            \
+      return -1;                                                              \
+    generate_branch_patch_unconditional(                                      \
+     block_exits[i].branch_source, translation_target);                       \
   }                                                                           \
                                                                               \
   u8 *flush_addr;                                                             \
