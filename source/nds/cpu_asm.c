@@ -3491,15 +3491,18 @@ s32 translate_block_##type(u32 pc)                                            \
   }                                                                           \
                                                                               \
   /* Go compile all the external branches into read-only code areas. */       \
-  for(i = 0; i < external_block_exit_position; i++)                           \
+  if (translation_region_read_only)                                           \
   {                                                                           \
-    branch_target = block_exits[i].branch_target;                             \
-/*printf("link %08x\n", branch_target);*/\
-    type##_link_block();                                                      \
-    if(translation_target == NULL)                                            \
-      return -1;                                                              \
-    generate_branch_patch_unconditional(                                      \
-     block_exits[i].branch_source, translation_target);                       \
+    for(i = 0; i < external_block_exit_position; i++)                         \
+    {                                                                         \
+      branch_target = block_exits[i].branch_target;                           \
+  /*printf("link %08x\n", branch_target);*/\
+      type##_link_block();                                                    \
+      if(translation_target == NULL)                                          \
+        return -1;                                                            \
+      generate_branch_patch_unconditional(                                    \
+       block_exits[i].branch_source, translation_target);                     \
+    }                                                                         \
   }                                                                           \
                                                                               \
   u8 *flush_addr;                                                             \

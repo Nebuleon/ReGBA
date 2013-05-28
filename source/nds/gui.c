@@ -4256,7 +4256,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 			{
 				case TRANSLATION_REGION_IWRAM: Current = iwram_translation_ptr - iwram_translation_cache; break;
 				case TRANSLATION_REGION_EWRAM: Current = ewram_translation_ptr - ewram_translation_cache; break;
-				case TRANSLATION_REGION_VRAM: Current = ewram_translation_ptr - ewram_translation_cache; break;
+				case TRANSLATION_REGION_VRAM:  Current = vram_translation_ptr  - vram_translation_cache;  break;
 				case TRANSLATION_REGION_ROM:   Current = rom_translation_ptr   - rom_translation_cache;   break;
 				case TRANSLATION_REGION_BIOS:  Current = bios_translation_ptr  - bios_translation_cache;  break;
 				case TRANSLATION_REGION_PERSISTENT: Current = persistent_translation_ptr  - persistent_translation_cache;  break;
