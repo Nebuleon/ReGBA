@@ -31,7 +31,7 @@
 // reg_mode[new_mode][6]. When swapping to/from FIQ retire/load reg[8]
 // through reg[14] to/from reg_mode[MODE_FIQ][0] through reg_mode[MODE_FIQ][6].
 
-#define CACHE_LINE_SIZE 32
+#include "mips_emit.h"
 
 #define EXPAND_AS_STRING(x) AS_STRING(x)
 #define AS_STRING(x) #x
@@ -78,7 +78,8 @@ u8 ewram_translation_cache[EWRAM_TRANSLATION_CACHE_SIZE];
 u8 *ewram_translation_ptr = ewram_translation_cache;
 u8 vram_translation_cache[VRAM_TRANSLATION_CACHE_SIZE];
 u8 *vram_translation_ptr = vram_translation_cache;
-u8 persistent_translation_cache[PERSISTENT_TRANSLATION_CACHE_SIZE];
+__attribute__((aligned(CODE_ALIGN_SIZE)))
+  u8 persistent_translation_cache[PERSISTENT_TRANSLATION_CACHE_SIZE];
 u8 *persistent_translation_ptr = persistent_translation_cache;
 void* persistent_hash[PERSISTENT_HASH_SIZE];
 u32 iwram_code_min = 0xFFFFFFFF;
@@ -255,12 +256,6 @@ struct ReuseHeader {
   u32 offset = opcode & 0x07FF                                                \
 
 extern void call_bios_hle(void* func);
-
-#ifdef OLD_COUNT
-#include "mips_emit.h"
-#else
-#include "mips_emit_new_count.h"
-#endif
 
 #define check_pc_region(pc)                                                   \
   new_pc_region = (pc >> 15);                                                 \
@@ -3272,8 +3267,8 @@ s32 translate_block_##type(u32 pc)                                            \
                                                                               \
         /* b) Enough space. Perform the copy. */                              \
         u8* Source = (u8 *) (Header + 1) + Header->GBACodeSize;               \
-        if (Header->GBACodeSize & (CODE_ALIGN_SIZE - 1) != 0)                 \
-          Source += CODE_ALIGN_SIZE - (Header->GBACodeSize &                  \
+        if ((((unsigned int) Source) & (CODE_ALIGN_SIZE - 1)) != 0)           \
+          Source += CODE_ALIGN_SIZE - (((unsigned int) Source) &              \
            (CODE_ALIGN_SIZE - 1));                                            \
         update_trampoline = translation_ptr;                                  \
         memcpy(translation_ptr, Source, Header->NativeCodeSize);              \
@@ -3428,9 +3423,13 @@ s32 translate_block_##type(u32 pc)                                            \
   if (!translation_region_read_only)                                          \
   {                                                                           \
     u32 Alignment = 0;                                                        \
-    if ((block_end_pc - block_start_pc) & (CODE_ALIGN_SIZE - 1) != 0)         \
-      Alignment = CODE_ALIGN_SIZE - ((block_end_pc - block_start_pc) &        \
-       (CODE_ALIGN_SIZE - 1));                                                \
+    if ((((unsigned int) persistent_translation_ptr                           \
+     + sizeof(struct ReuseHeader) + (block_end_pc - block_start_pc))          \
+     & (CODE_ALIGN_SIZE - 1)) != 0)                                           \
+      Alignment = CODE_ALIGN_SIZE -                                           \
+       (((unsigned int) persistent_translation_ptr                            \
+       + sizeof(struct ReuseHeader) + (block_end_pc - block_start_pc))        \
+       & (CODE_ALIGN_SIZE - 1));                                              \
                                                                               \
     if (persistent_translation_ptr + sizeof(struct ReuseHeader)               \
       + (block_end_pc - block_start_pc) + Alignment                           \
@@ -3441,6 +3440,14 @@ s32 translate_block_##type(u32 pc)                                            \
        FLUSH_REASON_FULL_CACHE);                                              \
       HeaderAddr = (struct ReuseHeader **) &persistent_hash[checksum &        \
        (PERSISTENT_HASH_SIZE - 1)];                                           \
+      Alignment = 0;                                                          \
+      if ((((unsigned int) persistent_translation_ptr                         \
+       + sizeof(struct ReuseHeader) + (block_end_pc - block_start_pc))        \
+       & (CODE_ALIGN_SIZE - 1)) != 0)                                         \
+        Alignment = CODE_ALIGN_SIZE -                                         \
+         (((unsigned int) persistent_translation_ptr                          \
+         + sizeof(struct ReuseHeader) + (block_end_pc - block_start_pc))      \
+         & (CODE_ALIGN_SIZE - 1));                                            \
     }                                                                         \
     Header = (struct ReuseHeader*) persistent_translation_ptr;                \
     *HeaderAddr = Header;                                                     \
