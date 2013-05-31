@@ -140,11 +140,11 @@ void cpu_write_mem_savestate();
 void invalidate_all_cache();
 void invalidate_icache_region(u8* addr, u32 length);
 
-u8 *block_lookup_address_arm(u32 pc);
-u8 *block_lookup_address_thumb(u32 pc);
-u8 *block_lookup_address_dual(u32 pc);
-s32 translate_block_arm(u32 pc);
-s32 translate_block_thumb(u32 pc);
+u8* block_lookup_address_arm(u32 pc);
+u8* block_lookup_address_thumb(u32 pc);
+u8* block_lookup_address_dual(u32 pc);
+u8* translate_block_arm(u32 pc);
+u8* translate_block_thumb(u32 pc);
 
 extern u8 rom_translation_cache[ROM_TRANSLATION_CACHE_SIZE];
 extern u8 iwram_translation_cache[IWRAM_TRANSLATION_CACHE_SIZE];
