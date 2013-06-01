@@ -69,30 +69,35 @@ u32 output_field = 0;
 
 u32 last_instruction = 0;
 
-u8 rom_translation_cache[ROM_TRANSLATION_CACHE_SIZE];
-u8 *rom_translation_ptr = rom_translation_cache;
-
-u8 iwram_translation_cache[IWRAM_TRANSLATION_CACHE_SIZE];
-u8 *iwram_translation_ptr = iwram_translation_cache;
-u8 ewram_translation_cache[EWRAM_TRANSLATION_CACHE_SIZE];
-u8 *ewram_translation_ptr = ewram_translation_cache;
-u8 vram_translation_cache[VRAM_TRANSLATION_CACHE_SIZE];
-u8 *vram_translation_ptr = vram_translation_cache;
+/* These represent code caches. */
 __attribute__((aligned(CODE_ALIGN_SIZE)))
-  u8 persistent_translation_cache[PERSISTENT_TRANSLATION_CACHE_SIZE];
-u8 *persistent_translation_ptr = persistent_translation_cache;
-void* persistent_hash[PERSISTENT_HASH_SIZE];
+  u8 readonly_code_cache[READONLY_CODE_CACHE_SIZE];
+u8* readonly_next_code = readonly_code_cache;
+
+__attribute__((aligned(CODE_ALIGN_SIZE)))
+  u8 writable_code_cache[WRITABLE_CODE_CACHE_SIZE];
+u8* writable_next_code = writable_code_cache;
+
+/* These represent Metadata Areas. */
+u32 *rom_branch_hash[ROM_BRANCH_HASH_SIZE];
+void* writable_checksum_hash[WRITABLE_HASH_SIZE];
+
+u8 *iwram_block_ptrs[MAX_TAG + 1];
+u32 iwram_block_tag_top = MIN_TAG;
+u8 *ewram_block_ptrs[MAX_TAG + 1];
+u32 ewram_block_tag_top = MIN_TAG;
+u8 *vram_block_ptrs[MAX_TAG + 1];
+u32 vram_block_tag_top = MIN_TAG;
+
+u8 *bios_block_ptrs[MAX_TAG + 1];
+u32 bios_block_tag_top = MIN_TAG;
+
 u32 iwram_code_min = 0xFFFFFFFF;
 u32 iwram_code_max = 0xFFFFFFFF;
 u32 ewram_code_min = 0xFFFFFFFF;
 u32 ewram_code_max = 0xFFFFFFFF;
 u32 vram_code_min  = 0xFFFFFFFF;
 u32 vram_code_max  = 0xFFFFFFFF;
-
-u8 bios_translation_cache[BIOS_TRANSLATION_CACHE_SIZE];
-u8 *bios_translation_ptr = bios_translation_cache;
-
-u32 *rom_branch_hash[ROM_BRANCH_HASH_SIZE];
 
 // Default
 u32 idle_loop_targets = 0;
@@ -132,7 +137,6 @@ struct ReuseHeader {
 	u32 PC;
 	struct ReuseHeader* Next;
 	u32 GBACodeSize;
-	u32 NativeCodeSize;
 };
 
 #define arm_decode_data_proc_reg()                                            \
@@ -278,10 +282,26 @@ static inline void StatsAddThumbOpcode()
 {
 	Stats.ThumbOpcodesDecoded++;
 }
+
+static inline void StatsAddWritableReuse(u32 Opcodes)
+{
+	Stats.BlockReuseCount++;
+	Stats.OpcodeReuseCount += Opcodes;
+}
+
+static inline void StatsAddWritableRecompilation(u32 Opcodes)
+{
+	Stats.BlockRecompilationCount++;
+	Stats.OpcodeRecompilationCount += Opcodes;
+}
 #else
 static inline void StatsAddARMOpcode() {}
 
 static inline void StatsAddThumbOpcode() {}
+
+static inline void StatsAddWritableReuse(u32 Opcodes) {}
+
+static inline void StatsAddWritableRecompilation(u32 Opcodes) {}
 #endif
 
 #define translate_arm_instruction()                                           \
@@ -2251,16 +2271,6 @@ static void thumb_flag_status(block_data_thumb_type* block_data, u16 opcode)
   block_data->flag_data = flag_status;
 }
 
-u8 *iwram_block_ptrs[MAX_TAG + 1];
-u32 iwram_block_tag_top = MIN_TAG;
-u8 *ewram_block_ptrs[MAX_TAG + 1];
-u32 ewram_block_tag_top = MIN_TAG;
-u8 *vram_block_ptrs[MAX_TAG + 1];
-u32 vram_block_tag_top = MIN_TAG;
-
-u8 *bios_block_ptrs[MAX_TAG + 1];
-u32 bios_block_tag_top = MIN_TAG;
-
 // This function will return a pointer to a translated block of code. If it
 // doesn't exist it will translate it, if it does it will pass it back.
 
@@ -2274,11 +2284,14 @@ u32 bios_block_tag_top = MIN_TAG;
 #define block_lookup_address_pc_thumb()                                       \
   pc &= ~0x01                                                                 \
 
-#define iwram_translation_region TRANSLATION_REGION_IWRAM
-#define ewram_translation_region TRANSLATION_REGION_EWRAM
-#define vram_translation_region  TRANSLATION_REGION_VRAM
 #define rom_translation_region   TRANSLATION_REGION_ROM
 #define bios_translation_region  TRANSLATION_REGION_BIOS
+
+#define iwram_metadata_area METADATA_AREA_IWRAM
+#define ewram_metadata_area METADATA_AREA_EWRAM
+#define vram_metadata_area  METADATA_AREA_VRAM
+#define rom_metadata_area   METADATA_AREA_ROM
+#define bios_metadata_area  METADATA_AREA_BIOS
 
 #define block_lookup_translate_arm()                                          \
   translation_result = translate_block_arm(pc)                                \
@@ -2303,13 +2316,32 @@ u32 bios_block_tag_top = MIN_TAG;
 #define get_tag_thumb()                                                       \
   (location[pc & 2])                                                          \
 
-#define fill_tag_arm(mem_type)                                                \
-  location[1] = mem_type##_block_tag_top                                      \
+#define fill_tag_arm(metadata_area)                                           \
+  location[1] = metadata_area##_block_tag_top                                 \
 
-#define fill_tag_thumb(mem_type)                                              \
-  location[pc & 2] = mem_type##_block_tag_top                                 \
+#define fill_tag_thumb(metadata_area)                                         \
+  location[pc & 2] = metadata_area##_block_tag_top                            \
 
-#define block_lookup_translate(instruction_type, mem_type)                    \
+/*
+ * In gpSP 0.9, assigning a tag to a Metadata Entry signifies that
+ * translate_block_{instype} will compile something new, and that it WILL be
+ * at address ({region}_next_code + block_prologue_size).
+ * With the new writable translation region behaviour, it will be possible for
+ * translate_block_arm (or perhaps a block_reuse_lookup, to mirror the
+ * new process: block_lookup, block_reuse_lookup, translate) to signify that
+ * the new tag needs to reference code that is not at {region}_next_code. So
+ * the return value of block_lookup_translate_{instype} needs to change, and I
+ * need to carefully examine which GBA memory line (0x00, 0x02, 0x03, 0x06,
+ * 0x08..0x0D) goes into which translation region, which metadata area (sized
+ * twice as large as the data area) and which tag domain. (It is possible for
+ * tags to be for separate metadata areas -- which means that reaching MAX_TAG
+ * in IWRAM doesn't affect EWRAM --, or for them to be for a translation
+ * region instead -- which means that reaching MAX_TAG in IWRAM clears IWRAM,
+ * EWRAM and VRAM and forces reuse lookup and possibly translation in all of
+ * them.)
+ */
+
+#define block_lookup_translate(instruction_type, mem_type, metadata_area)     \
   block_tag = get_tag_##instruction_type();                                   \
   if((block_tag < MIN_TAG) || (block_tag > MAX_TAG))                          \
   {                                                                           \
@@ -2317,11 +2349,10 @@ u32 bios_block_tag_top = MIN_TAG;
     u8* translation_result;                                                   \
                                                                               \
     redo:                                                                     \
-    if (mem_type##_block_tag_top > MAX_TAG)                                   \
+    if (metadata_area##_block_tag_top > MAX_TAG)                              \
     {                                                                         \
-      translation_flush_count++;                                              \
-      flush_translation_cache(mem_type##_translation_region,                  \
-        FLUSH_REASON_LAST_TAG);                                               \
+      clear_metadata_area(metadata_area##_metadata_area,                      \
+        CLEAR_REASON_LAST_TAG);                                               \
     }                                                                         \
                                                                               \
     translation_recursion_level++;                                            \
@@ -2339,16 +2370,16 @@ u32 bios_block_tag_top = MIN_TAG;
     }                                                                         \
                                                                               \
     block_address = translation_result + block_prologue_size;                 \
-    mem_type##_block_ptrs[mem_type##_block_tag_top] = block_address;          \
-    fill_tag_##instruction_type(mem_type);                                    \
-    mem_type##_block_tag_top++;                                               \
+    metadata_area##_block_ptrs[metadata_area##_block_tag_top] = block_address;\
+    fill_tag_##instruction_type(metadata_area);                               \
+    metadata_area##_block_tag_top++;                                          \
                                                                               \
     /* if(translation_recursion_level == 0)                                      \
       translate_invalidate_dcache(); */                                          \
   }                                                                           \
   else                                                                        \
   {                                                                           \
-    block_address = mem_type##_block_ptrs[block_tag];                         \
+    block_address = metadata_area##_block_ptrs[block_tag];                    \
   }                                                                           \
 
 /*
@@ -2359,7 +2390,8 @@ u32 bios_block_tag_top = MIN_TAG;
  * we have to do it differently for the BIOS native code area. This can occur
  * in BIOS functions that loop.
  */
-#define block_lookup_translate_tagged_readonly(instruction_type, mem_type)    \
+#define block_lookup_translate_tagged_readonly(instruction_type, mem_type,    \
+  metadata_area)                                                              \
   block_tag = get_tag_##instruction_type();                                   \
   if((block_tag < MIN_TAG) || (block_tag > MAX_TAG))                          \
   {                                                                           \
@@ -2367,18 +2399,17 @@ u32 bios_block_tag_top = MIN_TAG;
     u8* translation_result;                                                   \
                                                                               \
     redo:                                                                     \
-    if (mem_type##_block_tag_top > MAX_TAG)                                   \
+    if (metadata_area##_block_tag_top > MAX_TAG)                                   \
     {                                                                         \
-      translation_flush_count++;                                              \
-      flush_translation_cache(mem_type##_translation_region,                  \
-        FLUSH_REASON_LAST_TAG);                                               \
+      clear_metadata_area(metadata_area##_metadata_area,                      \
+        CLEAR_REASON_LAST_TAG);                                               \
     }                                                                         \
                                                                               \
     translation_recursion_level++;                                            \
-    block_address = mem_type##_translation_ptr + block_prologue_size;         \
-    mem_type##_block_ptrs[mem_type##_block_tag_top] = block_address;          \
-    fill_tag_##instruction_type(mem_type);                                    \
-    mem_type##_block_tag_top++;                                               \
+    block_address = mem_type##_next_code + block_prologue_size;               \
+    metadata_area##_block_ptrs[metadata_area##_block_tag_top] = block_address;\
+    fill_tag_##instruction_type(metadata_area);                               \
+    metadata_area##_block_tag_top++;                                          \
     block_lookup_translate_##instruction_type();                              \
     translation_recursion_level--;                                            \
                                                                               \
@@ -2398,7 +2429,7 @@ u32 bios_block_tag_top = MIN_TAG;
   }                                                                           \
   else                                                                        \
   {                                                                           \
-    block_address = mem_type##_block_ptrs[block_tag];                         \
+    block_address = metadata_area##_block_ptrs[block_tag];                    \
   }                                                                           \
 
 u32 translation_recursion_level = 0;
@@ -2424,23 +2455,11 @@ static inline void AdjustTranslationBufferPeak(TRANSLATION_REGION_TYPE translati
 	u32 Size;
 	switch (translation_region)
 	{
-		case TRANSLATION_REGION_IWRAM:
-			Size = iwram_translation_ptr - iwram_translation_cache;
+		case TRANSLATION_REGION_READONLY:
+			Size = readonly_next_code - readonly_code_cache;
 			break;
-		case TRANSLATION_REGION_EWRAM:
-			Size = ewram_translation_ptr - ewram_translation_cache;
-			break;
-		case TRANSLATION_REGION_VRAM:
-			Size = vram_translation_ptr - vram_translation_cache;
-			break;
-		case TRANSLATION_REGION_ROM:
-			Size = rom_translation_ptr - rom_translation_cache;
-			break;
-		case TRANSLATION_REGION_BIOS:
-			Size = bios_translation_ptr - bios_translation_cache;
-			break;
-		case TRANSLATION_REGION_PERSISTENT:
-			Size = persistent_translation_ptr - persistent_translation_cache;
+		case TRANSLATION_REGION_WRITABLE:
+			Size = writable_next_code - writable_code_cache;
 			break;
 	}
 	if (Size > Stats.TranslationBytesPeak[translation_region])
@@ -2467,22 +2486,22 @@ static inline void AdjustTranslationBufferPeak(TRANSLATION_REGION_TYPE translati
     case 0x0:                                                                 \
       bios_region_read_allow();                                               \
       location = bios.metadata + (pc & 0x3FFC);                               \
-      block_lookup_translate_tagged_readonly(type, bios);                     \
+      block_lookup_translate_tagged_readonly(type, readonly, bios);           \
       if(translation_recursion_level == 0)                                    \
         bios_region_read_allow();                                             \
-      AdjustTranslationBufferPeak(TRANSLATION_REGION_BIOS);                   \
+      AdjustTranslationBufferPeak(TRANSLATION_REGION_READONLY);               \
       break;                                                                  \
                                                                               \
     case 0x2:                                                                 \
       location = ewram_metadata + (pc & 0x3FFFC);                             \
-      block_lookup_translate(type, ewram);                                    \
-      AdjustTranslationBufferPeak(TRANSLATION_REGION_EWRAM);                  \
+      block_lookup_translate(type, writable, ewram);                          \
+      AdjustTranslationBufferPeak(TRANSLATION_REGION_WRITABLE);               \
       break;                                                                  \
                                                                               \
     case 0x3:                                                                 \
       location = iwram_metadata + (pc & 0x7FFC);                              \
-      block_lookup_translate(type, iwram);                                    \
-      AdjustTranslationBufferPeak(TRANSLATION_REGION_IWRAM);                  \
+      block_lookup_translate(type, writable, iwram);                          \
+      AdjustTranslationBufferPeak(TRANSLATION_REGION_WRITABLE);               \
       break;                                                                  \
                                                                               \
     case 0x6:                                                                 \
@@ -2490,8 +2509,8 @@ static inline void AdjustTranslationBufferPeak(TRANSLATION_REGION_TYPE translati
         location = vram_metadata + (pc & 0x17FFC);                            \
       else                                                                    \
         location = vram_metadata + (pc & 0xFFFC);                             \
-      block_lookup_translate(type, vram);                                     \
-      AdjustTranslationBufferPeak(TRANSLATION_REGION_VRAM);                   \
+      block_lookup_translate(type, writable, vram);                           \
+      AdjustTranslationBufferPeak(TRANSLATION_REGION_WRITABLE);               \
       break;                                                                  \
                                                                               \
     case 0x8 ... 0xD:                                                         \
@@ -2521,11 +2540,11 @@ static inline void AdjustTranslationBufferPeak(TRANSLATION_REGION_TYPE translati
         redo:                                                                 \
                                                                               \
         translation_recursion_level++;                                        \
-        ((u32 *)rom_translation_ptr)[0] = pc;                                 \
-        ((u32 **)rom_translation_ptr)[1] = NULL;                              \
-        *block_ptr_address = (u32 *)rom_translation_ptr;                      \
-        rom_translation_ptr += sizeof(u32 *) + sizeof(u32 **);                \
-        block_address = rom_translation_ptr + block_prologue_size;            \
+        ((u32 *)readonly_next_code)[0] = pc;                                  \
+        ((u32 **)readonly_next_code)[1] = NULL;                               \
+        *block_ptr_address = (u32 *)readonly_next_code;                       \
+        readonly_next_code += sizeof(u32 *) + sizeof(u32 **);                 \
+        block_address = readonly_next_code + block_prologue_size;             \
         block_lookup_translate_##type();                                      \
         translation_recursion_level--;                                        \
                                                                               \
@@ -2542,7 +2561,7 @@ static inline void AdjustTranslationBufferPeak(TRANSLATION_REGION_TYPE translati
         /* if(translation_recursion_level == 0)                                  \
           translate_invalidate_dcache(); */                                      \
       }                                                                       \
-      AdjustTranslationBufferPeak(TRANSLATION_REGION_ROM);                    \
+      AdjustTranslationBufferPeak(TRANSLATION_REGION_READONLY);               \
       break;                                                                  \
     }                                                                         \
                                                                               \
@@ -3026,11 +3045,8 @@ static s32 BinarySearch(u32* Array, u32 Value, u32 Size)
         __label__ no_direct_branch;                                           \
         type##_branch_target();                                               \
         block_exits[block_exit_position].branch_target = branch_target;       \
-        if (translation_region_read_only)                                     \
-          /* If we're in RAM, exit at the first unconditional branch, no      \
-           * questions asked */                                               \
-          sorted_branch_count = InsertUniqueSorted(branch_targets_sorted,     \
-            branch_target, sorted_branch_count);                              \
+        sorted_branch_count = InsertUniqueSorted(branch_targets_sorted,       \
+          branch_target, sorted_branch_count);                                \
         block_exit_position++;                                                \
                                                                               \
         /* Give the branch target macro somewhere to bail if it turns out to  \
@@ -3043,11 +3059,8 @@ static s32 BinarySearch(u32* Array, u32 Value, u32 Size)
       if(type##_opcode_swi)                                                   \
       {                                                                       \
         block_exits[block_exit_position].branch_target = 0x00000008;          \
-        if (translation_region_read_only)                                     \
-          /* If we're in RAM, exit at the first unconditional branch, no      \
-           * questions asked */                                               \
-          sorted_branch_count = InsertUniqueSorted(branch_targets_sorted,     \
-            0x00000008, sorted_branch_count); /* could already be in */       \
+        sorted_branch_count = InsertUniqueSorted(branch_targets_sorted,       \
+          0x00000008, sorted_branch_count); /* could already be in */         \
         block_exit_position++;                                                \
       }                                                                       \
                                                                               \
@@ -3063,11 +3076,12 @@ static s32 BinarySearch(u32* Array, u32 Value, u32 Size)
          * If we're in RAM, exit at the first unconditional branch, no        \
          * questions asked. We can do that, since unconditional branches that \
          * go outside the current block are made indirect. */                 \
-        if (!translation_region_read_only ||                                  \
-          BinarySearch(branch_targets_sorted, block_end_pc,                   \
+        if (BinarySearch(branch_targets_sorted, block_end_pc,                 \
           sorted_branch_count) == -1)                                         \
+        {                                                                     \
           continue_block = 0;                                                 \
-        unconditional_branch_write_##type##_##smc_write_op();                 \
+          unconditional_branch_write_##type##_##smc_write_op();               \
+        }                                                                     \
       }                                                                       \
       if(block_exit_position == MAX_EXITS)                                    \
       {                                                                       \
@@ -3208,7 +3222,7 @@ u8* translate_block_##type(u32 pc)                                            \
                                                                               \
   generate_block_extra_vars_##type();                                         \
   type##_fix_pc();                                                            \
-  u32 translation_region_read_only;                          \
+  TRANSLATION_REGION_TYPE translation_region;                                 \
                                                                               \
   trace_translation_request();                                                \
                                                                               \
@@ -3217,55 +3231,33 @@ u8* translate_block_##type(u32 pc)                                            \
                                                                               \
   switch(pc >> 24)                                                            \
   {                                                                           \
-    case 0x02: /* EWRAM */                                                    \
-      translation_ptr = ewram_translation_ptr;                                \
-      translation_cache_limit =                                               \
-       ewram_translation_cache + EWRAM_TRANSLATION_CACHE_SIZE -               \
-       TRANSLATION_CACHE_LIMIT_THRESHOLD;                                     \
-      translation_region_read_only = 0;                                       \
-      break;                                                                  \
-                                                                              \
-    case 0x03: /* IWRAM */                                                    \
-      translation_ptr = iwram_translation_ptr;                                \
-      translation_cache_limit =                                               \
-       iwram_translation_cache + IWRAM_TRANSLATION_CACHE_SIZE -               \
-       TRANSLATION_CACHE_LIMIT_THRESHOLD;                                     \
-      translation_region_read_only = 0;                                       \
-      break;                                                                  \
-                                                                              \
-    case 0x06: /* VRAM */                                                     \
-      translation_ptr = vram_translation_ptr;                                 \
-      translation_cache_limit =                                               \
-       vram_translation_cache + VRAM_TRANSLATION_CACHE_SIZE -                 \
-       TRANSLATION_CACHE_LIMIT_THRESHOLD;                                     \
-      translation_region_read_only = 0;                                       \
-      break;                                                                  \
-                                                                              \
     case 0x08 ... 0x0D: /* ROM */                                             \
-      translation_ptr = rom_translation_ptr;                                  \
-      translation_cache_limit =                                               \
-       rom_translation_cache + ROM_TRANSLATION_CACHE_SIZE -                   \
-       TRANSLATION_CACHE_LIMIT_THRESHOLD;                                     \
-      translation_region_read_only = 1;                                       \
+    case 0x00: /* BIOS */                                                     \
+      translation_region = TRANSLATION_REGION_READONLY;                       \
       break;                                                                  \
                                                                               \
-    case 0x00: /* BIOS */                                                     \
-      translation_ptr = bios_translation_ptr;                                 \
-      translation_cache_limit = bios_translation_cache +                      \
-       BIOS_TRANSLATION_CACHE_SIZE -                                          \
-       TRANSLATION_CACHE_LIMIT_THRESHOLD;                                     \
-      translation_region_read_only = 1;                                       \
+    case 0x02: /* EWRAM */                                                    \
+    case 0x03: /* IWRAM */                                                    \
+    case 0x06: /* VRAM */                                                     \
+      translation_region = TRANSLATION_REGION_WRITABLE;                       \
+      break;                                                                  \
+  }                                                                           \
+                                                                              \
+  switch (translation_region)                                                 \
+  {                                                                           \
+    case TRANSLATION_REGION_READONLY:                                         \
+      translation_ptr = readonly_next_code;                                   \
+      translation_cache_limit = readonly_code_cache + READONLY_CODE_CACHE_SIZE\
+       - TRANSLATION_CACHE_LIMIT_THRESHOLD;                                   \
+      break;                                                                  \
+    case TRANSLATION_REGION_WRITABLE:                                         \
+      translation_ptr = writable_next_code;                                   \
+      translation_cache_limit = writable_code_cache + WRITABLE_CODE_CACHE_SIZE\
+       - TRANSLATION_CACHE_LIMIT_THRESHOLD;                                   \
       break;                                                                  \
   }                                                                           \
                                                                               \
   update_metadata_area_start(pc);                                             \
-                                                                              \
-  u32 reused = 0;                                                             \
-  /* Where can we modify the address of the current header for linking? */    \
-  struct ReuseHeader** HeaderAddr;                                            \
-  /* Where is the current header? */                                          \
-  struct ReuseHeader* Header;                                                 \
-  u16 checksum;                                                               \
                                                                               \
   u8 translation_gate_required = 0; /* gets updated by scan_block */          \
                                                                               \
@@ -3273,16 +3265,18 @@ u8* translate_block_##type(u32 pc)                                            \
    * determines basically what kind of instructions they are, the branch      \
    * targets, the condition codes atop each instruction, as well  as the need \
    * for a translation gate to be placed at the end. */                       \
-  if(!translation_region_read_only)                                           \
+  if(translation_region == TRANSLATION_REGION_WRITABLE)                       \
   {                                                                           \
     scan_block(type, yes);                                                    \
                                                                               \
-    checksum = block_checksum_##type(block_data_position);                    \
-                                                                              \
     /* Is a block with this checksum available? */                            \
-    HeaderAddr = (struct ReuseHeader **) &persistent_hash[checksum &          \
-     (PERSISTENT_HASH_SIZE - 1)];                                             \
-    Header = *HeaderAddr;                                                     \
+    u16 checksum = block_checksum_##type(block_data_position);                \
+                                                                              \
+    /* Where can we modify the address of the current header for linking? */  \
+    struct ReuseHeader** HeaderAddr = (struct ReuseHeader **)                 \
+     &writable_checksum_hash[checksum & (WRITABLE_HASH_SIZE - 1)];            \
+    /* Where is the current header? */                                        \
+    struct ReuseHeader* Header = *HeaderAddr;                                 \
     while (Header != NULL)                                                    \
     {                                                                         \
       if (Header->PC == block_start_pc                                        \
@@ -3290,55 +3284,17 @@ u8* translate_block_##type(u32 pc)                                            \
        && memcmp(opcodes.type, Header + 1, Header->GBACodeSize) == 0)         \
       {                                                                       \
         /* The code has been determined to be identical. Yay! */              \
+        StatsAddWritableReuse((block_end_pc - block_start_pc) /               \
+         type##_instruction_width);                                           \
         trace_reuse();                                                        \
                                                                               \
-        /* a) Is there enough space for the copy in the target cache? */      \
-        if(translation_ptr + Header->NativeCodeSize > translation_cache_limit)\
-        {                                                                     \
-          translation_flush_count++;                                          \
-                                                                              \
-          switch (pc >> 24)                                                   \
-          {                                                                   \
-            case 0x00: /* BIOS */                                             \
-              flush_translation_cache(TRANSLATION_REGION_BIOS,                \
-               FLUSH_REASON_FULL_CACHE);                                      \
-              break;                                                          \
-                                                                              \
-            case 0x02: /* EWRAM */                                            \
-              flush_translation_cache(TRANSLATION_REGION_EWRAM,               \
-               FLUSH_REASON_FULL_CACHE);                                      \
-              break;                                                          \
-                                                                              \
-            case 0x03: /* IWRAM */                                            \
-              flush_translation_cache(TRANSLATION_REGION_IWRAM,               \
-               FLUSH_REASON_FULL_CACHE);                                      \
-              break;                                                          \
-                                                                              \
-            case 0x06: /* VRAM */                                             \
-              flush_translation_cache(TRANSLATION_REGION_VRAM,                \
-               FLUSH_REASON_FULL_CACHE);                                      \
-              break;                                                          \
-                                                                              \
-            case 0x08 ... 0x0D: /* ROM */                                     \
-              flush_translation_cache(TRANSLATION_REGION_ROM,                 \
-               FLUSH_REASON_FULL_CACHE);                                      \
-              break;                                                          \
-          }                                                                   \
-                                                                              \
-          return NULL;                                                        \
-        }                                                                     \
-                                                                              \
-        /* b) Enough space. Perform the copy. */                              \
-        u8* Source = (u8 *) (Header + 1) + Header->GBACodeSize;               \
-        if ((((unsigned int) Source) & (CODE_ALIGN_SIZE - 1)) != 0)           \
-          Source += CODE_ALIGN_SIZE - (((unsigned int) Source) &              \
+        u8* NativeCode = (u8 *) (Header + 1) + Header->GBACodeSize;           \
+        if ((((unsigned int) NativeCode) & (CODE_ALIGN_SIZE - 1)) != 0)       \
+          NativeCode += CODE_ALIGN_SIZE - (((unsigned int) NativeCode) &      \
            (CODE_ALIGN_SIZE - 1));                                            \
-        update_trampoline = translation_ptr;                                  \
-        memcpy(translation_ptr, Source, Header->NativeCodeSize);              \
-        translation_ptr += Header->NativeCodeSize;                            \
                                                                               \
-        /* c) Adjust the Metadata Entries for the GBA Data Words that were    \
-         *    just reused, as if they had been recompiled. */                 \
+        /* Adjust the Metadata Entries for the GBA Data Words that were       \
+         * just reused, as if they had been recompiled. */                    \
         pc = block_end_pc;                                                    \
         for (block_end_pc = block_start_pc;                                   \
              block_end_pc < pc;                                               \
@@ -3348,8 +3304,9 @@ u8* translate_block_##type(u32 pc)                                            \
         }                                                                     \
         unconditional_branch_write_##type##_yes();                            \
                                                                               \
-        reused = 1;                                                           \
-        goto finalize; /* d) Make the new code visible to the processor */    \
+        update_metadata_area_end(pc);                                         \
+                                                                              \
+        return NativeCode;                                                    \
       }                                                                       \
                                                                               \
       HeaderAddr = &Header->Next;                                             \
@@ -3357,7 +3314,42 @@ u8* translate_block_##type(u32 pc)                                            \
     }                                                                         \
                                                                               \
     /* If we get here, we could not reuse code. */                            \
+    u32 Alignment = CODE_ALIGN_SIZE -                                         \
+       (((unsigned int) translation_ptr + sizeof(struct ReuseHeader)          \
+       + (block_end_pc - block_start_pc))                                     \
+       & (CODE_ALIGN_SIZE - 1));                                              \
+    if (Alignment == CODE_ALIGN_SIZE)  Alignment = 0;                         \
+                                                                              \
+    if (translation_ptr + sizeof(struct ReuseHeader)                          \
+     + (block_end_pc - block_start_pc) + Alignment                            \
+     > translation_cache_limit)                                               \
+    {                                                                         \
+      /* We ran out of space for what would come before the native code.      \
+       * Get out. */                                                          \
+      translation_flush_count++;                                              \
+                                                                              \
+      flush_translation_cache(TRANSLATION_REGION_WRITABLE,                    \
+        FLUSH_REASON_FULL_CACHE);                                             \
+                                                                              \
+      return NULL;                                                            \
+    }                                                                         \
+                                                                              \
+    StatsAddWritableRecompilation((block_end_pc - block_start_pc) /           \
+     type##_instruction_width);                                               \
     trace_recompilation(type);                                                \
+                                                                              \
+    /* Fill the reuse header and link it to the linked list at HeaderAddr. */ \
+    Header = (struct ReuseHeader*) translation_ptr;                           \
+    *HeaderAddr = Header;                                                     \
+                                                                              \
+    Header->PC = block_start_pc;                                              \
+    Header->Next = NULL;                                                      \
+    Header->GBACodeSize = block_end_pc - block_start_pc;                      \
+                                                                              \
+    translation_ptr += sizeof(struct ReuseHeader);                            \
+    memcpy(translation_ptr, opcodes.type, block_end_pc - block_start_pc);     \
+                                                                              \
+    translation_ptr += (block_end_pc - block_start_pc) + Alignment;           \
   }                                                                           \
   else                                                                        \
   {                                                                           \
@@ -3405,40 +3397,14 @@ u8* translate_block_##type(u32 pc)                                            \
     {                                                                         \
       translation_flush_count++;                                              \
                                                                               \
-      switch (pc >> 24)                                                       \
-      {                                                                       \
-        case 0x00: /* BIOS */                                                 \
-          flush_translation_cache(TRANSLATION_REGION_BIOS,                    \
-           FLUSH_REASON_FULL_CACHE);                                          \
-          break;                                                              \
-                                                                              \
-        case 0x02: /* EWRAM */                                                \
-          flush_translation_cache(TRANSLATION_REGION_EWRAM,                   \
-           FLUSH_REASON_FULL_CACHE);                                          \
-          break;                                                              \
-                                                                              \
-        case 0x03: /* IWRAM */                                                \
-          flush_translation_cache(TRANSLATION_REGION_IWRAM,                   \
-           FLUSH_REASON_FULL_CACHE);                                          \
-          break;                                                              \
-                                                                              \
-        case 0x06: /* VRAM */                                                 \
-          flush_translation_cache(TRANSLATION_REGION_VRAM,                    \
-           FLUSH_REASON_FULL_CACHE);                                          \
-          break;                                                              \
-                                                                              \
-        case 0x08 ... 0x0D: /* ROM */                                         \
-          flush_translation_cache(TRANSLATION_REGION_ROM,                     \
-           FLUSH_REASON_FULL_CACHE);                                          \
-          break;                                                              \
-      }                                                                       \
+      flush_translation_cache(translation_region, FLUSH_REASON_FULL_CACHE);   \
                                                                               \
       return NULL;                                                            \
     }                                                                         \
                                                                               \
     /* If the next instruction is a block entry point update the              \
        cycle counter and update */                                            \
-    if(block_data.type[block_data_position].update_cycles == 1)               \
+    if(block_data.type[block_data_position].update_cycles)                    \
     {                                                                         \
       generate_cycle_update();                                                \
     }                                                                         \
@@ -3453,8 +3419,7 @@ u8* translate_block_##type(u32 pc)                                            \
   {                                                                           \
     branch_target = block_exits[i].branch_target;                             \
                                                                               \
-    if((branch_target >= block_start_pc) && (branch_target < block_end_pc)    \
-     && translation_region_read_only)                                         \
+    if((branch_target >= block_start_pc) && (branch_target < block_end_pc))   \
     {                                                                         \
       /* Internal branch, patch to recorded address */                        \
       translation_target =                                                    \
@@ -3484,29 +3449,18 @@ u8* translate_block_##type(u32 pc)                                            \
     }                                                                         \
   }                                                                           \
                                                                               \
-  finalize:                                                                   \
   update_metadata_area_end(pc);                                               \
                                                                               \
-  switch(pc >> 24)                                                            \
+  switch (translation_region)                                                 \
   {                                                                           \
-    case 0x02: /* EWRAM */                                                    \
-      ewram_translation_ptr = translation_ptr;                                \
+    case TRANSLATION_REGION_READONLY:                                         \
+      readonly_next_code = translation_ptr;                                   \
       break;                                                                  \
-                                                                              \
-    case 0x03: /* IWRAM */                                                    \
-      iwram_translation_ptr = translation_ptr;                                \
-      break;                                                                  \
-                                                                              \
-    case 0x06: /* VRAM */                                                     \
-      vram_translation_ptr = translation_ptr;                                 \
-      break;                                                                  \
-                                                                              \
-    case 0x08 ... 0x0D: /* ROM */                                             \
-      rom_translation_ptr = translation_ptr;                                  \
-      break;                                                                  \
-                                                                              \
-    case 0x00: /* BIOS */                                                     \
-      bios_translation_ptr = translation_ptr;                                 \
+    case TRANSLATION_REGION_WRITABLE:                                         \
+      if (((unsigned int) translation_ptr & (sizeof(u32) - 1)) != 0)          \
+        translation_ptr += sizeof(u32) - ((unsigned int) translation_ptr      \
+         & (sizeof(u32) - 1)); /* Align the next block to 4 bytes */          \
+      writable_next_code = translation_ptr;                                   \
       break;                                                                  \
   }                                                                           \
                                                                               \
@@ -3520,58 +3474,6 @@ u8* translate_block_##type(u32 pc)                                            \
       return NULL;                                                            \
     generate_branch_patch_unconditional(                                      \
      block_exits[i].branch_source, translation_target);                       \
-  }                                                                           \
-                                                                              \
-  if (!translation_region_read_only && !reused)                               \
-  {                                                                           \
-    u32 Alignment = 0;                                                        \
-    if ((((unsigned int) persistent_translation_ptr                           \
-     + sizeof(struct ReuseHeader) + (block_end_pc - block_start_pc))          \
-     & (CODE_ALIGN_SIZE - 1)) != 0)                                           \
-      Alignment = CODE_ALIGN_SIZE -                                           \
-       (((unsigned int) persistent_translation_ptr                            \
-       + sizeof(struct ReuseHeader) + (block_end_pc - block_start_pc))        \
-       & (CODE_ALIGN_SIZE - 1));                                              \
-                                                                              \
-    if (persistent_translation_ptr + sizeof(struct ReuseHeader)               \
-      + (block_end_pc - block_start_pc) + Alignment                           \
-      + (translation_ptr - update_trampoline) + 3                             \
-      > persistent_translation_cache + PERSISTENT_TRANSLATION_CACHE_SIZE)     \
-    {                                                                         \
-      flush_translation_cache(TRANSLATION_REGION_PERSISTENT,                  \
-       FLUSH_REASON_FULL_CACHE);                                              \
-      HeaderAddr = (struct ReuseHeader **) &persistent_hash[checksum &        \
-       (PERSISTENT_HASH_SIZE - 1)];                                           \
-      Alignment = 0;                                                          \
-      if ((((unsigned int) persistent_translation_ptr                         \
-       + sizeof(struct ReuseHeader) + (block_end_pc - block_start_pc))        \
-       & (CODE_ALIGN_SIZE - 1)) != 0)                                         \
-        Alignment = CODE_ALIGN_SIZE -                                         \
-         (((unsigned int) persistent_translation_ptr                          \
-         + sizeof(struct ReuseHeader) + (block_end_pc - block_start_pc))      \
-         & (CODE_ALIGN_SIZE - 1));                                            \
-    }                                                                         \
-    Header = (struct ReuseHeader*) persistent_translation_ptr;                \
-    *HeaderAddr = Header;                                                     \
-                                                                              \
-    Header->PC = block_start_pc;                                              \
-    Header->Next = NULL;                                                      \
-    Header->GBACodeSize = block_end_pc - block_start_pc;                      \
-    Header->NativeCodeSize = translation_ptr - update_trampoline;             \
-                                                                              \
-    persistent_translation_ptr += sizeof(struct ReuseHeader);                 \
-    memcpy(persistent_translation_ptr, opcodes.type, block_end_pc -           \
-     block_start_pc);                                                         \
-                                                                              \
-    persistent_translation_ptr += (block_end_pc - block_start_pc) + Alignment;\
-    memcpy(persistent_translation_ptr, update_trampoline,                     \
-     translation_ptr - update_trampoline);                                    \
-                                                                              \
-    persistent_translation_ptr += translation_ptr - update_trampoline;        \
-    if (((unsigned int) persistent_translation_ptr & 3) != 0)                 \
-      persistent_translation_ptr += sizeof(u32) -                             \
-       ((unsigned int) persistent_translation_ptr & 3);                       \
-    AdjustTranslationBufferPeak(TRANSLATION_REGION_PERSISTENT);               \
   }                                                                           \
                                                                               \
   u8 *flush_addr;                                                             \
@@ -3810,20 +3712,17 @@ static void partial_clear_metadata_arm(u16* metadata, u16* metadata_area_start, 
   }
 }
 
-void flush_translation_cache(TRANSLATION_REGION_TYPE translation_region,
-  FLUSH_REASON_TYPE flush_reason)
+void clear_metadata_area(METADATA_AREA_TYPE metadata_area,
+  METADATA_CLEAR_REASON_TYPE clear_reason)
 {
-	Stats.TranslationFlushCount[translation_region][flush_reason]++;
-	switch (translation_region)
+	Stats.MetadataClearCount[metadata_area][clear_reason]++;
+	switch (metadata_area)
 	{
-		case TRANSLATION_REGION_IWRAM:
-			Stats.TranslationBytesFlushed[translation_region] +=
-				iwram_translation_ptr - iwram_translation_cache;
-			if (flush_reason == FLUSH_REASON_INITIALIZING)
+		case METADATA_AREA_IWRAM:
+			if (clear_reason == CLEAR_REASON_INITIALIZING)
 				memset(iwram_metadata, 0, sizeof(iwram_metadata));
 			else
 			{
-				iwram_translation_ptr = iwram_translation_cache;
 				iwram_block_tag_top = MIN_TAG;
 
 				if(iwram_code_min != 0xFFFFFFFF)
@@ -3839,14 +3738,11 @@ void flush_translation_cache(TRANSLATION_REGION_TYPE translation_region,
 				}
 			}
 			break;
-		case TRANSLATION_REGION_EWRAM:
-			Stats.TranslationBytesFlushed[translation_region] +=
-				ewram_translation_ptr - ewram_translation_cache;
-			if (flush_reason == FLUSH_REASON_INITIALIZING)
+		case METADATA_AREA_EWRAM:
+			if (clear_reason == CLEAR_REASON_INITIALIZING)
 				memset(ewram_metadata, 0, sizeof(ewram_metadata));
 			else
 			{
-				ewram_translation_ptr = ewram_translation_cache;
 				ewram_block_tag_top = MIN_TAG;
 
 				if(ewram_code_min != 0xFFFFFFFF)
@@ -3862,127 +3758,114 @@ void flush_translation_cache(TRANSLATION_REGION_TYPE translation_region,
 				}
 			}
 			break;
-		case TRANSLATION_REGION_VRAM:
-			Stats.TranslationBytesFlushed[translation_region] +=
-				vram_translation_ptr - vram_translation_cache;
-			if (flush_reason == FLUSH_REASON_INITIALIZING)
+		case METADATA_AREA_VRAM:
+			if (clear_reason == CLEAR_REASON_INITIALIZING)
 				memset(vram_metadata, 0, sizeof(vram_metadata));
 			else
 			{
-				vram_translation_ptr = vram_translation_cache;
 				vram_block_tag_top = MIN_TAG;
 
 				// TODO [Opt] Handle the mirroring in this area
 				memset(vram_metadata, 0, sizeof(vram_metadata));
 			}
 			break;
-		case TRANSLATION_REGION_ROM:
-			Stats.TranslationBytesFlushed[translation_region] +=
-				rom_translation_ptr - rom_translation_cache;
-			rom_translation_ptr = rom_translation_cache;
+		case METADATA_AREA_ROM:
 			memset(rom_branch_hash, 0, sizeof(rom_branch_hash));
-			/* All other regions will have branches into the ROM patched in.
-			 * Flush them all. */
-			if (flush_reason != FLUSH_REASON_NATIVE_BRANCHING)
-			{
-				flush_translation_cache(TRANSLATION_REGION_BIOS,
-					FLUSH_REASON_NATIVE_BRANCHING);
-				flush_translation_cache(TRANSLATION_REGION_IWRAM,
-					FLUSH_REASON_NATIVE_BRANCHING);
-				flush_translation_cache(TRANSLATION_REGION_EWRAM,
-					FLUSH_REASON_NATIVE_BRANCHING);
-				flush_translation_cache(TRANSLATION_REGION_VRAM,
-					FLUSH_REASON_NATIVE_BRANCHING);
-				flush_translation_cache(TRANSLATION_REGION_PERSISTENT,
-					FLUSH_REASON_NATIVE_BRANCHING);
-			}
 			break;
-		case TRANSLATION_REGION_BIOS:
-			Stats.TranslationBytesFlushed[translation_region] +=
-				bios_translation_ptr - bios_translation_cache;
+		case METADATA_AREA_BIOS:
 			bios_block_tag_top = MIN_TAG;
-			bios_translation_ptr = bios_translation_cache;
 			memset(bios.metadata, 0, sizeof(bios.metadata));
-			/* All other regions will have branches into the BIOS patched in.
-			 * Flush them all. */
-			if (flush_reason != FLUSH_REASON_NATIVE_BRANCHING)
-			{
-				flush_translation_cache(TRANSLATION_REGION_ROM,
-					FLUSH_REASON_NATIVE_BRANCHING);
-				flush_translation_cache(TRANSLATION_REGION_IWRAM,
-					FLUSH_REASON_NATIVE_BRANCHING);
-				flush_translation_cache(TRANSLATION_REGION_EWRAM,
-					FLUSH_REASON_NATIVE_BRANCHING);
-				flush_translation_cache(TRANSLATION_REGION_VRAM,
-					FLUSH_REASON_NATIVE_BRANCHING);
-				flush_translation_cache(TRANSLATION_REGION_PERSISTENT,
-					FLUSH_REASON_NATIVE_BRANCHING);
-			}
-			break;
-		case TRANSLATION_REGION_PERSISTENT:
-			Stats.TranslationBytesFlushed[translation_region] +=
-				persistent_translation_ptr - persistent_translation_cache;
-			persistent_translation_ptr = persistent_translation_cache;
-			memset(persistent_hash, 0, sizeof(persistent_hash));
 			break;
 	}
 }
 
-unsigned int last_iwram= 0;
-unsigned int last_ewram= 0;
-unsigned int last_vram= 0;
-unsigned int last_rom= 0;
-unsigned int last_bios= 0;
+void flush_translation_cache(TRANSLATION_REGION_TYPE translation_region,
+  CACHE_FLUSH_REASON_TYPE flush_reason)
+{
+	Stats.TranslationFlushCount[translation_region][flush_reason]++;
+	switch (translation_region)
+	{
+		case TRANSLATION_REGION_READONLY:
+			Stats.TranslationBytesFlushed[translation_region] +=
+				readonly_next_code - readonly_code_cache;
+			readonly_next_code = readonly_code_cache;
+			switch (flush_reason)
+			{
+				case FLUSH_REASON_INITIALIZING:
+					clear_metadata_area(METADATA_AREA_ROM, CLEAR_REASON_INITIALIZING);
+					clear_metadata_area(METADATA_AREA_BIOS, CLEAR_REASON_INITIALIZING);
+					break;
+				case FLUSH_REASON_LOADING_ROM:
+					clear_metadata_area(METADATA_AREA_ROM, CLEAR_REASON_LOADING_ROM);
+					clear_metadata_area(METADATA_AREA_BIOS, CLEAR_REASON_LOADING_ROM);
+					flush_translation_cache(TRANSLATION_REGION_WRITABLE, FLUSH_REASON_NATIVE_BRANCHING);
+					break;
+				/* [Read-only cannot be affected by native branching] */
+				case FLUSH_REASON_FULL_CACHE:
+					clear_metadata_area(METADATA_AREA_ROM, CLEAR_REASON_FULL_CACHE);
+					clear_metadata_area(METADATA_AREA_BIOS, CLEAR_REASON_FULL_CACHE);
+					flush_translation_cache(TRANSLATION_REGION_WRITABLE, FLUSH_REASON_NATIVE_BRANCHING);
+					break;
+				default:
+					break;
+			}
+			break;
+		case TRANSLATION_REGION_WRITABLE:
+			Stats.TranslationBytesFlushed[translation_region] +=
+				writable_next_code - writable_code_cache;
+			writable_next_code = writable_code_cache;
+			memset(writable_checksum_hash, 0, sizeof(writable_checksum_hash));
+			switch (flush_reason)
+			{
+				case FLUSH_REASON_INITIALIZING:
+					clear_metadata_area(METADATA_AREA_IWRAM, CLEAR_REASON_INITIALIZING);
+					clear_metadata_area(METADATA_AREA_EWRAM, CLEAR_REASON_INITIALIZING);
+					clear_metadata_area(METADATA_AREA_VRAM, CLEAR_REASON_INITIALIZING);
+					break;
+				/* [Writable cannot be affected by ROM loading] */
+				case FLUSH_REASON_NATIVE_BRANCHING:
+					clear_metadata_area(METADATA_AREA_IWRAM, CLEAR_REASON_NATIVE_BRANCHING);
+					clear_metadata_area(METADATA_AREA_EWRAM, CLEAR_REASON_NATIVE_BRANCHING);
+					clear_metadata_area(METADATA_AREA_VRAM, CLEAR_REASON_NATIVE_BRANCHING);
+					break;
+				case FLUSH_REASON_FULL_CACHE:
+					clear_metadata_area(METADATA_AREA_IWRAM, CLEAR_REASON_FULL_CACHE);
+					clear_metadata_area(METADATA_AREA_EWRAM, CLEAR_REASON_FULL_CACHE);
+					clear_metadata_area(METADATA_AREA_VRAM, CLEAR_REASON_FULL_CACHE);
+					break;
+				default:
+					break;
+			}
+			break;
+	}
+}
+
+u8* last_readonly = readonly_code_cache;
+u8* last_writable = writable_code_cache;
 void dump_translation_cache()
 {
 //  FILE_OPEN(FILE *fp, "fat:/ram_cache.bin", WRITE);
 	FILE *fp;
-if(last_iwram != (iwram_translation_ptr - iwram_translation_cache))
-{
-  fp = fopen("fat:/iwram_cache.bin", "wb");
-  fwrite(iwram_translation_cache, 1, iwram_translation_ptr - iwram_translation_cache, fp);
-  fclose(fp);
 
-  last_iwram = iwram_translation_ptr - iwram_translation_cache;
-}
+	if(last_readonly != readonly_next_code)
+	{
+		fp = fopen("fat:/ro_cache.bin", "wb");
+		fwrite(readonly_code_cache, 1, readonly_next_code - readonly_code_cache, fp);
+		fclose(fp);
 
-if(last_ewram != (ewram_translation_ptr - ewram_translation_cache))
-{
-  fp = fopen("fat:/ewram_cache.bin", "wb");
-  fwrite(ewram_translation_cache, 1, ewram_translation_ptr - ewram_translation_cache, fp);
-  fclose(fp);
+		last_readonly = readonly_next_code;
+	}
 
-  last_ewram = ewram_translation_ptr - ewram_translation_cache;
-}
+	if(last_writable != writable_next_code)
+	{
+		fp = fopen("fat:/rw_cache.bin", "wb");
+		fwrite(writable_code_cache, 1, writable_next_code - writable_code_cache, fp);
+		fclose(fp);
 
-if(last_vram != (vram_translation_ptr - vram_translation_cache))
-{
-  fp = fopen("fat:/vram_cache.bin", "wb");
-  fwrite(vram_translation_cache, 1, vram_translation_ptr - vram_translation_cache, fp);
-  fclose(fp);
+		last_writable = writable_next_code;
+	}
 
-  last_vram = vram_translation_ptr - vram_translation_cache;
-}
-
-if(last_rom != (rom_translation_ptr - rom_translation_cache))
-{
-  fp = fopen("fat:/rom_cache.bin", "wb");
-  fwrite(rom_translation_cache, 1, rom_translation_ptr - rom_translation_cache, fp);
-  fclose(fp);
-
-  last_rom = rom_translation_ptr - rom_translation_cache;
-}
-  
-if(last_bios != (bios_translation_ptr - bios_translation_cache))
-{
-  fp = fopen("fat:/bios_cache.bin", "wb");
-  fwrite(bios_translation_cache, bios_translation_ptr - bios_translation_cache, 1, fp);
-  fclose(fp);
-
-  last_bios = bios_translation_ptr - bios_translation_cache;
-}
-
-  printf("IWRAM:%08X EWRAM:%08X VRAM:%08X ROM:%08X BIOS:%08X \n", iwram_translation_ptr - iwram_translation_cache, ewram_translation_ptr - ewram_translation_cache, vram_translation_ptr - vram_translation_cache, rom_translation_ptr - rom_translation_cache, bios_translation_ptr - bios_translation_cache);
+  printf("RO:%08X R/W:%08X\n", readonly_next_code - readonly_code_cache, writable_next_code - writable_code_cache);
 }
 
 void init_cpu() 

@@ -28,10 +28,10 @@ u8 *g_state_buffer_ptr;
 //u8 PACKROM_MEM[ PACKROM_MEM_SIZE ] __attribute__ ((aligned (4))) ;
 //u8 PACKROM_MEM_MAP[ PACKROM_MEM_SIZE/(32*1024)*8 ];
 
-#define SAVESTATE_FAST_SIZE (SAVESTATE_FAST_LEN*SAVESTATE_FAST_NUM)	//~2.6MB
+#define SAVESTATE_FAST_SIZE (SAVESTATE_FAST_LEN*SAVESTATE_FAST_NUM)	//~5MB
 //fast save state length: 0x68e3f
 #define SAVESTATE_FAST_LEN (0x68e40)
-#define SAVESTATE_FAST_NUM (7)
+#define SAVESTATE_FAST_NUM (10)
 u8 SAVEFAST_MEM[ SAVESTATE_FAST_SIZE ] __attribute__ ((aligned (4))) ;
 
 const u8 SVS_HEADER_E[SVS_HEADER_SIZE] = {'N', 'G', 'B', 'A', 'R', 'T', 'S',
@@ -3466,35 +3466,36 @@ void init_memory_gamepak()
   }
 }
 
-// TODO
 void init_gamepak_buffer()
 {
-  // Try to initialize 32MB (this is mainly for non-PSP platforms)
-  gamepak_rom = NULL;
+	/* At the end of this function, the ROM buffer will have been sized so
+	 * that at least 2 MiB are left for other operations.
+	 */
+	gamepak_rom = NULL;
 
-  //DS2 won't have 32mb of ram free so might as well skip
-  //to 16 mb
-  //gamepak_ram_buffer_size = 32 * 1024 * 1024;
-  //gamepak_rom = malloc(gamepak_ram_buffer_size);
+	/* Start with trying to get 34 MiB. Let go in 1 MiB increments. */
+	u32 next_attempt = 34 * 1024 * 1024;
+	gamepak_rom = malloc(next_attempt);
+	while (gamepak_rom == NULL)
+	{
+		next_attempt -= 1024 * 1024;
+		gamepak_rom = malloc(next_attempt);
+	}
 
-  if(gamepak_rom == NULL)
-  {
-    // Try 16MB, for PSP, then lower in 2MB increments
-    gamepak_ram_buffer_size = 16 * 1024 * 1024;
-    gamepak_rom = malloc(gamepak_ram_buffer_size);
+	/* Now free the allocation and allocate it again, minus 2 MiB.
+	 * The allocation of 34 MiB above is so that the full 32 MiB of the
+	 * largest allowable GBA ROM size can be allocated on supported
+	 * platforms. */
+	free(gamepak_rom);
+	gamepak_ram_buffer_size = next_attempt - 2 * 1024 * 1024;
+	gamepak_rom = malloc(gamepak_ram_buffer_size);
 
-    while(gamepak_rom == NULL)
-    {
-      gamepak_ram_buffer_size -= (2 * 1024 * 1024);
-      gamepak_rom = malloc(gamepak_ram_buffer_size);
-    }
-  }
+	serial_timestamp_printf("I: Allocated %u MiB for the ROM buffer",
+		gamepak_ram_buffer_size / (1024 * 1024));
 
-  // Here's assuming we'll have enough memory left over for this,
-  // and that the above succeeded (if not we're in trouble all around)
-  gamepak_ram_pages = gamepak_ram_buffer_size / (32 * 1024);
-  gamepak_memory_map = malloc(sizeof(gamepak_swap_entry_type) *
-  gamepak_ram_pages);
+	gamepak_ram_pages = gamepak_ram_buffer_size / (32 * 1024);
+	gamepak_memory_map = malloc(sizeof(gamepak_swap_entry_type) *
+	gamepak_ram_pages);
 }
 
 void init_memory()
@@ -3691,8 +3692,9 @@ void loadstate_fast(void)
 	g_state_buffer_ptr = SAVEFAST_MEM + savefast_queue_wr_len * SAVESTATE_FAST_LEN;
 	savestate_block_fast(read_mem);
 
-	flush_translation_cache(TRANSLATION_REGION_IWRAM, FLUSH_REASON_LOADING_STATE);
-	flush_translation_cache(TRANSLATION_REGION_EWRAM, FLUSH_REASON_LOADING_STATE);
+	clear_metadata_area(METADATA_AREA_IWRAM, CLEAR_REASON_LOADING_STATE);
+	clear_metadata_area(METADATA_AREA_EWRAM, CLEAR_REASON_LOADING_STATE);
+	clear_metadata_area(METADATA_AREA_VRAM, CLEAR_REASON_LOADING_STATE);
 
 	oam_update = 1;
 	gbc_sound_update = 1;
@@ -3771,8 +3773,9 @@ u32 load_state(char *savestate_filename, u32 slot_num)
   savestate_block(read_mem);
   update_progress();
 
-  flush_translation_cache(TRANSLATION_REGION_IWRAM, FLUSH_REASON_LOADING_STATE);
-  flush_translation_cache(TRANSLATION_REGION_EWRAM, FLUSH_REASON_LOADING_STATE);
+  clear_metadata_area(METADATA_AREA_IWRAM, CLEAR_REASON_LOADING_STATE);
+  clear_metadata_area(METADATA_AREA_EWRAM, CLEAR_REASON_LOADING_STATE);
+  clear_metadata_area(METADATA_AREA_VRAM, CLEAR_REASON_LOADING_STATE);
   update_progress();
 
   oam_update = 1;
@@ -3895,8 +3898,9 @@ printf("gamepak_filename0: %s\n", gamepak_filename);
 
 	// End fixups.
 
-	flush_translation_cache(TRANSLATION_REGION_IWRAM, FLUSH_REASON_LOADING_STATE);
-	flush_translation_cache(TRANSLATION_REGION_EWRAM, FLUSH_REASON_LOADING_STATE);
+	clear_metadata_area(METADATA_AREA_IWRAM, CLEAR_REASON_LOADING_STATE);
+	clear_metadata_area(METADATA_AREA_EWRAM, CLEAR_REASON_LOADING_STATE);
+	clear_metadata_area(METADATA_AREA_VRAM, CLEAR_REASON_LOADING_STATE);
 
         oam_update = 1;
         gbc_sound_update = 1;

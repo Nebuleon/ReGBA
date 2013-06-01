@@ -958,7 +958,9 @@ static int sound_update()
 		{
 			skip_next_frame_flag = 1;
 			frameskip_0_hack_flag = 2;
+#if defined SERIAL_TRACE || defined SERIAL_TRACE_FRAMESKIP
 			serial_timestamp_printf("I: Skipping a frame due to audio lag");
+#endif
 		}
 		return -1;
 	}

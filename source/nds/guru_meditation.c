@@ -538,13 +538,13 @@ void GuruMeditation(struct ExceptionData* Data, unsigned int ExceptionNumber)
 			serial_timestamp_printf("                   = %s", CanonicalForm);
 		}
 	}
-	else if (((unsigned int) Data->ExceptionPC & 3) == 0)
+	else if (((unsigned int) Data->ExceptionPC & 3) != 0)
 	{
-		serial_timestamp_printf("at address %08X: (Unaligned address)");
+		serial_timestamp_printf("at address %08X: (Unaligned address)", Data->ExceptionPC);
 	}
 	else
 	{
-		serial_timestamp_printf("at address %08X: (Unmapped address)");
+		serial_timestamp_printf("at address %08X: (Unmapped address)", Data->ExceptionPC);
 	}
 	serial_timestamp_printf("");
 
