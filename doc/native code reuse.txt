@@ -1,6 +1,8 @@
                    == Native code reuse for GBA RAM code ==
 Modification history:
 2013-05-21 [Nebuleon]: Initial version.
+2013-06-01 [Nebuleon]: Second version, removes the requirement for memcpy and
+  making code visible to the processor constantly.
 
 This document assumes working knowledge of the following document:
 * doc/partial flushing of RAM code.txt
@@ -28,24 +30,25 @@ call that function multiple times. In generated code, however, it means that
 you simply don't have the same code twice in your code cache.
 
 In addition to the code caches for the various Writable Areas of GBA memory,
-this document introduces the concept of a Writable Persistent Cache, which
-stores pristine native code blocks that can be copied into the code cache for
-a certain Data Area directly instead of going through recompilation again.
-Nebuleon estimates this mechanism to be about 40 times faster than recompiling
-the code again, ~20 MIPS instructions per GBA instruction instead of ~800 MIPS
-instructions.
+this document introduces the concept of a Writable Area Cache, which serves as
+the repository and execution location for code that is derived from GBA code
+in any of the Writable Areas. This allows the code to avoid going through
+recompilation constantly. As Nebuleon estimates this mechanism to be about 40
+times faster than recompiling the code -- ~20 MIPS instructions per GBA
+instruction instead of ~800 --, this should considerably speed up execution.
 
-== The Writable Persistent Cache ==
+== The Writable Area Cache ==
 
-The Writable Persistent Cache is a structure, separate from the code caches of
-the various Data Areas, that stores copies of recompiled blocks in a form that
-is efficient for individual lookups, individual insertions and clearing the
-entire cache.
+The Writable Area Cache is a structure which replaces the code caches of the
+various Data Areas and stores recompiled blocks along with a lookup table
+for amortised constant-time lookups and insertions as well as constant-time
+clearing of the entire cache. (Of course, the recompilation itself is in
+linear time based on the number of GBA instructions in a block.)
 
-The Writable Persistent Cache starts with a hashtable having for its number of
+The Writable Area Cache starts with a hashtable having for its number of
 buckets a power of 2 between 2 and 65536, inclusive, indexed by GBA code block
 checksum. Each bucket of the hashtable points into a linked list that lives in
-the Writable Persistent Cache proper. The linked list's entries are laid out
+the Writable Area Cache proper. The linked list's entries are laid out
 as follows:
 
         Checksum       Block Reuse Header
@@ -54,8 +57,7 @@ as follows:
   [Bucket 605Fh] --> [ GBA PC (32-bit)
                      | Next entry (pointer) -->    [ GBA PC (32-bit)
                      | GBA code size (32-bit)      | Next entry (pointer) -->
-                     | Native code size (32-bit)   | GBA code size (32-bit)
-                     | GBA code ('size' bytes)     | Native code size (32-bit)
+                     | GBA code ('size' bytes)     | GBA code size (32-bit)
                      | <Align native code>         | .
                      | Native code                 | .
                      | <Align for next header>     | .
@@ -63,10 +65,8 @@ as follows:
 
 Blocks are simply linked at the end, advancing the pointer into the cache by
 as much as is needed to fit the Block Reuse Header, GBA code and native code.
-When the pointer reaches the end of the Writable Persistent Cache, a Full
-Flush is started for the Writable Persistent Cache, but not any of the code
-caches for the individual memory areas (unless one of them is also full),
-for the reason "Cache full".
+When the pointer reaches the end of the Writable Area Cache, a Full Flush is
+started for the Writable Area Cache, for the reason "Cache full".
 
 == The Block Checksum ==
 
@@ -96,7 +96,7 @@ cpu_asm.c, one for ARM and one for Thumb, have desirable characteristics here:
 == The GBA PC ==
 
 While the GBA PC should need no explanation as to what it is, an explanation
-is needed as to why it needs to be stored in the Writable Persistent Cache.
+is needed as to why it needs to be stored in the Writable Area Cache.
 
 The GBA PC is compiled into the native code before store-memory instructions,
 procedure call instructions as well as all instructions that need the value of
@@ -117,7 +117,7 @@ header.
 Following the GBA PC is the location of the next entry in the hashtable bucket
 for the same checksum value. This allows two or more GBA code blocks which
 have the same checksum to be stored in the hashtable. When inserting a new
-Block Reuse Header into the Writable Persistent Cache, the Next pointers are
+Block Reuse Header into the Writable Area Cache, the Next pointers are
 walked until NULL, and the location of a new entry is placed there. When
 looking up the native code address for a block of GBA code, the Next pointers
 are walked until NULL or a block is found, whichever occurs first.
@@ -126,11 +126,6 @@ are walked until NULL or a block is found, whichever occurs first.
 
 Following the GBA PC is the size of the GBA code block, in bytes, that got
 compiled into the reusable native code that follows.
-
-== The Native Code Size ==
-
-Following the GBA code size is the size of the native code block, in bytes,
-that got compiled from the GBA code that precedes.
 
 == The GBA Code and its Alignment ==
 
@@ -145,9 +140,7 @@ required on an architecture, write '#define CODE_ALIGN_SIZE 1' in its emitter.
 
 == The Native Code and its Alignment ==
 
-The native code that was generated from the GBA code is stored here. It is a
-copy of the code, which is ready to be copied back into a code cache for a
-Data Area later on.
+The native code that was generated from the GBA code is stored here.
 
 If, at the end of the block, the address is not aligned to 4 bytes, the block
 is followed by up to 3 unused bytes.
@@ -175,70 +168,26 @@ When gpSP is asked to run code that is newly written into RAM:
   the checksum, until it encounters a block whose GBA Code Sizes match, and
   whose GBA Code matches.
 
-  If such a block is found, its native code is copied into the code cache for
-  the Data Area, and the address of that copy is returned. (If there's
-  insufficient room in the cache for this copy, it is cleared, for the reason
-  "Cache full", and the process fails and is retried.)
+  If such a block is found, the address of the first byte of its native code
+  is returned.
 
   Otherwise, the block compilation procedure starts.
 
+* The block recompilation procedure links the end of the hashtable bucket for
+  the block's checksum with a new Block Reuse Header, then copies the GBA code
+  for the block after the header, then adds alignment. If, at any stage, the
+  Writable Area Cache would be full (up to the threshold), a Full Flush of the
+  Writable Area Cache is started, for the reason "Cache full"; the process is
+  then aborted and retried.
+
+  Linking the Block Reuse Header to the end of the linked list is done in
+  constant time, since the linked list for the block's checksum was walked
+  until NULL already.
+
 * The block compilation procedure continues the analysis and recompilation of
-  the GBA code. When it is done, it may decide to put a copy of the new block
-  of native code into the Writable Persistent Cache, or not to do so. It may
-  rely on a metric it gathers separately, for example recompilation counts for
-  a HotSpot[TM]-like recompiler, or simply put a copy of every block it
-  recompiles from RAM into it.
+  the GBA code. When it is done, the block is both ready to be used and ready
+  to be reused.
 
-  Given that the block reuse procedure calculated the checksum already for the
-  GBA code block, and that the linked list for the block's checksum was walked
-  until NULL already, this is rather simple:
-
-  * Check that there's enough space to store a Block Reuse Header, the GBA
-    Code and the native code. If there isn't, clear the Writable Persistent
-    Cache (put the pointer back to the start and clear the hashtable), rewind
-    the linked list end pointer to the hashtable's bucket to start a new list,
-    and continue.
-
-    Since the exact size of the native code is known at this point, using the
-    threshold to stop compiling if the next instruction could overflow the
-    cache is not necessary. The entire Writable Persistent Cache can be used.
-  * Fill the Block Reuse Header.
-  * Copy the GBA code of the block, then the native code generated for it.
-  * Link the end of the list with the newly-created Block Reuse Header.
-
-  Since the code in the Writable Persistent Cache is never executed, only
-  copied, nothing is needed to make it visible to the processor's execution
-  pipeline (e.g. instruction cache flushes on the MIPS).
-
-Before executing the code that was written into the code cache for the Data
-Area, whether freshly compiled or reused, it needs to be made visible to the
-processor's execution pipeline.
-
-== The Writable Persistent Cache and Full Flushes ==
-
-The Writable Persistent Cache exists as an extension of the IWRAM, EWRAM and
-VRAM code caches, so it needs to be flushed when the ROM or BIOS caches get
-flushed, otherwise they keep native branch addresses into the ROM or BIOS for
-efficiency.
-
-Therefore, the Writable Persistent Cache can be flushed for the following
-reasons, each clearing the hashtable by memsetting and rewinding the pointer
-back to the start of the cache:
-
-a) Emulator initialisation.
-b) Native code linking. Since read-only areas are expected not to need to be
-   compiled often, a high level of optimisation can go into compiling them.
-   Branches into a read-only area can therefore be patched directly into a
-   native code address, bypassing the lookup mechanism.
-   Unfortunately:
-   * The BIOS has an unconditional branch into the ROM when it does Reset or
-     SoftReset.
-   * The ROM has many unconditional branches into the BIOS, in the form of the
-     SWI instruction. (At least, most ROMs do; some don't use the BIOS!)
-   * The RAM areas can have branches into read-only areas, which are then
-     patched.
-   So when a read-only area is the target of a Full Flush (with the reason
-   "Cache full", below), any native code branches targetting that area have
-   become invalid. This affects all other areas than the one flushed.
-c) Cache full. These flushes are exactly as thorough as the "Native code
-   linking" flushes.
+Before executing code that is written into the Writable Area Cache, it needs
+to be made visible to the processor's execution pipeline. Reused code does not
+need anything special to be done for it to work.
