@@ -1,3 +1,15 @@
 To install:
 
 Place tempgba.plg, tempgba.bmp, and tempgba.ini in the _dstwoplug folder of your DSTWO.  Place the TEMPGBA folder in your dstwo's root folder (the one that contains _dstwo, _dstwoplug, etc).
+
+To function properly, TempGBA also needs a dump of the GBA's BIOS. It is not
+distributed in the release archive because of legal issues.
+
+The file you dump or find should be 16 KiB (16384 bytes) and have the following
+checksums:
+* CRC32: 81977335;
+* MD5: a860e8c0b6d573d191e4ec7db1b1e4f6;
+* SHA-1: 300c20df6731a33952ded8c436f7f186d25d3492.
+
+Once dumped or found, name the file gba_bios.bin, and place it in the
+TEMPGBA folder extracted above.
