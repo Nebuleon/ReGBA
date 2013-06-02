@@ -172,7 +172,6 @@ extern u8* readonly_next_code;
 extern u8  writable_code_cache[WRITABLE_CODE_CACHE_SIZE];
 extern u8* writable_next_code;
 
-#define MAX_TRANSLATION_GATES 8
 #define MAX_IDLE_LOOPS 8
 
 extern u32 idle_loop_targets;
@@ -183,8 +182,6 @@ extern u32 iwram_stack_optimize;
 //extern u32 allow_smc_ram_u16;
 //extern u32 allow_smc_ram_u32;
 extern u32 direct_map_vram;
-extern u32 translation_gate_targets;
-extern u32 translation_gate_target_pc[MAX_TRANSLATION_GATES];
 
 extern u32 in_interrupt;
 

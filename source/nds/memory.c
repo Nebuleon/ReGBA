@@ -2418,7 +2418,6 @@ s32 load_game_config(char *gamepak_title, char *gamepak_code, char *gamepak_make
   iwram_stack_optimize = 1;
   bios.rom[0x39] = 0x00;
   bios.rom[0x2C] = 0x00;
-  translation_gate_targets = 0;
   flash_device_id = FLASH_DEVICE_MACRONIX_64KB;
   backup_type = BACKUP_NONE;
 
@@ -2462,16 +2461,6 @@ s32 load_game_config(char *gamepak_title, char *gamepak_code, char *gamepak_make
                 idle_loop_target_pc[idle_loop_targets] =
                   strtol(current_value, NULL, 16);
                 idle_loop_targets++;
-              }
-            }
-
-            if(!strcasecmp(current_variable, "translation_gate_target"))
-            {
-              if(translation_gate_targets < MAX_TRANSLATION_GATES)
-              {
-                translation_gate_target_pc[translation_gate_targets] =
-                 strtol(current_value, NULL, 16);
-                translation_gate_targets++;
               }
             }
 

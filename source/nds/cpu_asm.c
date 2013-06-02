@@ -103,8 +103,6 @@ u32 vram_code_max  = 0xFFFFFFFF;
 u32 idle_loop_targets = 0;
 u32 idle_loop_target_pc[MAX_IDLE_LOOPS];
 u32 force_pc_update_target = 0xFFFFFFFF;
-u32 translation_gate_target_pc[MAX_TRANSLATION_GATES];
-u32 translation_gate_targets = 0;
 u32 iwram_stack_optimize = 1;
 //u32 allow_smc_ram_u8 = 1;
 //u32 allow_smc_ram_u16 = 1;
@@ -2284,9 +2282,6 @@ static void thumb_flag_status(block_data_thumb_type* block_data, u16 opcode)
 #define block_lookup_address_pc_thumb()                                       \
   pc &= ~0x01                                                                 \
 
-#define rom_translation_region   TRANSLATION_REGION_ROM
-#define bios_translation_region  TRANSLATION_REGION_BIOS
-
 #define iwram_metadata_area METADATA_AREA_IWRAM
 #define ewram_metadata_area METADATA_AREA_EWRAM
 #define vram_metadata_area  METADATA_AREA_VRAM
@@ -3016,14 +3011,6 @@ static s32 BinarySearch(u32* Array, u32 Value, u32 Size)
 
 #define scan_block(type, smc_write_op)                                        \
 {                                                                             \
-  /* The address of the first translation gate after block_start_pc. */       \
-  u32 next_translation_gate = 0xFFFFFFFD; /* none */                          \
-  for(i = 0; i < translation_gate_targets; i++)                               \
-  {                                                                           \
-    if(translation_gate_target_pc[i] >= block_start_pc &&                     \
-       translation_gate_target_pc[i] <  next_translation_gate)                \
-      next_translation_gate = translation_gate_target_pc[i];                  \
-  }                                                                           \
   u8 continue_block = 1;                                                      \
   u32 branch_targets_sorted[MAX_EXITS];                                       \
   u32 sorted_branch_count = 0;                                                \
@@ -3103,12 +3090,6 @@ static s32 BinarySearch(u32* Array, u32 Value, u32 Size)
     }                                                                         \
     block_data.type[block_data_position].update_cycles = 0;                   \
     block_data_position++;                                                    \
-                                                                              \
-    if(block_end_pc == next_translation_gate)                                 \
-    {                                                                         \
-      translation_gate_required = 1;                                          \
-      continue_block = 0;                                                     \
-    }                                                                         \
                                                                               \
     if((block_data_position == MAX_BLOCK_SIZE) ||                             \
      (block_end_pc == 0x3007FF0) || (block_end_pc == 0x203FFF0))              \
