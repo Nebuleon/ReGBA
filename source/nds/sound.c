@@ -1002,7 +1002,12 @@ static int sound_update()
 	}
 	else
 	{
-		while (ds2_checkAudiobuff() >= AUDIO_BUFFER_COUNT);
+		// Wait for at least one buffer to be free for audio.
+		// Output assertion: The return value is between 0, inclusive,
+		// and AUDIO_BUFFER_COUNT, inclusive, but can also be
+		// 4294967295; that's (unsigned int) -1. (DSTWO SPECIFIC HACK)
+		unsigned int n2;
+		while ((n2 = ds2_checkAudiobuff()) >= AUDIO_BUFFER_COUNT && (int) n2 >= 0);
 	}
 
 	do
