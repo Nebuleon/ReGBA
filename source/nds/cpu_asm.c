@@ -3045,8 +3045,11 @@ static s32 BinarySearch(u32* Array, u32 Value, u32 Size)
         __label__ no_direct_branch;                                           \
         type##_branch_target();                                               \
         block_exits[block_exit_position].branch_target = branch_target;       \
-        sorted_branch_count = InsertUniqueSorted(branch_targets_sorted,       \
-          branch_target, sorted_branch_count);                                \
+        if (translation_region == TRANSLATION_REGION_READONLY)                \
+          /* If we're in RAM, exit at the first unconditional branch, no      \
+           * questions asked */                                               \
+          sorted_branch_count = InsertUniqueSorted(branch_targets_sorted,     \
+            branch_target, sorted_branch_count);                              \
         block_exit_position++;                                                \
                                                                               \
         /* Give the branch target macro somewhere to bail if it turns out to  \
@@ -3059,8 +3062,11 @@ static s32 BinarySearch(u32* Array, u32 Value, u32 Size)
       if(type##_opcode_swi)                                                   \
       {                                                                       \
         block_exits[block_exit_position].branch_target = 0x00000008;          \
-        sorted_branch_count = InsertUniqueSorted(branch_targets_sorted,       \
-          0x00000008, sorted_branch_count); /* could already be in */         \
+        if (translation_region == TRANSLATION_REGION_READONLY)                \
+          /* If we're in RAM, exit at the first unconditional branch, no      \
+           * questions asked */                                               \
+          sorted_branch_count = InsertUniqueSorted(branch_targets_sorted,     \
+            0x00000008, sorted_branch_count); /* could already be in */       \
         block_exit_position++;                                                \
       }                                                                       \
                                                                               \
@@ -3076,7 +3082,8 @@ static s32 BinarySearch(u32* Array, u32 Value, u32 Size)
          * If we're in RAM, exit at the first unconditional branch, no        \
          * questions asked. We can do that, since unconditional branches that \
          * go outside the current block are made indirect. */                 \
-        if (BinarySearch(branch_targets_sorted, block_end_pc,                 \
+        if (translation_region == TRANSLATION_REGION_WRITABLE                 \
+         || BinarySearch(branch_targets_sorted, block_end_pc,                 \
           sorted_branch_count) == -1)                                         \
         {                                                                     \
           continue_block = 0;                                                 \
