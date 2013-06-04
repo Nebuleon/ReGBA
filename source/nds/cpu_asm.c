@@ -82,14 +82,14 @@ u8* writable_next_code = writable_code_cache;
 u32 *rom_branch_hash[ROM_BRANCH_HASH_SIZE];
 void* writable_checksum_hash[WRITABLE_HASH_SIZE];
 
-u8 *iwram_block_ptrs[MAX_TAG + 1];
+u8 *iwram_block_ptrs[MAX_TAG_IWRAM + 1];
 u32 iwram_block_tag_top = MIN_TAG;
-u8 *ewram_block_ptrs[MAX_TAG + 1];
+u8 *ewram_block_ptrs[MAX_TAG_EWRAM + 1];
 u32 ewram_block_tag_top = MIN_TAG;
-u8 *vram_block_ptrs[MAX_TAG + 1];
+u8 *vram_block_ptrs[MAX_TAG_VRAM + 1];
 u32 vram_block_tag_top = MIN_TAG;
 
-u8 *bios_block_ptrs[MAX_TAG + 1];
+u8 *bios_block_ptrs[MAX_TAG_BIOS + 1];
 u32 bios_block_tag_top = MIN_TAG;
 
 u32 iwram_code_min = 0xFFFFFFFF;
@@ -2288,6 +2288,11 @@ static void thumb_flag_status(block_data_thumb_type* block_data, u16 opcode)
 #define rom_metadata_area   METADATA_AREA_ROM
 #define bios_metadata_area  METADATA_AREA_BIOS
 
+#define iwram_max_tag MAX_TAG_IWRAM
+#define ewram_max_tag MAX_TAG_EWRAM
+#define vram_max_tag  MAX_TAG_VRAM
+#define bios_max_tag  MAX_TAG_BIOS
+
 #define block_lookup_translate_arm()                                          \
   translation_result = translate_block_arm(pc)                                \
 
@@ -2338,13 +2343,13 @@ static void thumb_flag_status(block_data_thumb_type* block_data, u16 opcode)
 
 #define block_lookup_translate(instruction_type, mem_type, metadata_area)     \
   block_tag = get_tag_##instruction_type();                                   \
-  if((block_tag < MIN_TAG) || (block_tag > MAX_TAG))                          \
+  if((block_tag < MIN_TAG) || (block_tag > metadata_area##_max_tag))          \
   {                                                                           \
     __label__ redo;                                                           \
     u8* translation_result;                                                   \
                                                                               \
     redo:                                                                     \
-    if (metadata_area##_block_tag_top > MAX_TAG)                              \
+    if (metadata_area##_block_tag_top > metadata_area##_max_tag)              \
     {                                                                         \
       clear_metadata_area(metadata_area##_metadata_area,                      \
         CLEAR_REASON_LAST_TAG);                                               \
@@ -2388,13 +2393,13 @@ static void thumb_flag_status(block_data_thumb_type* block_data, u16 opcode)
 #define block_lookup_translate_tagged_readonly(instruction_type, mem_type,    \
   metadata_area)                                                              \
   block_tag = get_tag_##instruction_type();                                   \
-  if((block_tag < MIN_TAG) || (block_tag > MAX_TAG))                          \
+  if((block_tag < MIN_TAG) || (block_tag > metadata_area##_max_tag))          \
   {                                                                           \
     __label__ redo;                                                           \
     u8* translation_result;                                                   \
                                                                               \
     redo:                                                                     \
-    if (metadata_area##_block_tag_top > MAX_TAG)                                   \
+    if (metadata_area##_block_tag_top > metadata_area##_max_tag)              \
     {                                                                         \
       clear_metadata_area(metadata_area##_metadata_area,                      \
         CLEAR_REASON_LAST_TAG);                                               \

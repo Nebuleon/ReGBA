@@ -143,6 +143,13 @@ typedef enum {
 
 #define METADATA_CLEAR_REASON_COUNT 6
 
+#define MIN_TAG (0x0001)
+
+#define MAX_TAG_BIOS  ( 33528)
+#define MAX_TAG_IWRAM (0x6000)
+#define MAX_TAG_EWRAM (0xFFFE)
+#define MAX_TAG_VRAM  (0xFFFE)
+
 u32 execute_load_u8(u32 address);
 u32 execute_load_u16(u32 address);
 u32 execute_load_u32(u32 address);
