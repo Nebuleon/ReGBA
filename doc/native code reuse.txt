@@ -1,0 +1,193 @@
+                   == Native code reuse for GBA RAM code ==
+Modification history:
+2013-05-21 [Nebuleon]: Initial version.
+2013-06-01 [Nebuleon]: Second version, removes the requirement for memcpy and
+  making code visible to the processor constantly.
+
+This document assumes working knowledge of the following document:
+* doc/partial flushing of RAM code.txt
+
+This document references the following trade marks:
+* Java[TM] is a trade mark of Oracle, Inc., formerly Sun Microsystems, Inc.
+  It is a runtime environment and class library for secure cross-platform
+  scalable application development and deployment.
+* HotSpot[TM] is a trade mark of Oracle, Inc., formerly Sun Microsystems, Inc.
+  It is a just-in-time compiler for Java[TM] that more heavily optimises hot
+  spots in programs, hence the name, and keeps references to native code it
+  has judged to be used often enough.
+
+Instead of wasting the native code that gets created before the game puts new
+code in a Writable Area (IWRAM, EWRAM or VRAM), I (and Exophase, who had code
+for a similar mechanism in an experimental gpSP source directory) had the idea
+of keeping references to the code for quickly executing it later if the game
+writes the very same code at the very same place again.
+
+I name this "code reuse", after a similar practice in normal, non-generated,
+code. Code reuse is when you don't have twice the same code to perform the
+same thing at two different places in the code. In non-generated code, that
+means you put the code you want to run multiple times into a function and you
+call that function multiple times. In generated code, however, it means that
+you simply don't have the same code twice in your code cache.
+
+In addition to the code caches for the various Writable Areas of GBA memory,
+this document introduces the concept of a Writable Area Cache, which serves as
+the repository and execution location for code that is derived from GBA code
+in any of the Writable Areas. This allows the code to avoid going through
+recompilation constantly. As Nebuleon estimates this mechanism to be about 40
+times faster than recompiling the code -- ~20 MIPS instructions per GBA
+instruction instead of ~800 --, this should considerably speed up execution.
+
+== The Writable Area Cache ==
+
+The Writable Area Cache is a structure which replaces the code caches of the
+various Data Areas and stores recompiled blocks along with a lookup table
+for amortised constant-time lookups and insertions as well as constant-time
+clearing of the entire cache. (Of course, the recompilation itself is in
+linear time based on the number of GBA instructions in a block.)
+
+The Writable Area Cache starts with a hashtable having for its number of
+buckets a power of 2 between 2 and 65536, inclusive, indexed by GBA code block
+checksum. Each bucket of the hashtable points into a linked list that lives in
+the Writable Area Cache proper. The linked list's entries are laid out
+as follows:
+
+        Checksum       Block Reuse Header
+            |                  |
+            v                  v
+  [Bucket 605Fh] --> [ GBA PC (32-bit)
+                     | Next entry (pointer) -->    [ GBA PC (32-bit)
+                     | GBA code size (32-bit)      | Next entry (pointer) -->
+                     | GBA code ('size' bytes)     | GBA code size (32-bit)
+                     | <Align native code>         | .
+                     | Native code                 | .
+                     | <Align for next header>     | .
+                     ]                             ]
+
+Blocks are simply linked at the end, advancing the pointer into the cache by
+as much as is needed to fit the Block Reuse Header, GBA code and native code.
+When the pointer reaches the end of the Writable Area Cache, a Full Flush is
+started for the Writable Area Cache, for the reason "Cache full".
+
+== The Block Checksum ==
+
+The Block Checksum is the result of applying a checksum function, which should
+be very efficient, to a block of GBA code. The two block checksum functions in
+cpu_asm.c, one for ARM and one for Thumb, have desirable characteristics here:
+
+* The ARM function and the Thumb function return checksums that have distinct
+  values for bit 0. The exact value of bit 0 in checksums returned by the two
+  functions doesn't matter; what matters is that all ARM code blocks have the
+  same value, that all Thumb code blocks have the same value, and that all ARM
+  code blocks have a different value for bit 0 than all Thumb blocks.
+
+  This helps ensure that ARM and Thumb blocks will never be in the same linked
+  list to be reused for code being read in the other execution mode.
+
+* The implementations both give different checksums if the instructions of two
+  GBA code blocks are similar but shuffled.
+
+  This helps reduce collisions in the hashtable.
+
+* The ARM function runs in 4..5 MIPS instructions per 32-bit word.
+  The Thumb function runs in 4..5 MIPS instructions per 16-bit [half-]word.
+
+  This helps to bring down the runtime of the reusable code lookup.
+
+== The GBA PC ==
+
+While the GBA PC should need no explanation as to what it is, an explanation
+is needed as to why it needs to be stored in the Writable Area Cache.
+
+The GBA PC is compiled into the native code before store-memory instructions,
+procedure call instructions as well as all instructions that need the value of
+PC (R15) to point to the correct instruction after the ARM prefetch queue has
+eaten up 2 or 3 instructions (so the instruction's address plus 8 or 12 bytes
+in ARM, or 4 bytes in Thumb), such as 'MOV Reg, R15', 'STM?? Reg, {..., R15}',
+etc.
+
+It follows that, if the very same code is found in two different locations in
+GBA memory, the native code blocks that get compiled from the instances are
+likely to be different.
+
+Therefore, the GBA PC at the start of the block is stored in the code reuse
+header.
+
+== The Next Pointer ==
+
+Following the GBA PC is the location of the next entry in the hashtable bucket
+for the same checksum value. This allows two or more GBA code blocks which
+have the same checksum to be stored in the hashtable. When inserting a new
+Block Reuse Header into the Writable Area Cache, the Next pointers are
+walked until NULL, and the location of a new entry is placed there. When
+looking up the native code address for a block of GBA code, the Next pointers
+are walked until NULL or a block is found, whichever occurs first.
+
+== The GBA Code Size ==
+
+Following the GBA PC is the size of the GBA code block, in bytes, that got
+compiled into the reusable native code that follows.
+
+== The GBA Code and its Alignment ==
+
+The GBA code that was read from the GBA RAM is stored here. The length of this
+code is stored in the GBA Code Size entry of the Block Reuse Header.
+
+If, at the end of the block, the address is not aligned as required by the
+processor that executes the recompiled native code, the block is followed by
+alignment. The alignment value is architecture-specific, so it is best written
+as a '#define CODE_ALIGN_SIZE <number>' in the emitter. If no alignment is
+required on an architecture, write '#define CODE_ALIGN_SIZE 1' in its emitter.
+
+== The Native Code and its Alignment ==
+
+The native code that was generated from the GBA code is stored here.
+
+If, at the end of the block, the address is not aligned to 4 bytes, the block
+is followed by up to 3 unused bytes.
+
+== The Code Generation Process ==
+
+When gpSP is asked to run code that is newly written into RAM:
+
+* Whether or not there was code at that GBA PC before, the block tag which
+  says where the code is (in the Data Area's code cache) has been cleared, so
+  the lookup procedure passes the address into the block reuse procedure.
+
+* The block reuse procedure, which is actually inside the block compilation
+  procedure, determines where a block that starts at the current GBA PC would
+  end. This is relatively cheap (~10 MIPS instructions per GBA instruction).
+  This step needs to gather the opcodes in the GBA instruction stream into a
+  separate array.
+
+  Then, it calculates the checksum of the block (~5 MIPS instructions per GBA
+  instruction). For consistency, blocks that start at the same location should
+  end at the same GBA instruction if the blocks are identical. If this is not
+  followed, blocks cannot be reused as their GBA Code Sizes would never match.
+
+  It then walks the chain of Block Reuse Headers, starting from the bucket for
+  the checksum, until it encounters a block whose GBA Code Sizes match, and
+  whose GBA Code matches.
+
+  If such a block is found, the address of the first byte of its native code
+  is returned.
+
+  Otherwise, the block compilation procedure starts.
+
+* The block recompilation procedure links the end of the hashtable bucket for
+  the block's checksum with a new Block Reuse Header, then copies the GBA code
+  for the block after the header, then adds alignment. If, at any stage, the
+  Writable Area Cache would be full (up to the threshold), a Full Flush of the
+  Writable Area Cache is started, for the reason "Cache full"; the process is
+  then aborted and retried.
+
+  Linking the Block Reuse Header to the end of the linked list is done in
+  constant time, since the linked list for the block's checksum was walked
+  until NULL already.
+
+* The block compilation procedure continues the analysis and recompilation of
+  the GBA code. When it is done, the block is both ready to be used and ready
+  to be reused.
+
+Before executing code that is written into the Writable Area Cache, it needs
+to be made visible to the processor's execution pipeline. Reused code does not
+need anything special to be done for it to work.

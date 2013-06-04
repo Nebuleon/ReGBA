@@ -204,19 +204,18 @@ void init_main()
 
   // bios_mode = USE_BIOS;
 
-  FLUSH_REASON_TYPE flush_reason = (caches_inited)
-    ? FLUSH_REASON_LOADING_ROM
-    : FLUSH_REASON_INITIALIZING;
-  // It is necessary to flush the BIOS cache when loading a new ROM, because
-  // the BIOS has a direct jump to 0x08000000 to execute the ROM. However,
-  // flushing the ROM causes a flush of the BIOS automatically, for the reason
-  // FLUSH_REASON_NATIVE_BRANCHING. So init the cache only before the first
-  // ROM.
   if (!caches_inited)
-    flush_translation_cache(TRANSLATION_REGION_BIOS, FLUSH_REASON_INITIALIZING);
-  flush_translation_cache(TRANSLATION_REGION_ROM, flush_reason);
-  flush_translation_cache(TRANSLATION_REGION_IWRAM, flush_reason);
-  flush_translation_cache(TRANSLATION_REGION_EWRAM, flush_reason);
+  {
+    flush_translation_cache(TRANSLATION_REGION_READONLY, FLUSH_REASON_INITIALIZING);
+    flush_translation_cache(TRANSLATION_REGION_WRITABLE, FLUSH_REASON_INITIALIZING);
+  }
+  else
+  {
+    flush_translation_cache(TRANSLATION_REGION_READONLY, FLUSH_REASON_LOADING_ROM);
+    clear_metadata_area(METADATA_AREA_EWRAM, CLEAR_REASON_LOADING_ROM);
+    clear_metadata_area(METADATA_AREA_IWRAM, CLEAR_REASON_LOADING_ROM);
+    clear_metadata_area(METADATA_AREA_VRAM, CLEAR_REASON_LOADING_ROM);
+  }
 
   caches_inited = 1;
 
@@ -679,9 +678,7 @@ u32 update_gba()
             else
               to_skip ++;
 
-		if (frameskip_0_hack_flag)
-			frameskip_0_hack_flag--;
-		skip_next_frame_flag = to_skip < SKIP_RATE || frameskip_0_hack_flag == 2;
+		skip_next_frame_flag = to_skip < SKIP_RATE;
 
 //printf("SKIP_RATE %d %d\n", SKIP_RATE, to_skip);
         } //(vcount == 228)

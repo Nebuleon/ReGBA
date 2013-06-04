@@ -42,14 +42,22 @@ void StatsInitGame(void)
 {
 	StatsInit();
 #ifndef USE_C_CORE
-	u32 cache, reason;
-	for (cache = 0; cache < TRANSLATION_REGION_COUNT; cache++)
+	u32 reason;
+	u32 area;
+	for (area = 0; area < TRANSLATION_REGION_COUNT; area++)
 	{
-		Stats.TranslationBytesFlushed[cache] = 0;
-		Stats.TranslationBytesPeak[cache] = 0;
-		for (reason = 0; reason < FLUSH_REASON_COUNT; reason++)
+		Stats.TranslationBytesFlushed[area] = 0;
+		Stats.TranslationBytesPeak[area] = 0;
+		for (reason = 0; reason < CACHE_FLUSH_REASON_COUNT; reason++)
 		{
-			Stats.TranslationFlushCount[cache][reason] = 0;
+			Stats.TranslationFlushCount[area][reason] = 0;
+		}
+	}
+	for (area = 0; area < METADATA_AREA_COUNT; area++)
+	{
+		for (reason = 0; reason < METADATA_CLEAR_REASON_COUNT; reason++)
+		{
+			Stats.MetadataClearCount[area][reason] = 0;
 		}
 	}
 	Stats.PartialFlushCount = 0;
@@ -60,6 +68,10 @@ void StatsInitGame(void)
 #ifdef PERFORMANCE_IMPACTING_STATISTICS
 	Stats.ARMOpcodesDecoded = 0;
 	Stats.ThumbOpcodesDecoded = 0;
+	Stats.BlockReuseCount = 0;
+	Stats.BlockRecompilationCount = 0;
+	Stats.OpcodeReuseCount = 0;
+	Stats.OpcodeRecompilationCount = 0;
 	Stats.WrongAddressLineCount = 0;
 #endif
 }

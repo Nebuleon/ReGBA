@@ -237,7 +237,6 @@ b) ROM loading. These flushes should be thorough, but not as much as during
    * The flushes are allowed to short-cut clearing Metadata Entries if there
      has been code only in part of a Data Area (for example, the start, the
      middle, or the end) before the ROM change.
-   * The flushes need to reset the Write Count of all Metadata Entries.
 c) Native code linking. Since read-only areas are expected not to need to be
    compiled often, a high level of optimisation can go into compiling them.
    Branches into a read-only area can therefore be patched directly into a
@@ -257,7 +256,6 @@ c) Native code linking. Since read-only areas are expected not to need to be
    * The flushes are allowed to short-cut clearing Metadata Entries if there
      has been code only in part of a Data Area (for example, the start, the
      middle, or the end).
-   * The flushes need to preserve the Write Count of all Metadata Entries.
 d) Cache full. These flushes affect only one Metadata Area, and are exactly
    as thorough as the "Native code linking" flushes. If the one Metadata Area
    that is affected describes a read-only area, then all other areas must be
@@ -274,5 +272,4 @@ f) Loading a state. This only needs to affect the RAM areas, even if the
    a Full Flush of the ROM metadata with the reason "Cache full".)
    Even if the entire RAM has been overwritten after loading a state, the
    Metadata Entries can still be selectively cleared if it was known a priori
-   that not all of a Data Area contained code. Write Counts also need to be
-   preserved.
+   that not all of a Data Area contained code.

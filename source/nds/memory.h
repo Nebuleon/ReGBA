@@ -192,8 +192,6 @@ struct BIOS_DATA bios;
 extern u8  gamepak_backup[0x20000];
 
 #ifndef USE_C_CORE
-#define MIN_TAG (0x0001)
-#define MAX_TAG (0xFFFE)
 
 extern u16 iwram_metadata[ 0x8000];
 extern u16 ewram_metadata[0x40000];

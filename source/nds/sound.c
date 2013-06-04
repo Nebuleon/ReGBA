@@ -930,31 +930,38 @@ static int sound_update()
 				// Minimum skip 2
 				if(SKIP_RATE > 2)
 				{
+#if defined SERIAL_TRACE || defined SERIAL_TRACE_FRAMESKIP
 					serial_timestamp_printf("I: Decreasing automatic frameskip: %u..%u", SKIP_RATE, SKIP_RATE - 1);
+#endif
 					SKIP_RATE--;
+				}
+				else
+				{
+#if defined SERIAL_TRACE || defined SERIAL_TRACE_FRAMESKIP
+					serial_timestamp_printf("I: Decreasing automatic frameskip: %u..%u", SKIP_RATE, 0);
+#endif
+					SKIP_RATE = 0;
 				}
 			}
 			else
 			{
 				// Alright, we're in a hurry. Raise frameskip.
+				if (SKIP_RATE == 0)
+				{
+#if defined SERIAL_TRACE || defined SERIAL_TRACE_FRAMESKIP
+					serial_timestamp_printf("I: Increasing automatic frameskip: %u..%u", 0, 2);
+#endif
+					SKIP_RATE = 2;
+				}
 				// Maximum skip 9
 				if(SKIP_RATE < 8)
 				{
+#if defined SERIAL_TRACE || defined SERIAL_TRACE_FRAMESKIP
 					serial_timestamp_printf("I: Increasing automatic frameskip: %u..%u", SKIP_RATE, SKIP_RATE + 1);
+#endif
 					SKIP_RATE++;
 				}
 			}
-		}
-		/* DSTwo-specific hack: Frame skip 0 can cause crashes when
-		 * the emulator can't handle rendering 60 FPS for a game.
-		 * If audio is about to lag, skip one frame. The value 2 is
-		 * used here because we're likely in the middle of a frame
-		 * so we need to skip that half-frame first. */
-		else if (SKIP_RATE == 0 && n < 2 && !frameskip_0_hack_flag)
-		{
-			skip_next_frame_flag = 1;
-			frameskip_0_hack_flag = 2;
-			serial_timestamp_printf("I: Skipping a frame due to audio lag");
 		}
 		return -1;
 	}
@@ -962,12 +969,16 @@ static int sound_update()
 	{
 		if (n >= 2 && SKIP_RATE > 2)
 		{
+#if defined SERIAL_TRACE || defined SERIAL_TRACE_FRAMESKIP
 			serial_timestamp_printf("I: Decreasing automatic frameskip: %u..%u", SKIP_RATE, SKIP_RATE - 1);
+#endif
 			SKIP_RATE--;
 		}
 		else if (n < 2 && SKIP_RATE < 8)
 		{
+#if defined SERIAL_TRACE || defined SERIAL_TRACE_FRAMESKIP
 			serial_timestamp_printf("I: Increasing automatic frameskip: %u..%u", SKIP_RATE, SKIP_RATE + 1);
+#endif
 			SKIP_RATE++;
 		}
 	}

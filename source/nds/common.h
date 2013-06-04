@@ -37,11 +37,8 @@
 #  include "tune/mips/dstwo.h"
 #else
 #  define CACHE_LINE_SIZE 4 /* This will most likely be wrong */
-#  define IWRAM_TRANSLATION_CACHE_SIZE      (1024 * 384)
-#  define EWRAM_TRANSLATION_CACHE_SIZE      (1024 * 768)
-#  define VRAM_TRANSLATION_CACHE_SIZE       (1024 * 512)
-#  define ROM_TRANSLATION_CACHE_SIZE        (1024 * 1024 * 2)
-#  define BIOS_TRANSLATION_CACHE_SIZE       (1024 * 128)
+#  define READONLY_CODE_CACHE_SIZE          (1024 * 1024 * 2)
+#  define WRITABLE_CODE_CACHE_SIZE          (1024 * 1024 * 4)
    /* The following parameter needs to be at least enough bytes to hold
     * the generated code for the largest instruction on your platform.
     * In most cases, that will be the ARM instruction
