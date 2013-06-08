@@ -917,70 +917,54 @@ static int sound_update()
 	if (Stats.InSoundBufferUnderrun && !WasInUnderrun)
 		Stats.SoundBufferUnderrunCount++;
 
+	// On auto frameskip, sound buffers being full or empty determines
+	// whether we're late.
+	if (AUTO_SKIP)
+	{
+		if (n >= 2)
+		{
+			// We're in no hurry, because 2 buffers are still full.
+			// Minimum skip 2
+			if(SKIP_RATE > 2)
+			{
+#if defined SERIAL_TRACE || defined SERIAL_TRACE_FRAMESKIP
+				serial_timestamp_printf("I: Decreasing automatic frameskip: %u..%u", SKIP_RATE, SKIP_RATE - 1);
+#endif
+				SKIP_RATE--;
+			}
+			else if (SKIP_RATE == 2)
+			{
+#if defined SERIAL_TRACE || defined SERIAL_TRACE_FRAMESKIP
+				serial_timestamp_printf("I: Decreasing automatic frameskip: %u..%u", SKIP_RATE, 0);
+#endif
+				SKIP_RATE = 0;
+			}
+		}
+		else
+		{
+			// Alright, we're in a hurry. Raise frameskip.
+			if (SKIP_RATE == 0)
+			{
+#if defined SERIAL_TRACE || defined SERIAL_TRACE_FRAMESKIP
+				serial_timestamp_printf("I: Increasing automatic frameskip: %u..%u", 0, 2);
+#endif
+				SKIP_RATE = 2;
+			}
+			// Maximum skip 9
+			if(SKIP_RATE < 8)
+			{
+#if defined SERIAL_TRACE || defined SERIAL_TRACE_FRAMESKIP
+				serial_timestamp_printf("I: Increasing automatic frameskip: %u..%u", SKIP_RATE, SKIP_RATE + 1);
+#endif
+				SKIP_RATE++;
+			}
+		}
+	}
+
 	if (CHECK_BUFFER() < AUDIO_LEN * 4)
 	{
 		// Generate more sound first, please!
-		// On auto frameskip, sound buffers being full or empty determines
-		// whether we're late.
-		if (AUTO_SKIP)
-		{
-			if (n >= 2)
-			{
-				// We're in no hurry, because 2 buffers are still full.
-				// Minimum skip 2
-				if(SKIP_RATE > 2)
-				{
-#if defined SERIAL_TRACE || defined SERIAL_TRACE_FRAMESKIP
-					serial_timestamp_printf("I: Decreasing automatic frameskip: %u..%u", SKIP_RATE, SKIP_RATE - 1);
-#endif
-					SKIP_RATE--;
-				}
-				else
-				{
-#if defined SERIAL_TRACE || defined SERIAL_TRACE_FRAMESKIP
-					serial_timestamp_printf("I: Decreasing automatic frameskip: %u..%u", SKIP_RATE, 0);
-#endif
-					SKIP_RATE = 0;
-				}
-			}
-			else
-			{
-				// Alright, we're in a hurry. Raise frameskip.
-				if (SKIP_RATE == 0)
-				{
-#if defined SERIAL_TRACE || defined SERIAL_TRACE_FRAMESKIP
-					serial_timestamp_printf("I: Increasing automatic frameskip: %u..%u", 0, 2);
-#endif
-					SKIP_RATE = 2;
-				}
-				// Maximum skip 9
-				if(SKIP_RATE < 8)
-				{
-#if defined SERIAL_TRACE || defined SERIAL_TRACE_FRAMESKIP
-					serial_timestamp_printf("I: Increasing automatic frameskip: %u..%u", SKIP_RATE, SKIP_RATE + 1);
-#endif
-					SKIP_RATE++;
-				}
-			}
-		}
 		return -1;
-	}
-	else if (/* CHECK_BUFFER() >= AUDIO_LEN * 4 && */ AUTO_SKIP)
-	{
-		if (n >= 2 && SKIP_RATE > 2)
-		{
-#if defined SERIAL_TRACE || defined SERIAL_TRACE_FRAMESKIP
-			serial_timestamp_printf("I: Decreasing automatic frameskip: %u..%u", SKIP_RATE, SKIP_RATE - 1);
-#endif
-			SKIP_RATE--;
-		}
-		else if (n < 2 && SKIP_RATE < 8)
-		{
-#if defined SERIAL_TRACE || defined SERIAL_TRACE_FRAMESKIP
-			serial_timestamp_printf("I: Increasing automatic frameskip: %u..%u", SKIP_RATE, SKIP_RATE + 1);
-#endif
-			SKIP_RATE++;
-		}
 	}
 
 	// We have enough sound. Complete this update.
@@ -1011,9 +995,13 @@ static int sound_update()
 		while ((n2 = ds2_checkAudiobuff()) >= AUDIO_BUFFER_COUNT && (int) n2 >= 0);
 	}
 
-	do
-		audio_buff = ds2_getAudiobuff();
-	while (audio_buff == NULL);
+	audio_buff = ds2_getAudiobuff();
+	if (audio_buff == NULL) {
+#if defined SERIAL_TRACE || defined SERIAL_TRACE_SOUND
+		serial_timestamp_printf("Recovered from the lack of a buffer");
+#endif
+		return -1;
+	}
 
 	dst_ptr = audio_buff; // left (stereo)
 	dst_ptr1 = dst_ptr + (int) (AUDIO_LEN / OUTPUT_FREQUENCY_DIVISOR); // right (stereo)

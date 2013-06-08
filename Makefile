@@ -80,7 +80,8 @@ DEFS   := -DNDS_LAYER -DNO_LOAD_DELAY_SLOT -DGIT_VERSION=$(shell git describe --
 # -DPERFORMANCE_IMPACTING_STATISTICS (if you want to get statistics that are
 #   so expensive to collect that the emulator's performance would plummet)
 # -DSERIAL_TRACE, -DSERIAL_TRACE_FRAMESKIP, -DSERIAL_TRACE_TRANSLATION_REQUESTS
-# -DSERIAL_TRACE_RECOMPILATION, -DSERIAL_TRACE_REUSE
+# -DSERIAL_TRACE_RECOMPILATION, -DSERIAL_TRACE_REUSE, -DSERIAL_TRACE_FLUSHING
+# -DSERIAL_TRACE_SOUND
 
 .PHONY: clean makedirs
 .SUFFIXES: .elf .dat .plg .c .S .o

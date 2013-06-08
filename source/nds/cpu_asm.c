@@ -3705,9 +3705,40 @@ static void partial_clear_metadata_arm(u16* metadata, u16* metadata_area_start, 
   }
 }
 
+#if defined SERIAL_TRACE || defined SERIAL_TRACE_FLUSHING
+
+static char* METADATA_AREA_NAMES[] = {
+	"BIOS", "EWRAM", "IWRAM", "VRAM", "ROM"
+};
+static char* CODE_CACHE_NAMES[] = {
+	"read-only", "writable"
+};
+
+static char* CLEAR_REASON_NAMES[] = {
+	"Initialising",
+	"Loading a new ROM",
+	"Invalidating native branches",
+	"Code cache full",
+	"Last tag reached",
+	"Loading a saved state"
+};
+static char* FLUSH_REASON_NAMES[] = {
+	"Initialising",
+	"Loading a new ROM",
+	"Invalidating native branches",
+	"Code cache full"
+};
+
+#endif
+
 void clear_metadata_area(METADATA_AREA_TYPE metadata_area,
   METADATA_CLEAR_REASON_TYPE clear_reason)
 {
+#if defined SERIAL_TRACE || defined SERIAL_TRACE_FLUSHING
+	serial_timestamp_printf("Clearing %s metadata: %s",
+		METADATA_AREA_NAMES[metadata_area],
+		CLEAR_REASON_NAMES[clear_reason]);
+#endif
 	Stats.MetadataClearCount[metadata_area][clear_reason]++;
 	switch (metadata_area)
 	{
@@ -3775,6 +3806,11 @@ void clear_metadata_area(METADATA_AREA_TYPE metadata_area,
 void flush_translation_cache(TRANSLATION_REGION_TYPE translation_region,
   CACHE_FLUSH_REASON_TYPE flush_reason)
 {
+#if defined SERIAL_TRACE || defined SERIAL_TRACE_FLUSHING
+	serial_timestamp_printf("Flushing %s code cache: %s",
+		CODE_CACHE_NAMES[translation_region],
+		FLUSH_REASON_NAMES[flush_reason]);
+#endif
 	Stats.TranslationFlushCount[translation_region][flush_reason]++;
 	switch (translation_region)
 	{

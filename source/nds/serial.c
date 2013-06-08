@@ -44,14 +44,13 @@ void serial_printf(const char* fmt, ...)
 
 void serial_timestamp_printf(const char* fmt, ...)
 {
-	serial_putc('[');
 	{
 		char timestamp[14];
 		unsigned int Now = getSysTime();
-		sprintf(timestamp, "%6u.%06u", Now / 23437, (Now % 23437) * 128 / 3);
+		sprintf(timestamp, "%6u.%03u", Now / 23437, (Now % 23437) * 16 / 375);
 		serial_puts(timestamp);
 	}
-	serial_putc(']');
+	serial_putc(':');
 	serial_putc(' ');
 
 	char* line = malloc(82);
