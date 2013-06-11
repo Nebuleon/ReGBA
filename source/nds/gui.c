@@ -2152,22 +2152,6 @@ u32 menu(u16 *screen, int FirstInvocation)
 			{
 				get_savestate_filename(savestate_index, tmp_filename);
 				sprintf(line_buffer, "%s/%s", DEFAULT_SAVE_DIR, tmp_filename);
-				fp= fopen(line_buffer, "rb");
-
-				//file error
-				if(fp == NULL)
-				{
-					draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
-					draw_string_vcenter(down_screen_addr, MESSAGE_BOX_TEXT_X, MESSAGE_BOX_TEXT_Y, MESSAGE_BOX_TEXT_SX, COLOR_MSSG, msg[MSG_PROGRESS_SAVED_STATE_CORRUPTED]);
-					ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
-
-					wait_Allkey_release(0);
-					if(gui_action == CURSOR_SELECT)
-						wait_Anykey_press(0);
-					else
-						mdelay(1000);
-					return;
-				}
 
 				//right
 				if(gui_action == CURSOR_SELECT)
