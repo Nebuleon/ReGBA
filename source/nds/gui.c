@@ -347,7 +347,6 @@ static unsigned char SavedStateSquareX (u32 slot);
 static unsigned char SavedStateFileExists (u32 slot);
 static void SavedStateCacheInvalidate (void);
 void get_newest_savestate(char *name_buffer);
-static int sort_function(const void *dest_str_ptr, const void *src_str_ptr);
 static u32 parse_line(char *current_line, char *current_str);
 static void print_status(u32 mode);
 static void get_timestamp_string(char *buffer, u16 msg_id, u16 year, u16 mon, u16 day, u16 wday, u16 hour, u16 min, u16 sec, u32 msec);
@@ -363,61 +362,155 @@ void game_set_frameskip();
 /*--------------------------------------------------------
 	Sort function
 --------------------------------------------------------*/
-static int sort_function(const void *dest_str_ptr, const void *src_str_ptr)
+static int nameSortFunction(char* a, char* b)
 {
-	char *dest_str = ((char *)dest_str_ptr);
-	char *src_str = ((char *)src_str_ptr);
+    // ".." sorts before everything except itself.
+    bool aIsParent = strcmp(a, "..") == 0;
+    bool bIsParent = strcmp(b, "..") == 0;
 
-	// For files and directories, . and .. sort first.
-	if(src_str[0] == '.' && dest_str[0] != '.')
-		return 1;
-
-	if(dest_str[0] == '.' && src_str[0] != '.')
-		return -1;
-
-	return strcasecmp(dest_str, src_str);
+    if (aIsParent && bIsParent)
+        return 0;
+    else if (aIsParent) // Sorts before
+        return -1;
+    else if (bIsParent) // Sorts after
+        return 1;
+    else
+        return strcasecmp(a, b);
 }
 
-static int my_array_partion(void **array, int left, int right)
+/*
+ * Determines whether a portion of a vector is sorted.
+ * Input assertions: 'from' and 'to' are valid indices into data. 'to' can be
+ *   the maximum value for the type 'unsigned int'.
+ * Input: 'data', data vector, possibly sorted.
+ *        'sortFunction', function determining the sort order of two elements.
+ *        'from', index of the first element in the range to test.
+ *        'to', index of the last element in the range to test.
+ * Output: true if, for any valid index 'i' such as from <= i < to,
+ *   data[i] < data[i + 1].
+ *   true if the range is one or no elements, or if from > to.
+ *   false otherwise.
+ */
+static bool isSorted(char** data, int (*sortFunction) (char*, char*), unsigned int from, unsigned int to)
 {
-	// Choose a pivot, left <= pivot <= right
-	unsigned int pivotIndex = left + (right - left) / 2;
+    if (from >= to)
+        return true;
 
-	// Move pivot value to the end
-	void *temp = array[pivotIndex];
-	array[pivotIndex] = array[right];
-	array[right] = temp;
-
-	// Move values that sort before the pivot value to before the new
-	// pivot's location
-	unsigned int storeIndex = left, i;
-	for (i = left; i <= right - 1; i++)
-	{
-		if (sort_function(array[i], array[right]) < 0)
-		{
-			temp = array[i];
-			array[i] = array[storeIndex];
-			array[storeIndex] = temp;
-			storeIndex++;
-		}
-	}
-
-	// Move the pivot value to its correct location
-	temp = array[storeIndex];
-	array[storeIndex] = array[right];
-	array[right] = temp;
-
-	return storeIndex;
-}
-
-static void my_qsort(void **array, int left, int right)
-{
-    if(left < right)
+    char** prev = &data[from];
+	unsigned int i;
+    for (i = from + 1; i < to; i++)
     {
-        int mid= my_array_partion(array, left, right);
-        my_qsort(array, left, mid-1);
-        my_qsort(array, mid+1, right);
+        if ((*sortFunction)(*prev, data[i]) > 0)
+            return false;
+        prev = &data[i];
     }
+    if ((*sortFunction)(*prev, data[to]) > 0)
+        return false;
+
+    return true;
+}
+
+/*
+ * Chooses a pivot for Quicksort. Uses the median-of-three search algorithm
+ * first proposed by Robert Sedgewick.
+ * Input assertions: 'from' and 'to' are valid indices into data. 'to' can be
+ *   the maximum value for the type 'unsigned int'.
+ * Input: 'data', data vector.
+ *        'sortFunction', function determining the sort order of two elements.
+ *        'from', index of the first element in the range to be sorted.
+ *        'to', index of the last element in the range to be sorted.
+ * Output: a valid index into data, between 'from' and 'to' inclusive.
+ */
+static unsigned int choosePivot(char** data, int (*sortFunction) (char*, char*), unsigned int from, unsigned int to)
+{
+    // The highest of the two extremities is calculated first.
+    unsigned int highest = ((*sortFunction)(data[from], data[to]) > 0)
+        ? from
+        : to;
+    // Then the lowest of that highest extremity and the middle
+    // becomes the pivot.
+    return ((*sortFunction)(data[from + (to - from) / 2], data[highest]) < 0)
+        ? (from + (to - from) / 2)
+        : highest;
+}
+
+/*
+ * Partition function for Quicksort. Moves elements such that those that are
+ * less than the pivot end up before it in the data vector.
+ * Input assertions: 'from', 'to' and 'pivotIndex' are valid indices into data.
+ *   'to' can be the maximum value for the type 'unsigned int'.
+ * Input: 'data', data vector.
+ *        'metadata', data describing the values in 'data'.
+ *        'sortFunction', function determining the sort order of two elements.
+ *        'from', index of the first element in the range to sort.
+ *        'to', index of the last element in the range to sort.
+ *        'pivotIndex', index of the value chosen as the pivot.
+ * Output: the index of the value chosen as the pivot after it has been moved
+ *   after all the values that are less than it.
+ */
+static unsigned int partition(char** data, u8* metadata, int (*sortFunction) (char*, char*), unsigned int from, unsigned int to, unsigned int pivotIndex)
+{
+    char* pivotValue = data[pivotIndex];
+    data[pivotIndex] = data[to];
+    data[to] = pivotValue;
+    {
+        u8 tM = metadata[pivotIndex];
+        metadata[pivotIndex] = metadata[to];
+        metadata[to] = tM;
+    }
+
+    unsigned int storeIndex = from;
+	unsigned int i;
+    for (i = from; i < to; i++)
+    {
+        if ((*sortFunction)(data[i], pivotValue) < 0)
+        {
+            char* tD = data[storeIndex];
+            data[storeIndex] = data[i];
+            data[i] = tD;
+            u8 tM = metadata[storeIndex];
+            metadata[storeIndex] = metadata[i];
+            metadata[i] = tM;
+            ++storeIndex;
+        }
+    }
+
+    {
+        char* tD = data[to];
+        data[to] = data[storeIndex];
+        data[storeIndex] = tD;
+        u8 tM = metadata[to];
+        metadata[to] = metadata[storeIndex];
+        metadata[storeIndex] = tM;
+    }
+    return storeIndex;
+}
+
+/*
+ * Sorts an array while keeping metadata in sync.
+ * This sort is unstable and its average performance is
+ *   O(data.size() * log2(data.size()).
+ * Input assertions: for any valid index 'i' in data, index 'i' is valid in
+ *   metadata. 'from' and 'to' are valid indices into data. 'to' can be
+ *   the maximum value for the type 'unsigned int'.
+ * Invariant: index 'i' in metadata describes index 'i' in data.
+ * Input: 'data', data to sort.
+ *        'metadata', data describing the values in 'data'.
+ *        'sortFunction', function determining the sort order of two elements.
+ *        'from', index of the first element in the range to sort.
+ *        'to', index of the last element in the range to sort.
+ */
+static void quickSort(char** data, u8* metadata, int (*sortFunction) (char*, char*), unsigned int from, unsigned int to)
+{
+    if (isSorted(data, sortFunction, from, to))
+        return;
+
+    unsigned int pivotIndex = choosePivot(data, sortFunction, from, to);
+    unsigned int newPivotIndex = partition(data, metadata, sortFunction, from, to, pivotIndex);
+    if (newPivotIndex > 0)
+        quickSort(data, metadata, sortFunction, from, newPivotIndex - 1);
+    if (newPivotIndex < to)
+        quickSort(data, metadata, sortFunction, newPivotIndex + 1, to);
 }
 
 static void strupr(char *str)
@@ -432,722 +525,545 @@ static void strupr(char *str)
  * 全局函数定义
  ******************************************************************************/
 //#define FS_FAT_ATTR_DIRECTORY   0x10
-#define FILE_LIST_MAX  512
-#define DIR_LIST_MAX   64
-#define NAME_MEM_SIZE  (320*64)
-
-/*
-*	Function: internal function to manage FILE_LIST_INFO structure
-*	filelist_infop: a pointer to a predefined FILE_LIST_INFO structure
-*	flag: 0	initialize the structure
-*			1 increase filename memory size
-*			2 increase file name buffer size
-*			4 increase directory name buffer size
-*			-1 free all allocated memroy
-*			other value are invalide
-*	return: -1 on failure
-*/
-static int manage_filelist_info(struct FILE_LIST_INFO *filelist_infop, int flag)
-{
-	//Initialize
-	if(0 == flag)
-	{
-		filelist_infop->file_list = (char**)malloc(FILE_LIST_MAX*4);
-		if(NULL == filelist_infop->file_list)
-			return -1;
-
-		filelist_infop->dir_list = (char**)malloc(DIR_LIST_MAX*4);
-		if(NULL == filelist_infop->dir_list)
-		{
-			free((void*)filelist_infop->file_list);
-			return -1;
-		}
-
-		filelist_infop->filename_mem = (char*)malloc(NAME_MEM_SIZE);
-		if(NULL == filelist_infop->filename_mem)
-		{
-			free((void*)filelist_infop->file_list);
-			free((void*)filelist_infop->dir_list);
-			return -1;
-		}
-
-		filelist_infop->mem_size = NAME_MEM_SIZE;
-		filelist_infop->file_size = FILE_LIST_MAX;
-		filelist_infop->dir_size = DIR_LIST_MAX;
-		return 0;
-	}
-	//free all memroy
-	if(-1 == flag)
-	{
-		free((void*)filelist_infop->file_list);
-		free((void*)filelist_infop->dir_list);
-		free((void*)filelist_infop->filename_mem);
-		return 0;
-	}
-
-	int i;
-	void *pt;
-
-	//Increase all
-	if(flag & 0x1)
-	{
-		i = NAME_MEM_SIZE;
-
-		do
-		{
-			pt = (void*)realloc(filelist_infop->filename_mem, filelist_infop->mem_size+i);
-			if(NULL == pt) i /= 2;
-		} while(i > 256);
-
-		if(NULL == pt) return -1;
-
-		filelist_infop->mem_size += i;
-		filelist_infop->filename_mem = (char*)pt;
-		i = (int)pt - (int)filelist_infop->file_list;
-
-		int k;
-		char **m;
-
-		k = 0;
-		m = filelist_infop->file_list;
-		for(k= 0; k < filelist_infop->file_num; k++)
-			m[k] += i;
-
-		k = 0;
-		m = filelist_infop->dir_list;
-		for(k = 0; k < filelist_infop->dir_num; k++)
-			m[k] += i;
-	}
-	//Increase file name buffer
-	if(flag & 0x2)
-	{
-		i = filelist_infop->file_size + FILE_LIST_MAX;
-
-		pt = (void*)realloc(filelist_infop->file_list, i*4);
-		if(NULL == pt) return -1;
-
-		filelist_infop->file_list = (char**)pt;
-		filelist_infop->file_size = i;
-	}
-	//Increase directory name buffer
-	if(flag & 0x4)
-	{
-		i = filelist_infop->dir_size + DIR_LIST_MAX;
-
-		pt = (void*)realloc(filelist_infop->dir_list, i*4);
-		if(NULL == pt) return -1;
-
-		filelist_infop->dir_list = (char**)pt;
-		filelist_infop->dir_size = i;
-	}
-
-	return 0;
-}
-
-static int load_file_list(struct FILE_LIST_INFO *filelist_infop)
-{
-    DIR* current_dir;
-    char    current_dir_name[MAX_PATH];
-    dirent *current_file;
-	struct stat st;
-    char *file_name;
-	unsigned int len;
-    unsigned int file_name_length;
-    char* name_mem_base;
-    char **file_list;
-    char **dir_list;
-	unsigned int mem_size;
-	unsigned int file_size;
-	unsigned int dir_size;
-    unsigned int num_files;
-    unsigned int num_dirs;
-    char **wildcards;
-
-    if(filelist_infop -> current_path == NULL)
-        return -1;
-
-    name_mem_base = &(filelist_infop -> filename_mem[0]);
-    mem_size = filelist_infop -> mem_size;
-	file_size = filelist_infop -> file_size;
-	dir_size = filelist_infop -> dir_size;
-    file_list = filelist_infop -> file_list;
-    dir_list = filelist_infop -> dir_list;
-    num_files = 0;
-    num_dirs = 0;
-    wildcards = filelist_infop -> wildcards;
-
-    strcpy(current_dir_name, filelist_infop -> current_path);
-
-	//	path formate should be: "fat:/" or "fat:/dir0" or "fat:", not "fat:/dir0/"
-    current_dir = opendir(current_dir_name);
-	//Open directory faiure
-	if(current_dir == NULL) {
-		return -1;
-	}
-
-	file_name_length = 0;
-	//while((current_file = readdir(current_dir)) != NULL)
-	while((current_file = readdir_ex(current_dir, &st)) != NULL)
-    {
-		//lstat(current_file->d_name, &st);
-		file_name = current_file->d_name;
-
-		len = strlen(file_name) +1;
-		if((file_name_length+len) > mem_size)
-		{
-			//get more memory
-			if(manage_filelist_info(filelist_infop, 1) == -1)
-				break;
-
-			name_mem_base = &(filelist_infop -> filename_mem[0]);
-		    mem_size = filelist_infop -> mem_size;
-		}
-		//Increase file_list
-		if(num_files >= file_size) {
-			if(manage_filelist_info(filelist_infop, 2) == -1)
-				break;
-			file_size = filelist_infop -> file_size;
-		}
-		//Increase dir_list
-		if(num_dirs >= dir_size) {
-			if(manage_filelist_info(filelist_infop, 4) == -1)
-				break;
-			dir_size = filelist_infop -> dir_size;
-		}
-
-		//If dirctory
-		if(S_ISDIR(st.st_mode))
-		{
-			if(file_name[0] != '.')
-			{
-				dir_list[num_dirs] = name_mem_base + file_name_length;
-				strcpy(dir_list[num_dirs], file_name);
-				num_dirs++;
-				file_name_length += len;
-			}
-			//take ".." directory as file
-			else if(file_name[1] == '.')
-			{
-				file_list[num_files] = name_mem_base + file_name_length;
-				strcpy(file_list[num_files], file_name);
-				num_files++;
-				file_name_length += len;
-			}
-		}
-		else
-		{
-			char *ext_pos;
-			unsigned int i;
-
-			ext_pos = (char*)strrchr((const char*)file_name, '.');
-			if(NULL != ext_pos)
-			for(i = 0; wildcards[i] != NULL; i++)
-			{
-				if(!strcasecmp(ext_pos, wildcards[i]))
-				{
-					file_list[num_files] = name_mem_base + file_name_length;
-					strcpy(file_list[num_files], file_name);
-					num_files++;
-					file_name_length += len;
-					break;
-				}
-			}
-		}
-    }
-
-    closedir(current_dir);
-
-	filelist_infop -> file_num = num_files;
-	filelist_infop -> dir_num = num_dirs;
-	//printf("%s: num_files %d; num_dirs %d\n", filelist_infop ->current_path, num_files, num_dirs);
-#if 0
-    my_qsort((void *)file_list, 0, num_files-1);
-#else	//to support ".." directory, but take it as file
-    my_qsort((void **)file_list, 1, num_files-1);
-#endif
-    my_qsort((void **)dir_list, 0, num_dirs-1);
-
-    return 0;
-}
-
-/*--------------------------------------------------------
-  读取文件
---------------------------------------------------------*/
 
 s32 load_file(char **wildcards, char *result, char *default_dir_name)
 {
-	struct FILE_LIST_INFO filelist_info;
-	u32 repeat;
-	int return_value;
-	gui_action_type gui_action;
-	u32 selected_item_on_list;
-	u32 selected_item_on_screen;
-	u32 to_update_filelist;
-	u32 total_items_num;
-	int redraw;
-    u32 path_scroll;
-    u32 num_files;						//File numbers on the directory
-    u32 num_dirs;                       //Directory numbers on the dirctory
-    char **file_list;
-    char **dir_list;
-    int flag;
+	if (default_dir_name == NULL || *default_dir_name == '\0')
+		return -4;
 
-	//Have no path
-	if(NULL == default_dir_name)
-		return -1;
+	char CurrentDirectory[MAX_PATH];
+	u32  ContinueDirectoryRead = 1;
+	u32  ReturnValue;
+	u32  i;
 
-	//construct filelist_info struct
-	if(-1 == manage_filelist_info(&filelist_info, 0))
-		return -1;
+	strcpy(CurrentDirectory, default_dir_name);
 
-	result[0] = '\0';
-	strcpy(filelist_info.current_path, default_dir_name);
-
-	filelist_info.wildcards = wildcards;
-	filelist_info.file_num = 0;
-	filelist_info.dir_num = 0;
-
-	flag = load_file_list(&filelist_info);
-	if(-1 == flag)
+	while (ContinueDirectoryRead)
 	{
-		//deconstruct filelist_info struct
-		manage_filelist_info(&filelist_info, -1);
-		return -1;
-	}
+		HighFrequencyCPU();
+		// Read the current directory. This loop is continued every time the
+		// current directory changes.
 
-	num_files = filelist_info.file_num;
-	num_dirs = filelist_info.dir_num;
-	file_list = filelist_info.file_list;
-	dir_list = filelist_info.dir_list;
+		show_icon(down_screen_addr, &ICON_SUBBG, 0, 0);
+		show_icon(down_screen_addr, &ICON_TITLE, 0, 0);
+		show_icon(down_screen_addr, &ICON_TITLEICON, TITLE_ICON_X, TITLE_ICON_Y);
+		PRINT_STRING_BG(down_screen_addr, msg[MSG_FILE_MENU_LOADING_LIST], COLOR_WHITE, COLOR_TRANS, 49, 10);
+		ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
 
-	selected_item_on_list = 0;			//Selected item on list
-	selected_item_on_screen = 0;		//Selected item on screen's position
-	redraw = -1;						//redraw all
-	total_items_num = num_files + num_dirs;
-	to_update_filelist = 0;             //to load new file list
-	path_scroll = 0x8000;				//path scroll method, first scroll left
+		u32 LastCountDisplayTime = getSysTime();
 
-	repeat= 1;
-	return_value = -1;
-	while(repeat)
-	{
-		struct key_buf inputdata;
-		gui_action = get_gui_input();
-		int mod;
+		char** EntryNames = NULL;
+		u8*    EntryDirectoryFlags = NULL;
+		DIR*   CurrentDirHandle = NULL;
+		u32    EntryCount = 1, EntryCapacity = 4 /* initial */;
 
-		// Get KEY_RIGHT and KEY_LEFT separately to allow scrolling
-		// the selected file name faster.
-		ds2_getrawInput(&inputdata);
-		if (inputdata.key & KEY_RIGHT)
-			redraw = -3;
-		else if (inputdata.key & KEY_LEFT)
-			redraw = 3;
-
-		switch(gui_action)
+		EntryNames = (char**) malloc(EntryCapacity * sizeof(char*));
+		if (EntryNames == NULL)
 		{
-			case CURSOR_TOUCH:
-				ds2_getrawInput(&inputdata);
-				wait_Allkey_release(0);
-				// ___ 33        This screen has 6 possible rows. Touches
-				// ___ 60        above or below these are ignored.
-				// . . . (+27)
-				// ___ 192
-				if(inputdata.y <= GUI_ROW1_Y || inputdata.y > NDS_SCREEN_HEIGHT)
-					break;
-				else
-					mod = (inputdata.y - GUI_ROW1_Y) / GUI_ROW_SY;
-
-				if(selected_item_on_list - selected_item_on_screen + mod >= total_items_num)
-					break;
-
-				selected_item_on_list = selected_item_on_list - selected_item_on_screen + mod;
-
-				if(selected_item_on_list + 1 <= num_files)
-				{
-					//The ".." directory is the parent
-					if(!strcasecmp(file_list[selected_item_on_list], ".."))
-					{
-						char *ext_pos;
-
-						strcpy(filelist_info.current_path, default_dir_name);
-						ext_pos = strrchr(filelist_info.current_path, '/');
-						if(NULL != ext_pos)	//Not root directory
-						{
-							*ext_pos = '\0';
-							to_update_filelist= 1;
-						}
-					}
-					else
-					{
-						repeat = 0;
-						return_value = 0;
-						strcpy(default_dir_name, filelist_info.current_path);
-						strcpy(result, file_list[selected_item_on_list]);
-					}
-				}
-				//directory selected
-				else if(num_dirs > 0)
-				{
-					unsigned int m;
-
-					m = selected_item_on_list - num_files;
-					strcpy(filelist_info.current_path, default_dir_name);
-					strcat(filelist_info.current_path, "/");
-					strcat(filelist_info.current_path, dir_list[m]);
-					to_update_filelist= 1;
-				}
-				break;
-			case CURSOR_UP:
-				redraw = 1;
-				if(selected_item_on_screen > 0)
-				{
-					//Not the first item on list
-					selected_item_on_list -= 1;
-					//Selected item on screen center
-					if(FILE_LIST_ROWS_CENTER == selected_item_on_screen) {
-						if(selected_item_on_screen > selected_item_on_list)
-							selected_item_on_screen -= 1;
-					}
-					//Selected item on down half screen
-					else if(FILE_LIST_ROWS_CENTER < selected_item_on_screen) {
-						selected_item_on_screen -= 1;
-					}
-					//Selected item on up half screen
-					else {
-						if(selected_item_on_screen < selected_item_on_list)
-							selected_item_on_screen += 1;
-						else if(selected_item_on_screen > selected_item_on_list)
-							selected_item_on_screen -= 1;
-					}
-				}
-				else if(selected_item_on_screen > selected_item_on_list) {
-					selected_item_on_screen -= 1;
-				}
-				else
-					redraw = 0;
-
-				break;
-
-			case CURSOR_DOWN:
-			{
-				unsigned int m, n;
-				m = total_items_num - (selected_item_on_list + 1);
-				n = FILE_LIST_ROWS - (FILE_LIST_ROWS_CENTER + 1);
-				//Selected item on screen center
-				if(FILE_LIST_ROWS_CENTER == selected_item_on_screen) {
-					if(m > 0 && m < n)
-						selected_item_on_screen += 1;
-					redraw = 1;
-				}
-				//Selected item on down half screen
-				else if(FILE_LIST_ROWS_CENTER < selected_item_on_screen) {
-					if(m > 0) {
-						redraw = 1;
-						if(m <= n) selected_item_on_screen += 1;
-						else if(m > n) selected_item_on_screen -= 1;
-						else redraw = 0;	//cancel
-					}
-				}
-				//Selected item on up half screen
-				else {
-					if(m > 0) {
-						selected_item_on_screen += 1;
-						redraw = 1;
-					}
-				}
-
-				//Not reach the last item
-				if((selected_item_on_list + 1) < total_items_num)
-					selected_item_on_list += 1;
-
-				break;
-			}
-			//scroll page down
-			case CURSOR_RTRIGGER:
-			{
-				unsigned int m, n;
-				//first item on screen in item list's position
-				m = selected_item_on_list - selected_item_on_screen;
-				n = total_items_num - (m+1);
-				//there are more than 1 page after the m item
-				if(n >= FILE_LIST_ROWS) {
-					m += FILE_LIST_ROWS -1;
-					selected_item_on_list = m;
-
-					m = total_items_num - (selected_item_on_list +1);
-					if(m >= (FILE_LIST_ROWS_CENTER +1))
-						selected_item_on_screen = FILE_LIST_ROWS_CENTER;
-					else
-						selected_item_on_screen = 0;
-
-					selected_item_on_list += selected_item_on_screen;
-					redraw = 1;
-				}
-
-				break;
-			}
-			//scroll page up
-			case CURSOR_LTRIGGER:
-			{
-				unsigned int m;
-				//first item on screen in item list's position
-				m = selected_item_on_list - selected_item_on_screen;
-				//there are more than 1 page befroe the m item
-				if((m+1) >= FILE_LIST_ROWS)
-				{
-					m -= FILE_LIST_ROWS -1;
-					selected_item_on_list = m;
-
-					selected_item_on_screen = FILE_LIST_ROWS_CENTER;
-					selected_item_on_list += selected_item_on_screen;
-					redraw = 1;
-				}
-
-				break;
-			}
-			//scroll string (see above the switch)
-			case CURSOR_RIGHT:
-				/* fall through */
-			//scroll string (see above the switch)
-			case CURSOR_LEFT:
-				break;
-
-			case CURSOR_SELECT:
-				wait_Allkey_release(0);
-				//file selected
-				if(selected_item_on_list + 1 <= num_files)
-				{
-					//The ".." directory
-					if(!strcasecmp(file_list[selected_item_on_list], ".."))
-					{
-						char *ext_pos;
-
-						strcpy(filelist_info.current_path, default_dir_name);
-						ext_pos = strrchr(filelist_info.current_path, '/');
-						if(NULL != ext_pos)	//Not root directory
-						{
-							*ext_pos = '\0';
-							to_update_filelist= 1;
-						}
-					}
-					else
-					{
-						repeat = 0;
-						return_value = 0;
-						strcpy(default_dir_name, filelist_info.current_path);
-						strcpy(result, file_list[selected_item_on_list]);
-					}
-				}
-				//directory selected
-				else if(num_dirs > 0)
-				{
-					unsigned int m;
-
-					m = selected_item_on_list - num_files;
-					strcpy(filelist_info.current_path, default_dir_name);
-					strcat(filelist_info.current_path, "/");
-					strcat(filelist_info.current_path, dir_list[m]);
-					to_update_filelist= 1;
-				}
-				break;
-
-			case CURSOR_BACK:
-			{
-				wait_Allkey_release(0);
-				char *ext_pos;
-
-				strcpy(filelist_info.current_path, default_dir_name);
-				ext_pos = strrchr(filelist_info.current_path, '/');
-				if(NULL != ext_pos)	//Not root directory
-				{
-					*ext_pos = '\0';
-					to_update_filelist= 1;
-				}
-				else { //is root directory
-					return_value = -1;
-					repeat = 0;
-				}
-				break;
-			}
-
-			case CURSOR_EXIT:
-				wait_Allkey_release(0);
-				return_value = -1;
-				repeat = 0;
-				break;
-
-			default:
-				break;
-		} //end switch
-
-		if(to_update_filelist)
-		{
-			flag = load_file_list(&filelist_info);
-			if(-1 != flag) {
-				strcpy(default_dir_name, filelist_info.current_path);
-				num_files = filelist_info.file_num;
-				num_dirs = filelist_info.dir_num;
-				total_items_num = num_files + num_dirs;;
-
-				selected_item_on_list = 0;			//Selected item on list
-				selected_item_on_screen = 0;		//Selected item on screen's position
-
-				redraw = -1;						//redraw all
-			}
-			to_update_filelist = 0;
+			ReturnValue = -2;
+			ContinueDirectoryRead = 0;
+			goto cleanup;
 		}
 
-		//redraw, code reuse
-		if(-1 == redraw || 1 == redraw)
+		EntryDirectoryFlags = (u8*) malloc(EntryCapacity * sizeof(u8));
+		if (EntryDirectoryFlags == NULL)
 		{
-			unsigned int m, n, k;
-			char *pt;
-			unsigned short color;
+			ReturnValue = -2;
+			ContinueDirectoryRead = 0;
+			goto cleanup;
+		}
 
-			//draw background
+		CurrentDirHandle = opendir(CurrentDirectory);
+		if(CurrentDirHandle == NULL) {
+			ReturnValue = -1;
+			ContinueDirectoryRead = 0;
+			goto cleanup;
+		}
+
+		EntryNames[0] = "..";
+		EntryDirectoryFlags[0] = 1;
+
+		dirent*     CurrentEntryHandle;
+		struct stat Stat;
+
+		while((CurrentEntryHandle = readdir_ex(CurrentDirHandle, &Stat)) != NULL)
+		{
+			u32   Now = getSysTime();
+			u32   AddEntry = 0;
+			char* Name = CurrentEntryHandle->d_name;
+
+			if (Now >= LastCountDisplayTime + 5859 /* 250 ms */)
+			{
+				LastCountDisplayTime = Now;
+
+				show_icon(down_screen_addr, &ICON_TITLE, 0, 0);
+				show_icon(down_screen_addr, &ICON_TITLEICON, TITLE_ICON_X, TITLE_ICON_Y);
+				char Line[384], Element[128];
+				strcpy(Line, msg[MSG_FILE_MENU_LOADING_LIST]);
+				sprintf(Element, " (%u)", EntryCount);
+				strcat(Line, Element);
+				PRINT_STRING_BG(down_screen_addr, Line, COLOR_WHITE, COLOR_TRANS, 49, 10);
+				ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
+			}
+
+			if(S_ISDIR(Stat.st_mode))
+			{
+				// Add directories no matter what, except for the special
+				// ones, "." and "..".
+				if (!(Name[0] == '.' &&
+				    (Name[1] == '\0' || (Name[1] == '.' && Name[2] == '\0'))
+				   ))
+				{
+					AddEntry = 1;
+				}
+			}
+			else
+			{
+				if (wildcards[0] == NULL) // Show every file
+					AddEntry = 1;
+				else
+				{
+					// Add files only if their extension is in the list.
+					char* Extension = strrchr(Name, '.');
+					if (Extension != NULL)
+					{
+						for(i = 0; wildcards[i] != NULL; i++)
+						{
+							if(strcasecmp(Extension, wildcards[i]) == 0)
+							{
+								AddEntry = 1;
+								break;
+							}
+						}
+					}
+				}
+			}
+
+			if (AddEntry)
+			{
+				// Ensure we have enough capacity in the char* array first.
+				if (EntryCount == EntryCapacity)
+				{
+					void* NewEntryNames = realloc(EntryNames, EntryCapacity * 2 * sizeof(char*));
+					if (NewEntryNames == NULL)
+					{
+						ReturnValue = -2;
+						ContinueDirectoryRead = 0;
+						goto cleanup;
+					}
+					else
+						EntryNames = NewEntryNames;
+
+					void* NewEntryDirectoryFlags = realloc(EntryDirectoryFlags, EntryCapacity * 2 * sizeof(char*));
+					if (NewEntryDirectoryFlags == NULL)
+					{
+						ReturnValue = -2;
+						ContinueDirectoryRead = 0;
+						goto cleanup;
+					}
+					else
+						EntryDirectoryFlags = NewEntryDirectoryFlags;
+
+					EntryCapacity *= 2;
+				}
+
+				// Then add the entry.
+				EntryNames[EntryCount] = malloc(strlen(Name) + 1);
+				if (EntryNames[EntryCount] == NULL)
+				{
+					ReturnValue = -2;
+					ContinueDirectoryRead = 0;
+					goto cleanup;
+				}
+
+				strcpy(EntryNames[EntryCount], Name);
+				if (S_ISDIR(Stat.st_mode))
+					EntryDirectoryFlags[EntryCount] = 1;
+				else
+					EntryDirectoryFlags[EntryCount] = 0;
+
+				EntryCount++;
+			}
+		}
+
+		show_icon(down_screen_addr, &ICON_TITLE, 0, 0);
+		show_icon(down_screen_addr, &ICON_TITLEICON, TITLE_ICON_X, TITLE_ICON_Y);
+		PRINT_STRING_BG(down_screen_addr, msg[MSG_FILE_MENU_SORTING_LIST], COLOR_WHITE, COLOR_TRANS, 49, 10);
+		ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
+
+		quickSort(EntryNames, EntryDirectoryFlags, nameSortFunction, 1, EntryCount - 1);
+		LowFrequencyCPU();
+
+		u32 ContinueInput = 1;
+		s32 SelectedIndex = 0;
+		u32 DirectoryScrollDirection = 0x8000; // First scroll to the left
+		s32 EntryScrollValue = 0;
+		u32 ModifyScrollers = 1;
+		u32 ScrollerCount = 0;
+
+		draw_hscroll_init(down_screen_addr, 49, 10, 199, COLOR_TRANS,
+			COLOR_WHITE, CurrentDirectory);
+		ScrollerCount++;
+
+		// Show the current directory and get input. This loop is continued
+		// every frame, because the current directory scrolls atop the screen.
+
+		while (ContinueDirectoryRead && ContinueInput)
+		{
+			// Try to use a row set such that the selected entry is in the
+			// middle of the screen.
+			s32 LastEntry = SelectedIndex + FILE_LIST_ROWS / 2;
+
+			// If the last row is out of bounds, put it back in bounds.
+			// (In this case, the user has selected an entry in the last
+			// FILE_LIST_ROWS / 2.)
+			if (LastEntry >= EntryCount)
+				LastEntry = EntryCount - 1;
+
+			s32 FirstEntry = LastEntry - (FILE_LIST_ROWS - 1);
+
+			// If the first row is out of bounds, put it back in bounds.
+			// (In this case, the user has selected an entry in the first
+			// FILE_LIST_ROWS / 2, or there are fewer than FILE_LIST_ROWS
+			// entries.)
+			if (FirstEntry < 0)
+			{
+				FirstEntry = 0;
+
+				// If there are more than FILE_LIST_ROWS / 2 files,
+				// we need to enlarge the first page.
+				LastEntry = FILE_LIST_ROWS - 1;
+				if (LastEntry >= EntryCount) // No...
+					LastEntry = EntryCount - 1;
+			}
+
+			// Update scrollers.
+			// a) If a different item has been selected, remake entry
+			//    scrollers, resetting the formerly selected entry to the
+			//    start and updating the selection color.
+			if (ModifyScrollers)
+			{
+				// Preserve the directory scroller.
+				for (; ScrollerCount > 1; ScrollerCount--)
+					draw_hscroll_over(ScrollerCount - 1);
+				for (i = FirstEntry; i <= LastEntry; i++)
+				{
+					u16 color = (SelectedIndex == i)
+						? COLOR_ACTIVE_ITEM
+						: COLOR_INACTIVE_ITEM;
+					if (hscroll_init(down_screen_addr, FILE_SELECTOR_NAME_X, GUI_ROW1_Y + (i - FirstEntry) * GUI_ROW_SY + TEXT_OFFSET_Y, FILE_SELECTOR_NAME_SX,
+						COLOR_TRANS, color, EntryNames[i]) < 0)
+					{
+						ReturnValue = -2;
+						ContinueDirectoryRead = 0;
+						goto cleanupScrollers;
+					}
+					else
+					{
+						ScrollerCount++;
+					}
+				}
+
+				ModifyScrollers = 0;
+			}
+
+			// b) Must we update the directory scroller?
+			if ((DirectoryScrollDirection & 0xFF) >= 0x20)
+			{
+				if(DirectoryScrollDirection & 0x8000)	//scroll left
+				{
+					if(draw_hscroll(0, -1) == 0) DirectoryScrollDirection = 0;	 //scroll right
+				}
+				else
+				{
+					if(draw_hscroll(0, 1) == 0) DirectoryScrollDirection = 0x8000; //scroll left
+				}
+			}
+			else
+			{
+				// Wait one less frame before scrolling the directory again.
+				DirectoryScrollDirection++;
+			}
+
+			// c) Must we scroll the current file as a result of user input?
+			if (EntryScrollValue != 0)
+			{
+				draw_hscroll(SelectedIndex - FirstEntry + 1, EntryScrollValue);
+				EntryScrollValue = 0;
+			}
+
+			// Draw.
+			// a) The background.
 			show_icon(down_screen_addr, &ICON_SUBBG, 0, 0);
 			show_icon(down_screen_addr, &ICON_TITLE, 0, 0);
 			show_icon(down_screen_addr, &ICON_TITLEICON, TITLE_ICON_X, TITLE_ICON_Y);
 
-			//release data struct to draw scrolling string
-			//Path
-			if(-1 == redraw) {
-				draw_hscroll_over(0);
-				draw_hscroll_init(down_screen_addr, 49, 10, 199, COLOR_TRANS,
-					COLOR_WHITE, default_dir_name);
-				path_scroll = 0x8000;		//first scroll left
-			}
+			// b) The selection background.
+			show_icon(down_screen_addr, &ICON_SUBSELA, SUBSELA_X, GUI_ROW1_Y + (SelectedIndex - FirstEntry) * GUI_ROW_SY + SUBSELA_OFFSET_Y);
 
-			for(m = 0; m < MAX_SCROLL_STRING; m++)
-				draw_hscroll_over(m+1);
+			// c) The scrollers.
+			for (i = 0; i < ScrollerCount; i++)
+				draw_hscroll(i, 0);
 
-			//file and directory list
-			//the first displayed item
-			m = selected_item_on_list - selected_item_on_screen;
-			//nubers of item to displayed
-			n = total_items_num - m;
-			if(n > FILE_LIST_ROWS) n = FILE_LIST_ROWS;
-
-			for(k= 0; k < n; k++, m++)
+			// d) The icons.
+			for (i = FirstEntry; i <= LastEntry; i++)
 			{
-				if(k == selected_item_on_screen) {
-					color = COLOR_ACTIVE_ITEM;
-					show_icon(down_screen_addr, &ICON_SUBSELA, SUBSELA_X, GUI_ROW1_Y + k * GUI_ROW_SY + SUBSELA_OFFSET_Y);
-				}
+				struct gui_iconlist* icon;
+				if (i == 0)
+					icon = &ICON_DOTDIR;
+				else if (EntryDirectoryFlags[i])
+					icon = &ICON_DIRECTORY;
 				else
-					color = COLOR_INACTIVE_ITEM;
-
-				//directorys
-				if((m+1) > num_files) {
-					show_icon(down_screen_addr, &ICON_DIRECTORY, FILE_SELECTOR_ICON_X, GUI_ROW1_Y + k * GUI_ROW_SY + FILE_SELECTOR_ICON_Y);
-					pt = dir_list[m - num_files];
-				}
-				//files
-				else {
-					pt= strrchr(file_list[m], '.');
-
-					if(!strcasecmp(pt, ".gba"))
-						show_icon(down_screen_addr, &ICON_GBAFILE, FILE_SELECTOR_ICON_X, GUI_ROW1_Y + k * GUI_ROW_SY + FILE_SELECTOR_ICON_Y);
-					else if(!strcasecmp(pt, ".zip"))
-						show_icon(down_screen_addr, &ICON_ZIPFILE, FILE_SELECTOR_ICON_X, GUI_ROW1_Y + k * GUI_ROW_SY + FILE_SELECTOR_ICON_Y);
-					else if(!strcasecmp(pt, ".cht"))
-						show_icon(down_screen_addr, &ICON_CHTFILE, FILE_SELECTOR_ICON_X, GUI_ROW1_Y + k * GUI_ROW_SY + FILE_SELECTOR_ICON_Y);
-					else if(!strcasecmp(file_list[m], ".."))
-						show_icon(down_screen_addr, &ICON_DOTDIR, FILE_SELECTOR_ICON_X, GUI_ROW1_Y + k * GUI_ROW_SY + FILE_SELECTOR_ICON_Y);
-					else //Not recoganized file
-						show_icon(down_screen_addr, &ICON_UNKNOW, FILE_SELECTOR_ICON_X, GUI_ROW1_Y + k * GUI_ROW_SY + FILE_SELECTOR_ICON_Y);
-
-					pt = file_list[m];
+				{
+					char* Extension = strrchr(EntryNames[i], '.');
+					if (strcasecmp(Extension, ".gba") == 0)
+						icon = &ICON_GBAFILE;
+					else if (strcasecmp(Extension, ".zip") == 0)
+						icon = &ICON_ZIPFILE;
+					else if (strcasecmp(Extension, ".cht") == 0)
+						icon = &ICON_CHTFILE;
+					else
+						icon = &ICON_UNKNOW;
 				}
 
-				draw_hscroll_init(down_screen_addr, FILE_SELECTOR_NAME_X, GUI_ROW1_Y + k * GUI_ROW_SY + TEXT_OFFSET_Y, FILE_SELECTOR_NAME_SX,
-					COLOR_TRANS, color, pt);
+				show_icon(down_screen_addr, icon, FILE_SELECTOR_ICON_X, GUI_ROW1_Y + (i - FirstEntry) * GUI_ROW_SY + FILE_SELECTOR_ICON_Y);
 			}
 
-			redraw = 0;
-		} //end if(0 != redraw)
-		else if(0 != redraw) {
-			unsigned int m, n;
-			char *pt;
+			ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
 
-			m = selected_item_on_screen;
-			show_icon(down_screen_addr, &ICON_SUBSELA, SUBSELA_X, GUI_ROW1_Y + m * GUI_ROW_SY + SUBSELA_OFFSET_Y);
+			// Delay before getting the input.
+			mdelay(20);
 
-			n = selected_item_on_list;
-			if((n+1) > num_files)
-				show_icon(down_screen_addr, &ICON_DIRECTORY, FILE_SELECTOR_ICON_X, GUI_ROW1_Y + m * GUI_ROW_SY + TEXT_OFFSET_Y);
-			else {
-				pt= strrchr(file_list[n], '.');
+			struct key_buf inputdata;
+			gui_action_type gui_action = get_gui_input();
+			ds2_getrawInput(&inputdata);
 
-				if(!strcasecmp(pt, ".gba"))
-					show_icon(down_screen_addr, &ICON_GBAFILE, FILE_SELECTOR_ICON_X, GUI_ROW1_Y + m * GUI_ROW_SY + FILE_SELECTOR_ICON_Y);
-				else if(!strcasecmp(pt, ".zip"))
-					show_icon(down_screen_addr, &ICON_ZIPFILE, FILE_SELECTOR_ICON_X, GUI_ROW1_Y + m * GUI_ROW_SY + FILE_SELECTOR_ICON_Y);
-				else if(!strcasecmp(pt, ".cht"))
-					show_icon(down_screen_addr, &ICON_CHTFILE, FILE_SELECTOR_ICON_X, GUI_ROW1_Y + m * GUI_ROW_SY + FILE_SELECTOR_ICON_Y);
-				else if(!strcasecmp(file_list[m], ".."))
-					show_icon(down_screen_addr, &ICON_DOTDIR, FILE_SELECTOR_ICON_X, GUI_ROW1_Y + m * GUI_ROW_SY + FILE_SELECTOR_ICON_Y);
-				else //Not recoganized file
-					show_icon(down_screen_addr, &ICON_UNKNOW, FILE_SELECTOR_ICON_X, GUI_ROW1_Y + m * GUI_ROW_SY + FILE_SELECTOR_ICON_Y);
-			}
+			// Get KEY_RIGHT and KEY_LEFT separately to allow scrolling
+			// the selected file name faster.
+			if (inputdata.key & KEY_RIGHT)
+				EntryScrollValue = -3;
+			else if (inputdata.key & KEY_LEFT)
+				EntryScrollValue = 3;
 
-			draw_hscroll(m+1, redraw);
-			redraw = 0;
-		}
+			switch(gui_action)
+			{
+				case CURSOR_TOUCH:
+				{
+					wait_Allkey_release(0);
+					// ___ 33        This screen has 6 possible rows. Touches
+					// ___ 60        above or below these are ignored.
+					// . . . (+27)
+					// ___ 192
+					if(inputdata.y <= GUI_ROW1_Y || inputdata.y > NDS_SCREEN_HEIGHT)
+						break;
 
-		//Path auto scroll
-		unsigned int m = path_scroll & 0xFF;
-		if(m < 20) //pause 0.5sec
+					u32 mod = (inputdata.y - GUI_ROW1_Y) / GUI_ROW_SY;
+
+					if(mod >= LastEntry - FirstEntry + 1)
+						break;
+
+					SelectedIndex = FirstEntry + mod;
+					/* fall through */
+				}
+
+				case CURSOR_SELECT:
+					wait_Allkey_release(0);
+					if (SelectedIndex == 0) // The parent directory
+					{
+						char* SlashPos = strrchr(CurrentDirectory, '/');
+						if (SlashPos != NULL) // There's a parent
+						{
+							*SlashPos = '\0';
+							ContinueInput = 0;
+						}
+						else // We're at the root
+						{
+							ReturnValue = -1;
+							ContinueDirectoryRead = 0;
+						}
+					}
+					else if (EntryDirectoryFlags[SelectedIndex])
+					{
+						strcat(CurrentDirectory, "/");
+						strcat(CurrentDirectory, EntryNames[SelectedIndex]);
+						ContinueInput = 0;
+					}
+					else
+					{
+						strcpy(default_dir_name, CurrentDirectory);
+						strcpy(result, EntryNames[SelectedIndex]);
+						ReturnValue = 0;
+						ContinueDirectoryRead = 0;
+					}
+					break;
+
+				case CURSOR_UP:
+					SelectedIndex--;
+					if (SelectedIndex < 0)
+						SelectedIndex++;
+					else
+						ModifyScrollers = 1;
+					break;
+
+				case CURSOR_DOWN:
+					SelectedIndex++;
+					if (SelectedIndex >= EntryCount)
+						SelectedIndex--;
+					else
+						ModifyScrollers = 1;
+					break;
+
+				//scroll page down
+				case CURSOR_RTRIGGER:
+				{
+					u32 OldIndex = SelectedIndex;
+					SelectedIndex += FILE_LIST_ROWS;
+					if (SelectedIndex >= EntryCount)
+						SelectedIndex = EntryCount - 1;
+					if (SelectedIndex != OldIndex)
+						ModifyScrollers = 1;
+					break;
+				}
+
+				//scroll page up
+				case CURSOR_LTRIGGER:
+				{
+					u32 OldIndex = SelectedIndex;
+					SelectedIndex -= FILE_LIST_ROWS;
+					if (SelectedIndex < 0)
+						SelectedIndex = 0;
+					if (SelectedIndex != OldIndex)
+						ModifyScrollers = 1;
+					break;
+				}
+
+				case CURSOR_BACK:
+				{
+					wait_Allkey_release(0);
+					char* SlashPos = strrchr(CurrentDirectory, '/');
+					if (SlashPos != NULL) // There's a parent
+					{
+						*SlashPos = '\0';
+						ContinueInput = 0;
+					}
+					else // We're at the root
+					{
+						ReturnValue = -1;
+						ContinueDirectoryRead = 0;
+					}
+					break;
+				}
+
+				case CURSOR_EXIT:
+					wait_Allkey_release(0);
+					ReturnValue = -1;
+					ContinueDirectoryRead = 0;
+					break;
+
+				default:
+					break;
+			} // end switch
+		} // end while
+
+cleanupScrollers:
+		for (; ScrollerCount > 0; ScrollerCount--)
+			draw_hscroll_over(ScrollerCount - 1);
+
+cleanup:
+		if (CurrentDirHandle != NULL)
+			closedir(CurrentDirHandle);
+
+		if (EntryDirectoryFlags != NULL)
+			free(EntryDirectoryFlags);
+		if (EntryNames != NULL)
 		{
-			draw_hscroll(0, 0);
-			// ^ but prevent flashing with non-scrolling paths
-			path_scroll += 1;
+			// EntryNames[0] is "..", a literal. Don't free it.
+			for (; EntryCount > 1; EntryCount--)
+				free(EntryNames[EntryCount - 1]);
+			free(EntryNames);
 		}
-		else {
-			show_icon(down_screen_addr, &ICON_TITLE, 0, 0);
-			show_icon(down_screen_addr, &ICON_TITLEICON, TITLE_ICON_X, TITLE_ICON_Y);
+	} // end while
 
-			if(path_scroll & 0x8000)	//scroll left
-			{
-				if(draw_hscroll(0, -1) <= 1) path_scroll = 0;	 //scroll right
-			}
-			else
-			{
-				if(draw_hscroll(0, 1) <= 1) path_scroll = 0x8000; //scroll left
-			}
-		}
-
-		ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
-
-		mdelay(20);			//about 50ms
-	} //end while(repeat)
-
-	unsigned int i;
-	for(i= 0; i < (FILE_LIST_ROWS +1); i++)
-		draw_hscroll_over(i);
-
-	//deconstruct filelist_info struct
-	manage_filelist_info(&filelist_info, -1);
-
-	// ds2_clearScreen(DOWN_SCREEN, COLOR_BLACK);
-	// ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
-
-	return return_value;
+	return ReturnValue;
 }
 
 /*--------------------------------------------------------
   放映幻灯片
 --------------------------------------------------------*/
+
 u32 play_screen_snapshot(void)
 {
-    struct FILE_LIST_INFO filelist_info;
-    char *file_ext[] = { ".bmp", NULL };
-    u32 file_num;
-    char **file_list;
     s32 flag;
     u32 repeat, i;
     u16 *screenp;
     u32 color_bg;
+
+	char** EntryNames = NULL;
+	DIR*   CurrentDirHandle = NULL;
+	u32    EntryCount = 0, EntryCapacity = 4 /* initial */;
+	u32    Failed = 0;
+
+	EntryNames = (char**) malloc(EntryCapacity * sizeof(char*));
+	if (EntryNames == NULL)
+	{
+		Failed = 1;
+		goto cleanup;
+	}
+
+	CurrentDirHandle = opendir(DEFAULT_SS_DIR);
+	if(CurrentDirHandle == NULL) {
+		Failed = 1;
+		goto cleanup;
+	}
+
+	dirent*     CurrentEntryHandle;
+	struct stat Stat;
+
+	while((CurrentEntryHandle = readdir_ex(CurrentDirHandle, &Stat)) != NULL)
+	{
+		char* Name = CurrentEntryHandle->d_name;
+		if(!S_ISDIR(Stat.st_mode))
+		{
+			// Add files only if their extension is in the list.
+			char* Extension = strrchr(Name, '.');
+			if (Extension != NULL)
+			{
+				if(strcasecmp(Extension, ".bmp") == 0)
+				{
+					// Ensure we have enough capacity in the char* array first.
+					if (EntryCount == EntryCapacity)
+					{
+						void* NewEntryNames = realloc(EntryNames, EntryCapacity * 2 * sizeof(char*));
+						if (NewEntryNames == NULL)
+						{
+							Failed = 1;
+							goto cleanup;
+						}
+						else
+							EntryNames = NewEntryNames;
+
+						EntryCapacity *= 2;
+					}
+
+					// Then add the entry.
+					EntryNames[EntryCount] = malloc(strlen(Name) + 1);
+					if (EntryNames[EntryCount] == NULL)
+					{
+						Failed = 1;
+						goto cleanup;
+					}
+
+					strcpy(EntryNames[EntryCount], Name);
+
+					EntryCount++;
+				}
+			}
+		}
+	}
+
+cleanup:
+	if (CurrentDirHandle != NULL)
+		closedir(CurrentDirHandle);
 
     screenp= (u16*)malloc(256*192*2);
     if(screenp == NULL)
@@ -1161,42 +1077,25 @@ u32 play_screen_snapshot(void)
         color_bg = COLOR16(43, 11, 11);
     }
 
-	//construct filelist_info struct
-	if(-1 == manage_filelist_info(&filelist_info, 0))
-		return -1;
-
-	strcpy(filelist_info.current_path, DEFAULT_SS_DIR);
-
-	filelist_info.wildcards = file_ext;
-	filelist_info.file_num = 0;
-	filelist_info.dir_num = 0;
-
-	flag = load_file_list(&filelist_info);
-	if(-1 == flag)
-	{
-		//construct filelist_info struct
-		manage_filelist_info(&filelist_info, -1);
-		return -1;
-	}
-
-    flag = load_file_list(&filelist_info);
-    file_num = filelist_info.file_num;
-    file_list = filelist_info.file_list;
-
-    if(flag < 0 || file_num== 0)
+    if(Failed || EntryCount == 0)
     {
         draw_message(down_screen_addr, screenp, 28, 31, 227, 165, color_bg);
         draw_string_vcenter(down_screen_addr, MESSAGE_BOX_TEXT_X, MESSAGE_BOX_TEXT_Y, MESSAGE_BOX_TEXT_SX, COLOR_MSSG, msg[MSG_NO_SLIDE]);
         ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
 
         if(screenp) free((void*)screenp);
-        //construct filelist_info struct
-		manage_filelist_info(&filelist_info, -1);
 
-        if(draw_yesno_dialog(DOWN_SCREEN, 115, msg[MSG_GENERAL_CONFIRM_WITH_A], msg[MSG_GENERAL_CANCEL_WITH_B]))
-            return 1;
-        else
-            return 0;
+		if (EntryNames != NULL)
+		{
+			for (; EntryCount > 0; EntryCount--)
+				free(EntryNames[EntryCount - 1]);
+			free(EntryNames);
+		}
+
+		wait_Anykey_press(0);
+		wait_Allkey_release(0);
+
+		return 0;
     }
 
     char bmp_path[MAX_PATH];
@@ -1215,7 +1114,7 @@ u32 play_screen_snapshot(void)
     i= 0;
     while(repeat)
     {
-        sprintf(bmp_path, "%s/%s", filelist_info.current_path, file_list[i]);
+        sprintf(bmp_path, "%s/%s", DEFAULT_SS_DIR, EntryNames[i]);
 
 		flag = openBMP(&SbmpInfo, (const char*)bmp_path);
 		if(flag == BMP_OK)
@@ -1274,7 +1173,7 @@ u32 play_screen_snapshot(void)
 				closeBMP(&SbmpInfo);
 		}
 
-        if(i+1 < file_num) i++;
+        if(i+1 < EntryCount) i++;
         else i= 0;
 
         gui_action_type gui_action;
@@ -1307,8 +1206,8 @@ u32 play_screen_snapshot(void)
                 case CURSOR_LEFT:
                     time1 = ticks;
                     if(i > 1) i -= 2;
-                    else if(i == 1) i= file_num -1;
-                    else i= file_num -2;
+                    else if(i == 1) i= EntryCount -1;
+                    else i= EntryCount -2;
                     break;
 
                 case CURSOR_RIGHT:
@@ -1329,9 +1228,6 @@ u32 play_screen_snapshot(void)
                     break;
 
                 case CURSOR_BACK:
-                    if(screenp) free((void*)screenp);
-                    //deconstruct filelist_info struct
-					manage_filelist_info(&filelist_info, -1);
 					repeat = 0;
 					break;
 
@@ -1345,6 +1241,15 @@ u32 play_screen_snapshot(void)
                 ticks ++;
         }
     }
+
+	if(screenp) free((void*)screenp);
+
+	if (EntryNames != NULL)
+	{
+		for (; EntryCount > 0; EntryCount--)
+			free(EntryNames[EntryCount - 1]);
+		free(EntryNames);
+	}
 
 	return 0;
 }
@@ -1801,7 +1706,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 	{
 		char *file_ext[] = { ".gba", ".bin", ".zip", NULL };
 
-		if(load_file(file_ext, tmp_filename, g_default_rom_dir) != -1)
+		if(load_file(file_ext, tmp_filename, g_default_rom_dir) == 0)
 		{
 			if(bg_screenp != NULL)
 			{
@@ -2755,7 +2660,7 @@ u32 menu(u16 *screen, int FirstInvocation)
         char load_filename[MAX_FILE];
         u32 i;
 
-        if(load_file(file_ext, load_filename, DEFAULT_CHEAT_DIR) != -1)
+        if(load_file(file_ext, load_filename, DEFAULT_CHEAT_DIR) == 0)
         {
             add_cheats(load_filename);
             for(i = 0; i < MAX_CHEATS; i++)
