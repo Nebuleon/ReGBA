@@ -816,12 +816,17 @@ s32 load_file(char **wildcards, char *result, char *default_dir_name)
 				else
 				{
 					char* Extension = strrchr(EntryNames[i], '.');
-					if (strcasecmp(Extension, ".gba") == 0)
-						icon = &ICON_GBAFILE;
-					else if (strcasecmp(Extension, ".zip") == 0)
-						icon = &ICON_ZIPFILE;
-					else if (strcasecmp(Extension, ".cht") == 0)
-						icon = &ICON_CHTFILE;
+					if (Extension != NULL)
+					{
+						if (strcasecmp(Extension, ".gba") == 0)
+							icon = &ICON_GBAFILE;
+						else if (strcasecmp(Extension, ".zip") == 0)
+							icon = &ICON_ZIPFILE;
+						else if (strcasecmp(Extension, ".cht") == 0)
+							icon = &ICON_CHTFILE;
+						else
+							icon = &ICON_UNKNOW;
+					}
 					else
 						icon = &ICON_UNKNOW;
 				}
