@@ -68,7 +68,7 @@ char *language_options[] = { (char *) &lang[0], (char *) &lang[1], (char *) &lan
 
 #define SAVE_STATE_SLOT_NUM 16
 
-#define NDSGBA_VERSION "1.42"
+#define NDSGBA_VERSION "1.43"
 
 #define GPSP_CONFIG_FILENAME "SYSTEM/ndsgba.cfg"
 
