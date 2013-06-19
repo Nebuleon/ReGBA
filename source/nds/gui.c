@@ -2071,6 +2071,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 					ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
 
 					HighFrequencyCPU();
+					fp = fopen(line_buffer, "rb");
 					int flag = load_state(tmp_filename, fp);
 					LowFrequencyCPU();
 					if(0 == flag)
