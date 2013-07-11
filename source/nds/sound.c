@@ -924,32 +924,17 @@ static int sound_update()
 		if (n >= 2)
 		{
 			// We're in no hurry, because 2 buffers are still full.
-			// Minimum skip 2
-			if(SKIP_RATE > 2)
+			// Minimum skip 1
+			if(SKIP_RATE > 1)
 			{
 #if defined SERIAL_TRACE || defined SERIAL_TRACE_FRAMESKIP
 				serial_timestamp_printf("I: Decreasing automatic frameskip: %u..%u", SKIP_RATE, SKIP_RATE - 1);
 #endif
 				SKIP_RATE--;
 			}
-			else if (SKIP_RATE == 2)
-			{
-#if defined SERIAL_TRACE || defined SERIAL_TRACE_FRAMESKIP
-				serial_timestamp_printf("I: Decreasing automatic frameskip: %u..%u", SKIP_RATE, 0);
-#endif
-				SKIP_RATE = 0;
-			}
 		}
 		else
 		{
-			// Alright, we're in a hurry. Raise frameskip.
-			if (SKIP_RATE == 0)
-			{
-#if defined SERIAL_TRACE || defined SERIAL_TRACE_FRAMESKIP
-				serial_timestamp_printf("I: Increasing automatic frameskip: %u..%u", 0, 2);
-#endif
-				SKIP_RATE = 2;
-			}
 			// Maximum skip 9
 			if(SKIP_RATE < 8)
 			{
