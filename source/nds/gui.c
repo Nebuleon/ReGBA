@@ -37,7 +37,7 @@ char  argv[2][MAX_PATH];
 
 // If adding a language, make sure you update the size of the array in
 // message.h too.
-char *lang[8] =
+char *lang[9] =
 	{
 		"English",					// 0
 		"简体中文",					// 1
@@ -47,9 +47,10 @@ char *lang[8] =
 		"Español",					// 5
 		"Italiano",					// 6
 		"Português (Br.)",				// 7
+		"繁體中文",                                     // 8
 	};
 
-char *language_options[] = { (char *) &lang[0], (char *) &lang[1], (char *) &lang[2], (char *) &lang[3], (char *) &lang[4], (char *) &lang[5], (char *) &lang[6], (char *) &lang[7] };
+char *language_options[] = { (char *) &lang[0], (char *) &lang[1], (char *) &lang[2], (char *) &lang[3], (char *) &lang[4], (char *) &lang[5], (char *) &lang[6], (char *) &lang[7], (char *) &lang[8] };
 
 /******************************************************************************
  * 宏定义
@@ -5015,6 +5016,10 @@ int load_language_msg(char *filename, u32 language)
 	case PORTUGUESE_BRAZILIAN:
 		strcpy(start, "STARTPORTUGUESEBR");
 		strcpy(end, "ENDPORTUGUESEBR");
+		break;
+	case CHINESE_TRADITIONAL:
+		strcpy(start, "STARTCHINESETRA");
+		strcpy(end, "ENDCHINESETRA");
 		break;
 	}
 	u32 cmplen = strlen(start);
