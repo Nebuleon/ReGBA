@@ -1,4 +1,4 @@
-/* Serial port output utilities - gpSP on DSTwo
+/* Per-platform code - gpSP on DSTwo
  *
  * Copyright (C) 2013 GBATemp user Nebuleon
  *
@@ -17,5 +17,38 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-void serial_printf(const char* fmt, ...);
-void serial_timestamp_printf(const char* fmt, ...);
+#include "common.h"
+#include <stdarg.h>
+
+#define CACHE_LINE_SIZE 32
+
+void ReGBA_Trace(const char* Format, ...)
+{
+	{
+		char timestamp[14];
+		unsigned int Now = getSysTime();
+		sprintf(timestamp, "%6u.%03u", Now / 23437, (Now % 23437) * 16 / 375);
+		serial_puts(timestamp);
+	}
+	serial_putc(':');
+	serial_putc(' ');
+
+	char* line = malloc(82);
+	va_list args;
+	int linelen;
+
+	va_start(args, Format);
+	if ((linelen = vsnprintf(line, 82, Format, args)) >= 82)
+	{
+		va_end(args);
+		va_start(args, Format);
+		free(line);
+		line = malloc(linelen + 1);
+		vsnprintf(line, linelen + 1, Format, args);
+	}
+	serial_puts(line);
+	va_end(args);
+	free(line);
+	serial_putc('\r');
+	serial_putc('\n');
+}

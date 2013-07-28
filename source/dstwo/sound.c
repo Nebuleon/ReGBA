@@ -928,7 +928,7 @@ static int sound_update()
 			if(SKIP_RATE > 1)
 			{
 #if defined SERIAL_TRACE || defined SERIAL_TRACE_FRAMESKIP
-				serial_timestamp_printf("I: Decreasing automatic frameskip: %u..%u", SKIP_RATE, SKIP_RATE - 1);
+				ReGBA_Trace("I: Decreasing automatic frameskip: %u..%u", SKIP_RATE, SKIP_RATE - 1);
 #endif
 				SKIP_RATE--;
 			}
@@ -939,7 +939,7 @@ static int sound_update()
 			if(SKIP_RATE < 8)
 			{
 #if defined SERIAL_TRACE || defined SERIAL_TRACE_FRAMESKIP
-				serial_timestamp_printf("I: Increasing automatic frameskip: %u..%u", SKIP_RATE, SKIP_RATE + 1);
+				ReGBA_Trace("I: Increasing automatic frameskip: %u..%u", SKIP_RATE, SKIP_RATE + 1);
 #endif
 				SKIP_RATE++;
 			}
@@ -983,7 +983,7 @@ static int sound_update()
 	audio_buff = ds2_getAudiobuff();
 	if (audio_buff == NULL) {
 #if defined SERIAL_TRACE || defined SERIAL_TRACE_SOUND
-		serial_timestamp_printf("Recovered from the lack of a buffer");
+		ReGBA_Trace("Recovered from the lack of a buffer");
 #endif
 		return -1;
 	}

@@ -49,12 +49,13 @@
 .global invalidate_icache_region
 .global invalidate_all_cache
 .global reg_check
-.global printf_reg
 .global call_bios_hle
 
 .global memory_map_read
 .global memory_map_write
 .global reg
+
+.extern ReGBA_MakeCodeVisible
 
 .extern spsr
 
@@ -249,157 +250,6 @@ restore_registers_body:
   addiu $sp, $sp, 4               # adjust the stack back
 .endm
 
-.macro to_show_reg num
-  addiu $sp, $sp, -128
-  sw $31, 0($sp)
-  sw $30, 4($sp)
-  sw $29, 8($sp)
-  sw $28, 12($sp)
-  sw $27, 16($sp)
-  sw $26, 20($sp)
-  sw $25, 24($sp)
-  sw $24, 28($sp)
-  sw $23, 32($sp)
-  sw $22, 36($sp)
-  sw $21, 40($sp)
-  sw $20, 44($sp)
-  sw $19, 48($sp)
-  sw $18, 52($sp)
-  sw $17, 56($sp)
-  sw $16, 60($sp)
-  sw $15, 64($sp)
-  sw $14, 68($sp)
-  sw $13, 72($sp)
-  sw $12, 76($sp)
-  sw $11, 80($sp)
-  sw $10, 84($sp)
-  sw $9, 88($sp)
-  sw $8, 92($sp)
-  sw $7, 96($sp)
-  sw $6, 100($sp)
-  sw $5, 104($sp)
-  sw $4, 108($sp)
-  sw $3, 112($sp)
-  sw $2, 116($sp)
-  sw $1, 120($sp)
-  sw $0, 124($sp)
-
-  mfc0 $5, $14          # c0_epc  
-  li $4, \num
-  jal show_reg  
-  move $6, $sp
-
-  lw $31, 0($sp)
-  lw $30, 4($sp)
-
-  lw $28, 12($sp)
-  lw $27, 16($sp)
-  lw $26, 20($sp)
-  lw $25, 24($sp)
-  lw $24, 28($sp)
-  lw $23, 32($sp)
-  lw $22, 36($sp)
-  lw $21, 40($sp)
-  lw $20, 44($sp)
-  lw $19, 48($sp)
-  lw $18, 52($sp)
-  lw $17, 56($sp)
-  lw $16, 60($sp)
-  lw $15, 64($sp)
-  lw $14, 68($sp)
-  lw $13, 72($sp)
-  lw $12, 76($sp)
-  lw $11, 80($sp)
-  lw $10, 84($sp)
-  lw $9, 88($sp)
-  lw $8, 92($sp)
-  lw $7, 96($sp)
-  lw $6, 100($sp)
-  lw $5, 104($sp)
-  lw $4, 108($sp)
-  lw $3, 112($sp)
-  lw $2, 116($sp)
-  lw $1, 120($sp)
-  lw $0, 124($sp)
-  addiu $sp, $sp, 128
-.endm
-
-  .ent printf_reg
-printf_reg:
-  addiu $sp, $sp, -128
-  sw $31, 0($sp)
-  sw $30, 4($sp)
-  sw $29, 8($sp)
-  sw $28, 12($sp)
-  sw $27, 16($sp)
-  sw $26, 20($sp)
-  sw $25, 24($sp)
-  sw $24, 28($sp)
-  sw $23, 32($sp)
-  sw $22, 36($sp)
-  sw $21, 40($sp)
-  sw $20, 44($sp)
-  sw $19, 48($sp)
-  sw $18, 52($sp)
-  sw $17, 56($sp)
-  sw $16, 60($sp)
-  sw $15, 64($sp)
-  sw $14, 68($sp)
-  sw $13, 72($sp)
-  sw $12, 76($sp)
-  sw $11, 80($sp)
-  sw $10, 84($sp)
-  sw $9, 88($sp)
-  sw $8, 92($sp)
-  sw $7, 96($sp)
-  sw $6, 100($sp)
-  sw $5, 104($sp)
-  sw $4, 108($sp)
-  sw $3, 112($sp)
-  sw $2, 116($sp)
-  sw $1, 120($sp)
-  sw $0, 124($sp)
-
-  jal show_printf_reg
-  move $5, $sp
-
-  lw $31, 0($sp)
-  lw $30, 4($sp)
-
-  lw $28, 12($sp)
-  lw $27, 16($sp)
-  lw $26, 20($sp)
-  lw $25, 24($sp)
-  lw $24, 28($sp)
-  lw $23, 32($sp)
-  lw $22, 36($sp)
-  lw $21, 40($sp)
-  lw $20, 44($sp)
-  lw $19, 48($sp)
-  lw $18, 52($sp)
-  lw $17, 56($sp)
-  lw $16, 60($sp)
-  lw $15, 64($sp)
-  lw $14, 68($sp)
-  lw $13, 72($sp)
-  lw $12, 76($sp)
-  lw $11, 80($sp)
-  lw $10, 84($sp)
-  lw $9, 88($sp)
-  lw $8, 92($sp)
-  lw $7, 96($sp)
-  lw $6, 100($sp)
-  lw $5, 104($sp)
-  lw $4, 108($sp)
-  lw $3, 112($sp)
-  lw $2, 116($sp)
-  lw $1, 120($sp)
-  lw $0, 124($sp)
-  jr $ra
-  addiu $sp, $sp, 128
-
-  .end printf_reg
-
 # Process a hardware event. Since an interrupt might be
 # raised we have to check if the PC has changed.
 
@@ -546,14 +396,20 @@ mips_indirect_branch_dual:
 
   addiu $ra, $ra, -8              # rewind return address to function call
   sw $1, ($ra)                    # modify to call new handler
+  
+  addiu $sp, $sp, -12             # adjust the stack to allow for a call
+  sw    $ra, 0($sp)               # save the return address (branch delay)
+  sw    $4,  4($sp)
+  sw    $5,  8($sp)
 
-#ifdef NDS_LAYER
-  cache 0x19, ($ra)               # writeback dcache line
-#else
-  cache 0x15, ($ra)               # writeback-invalidate dcache line
-#endif
-  sync
-  cache 0x10, ($ra)               # invalidate icache line  
+  move  $4, $ra                    # parameter #1: start of code to be flushed
+  jal   ReGBA_MakeCodeVisible
+  ori   $5, $0, 4                  # parameter #2: length (branch delay)
+
+  lw    $ra, 0($sp)
+  lw    $4,  4($sp)
+  lw    $5,  8($sp)
+  addiu $sp, $sp, 12              # adjust the stack back
 
 #ifdef PERFORMANCE_IMPACTING_STATISTICS
   la $1, Stats
@@ -607,14 +463,30 @@ mips_indirect_branch_dual:
 #  syscall 6 
   addiu $ra, $ra, -8              # rewind return address to function call
   sw $1, ($ra)                    # modify to call new handler
+  
+  addiu $sp, $sp, -12             # adjust the stack to allow for a call
+  sw    $ra, 0($sp)               # save the return address (branch delay)
+  sw    $4,  4($sp)
+  sw    $5,  8($sp)
 
-#ifdef NDS_LAYER
-  cache 0x19, ($ra)               # writeback dcache line
-#else
-  cache 0x15, ($ra)               # writeback-invalidate dcache line
+  move  $4, $ra                    # parameter #1: start of code to be flushed
+  jal   ReGBA_MakeCodeVisible
+  ori   $5, $0, 4                  # parameter #2: length (branch delay)
+
+  lw    $ra, 0($sp)
+  lw    $4,  4($sp)
+  lw    $5,  8($sp)
+  addiu $sp, $sp, 12              # adjust the stack back
+
+#ifdef PERFORMANCE_IMPACTING_STATISTICS
+  la $1, Stats
+  lw $2, 0($1)
+#  ifndef NO_LOAD_DELAY_SLOT
+  nop
+#  endif
+  addiu $2, $2, 1
+  sw $2, 0($1)
 #endif
-  sync
-  cache 0x10, ($ra)               # invalidate icache line  
 
 #  syscall 9
   jr $ra                          # return
@@ -3974,79 +3846,6 @@ execute_arm_translate:
   nop
 
   .end execute_arm_translate
-
-# sceKernelInvalidateIcacheRange gives me problems, trying this instead
-# Invalidates an n byte region starting at the start address
-# $4: start location
-# $5: length
-
-#invalidate_icache_region:
-#  nop
-#  syscall 51
-#  nop
-#  nop  
-#
-# #  ins $4, $0, 0, 6                # align to 64 bytes
-#  srl $4, $4, 6
-#  addiu $2, $5, 63                # align up to 64 bytes
-#  srl $2, $2, 6                   # divide by 64
-#  beq $2, $0, done                # exit early on 0
-#  nop
-#  sll $4, $4, 6			  # emulate INS instruction
-#
-# iir_loop:
-#  cache 0x08, ($4)                # invalidate icache line
-#  addiu $2, $2, -1                # next loop iteration
-#  bne $2, $0, iir_loop            # loop
-#  addiu $4, $4, 64                # go to next cache line (delay slot)
-#
-# done:
-#  jr $ra                          # return
-#  nop
-
-invalidate_icache_region:
-  addiu $2, $5, 31                # cache line size is 32 bytes
-  srl   $2, $2, 5                 # devide by 32
-  beq   $2, $0, done              # exit early
-  nop                             # cannot delay usefully here (depends on $2)
-
-iir_loop:
-  cache 0x10, ($4)                  # hit invalid
-  addiu $2, $2, -1
-  bne   $2, $0, iir_loop
-  addiu $4, $4, 32                  # go to next line
-
-done:
-  jr    $ra
-  nop
-
-
-# Writes back dcache and invalidates icache.
-
-invalidate_all_cache:
-#  nop
-#  syscall 50
-#  nop
-#  nop
-
-#ifdef NDS_LAYER
-  jal __dcache_writeback_all
-  nop
-  jal __icache_invalidate_all
-  nop
-#else
-  addu $4, $0, $0                 # $4 = 0
-  addiu $5, $0, 0x4000            # $5 = 0x4000
-
-iac_loop:
-  cache 0x14, 0($4)               # index invalidate/writeback dcache index
-  addiu $4, $4, 0x40              # goto next cache line
-  bne $4, $5, iac_loop            # next iteration
-  cache 0x04, -0x40($4)           # index invalidate icache index.. maybe?
-
-  jr $ra                          # return
-  nop
-#endif
 
 call_bios_hle:
   addiu $sp, $sp, -4

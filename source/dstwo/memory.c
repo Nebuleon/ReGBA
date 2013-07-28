@@ -3479,7 +3479,7 @@ void init_gamepak_buffer()
 	gamepak_ram_buffer_size = next_attempt - 2 * 1024 * 1024;
 	gamepak_rom = malloc(gamepak_ram_buffer_size);
 
-	serial_timestamp_printf("I: Allocated %u MiB for the ROM buffer",
+	ReGBA_Trace("I: Allocated %u MiB for the ROM buffer",
 		gamepak_ram_buffer_size / (1024 * 1024));
 
 	gamepak_ram_pages = gamepak_ram_buffer_size / (32 * 1024);

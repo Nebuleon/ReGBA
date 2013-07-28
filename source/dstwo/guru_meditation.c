@@ -524,7 +524,7 @@ void GuruMeditation(struct ExceptionData* Data, unsigned int ExceptionNumber)
 
 	// --- BEGIN SERIAL LINE OUTPUT BLOCK ---
 
-	serial_timestamp_printf("Exception %02X: %s", ExceptionNumber, Description);
+	ReGBA_Trace("Exception %02X: %s", ExceptionNumber, Description);
 
 	// Show the disassembly of the instruction at EPC if it's valid.
 	if (ADDRESS_VALID(Data->ExceptionPC)) {
@@ -533,22 +533,22 @@ void GuruMeditation(struct ExceptionData* Data, unsigned int ExceptionNumber)
 		memset(EMERGENCY_MEMORY, 0, 128);
 		DisassembleInstructionMIPS32(*((unsigned int*) Data->ExceptionPC), ShortForm, CanonicalForm);
 
-		serial_timestamp_printf("at address %08X: %s", Data->ExceptionPC, ShortForm);
+		ReGBA_Trace("at address %08X: %s", Data->ExceptionPC, ShortForm);
 		if (strcmp(ShortForm, CanonicalForm) != 0) {
-			serial_timestamp_printf("                   = %s", CanonicalForm);
+			ReGBA_Trace("                   = %s", CanonicalForm);
 		}
 	}
 	else if (((unsigned int) Data->ExceptionPC & 3) != 0)
 	{
-		serial_timestamp_printf("at address %08X: (Unaligned address)", Data->ExceptionPC);
+		ReGBA_Trace("at address %08X: (Unaligned address)", Data->ExceptionPC);
 	}
 	else
 	{
-		serial_timestamp_printf("at address %08X: (Unmapped address)", Data->ExceptionPC);
+		ReGBA_Trace("at address %08X: (Unmapped address)", Data->ExceptionPC);
 	}
-	serial_timestamp_printf("");
+	ReGBA_Trace("");
 
-	serial_timestamp_printf("Register values:");
+	ReGBA_Trace("Register values:");
 
 	for (i = 0; i < 28; i++) {
 		char Element[13];
@@ -557,13 +557,13 @@ void GuruMeditation(struct ExceptionData* Data, unsigned int ExceptionNumber)
 
 		if ((i % 3) == 2)
 		{
-			serial_timestamp_printf("%s", Line);
+			ReGBA_Trace("%s", Line);
 			Line[0] = '\0';
 		}
 		else
 			strcat(Line, "   ");
 	}
-	serial_timestamp_printf("%s", Line);
+	ReGBA_Trace("%s", Line);
 
 	// --- END SERIAL LINE OUTPUT BLOCK ---
 

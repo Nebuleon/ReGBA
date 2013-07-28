@@ -165,9 +165,6 @@ void init_translater();
 void cpu_read_mem_savestate();
 void cpu_write_mem_savestate();
 
-void invalidate_all_cache();
-void invalidate_icache_region(u8* addr, u32 length);
-
 u8* block_lookup_address_arm(u32 pc);
 u8* block_lookup_address_thumb(u32 pc);
 u8* block_lookup_address_dual(u32 pc);

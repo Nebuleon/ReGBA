@@ -3115,30 +3115,10 @@ static s32 BinarySearch(u32* Array, u32 Value, u32 Size)
 #define thumb_fix_pc()                                                        \
   pc &= ~0x01                                                                 \
 
-/*
- * Flushes a cache line in both the data cache and the instruction cache.
- */
-#ifdef NDS_LAYER
-static inline void FlushCacheLine(void* CacheLine)
-{
-    // On the JZ4740, CACHE 0x19 functions as Hit Writeback, but leaves the
-    // cache line valid. This is particularly useful to write more things to
-    // the rest of the same cache line.
-    __asm__ __volatile__ ("cache 0x19, 0(%0)\n\tsync\n\tcache 0x10, 0(%0)"
-      : : "r"(CacheLine));
-}
-#else
-static inline void FlushCacheLine(void* CacheLine)
-{
-    __asm__ __volatile__ ("cache 0x15, 0(%0)\n\tsync\n\tcache 0x10, 0(%0)"
-      : : "r"(CacheLine));
-}
-#endif
-
 #if defined SERIAL_TRACE || defined SERIAL_TRACE_RECOMPILATION
 
 #define trace_recompilation(type)                                             \
-    serial_timestamp_printf("T: At %08X, block size %u, checksum %04X",       \
+    ReGBA_Trace("T: At %08X, block size %u, checksum %04X",                   \
      block_start_pc, block_end_pc - block_start_pc, checksum);                \
     char Line[80], Element[10];                                               \
     Line[0] = ' '; Line[1] = '\0';                                            \
@@ -3151,13 +3131,13 @@ static inline void FlushCacheLine(void* CacheLine)
       strcat(Line, Element);                                                  \
       if (strlen(Line) >= 59)                                                 \
       {                                                                       \
-        serial_timestamp_printf(Line);                                        \
+        ReGBA_Trace(Line);                                                    \
         Line[0] = ' '; Line[1] = '\0';                                        \
       }                                                                       \
     }                                                                         \
     if (Line[1] != '\0')                                                      \
     {                                                                         \
-      serial_timestamp_printf(Line);                                          \
+      ReGBA_Trace(Line);                                                      \
     }                                                                         \
 
 #else
@@ -3169,8 +3149,8 @@ static inline void FlushCacheLine(void* CacheLine)
 #if defined SERIAL_TRACE || defined SERIAL_TRACE_REUSE
 
 #define trace_reuse()                                                         \
-        serial_timestamp_printf("T: At %08X, block size %u, checksum %04X, "  \
-         "reused", block_start_pc, block_end_pc - block_start_pc, checksum);  \
+        ReGBA_Trace("T: At %08X, block size %u, checksum %04X, "reused",      \
+        block_start_pc, block_end_pc - block_start_pc, checksum);             \
 
 #else
 
@@ -3181,7 +3161,7 @@ static inline void FlushCacheLine(void* CacheLine)
 #if defined SERIAL_TRACE || defined SERIAL_TRACE_TRANSLATION_REQUESTS
 
 #define trace_translation_request()                                           \
-  serial_timestamp_printf("T: At %08X, translation requested", pc);           \
+  ReGBA_Trace("T: At %08X, translation requested", pc);                       \
 
 #else
 
@@ -3469,13 +3449,8 @@ u8* translate_block_##type(u32 pc)                                            \
      block_exits[i].branch_source, translation_target);                       \
   }                                                                           \
                                                                               \
-  u8 *flush_addr;                                                             \
-  for(flush_addr= update_trampoline; flush_addr < translation_ptr + CACHE_LINE_SIZE; )\
-  {                                                                           \
-    FlushCacheLine(flush_addr);                                               \
-                                                                              \
-    flush_addr += CACHE_LINE_SIZE;                                            \
-  }                                                                           \
+  ReGBA_MakeCodeVisible(update_trampoline,                                    \
+    translation_ptr - update_trampoline);                                     \
                                                                               \
   return update_trampoline;                                                   \
 }                                                                             \
@@ -3735,7 +3710,7 @@ void clear_metadata_area(METADATA_AREA_TYPE metadata_area,
   METADATA_CLEAR_REASON_TYPE clear_reason)
 {
 #if defined SERIAL_TRACE || defined SERIAL_TRACE_FLUSHING
-	serial_timestamp_printf("Clearing %s metadata: %s",
+	ReGBA_Trace("Clearing %s metadata: %s",
 		METADATA_AREA_NAMES[metadata_area],
 		CLEAR_REASON_NAMES[clear_reason]);
 #endif
@@ -3807,7 +3782,7 @@ void flush_translation_cache(TRANSLATION_REGION_TYPE translation_region,
   CACHE_FLUSH_REASON_TYPE flush_reason)
 {
 #if defined SERIAL_TRACE || defined SERIAL_TRACE_FLUSHING
-	serial_timestamp_printf("Flushing %s code cache: %s",
+	ReGBA_Trace("Flushing %s code cache: %s",
 		CODE_CACHE_NAMES[translation_region],
 		FLUSH_REASON_NAMES[flush_reason]);
 #endif
