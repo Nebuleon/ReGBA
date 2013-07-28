@@ -74,9 +74,9 @@ DEFS   := -DNDS_LAYER -DNO_LOAD_DELAY_SLOT -DGIT_VERSION=$(shell git describe --
 .PHONY: clean makedirs
 .SUFFIXES: .elf .dat .plg .c .S .o
 
-all: $(OUTPUT_DIR)/$(OUTPUT).plg makedirs
+all: $(OUTPUT_DIR)/$(OUTPUT).plg
 
-release: all
+release: all makedirs
 	-rm -f $(OUTPUT).zip
 	zip -r $(OUTPUT).zip $(PLUGIN_DIR) $(OUTPUT_DIR)
 	zip -j -r $(OUTPUT).zip ../../doc ../../README.md
