@@ -1,6 +1,6 @@
 To install:
 
-Place tempgba.plg, tempgba.bmp, and tempgba.ini in the _dstwoplug folder of your DSTWO.  Place the TEMPGBA folder in your dstwo's root folder (the one that contains _dstwo, _dstwoplug, etc).
+Extract the _dstwoplug and TEMPGBA directories from the archive into your storage card's root directory, which is the directory that appears immediately after opening the storage card in a file browser.
 
 To function properly, TempGBA also needs a dump of the GBA's BIOS. It is not
 distributed in the release archive because of legal issues.

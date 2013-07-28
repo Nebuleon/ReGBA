@@ -1,4 +1,0 @@
-UnOfficial gpSP kai
--- gameplaySP Gameboy Advance emulator for Playstation Portable --
-
-FAQ

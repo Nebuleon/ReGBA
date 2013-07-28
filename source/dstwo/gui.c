@@ -2789,7 +2789,7 @@ u32 menu(u16 *screen, int FirstInvocation)
 #ifdef GIT_VERSION
 #define STRINGIFY(x) XSTRINGIFY(x)
 #define XSTRINGIFY(x) #x
-        sprintf(line_buffer, "%s\n%s %s\nNebuleon/TempGBA commit %s", msg[MSG_EMULATOR_NAME], msg[MSG_WORD_EMULATOR_VERSION], NDSGBA_VERSION, STRINGIFY(GIT_VERSION));
+        sprintf(line_buffer, "%s\n%s %s\nNebuleon/ReGBA commit %s", msg[MSG_EMULATOR_NAME], msg[MSG_WORD_EMULATOR_VERSION], NDSGBA_VERSION, STRINGIFY(GIT_VERSION));
 #else
         sprintf(line_buffer, "%s\n%s %s", msg[MSG_EMULATOR_NAME], msg[MSG_WORD_EMULATOR_VERSION], NDSGBA_VERSION);
 #endif

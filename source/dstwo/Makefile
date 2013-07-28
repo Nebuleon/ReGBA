@@ -22,6 +22,7 @@ START_O     := start.o
 
 # - - - Names - - -
 OUTPUT      := tempgba
+OUTPUT_DIR  := _dstwoplug
 PLUGIN_DIR  := TEMPGBA
 
 # - - - Tools - - -
@@ -45,7 +46,7 @@ C_OBJECTS    = $(C_SOURCES:.c=.o)
 CPP_OBJECTS  = $(CPP_SOURCES:.cpp=.o)
 ASM_OBJECTS  = $(ASM_SOURCES:.S=.o)
 OBJECTS      = $(C_OBJECTS) $(CPP_OBJECTS) $(ASM_OBJECTS)
-HEADERS      = bdf_font.h bios_array.h bios.h bitmap.h charsets.h cheats.h    \
+HEADERS      = bdf_font.h bios.h bitmap.h charsets.h cheats.h                 \
                common.h cpu_common.h cpu.h draw.h gpsp_main.h gu.h gui.h      \
                input.h memory.h message.h mips_emit.h serial.h sound.h        \
                stats.h video.h zip.h
@@ -73,15 +74,15 @@ DEFS   := -DNDS_LAYER -DNO_LOAD_DELAY_SLOT -DGIT_VERSION=$(shell git describe --
 .PHONY: clean makedirs
 .SUFFIXES: .elf .dat .plg .c .S .o
 
-all: $(OUTPUT).plg makedirs
+all: $(OUTPUT_DIR)/$(OUTPUT).plg makedirs
 
 release: all
 	-rm -f $(OUTPUT).zip
-	zip -r $(OUTPUT).zip $(PLUGIN_DIR) $(OUTPUT).plg $(OUTPUT).bmp $(OUTPUT).ini
-	zip -j $(OUTPUT).zip ../../copyright ../../installation.txt ../../README.md ../../source.txt ../../MODIFYING-DSTWO.txt
+	zip -r $(OUTPUT).zip $(PLUGIN_DIR) $(OUTPUT_DIR)
+	zip -j -r $(OUTPUT).zip ../../doc ../../README.md
 
 # $< is the source (OUTPUT.dat); $@ is the target (OUTPUT.plg)
-.dat.plg:
+$(OUTPUT_DIR)/$(OUTPUT).plg: $(OUTPUT).dat
 	$(DS2SDKPATH)/tools/makeplug $< $@
 
 # $< is the source (OUTPUT.elf); $@ is the target (OUTPUT.dat)
