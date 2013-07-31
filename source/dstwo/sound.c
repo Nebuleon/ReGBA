@@ -927,7 +927,7 @@ static int sound_update()
 			// Minimum skip 1
 			if(SKIP_RATE > 1)
 			{
-#if defined SERIAL_TRACE || defined SERIAL_TRACE_FRAMESKIP
+#if defined TRACE || defined TRACE_FRAMESKIP
 				ReGBA_Trace("I: Decreasing automatic frameskip: %u..%u", SKIP_RATE, SKIP_RATE - 1);
 #endif
 				SKIP_RATE--;
@@ -938,7 +938,7 @@ static int sound_update()
 			// Maximum skip 9
 			if(SKIP_RATE < 8)
 			{
-#if defined SERIAL_TRACE || defined SERIAL_TRACE_FRAMESKIP
+#if defined TRACE || defined TRACE_FRAMESKIP
 				ReGBA_Trace("I: Increasing automatic frameskip: %u..%u", SKIP_RATE, SKIP_RATE + 1);
 #endif
 				SKIP_RATE++;
@@ -982,7 +982,7 @@ static int sound_update()
 
 	audio_buff = ds2_getAudiobuff();
 	if (audio_buff == NULL) {
-#if defined SERIAL_TRACE || defined SERIAL_TRACE_SOUND
+#if defined TRACE || defined TRACE_SOUND
 		ReGBA_Trace("Recovered from the lack of a buffer");
 #endif
 		return -1;

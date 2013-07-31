@@ -58,18 +58,17 @@ CFLAGS := -mips32 -mno-abicalls -fno-pic -fno-builtin \
           -O3 -fomit-frame-pointer -fgcse-sm -fgcse-las -fgcse-after-reload \
           -fweb -fpeel-loops -fno-inline -fno-early-inlining
 
-DEFS   := -DNDS_LAYER -DNO_LOAD_DELAY_SLOT -DGIT_VERSION=$(shell git describe --always)
+DEFS   := -DNDS_LAYER -DMIPS_XBURST -DGIT_VERSION=$(shell git describe --always)
 # Usable flags are
 # -DTEST_MODE
 # -DUSE_DEBUG
 # -DUSE_C_CORE
-# -DNO_LOAD_DELAY_SLOT (for the XBurst architecture, which has no load delay
-#   slots)
+# -DMIPS_XBURST, -DMIPS_32R2 (explained in mips_stub.S)
 # -DPERFORMANCE_IMPACTING_STATISTICS (if you want to get statistics that are
 #   so expensive to collect that the emulator's performance would plummet)
-# -DSERIAL_TRACE, -DSERIAL_TRACE_FRAMESKIP, -DSERIAL_TRACE_TRANSLATION_REQUESTS
-# -DSERIAL_TRACE_RECOMPILATION, -DSERIAL_TRACE_REUSE, -DSERIAL_TRACE_FLUSHING
-# -DSERIAL_TRACE_SOUND
+# -DTRACE, -DTRACE_FRAMESKIP, -DTRACE_TRANSLATION_REQUESTS
+# -DTRACE_RECOMPILATION, -DTRACE_REUSE, -DTRACE_FLUSHING
+# -TRACE_SOUND
 
 .PHONY: clean makedirs
 .SUFFIXES: .elf .dat .plg .c .S .o

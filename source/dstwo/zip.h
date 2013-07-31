@@ -24,7 +24,7 @@
 
 #include "zlib.h"
 
-#define ZIP_TMP "$tmp.gba"
+#define ZIP_TMP "ZIPTMP.GBA" /* Acceptable on all platforms */
 
 s32 load_file_zip(char *filename);
 

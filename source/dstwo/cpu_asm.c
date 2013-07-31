@@ -2002,25 +2002,21 @@ static void arm_flag_status(block_data_arm_type* block_data, u32 opcode)
     case 0xB4:                                                                \
       /* PUSH rlist */                                                        \
       thumb_block_memory(store, down, no, 13);                                \
-      mips_emit_syscall(11);\
       break;                                                                  \
                                                                               \
     case 0xB5:                                                                \
       /* PUSH rlist, lr */                                                    \
       thumb_block_memory(store, push_lr, push_lr, 13);                        \
-      mips_emit_syscall(11);\
       break;                                                                  \
                                                                               \
     case 0xBC:                                                                \
       /* POP rlist */                                                         \
       thumb_block_memory(load, no, up, 13);                                   \
-      mips_emit_syscall(12);\
       break;                                                                  \
                                                                               \
     case 0xBD:                                                                \
       /* POP rlist, pc */                                                     \
       thumb_block_memory(load, no, pop_pc, 13);                               \
-      mips_emit_syscall(12);\
       break;                                                                  \
                                                                               \
     case 0xC0 ... 0xC7:                                                       \
@@ -3115,7 +3111,7 @@ static s32 BinarySearch(u32* Array, u32 Value, u32 Size)
 #define thumb_fix_pc()                                                        \
   pc &= ~0x01                                                                 \
 
-#if defined SERIAL_TRACE || defined SERIAL_TRACE_RECOMPILATION
+#if defined TRACE || defined TRACE_RECOMPILATION
 
 #define trace_recompilation(type)                                             \
     ReGBA_Trace("T: At %08X, block size %u, checksum %04X",                   \
@@ -3146,7 +3142,7 @@ static s32 BinarySearch(u32* Array, u32 Value, u32 Size)
 
 #endif
 
-#if defined SERIAL_TRACE || defined SERIAL_TRACE_REUSE
+#if defined TRACE || defined TRACE_REUSE
 
 #define trace_reuse()                                                         \
         ReGBA_Trace("T: At %08X, block size %u, checksum %04X, "reused",      \
@@ -3158,7 +3154,7 @@ static s32 BinarySearch(u32* Array, u32 Value, u32 Size)
 
 #endif
 
-#if defined SERIAL_TRACE || defined SERIAL_TRACE_TRANSLATION_REQUESTS
+#if defined TRACE || defined TRACE_TRANSLATION_REQUESTS
 
 #define trace_translation_request()                                           \
   ReGBA_Trace("T: At %08X, translation requested", pc);                       \
@@ -3358,7 +3354,6 @@ u8* translate_block_##type(u32 pc)                                            \
     type##_base_cycles();                                                     \
                                                                               \
     translate_##type##_instruction();                                         \
-    mips_emit_tne();                                                          \
     block_data_position++;                                                    \
                                                                               \
     /* If it went too far the cache needs to be flushed and the process       \
@@ -3680,7 +3675,7 @@ static void partial_clear_metadata_arm(u16* metadata, u16* metadata_area_start, 
   }
 }
 
-#if defined SERIAL_TRACE || defined SERIAL_TRACE_FLUSHING
+#if defined TRACE || defined TRACE_FLUSHING
 
 static char* METADATA_AREA_NAMES[] = {
 	"BIOS", "EWRAM", "IWRAM", "VRAM", "ROM"
@@ -3709,7 +3704,7 @@ static char* FLUSH_REASON_NAMES[] = {
 void clear_metadata_area(METADATA_AREA_TYPE metadata_area,
   METADATA_CLEAR_REASON_TYPE clear_reason)
 {
-#if defined SERIAL_TRACE || defined SERIAL_TRACE_FLUSHING
+#if defined TRACE || defined TRACE_FLUSHING
 	ReGBA_Trace("Clearing %s metadata: %s",
 		METADATA_AREA_NAMES[metadata_area],
 		CLEAR_REASON_NAMES[clear_reason]);
@@ -3781,7 +3776,7 @@ void clear_metadata_area(METADATA_AREA_TYPE metadata_area,
 void flush_translation_cache(TRANSLATION_REGION_TYPE translation_region,
   CACHE_FLUSH_REASON_TYPE flush_reason)
 {
-#if defined SERIAL_TRACE || defined SERIAL_TRACE_FLUSHING
+#if defined TRACE || defined TRACE_FLUSHING
 	ReGBA_Trace("Flushing %s code cache: %s",
 		CODE_CACHE_NAMES[translation_region],
 		FLUSH_REASON_NAMES[flush_reason]);

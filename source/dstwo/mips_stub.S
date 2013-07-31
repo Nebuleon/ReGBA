@@ -18,7 +18,19 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-# CPUエミュレート ASMコア
+# Defines usable by this file:
+# -DMIPS_XBURST
+#   XBurst processors allow the programmer to skip the delay slot after memory
+#   load instructions. This may or may not be faster, but does lower the
+#   usage of the instruction cache.
+# -DMIPS_32R2
+#   The MIPS32 revision 2 instruction set includes INS and EXT, instructions
+#   that allow the programmer to insert and extract bits without much longer
+#   sequences of bitwise and shift (AND, OR, SLL, SRL) instructions.
+
+#ifdef MIPS_32R2
+.set mips32r2
+#endif
 
 .align 4
 
@@ -132,57 +144,51 @@
 
 # make sure $16 has the register base for these macros
 
-/*
-.macro collapse_flag flag_reg, shift
-  ins $2, $\flag_reg, \shift, 1    # insert flag into CPSR
-.endm
-*/
-
 .macro collapse_flags
-  lw $2, REG_CPSR($16)            # load CPSR
-  sll $20, $20, 31                # delay usefully even if loads don't delay
-  andi $2, $2, 0xFF               # isolate lower 8bits
-#  collapse_flag 20, 31           # store flags
-#  collapse_flag 21, 30
-#  collapse_flag 22, 29
-#  collapse_flag 23, 28
-  or  $2, $2, $20
-  srl $20, $20, 31
-  sll $21, $21, 30
-  or  $2, $2, $21
-  srl $21, $21, 30
-  sll $22, $22, 29
-  or  $2, $2, $22
-  srl $22, $22, 29
-  sll $23, $23, 28
-  or  $2, $2, $23
-  srl $23, $23, 28
-  sw $2, REG_CPSR($16)            # store CPSR
+  lw    $2, REG_CPSR($16)         # load CPSR
+#ifdef MIPS_32R2
+  andi  $2, $2, 0xFF              # isolate lower 8 bits
+  ins   $2, $20, 31, 1            # flag in $20 goes to $2, bit 31
+  ins   $2, $21, 30, 1            # flag in $21 goes to $2, bit 30
+  ins   $2, $22, 29, 1            # flag in $22 goes to $2, bit 29
+  ins   $2, $23, 28, 1            # flag in $23 goes to $2, bit 28
+#else
+  sll   $20, $20, 31              # delay usefully even if loads don't delay
+  andi  $2, $2, 0xFF              # isolate lower 8 bits
+  or    $2, $2, $20
+  srl   $20, $20, 31
+  sll   $21, $21, 30
+  or    $2, $2, $21
+  srl   $21, $21, 30
+  sll   $22, $22, 29
+  or    $2, $2, $22
+  srl   $22, $22, 29
+  sll   $23, $23, 28
+  or    $2, $2, $23
+  srl   $23, $23, 28
+#endif
+  sw    $2, REG_CPSR($16)         # store CPSR
 .endm
-
-/*
-.macro extract_flag shift, flag_reg
-  ext $\flag_reg, $1, \shift, 1   # extract flag from CPSR
-.endm
-*/
 
 .macro extract_flags_body         # extract flags from $1
-#  extract_flag 31, 20             # load flags
-#  extract_flag 30, 21
-#  extract_flag 29, 22
-#  extract_flag 28, 23
-  srl $20, $1, 31
+  srl $20, $1, 31                 # flag in $1 bit 31 goes into $20
+#ifdef MIPS_32R2
+  ext $21, $2, 30, 1              # flag in $1 bit 30 goes into $21
+  ext $22, $2, 29, 1              # flag in $1 bit 29 goes into $22
+  ext $23, $2, 28, 1              # flag in $1 bit 28 goes into $23
+#else
   srl $21, $1, 30
   andi $21, $21, 1
   srl $22, $1, 29
   andi $22, $22, 1
   srl $23, $1, 28
   andi $23, $23, 1
+#endif
 .endm
 
 .macro extract_flags
   lw $1, REG_CPSR($16)            # load CPSR
-#ifndef NO_LOAD_DELAY_SLOT
+#ifndef MIPS_XBURST
   nop
 #endif
   extract_flags_body
@@ -221,7 +227,7 @@ restore_registers_body:
   lw $25, REG_R12($16)
   lw $18, REG_R10($16)
   lw $28, REG_R13($16)
-#ifndef NO_LOAD_DELAY_SLOT
+#ifndef MIPS_XBURST
   lw $30, REG_R14($16)
   jr $ra
   nop                             # delay for both things
@@ -257,11 +263,9 @@ restore_registers_body:
 # $16: register base
 # $17: cycle counter
 
-.balign 64
+.balign 32
 
 mips_update_gba:
-#  to_show_reg 42
-
   sw $4, REG_PC($16)              # current PC = $4
 
   addiu $sp, $sp, -4              # make room on the stack
@@ -275,23 +279,13 @@ mips_update_gba:
   addiu $sp, $sp, 4               # fix stack
 
   lw $1, CHANGED_PC_STATUS($16)
-#ifndef NO_LOAD_DELAY_SLOT
+#ifndef MIPS_XBURST
   nop
 #endif
   bne $1, $0, lookup_pc
   addu $17, $2, $0                # $17 = new cycle count (delay slot)
 
   restore_registers
-
-#	addiu $sp, $sp, -4              # make room on the stack
-#	sw $ra,($sp)                    # save return address
-#	nop
-#	jal printf_reg
-#	nop
-#	lw $ra, ($sp)                   # restore return address
-#	addiu $sp, $sp, 4               # fix stack
-
-#  to_show_reg -42
 
   jr $ra                          # if not, go back to caller
   nop                             # delay so the caller can use $30
@@ -301,64 +295,31 @@ mips_update_gba:
 # $4: GBA address to branch to
 
 mips_indirect_branch_arm:
-#  to_show_reg 43
-  
   save_registers
   jal block_lookup_address_arm    # $2 = MIPS address to jump to
   nop
   
-#  addiu $sp, $sp, -4
-#  sw $2, 0($sp)
-#  jal __icache_invalidate_all
-#  nop
-#  lw $2, 0($sp)
-#  addiu $sp, $sp, 4
-  
   restore_registers
-
-#  to_show_reg -43
 
   jr $2                           # jump to it
   nop                             # delay so the target can use $30
 
 mips_indirect_branch_thumb:
-#  to_show_reg 44
-
   save_registers
   jal block_lookup_address_thumb  # $2 = MIPS address to jump to
   nop
 
-#  addiu $sp, $sp, -4
-#  sw $2, 0($sp)
-#  jal __icache_invalidate_all
-#  nop
-#  lw $2, 0($sp)
-#  addiu $sp, $sp, 4
-
   restore_registers
-
-#  to_show_reg -44
 
   jr $2                           # jump to it
   nop                             # delay so the target can use $30
 
 mips_indirect_branch_dual: 
-#  to_show_reg 45
-  
   save_registers
   jal block_lookup_address_dual   # $2 = MIPS address to jump to
   nop
-
-#  addiu $sp, $sp, -4
-#  sw $2, 0($sp)
-#  jal __icache_invalidate_all
-#  nop
-#  lw $2, 0($sp)
-#  addiu $sp, $sp, 4
   
   restore_registers
-
-#  to_show_reg -45
 
   jr $2                           # jump to it
   nop                             # delay so the target can use $30
@@ -384,15 +345,16 @@ mips_indirect_branch_dual:
   lui $2, %hi(\ftable)
   addu $2, $2, $1
   lw $2, %lo(\ftable)($2)         # new function handler is in $2
-#  srl $2, $2, 2                   # remove lower two bits
 
-  lui $1, %hi(3 << 26)            # $1 = 3 (JAL opcode)
-#  ins $1, $2, 0, 26               # insert offset into jal
-  sll $2, $2, 4                   # emulate INS instruction
-  srl $2, $2, 6
-  or  $1, $1, $2
-
-#  syscall 10
+  lui   $1, %hi(3 << 26)            # $1 = 3 (JAL opcode)
+#ifdef MIPS_32R2
+  srl   $2, $2, 2
+  ins   $1, $2, 0, 26             # insert offset into the generated JAL
+#else
+  sll   $2, $2, 4
+  srl   $2, $2, 6
+  or    $1, $1, $2                # insert offset into the generated JAL
+#endif
 
   addiu $ra, $ra, -8              # rewind return address to function call
   sw $1, ($ra)                    # modify to call new handler
@@ -414,17 +376,15 @@ mips_indirect_branch_dual:
 #ifdef PERFORMANCE_IMPACTING_STATISTICS
   la $1, Stats
   lw $2, 0($1)
-#  ifndef NO_LOAD_DELAY_SLOT
+#  ifndef MIPS_XBURST
   nop
 #  endif
   addiu $2, $2, 1
   sw $2, 0($1)
 #endif
 
-#  syscall 11
-
   jr $ra                          # return
-  nop                             # wary of putting cache here
+  nop
 .endm
 
 
@@ -440,30 +400,34 @@ mips_indirect_branch_dual:
   addiu $1, $0, 4                 # force address to 0x1 (open)
 
 1:
-#  ins $1, $4, 6, \alignment       # place alignment bits into offset
+#ifdef MIPS_32R2
+  ins $1, $4, 6, \alignment       # place alignment bits into offset
+#else
   ori  $2, $0, (((1<<\alignment) -1)<<6)
   nor  $2, $0, $2
   and  $1, $1, $2
   andi $2, $4, ((1<<\alignment) -1)
   sll  $2, $2, 6
-  or   $1, $1, $2                 # emulate INS instruction
+  or   $1, $1, $2
+#endif
 
   lui $2, %hi(\ftable)
   addu $2, $2, $1
   lw $2, %lo(\ftable)($2)         # new function handler is in $2
-#  nop                            # LUI $1 delays usefully (load delay slot)
-#  srl $2, $2, 2                   # remove lower two bits
 
-  lui $1, %hi(3 << 26)            # $1 = 3 (JAL opcode)
-#  ins $1, $2, 0, 26               # insert offset into jal
+  lui $1, %hi(3 << 26)            # $1 = 3 << 26 (JAL opcode), delays usefully
+#ifdef MIPS_32R2
+  srl $2, $2, 2                   # remove lower two bits
+  ins $1, $2, 0, 26               # insert offset into the generated JAL
+#else
   sll $2, $2, 4
   srl $2, $2, 6
-  or  $1, $1, $2                  # emulate INS instruction
-  
-#  syscall 6 
+  or  $1, $1, $2                  # insert offset into the generated JAL
+#endif
+
   addiu $ra, $ra, -8              # rewind return address to function call
   sw $1, ($ra)                    # modify to call new handler
-  
+
   addiu $sp, $sp, -12             # adjust the stack to allow for a call
   sw    $ra, 0($sp)               # save the return address (branch delay)
   sw    $4,  4($sp)
@@ -481,16 +445,15 @@ mips_indirect_branch_dual:
 #ifdef PERFORMANCE_IMPACTING_STATISTICS
   la $1, Stats
   lw $2, 0($1)
-#  ifndef NO_LOAD_DELAY_SLOT
+#  ifndef MIPS_XBURST
   nop
 #  endif
   addiu $2, $2, 1
   sw $2, 0($1)
 #endif
 
-#  syscall 9
   jr $ra                          # return
-  nop                             # wary of putting cache here
+  nop
 .endm
 
 
@@ -514,10 +477,13 @@ mips_indirect_branch_dual:
 
 .macro region_check_align region, align_bits, alignment, patch_handler
   srl $1, $4, 24                  # check upper 8bits of address
-#  ins $1, $4, 8, \align_bits      # look at lower bits of address too
+#ifdef MIPS_32R2
+  ins $1, $4, 8, \align_bits      # look at lower bits of address too
+#else
   andi $2, $4, ((1<<\align_bits) -1)
   sll  $2, $2, 8
-  or   $1, $1, $2                 # emulate INS instruction
+  or   $1, $1, $2
+#endif
   # See if it is the given region and alignment
   xori $1, $1, (\region | (\alignment << 8))
   bne $1, $0, \patch_handler      # if not repatch/try again
@@ -530,9 +496,7 @@ mips_indirect_branch_dual:
   addiu $1, $1, -1                # non-zero if it is not a low open
   sltu $1, $0, $1                 # true if $1 != 0
   and $1, $1, $2                  # true if low address and not open
-#  ext $2, $4, 0, \align_bits      # $2 = low bits of 4
   andi $2, $4, ((1<<\align_bits)-1)
-				  # emulate EXT instruction
   xori $2, $2, \alignment         # true if alignment doesn't match
   or $1, $1, $2                   # align failure will trigger too
   bne $1, $0, \patch_handler      # if above is true, patch
@@ -618,9 +582,12 @@ mips_indirect_branch_dual:
 
 .macro translate_region_vram_core
   addiu $2, $2, -3                # see if it's 3 (the mirror of last 32 KiB)
-#  ext $4, $4, 0, 17               # generate 17bit offset
+#ifdef MIPS_32R2
+  ext $4, $4, 0, 17               # generate 17bit offset
+#else
   sll $4, $4, 15
-  srl $4, $4, 15		  # emulate EXT instruction
+  srl $4, $4, 15
+#endif
   bne $2, $0, 1f                  # if $2 != $0 then j 1:
   lui $1, %hi(vram)               # start loading vram address (delay)
 
@@ -632,61 +599,79 @@ mips_indirect_branch_dual:
 
 .macro translate_region_vram patch_handler
   region_check 6, \patch_handler
-#  ext $2, $4, 15, 2               # $2 = bits 15 and 16 of address (delay)
+#ifdef MIPS_32R2
+  ext $2, $4, 15, 2               # $2 = bits 15 and 16 of address (delay)
+#else
   srl  $2, $4, 15                 # in BNE delay slot
-  andi $2, $2, 3		  # emulate EXT instruction
+  andi $2, $2, 3
+#endif
   translate_region_vram_core
 .endm
 
 .macro translate_region_vram_load_align align_bits, alignment, patch_handler
   region_check_align 6, \align_bits, \alignment, \patch_handler
-#  ext $2, $4, 15, 2               # $2 = bits 15 and 16 of address (delay)
+#ifdef MIPS_32R2
+  ext $2, $4, 15, 2               # $2 = bits 15 and 16 of address (delay)
+#else
   srl  $2, $4, 15                 # in BNE delay slot
-  andi $2, $2, 3		  # emulate EXT instruction
+  andi $2, $2, 3
+#endif
   translate_region_vram_core
 .endm
 
 .macro translate_region_vram_load_align16 align_bits, alignment, patch_handler
   region_check_align 6, \align_bits, \alignment, \patch_handler
-#  ext $2, $4, 15, 2               # $2 = bits 15 and 16 of address (delay)
-#  ins $4, $0, 0, 1                # mask out lower bit of address
+#ifdef MIPS_32R2
+  ext $2, $4, 15, 2               # $2 = bits 15 and 16 of address (delay)
+  ins $4, $0, 0, 1                # mask out lower bit of address
+#else
   srl  $2, $4, 15                 # in BNE delay slot
-  andi $2, $2, 3                  # emulate EXT instruction
+  andi $2, $2, 3
   srl  $4, $4, 1
-  sll  $4, $4, 1                  # emulate INS instruction
+  sll  $4, $4, 1
+#endif
   translate_region_vram_core
 .endm
 
 .macro translate_region_vram_load_align32 align_bits, alignment, patch_handler
   region_check_align 6, \align_bits, \alignment, \patch_handler
-#  ext $2, $4, 15, 2               # $2 = bits 15 and 16 of address (delay)
-#  ins $4, $0, 0, 2                # mask out lower two bits of address
+#ifdef MIPS_32R2
+  ext $2, $4, 15, 2               # $2 = bits 15 and 16 of address (delay)
+  ins $4, $0, 0, 2                # mask out lower two bits of address
+#else
   srl  $2, $4, 15                 # in BNE delay slot
-  andi $2, $2, 3                  # emulate EXT instruction
+  andi $2, $2, 3
   srl  $4, $4, 2
-  sll  $4, $4, 2                  # emulate INS instruction
+  sll  $4, $4, 2
+#endif
   translate_region_vram_core
 .endm
 
 .macro translate_region_vram_store_align16 patch_handler
   region_check 6, \patch_handler
-#  ext $2, $4, 15, 2               # $2 = bits 15 and 16 of address (delay)
-#  ins $4, $0, 0, 1                # mask out lower bit of address
+#ifdef MIPS_32R2
+  ext $2, $4, 15, 2               # $2 = bits 15 and 16 of address (delay)
+  ins $4, $0, 0, 1                # mask out lower bit of address
+#else
   srl  $2, $4, 15                 # in BNE delay slot
-  andi $2, $2, 3                  # emulate EXT instruction
+  andi $2, $2, 3
   srl  $4, $4, 1
-  sll  $4, $4, 1                  # emulate INS instruction
+  sll  $4, $4, 1
+#endif
   translate_region_vram_core
 .endm
 
 .macro translate_region_vram_store_align32 patch_handler
   region_check 6, \patch_handler
-#  ext $2, $4, 15, 2               # $2 = bits 15 and 16 of address (delay)
-#  ins $4, $0, 0, 2                # mask out lower two bits of address
+#ifdef MIPS_32R2
+  ext $2, $4, 15, 2               # $2 = bits 15 and 16 of address (delay)
+  ins $4, $0, 0, 2                # mask out lower two bits of address
+#else
   srl  $2, $4, 15                 # in BNE delay slot
-  andi $2, $2, 3                  # emulate EXT instruction
+  andi $2, $2, 3
   srl  $4, $4, 2
-  sll  $4, $4, 2                  # emulate INS instruction
+  sll  $4, $4, 2
+#endif
   translate_region_vram_core
 .endm
 
@@ -695,7 +680,7 @@ mips_indirect_branch_dual:
   sll $2, $2, 2                   # adjust to word index
   addu $2, $2, $16                # $2 = memory_map_read[address >> 15]
   lw $2, -32768($2)               #
-#ifndef NO_LOAD_DELAY_SLOT
+#ifndef MIPS_XBURST
   nop
 #endif
   bne $2, $0, 1f                  # if it's non-NULL continue
@@ -704,9 +689,12 @@ mips_indirect_branch_dual:
   sw $ra, REG_SAVE2($16)          # save return address
 
   save_registers                  # save the registers
-#  ext $4, $4, 15, 10              # $4 = (address >> 15) & 0x3FF
+#ifdef MIPS_32R2
+  ext $4, $4, 15, 10              # $4 = (address >> 15) & 0x3FF
+#else
   srl $4, $4, 15
-  andi $4, $4, 0x03FF		  # emualte EXT instruction
+  andi $4, $4, 0x03FF
+#endif
   jal load_gamepak_page           # get page in $2
   sw $1, REG_SAVE($16)            # save offset (delay)
 
@@ -747,7 +735,7 @@ mips_indirect_branch_dual:
   sll $2, $2, 2                   # adjust to word index
   addu $2, $2, $16                # $2 = memory_map_read[address >> 15]
   lw $2, -32768($2)
-#ifndef NO_LOAD_DELAY_SLOT
+#ifndef MIPS_XBURST
   nop
 #endif
   bne $2, $0, 1f                  # if it's non-NULL continue
@@ -757,9 +745,12 @@ mips_indirect_branch_dual:
   sw $6, REG_SAVE3($16)           # save a2
 
   save_registers                  # save the registers
-#  ext $4, $4, 15, 10              # $4 = (address >> 15) & 0x3FF
+#ifdef MIPS_32R2
+  ext $4, $4, 15, 10              # $4 = (address >> 15) & 0x3FF
+#else
   srl $4, $4, 15
-  andi $4, $4, 0x03FF		  # emualte EXT instruction
+  andi $4, $4, 0x03FF
+#endif
   jal load_gamepak_page           # get page in $2
   sw $1, REG_SAVE($16)            # save offset (delay)
 
@@ -789,7 +780,7 @@ mips_indirect_branch_dual:
   restore_registers               # restore the other registers
 
   lw $ra, REG_SAVE($16)           # restore return address
-#ifndef NO_LOAD_DELAY_SLOT
+#ifndef MIPS_XBURST
   lw $6, REG_SAVE2($16)           # restore a2 (delay)
   jr $ra                          # return
   nop
@@ -810,7 +801,7 @@ mips_indirect_branch_dual:
 
   restore_registers               # restore the other registers
   lw $ra, REG_SAVE($16)           # restore return address
-#ifndef NO_LOAD_DELAY_SLOT
+#ifndef MIPS_XBURST
   nop                             # delay for both things
 #endif
   jr $ra                          # return
@@ -840,13 +831,12 @@ mips_indirect_branch_dual:
   save_registers                  # save the registers
 
   jal read_backup                 # get backup value in $2
-#  ext $4, $4, 0, 16               # address &= 0xFFFF (delay)
-  andi $4, $4, 0xFFFF		  # emulate EXT instruction (delay slot)
+  andi $4, $4, 0xFFFF		      # address &= 0xFFFF (delay)
 
   restore_registers               # restore the other registers
 
   lw $ra, REG_SAVE($16)           # restore return address
-#ifndef NO_LOAD_DELAY_SLOT
+#ifndef MIPS_XBURST
   nop
 #endif
   jr $ra                          # return
@@ -861,12 +851,12 @@ mips_indirect_branch_dual:
   save_registers                  # save the registers
 
   jal read_backup                 # get backup value in $2
-#  ext $4, $4, 0, 16               # address &= 0xFFFF (delay)
-  andi $4, $4, 0xFFFF		  # emulate EXT instruction (delay slot)
+  andi $4, $4, 0xFFFF		      # address &= 0xFFFF (delay)
+  
   restore_registers               # restore the other registers
 
   lw $ra, REG_SAVE($16)           # restore return address
-#ifndef NO_LOAD_DELAY_SLOT
+#ifndef MIPS_XBURST
   lw $6, REG_SAVE2($16)           # restore a2 (load delay slot)
   jr $ra                          # return
   nop
@@ -892,25 +882,31 @@ mips_indirect_branch_dual:
 .macro backup_load_align16 align_bits, alignment, patch_handler
   region_check_align 0xE, \align_bits, \alignment, \patch_handler
   sw $ra, REG_SAVE($16)           # save the return address (delay)
-#  ins $4, $0, 0, 1                # mask out lower bit
+#ifdef MIPS_32R2
+  ins $4, $0, 0, 1                # mask out lower bit
+#else
   srl  $4, $4, 1
-  sll  $4, $4, 1                  # emulate INS instruction
+  sll  $4, $4, 1
+#endif
   backup_load_core
 .endm
 
 .macro backup_load_align32 align_bits, alignment, patch_handler
   region_check_align 0xE, \align_bits, \alignment, \patch_handler
   sw $ra, REG_SAVE($16)           # save the return address (delay)
-#  ins $4, $0, 0, 2                # mask out lower two bits
+#ifdef MIPS_32R2
+  ins $4, $0, 0, 2                # mask out lower two bits
+#else
   srl  $4, $4, 2
-  sll  $4, $4, 2                  # emulate INS instruction
+  sll  $4, $4, 2
+#endif
   backup_load_core
 .endm
 
 
 .macro open_load8_core
   lw $2, REG_CPSR($16)            # $2 = CPSR (delay)
-#ifndef NO_LOAD_DELAY_SLOT
+#ifndef MIPS_XBURST
   nop
 #endif
   andi $2, $2, 0x20               # test T bit
@@ -929,7 +925,7 @@ mips_indirect_branch_dual:
   restore_registers               # restore the other registers
 
   lw $ra, REG_SAVE($16)           # restore return address
-#ifndef NO_LOAD_DELAY_SLOT
+#ifndef MIPS_XBURST
   nop
 #endif
   jr $ra                          # return
@@ -945,7 +941,7 @@ mips_indirect_branch_dual:
 
 .macro open_load16_core
   lw $2, REG_CPSR($16)            # $2 = CPSR (delay)
-#ifndef NO_LOAD_DELAY_SLOT
+#ifndef MIPS_XBURST
   nop
 #endif
   andi $2, $2, 0x20               # test T bit
@@ -964,7 +960,7 @@ mips_indirect_branch_dual:
   restore_registers               # restore the other registers
 
   lw $ra, REG_SAVE($16)           # restore return address
-#ifndef NO_LOAD_DELAY_SLOT
+#ifndef MIPS_XBURST
   nop
 #endif
   jr $ra                          # return
@@ -984,12 +980,12 @@ mips_indirect_branch_dual:
 
 .macro open_load32_core
   lw $2, REG_CPSR($16)            # $2 = CPSR (delay)
-#ifndef NO_LOAD_DELAY_SLOT
+#ifndef MIPS_XBURST
   nop
 #endif
-  andi $2, $2, 0x20               # test T bit
-
   save_registers                  # save the registers
+  
+  andi $2, $2, 0x20               # test T bit
 
   beq $2, $0, 1f                  # branch if ARM mode
   sw $ra, REG_SAVE($16)           # save the return address (delay)
@@ -997,11 +993,15 @@ mips_indirect_branch_dual:
   jal read_memory16               # get instruction at PC
   addu $4, $5, $0                 # a0 = PC (delay)
 
-  sll  $2, $2, 16
-  srl  $1, $2, 16
-  j 2f
-#  ins $2, $2, 16, 16              # result = (result << 16) | result (delay)
-  or   $2, $1, $2		  # emulate INS instruction (delay)
+#ifdef MIPS_32R2
+  j     2f
+  ins   $2, $2, 16, 16            # result = (result << 16) | result (delay)
+#else
+  sll   $2, $2, 16
+  srl   $1, $2, 16
+  j     2f
+  or    $2, $1, $2		          # result = (result << 16) | result (delay)
+#endif
 
 1:
   jal read_memory32               # get instruction at PC
@@ -1011,7 +1011,7 @@ mips_indirect_branch_dual:
   restore_registers               # restore the other registers
 
   lw $ra, REG_SAVE($16)           # restore return address
-#ifndef NO_LOAD_DELAY_SLOT
+#ifndef MIPS_XBURST
   nop
 #endif
   jr $ra                          # return
@@ -1022,7 +1022,7 @@ mips_indirect_branch_dual:
   region_check_open \patch_handler
 
   lw $2, REG_CPSR($16)            # $2 = CPSR (delay)
-#ifndef NO_LOAD_DELAY_SLOT
+#ifndef MIPS_XBURST
   nop
 #endif
   andi $2, $2, 0x20               # test T bit
@@ -1036,11 +1036,15 @@ mips_indirect_branch_dual:
   jal read_memory16               # get instruction at PC
   addu $4, $5, $0                 # a0 = PC (delay)
 
-  sll  $2, $2, 16
-  srl  $1, $2, 16
-  j 2f
-#  ins $2, $2, 16, 16              # result = (result << 16) | result (delay)
-  or   $2, $1, $2		  # emulate INS instruction (delay)
+#ifdef MIPS_32R2
+  j     2f
+  ins   $2, $2, 16, 16            # result = (result << 16) | result (delay)
+#else
+  sll   $2, $2, 16
+  srl   $1, $2, 16
+  j     2f
+  or    $2, $1, $2		          # result = (result << 16) | result (delay)
+#endif
 
 1:
   jal read_memory32               # get instruction at PC
@@ -1050,7 +1054,7 @@ mips_indirect_branch_dual:
   restore_registers               # restore the other registers
 
   lw $ra, REG_SAVE($16)           # restore return address
-#ifndef NO_LOAD_DELAY_SLOT
+#ifndef MIPS_XBURST
   lw $6, REG_SAVE2($16)           # restore a2 (delay)
   jr $ra                          # return
   nop
@@ -1082,7 +1086,7 @@ mips_indirect_branch_dual:
   restore_registers               # restore the other registers
 
   lw $ra, REG_SAVE($16)           # restore return address
-#ifndef NO_LOAD_DELAY_SLOT
+#ifndef MIPS_XBURST
   nop
 #endif
   jr $ra                          # return
@@ -1102,7 +1106,7 @@ mips_indirect_branch_dual:
   restore_registers               # restore the other registers
 
   lw $ra, REG_SAVE($16)           # restore return address
-#ifndef NO_LOAD_DELAY_SLOT
+#ifndef MIPS_XBURST
   nop
 #endif
   jr $ra                          # return
@@ -1112,7 +1116,7 @@ mips_indirect_branch_dual:
 
 
 .macro load_u8 base
-#ifndef NO_LOAD_DELAY_SLOT
+#ifndef MIPS_XBURST
   lbu $2, %lo(\base)($2)          # return base[offset]
   jr $ra                          # return
   nop                             # delay for both things
@@ -1123,7 +1127,7 @@ mips_indirect_branch_dual:
 .endm
 
 .macro load_s8 base
-#ifndef NO_LOAD_DELAY_SLOT
+#ifndef MIPS_XBURST
   lb $2, %lo(\base)($2)           # return base[offset]
   jr $ra                          # return
   nop                             # delay for both things
@@ -1134,7 +1138,7 @@ mips_indirect_branch_dual:
 .endm
 
 .macro load_u16 base
-#ifndef NO_LOAD_DELAY_SLOT
+#ifndef MIPS_XBURST
   lhu $2, %lo(\base)($2)          # return base[offset]
   jr $ra                          # return
   nop                             # delay for both things
@@ -1145,7 +1149,7 @@ mips_indirect_branch_dual:
 .endm
 
 .macro load_s16 base
-#ifndef NO_LOAD_DELAY_SLOT
+#ifndef MIPS_XBURST
   lh $2, %lo(\base)($2)           # return base[offset]
   jr $ra                          # return
   nop                             # delay for both things
@@ -1156,7 +1160,7 @@ mips_indirect_branch_dual:
 .endm
 
 .macro load_u32 base
-#ifndef NO_LOAD_DELAY_SLOT
+#ifndef MIPS_XBURST
   lw $2, %lo(\base)($2)           # return base[offset]
   jr $ra                          # return
   nop                             # delay for both things
@@ -1172,14 +1176,18 @@ mips_indirect_branch_dual:
 
 .macro load_u16_unaligned base
   lhu $2, %lo(\base)($2)          # load base[offset]
-#ifndef NO_LOAD_DELAY_SLOT
+#ifndef MIPS_XBURST
   nop
 #endif
-  sll $1, $2, 24
-  srl $2, $2, 8
-  jr $ra                          # return
-#  ror $2, $2, 8                   # rotate value by 8bits
-  or  $2, $2, $1                  # emulate ROR instruction
+#ifdef MIPS_32R2
+  jr    $ra                       # return
+  ror   $2, $2, 8                 # rotate value by 8 bits (delay)
+#else
+  sll   $1, $2, 24
+  srl   $2, $2, 8
+  jr    $ra                       # return
+  or    $2, $2, $1                # rotate value by 8 bits (delay)
+#endif
   
 .endm
 
@@ -1187,7 +1195,7 @@ mips_indirect_branch_dual:
 # avoid confusion.
 
 .macro load_s16_unaligned base
-#ifndef NO_LOAD_DELAY_SLOT
+#ifndef MIPS_XBURST
   lb $2, %lo(\base)($2)           # return base[offset]
   jr $ra                          # return
   nop                             # delay for both things
@@ -1202,14 +1210,18 @@ mips_indirect_branch_dual:
 
 .macro load_u32_unaligned base, alignment
   lw $2, %lo(\base)($2)           # load base[offset]
-#ifndef NO_LOAD_DELAY_SLOT
+#ifndef MIPS_XBURST
   nop
 #endif
-  sll $1, $2, (32-(\alignment * 8))
-  srl $2, $2, (\alignment * 8) 
-  jr $ra                          # return
-#  ror $2, $2, (\alignment * 8)    # rotate value by 8bits
-  or  $2, $2, $1                  # emulate ROR instruction
+#ifdef MIPS_32R2
+  jr    $ra                       # return
+  ror   $2, $2, (\alignment * 8)  # rotate value by 8 bits (delay)
+#else
+  sll   $1, $2, (32-(\alignment * 8))
+  srl   $2, $2, (\alignment * 8) 
+  jr    $ra                       # return
+  or    $2, $2, $1                # rotate value by 8 bits (delay)
+#endif
 .endm
 
 
@@ -1232,11 +1244,14 @@ mips_indirect_branch_dual:
 # Store the value double mirrored (u16)
 
 .macro store_u8_double base
-#  ins $5, $5, 8, 8                # value = (value << 8) | value
-  andi $5, $5, 0x00FF
-  sll  $1, $5, 8
-  or   $5, $1, $5		  # emulate INS instruction
-  sh $5, %lo(\base)($2)           # store value at base[offset]
+#ifdef MIPS_32R2
+  ins   $5, $5, 8, 8              # value = (value << 8) | value
+#else
+  andi  $5, $5, 0x00FF
+  sll   $1, $5, 8
+  or    $5, $1, $5
+#endif
+  sh    $5, %lo(\base)($2)        # store value at base[offset]
 .endm
 
 
@@ -1262,7 +1277,7 @@ mips_indirect_branch_dual:
   add $1, $1, $2                  # $1 = &metabase[offset] (u16)
 
   lhu $5, 6($1)                   # load the code modification status
-#ifndef NO_LOAD_DELAY_SLOT
+#ifndef MIPS_XBURST
   nop
 #endif
   andi $5, $5, 0x3                # and extract the Currently Code bits
@@ -1317,9 +1332,14 @@ execute_load_bios_u8:
 
 1:
   lui $2, %hi(bios_read_protect)  # generate upper address
-#  ins $2, $4, 0, 2                # lower 2 bits address contributes
-  andi $1, $4, 3
-  or   $2, $2, $1		  # emulate INS instruction
+#ifdef MIPS_32R2
+  ins   $2, $4, 0, 2              # lower 2 bits address contributes
+#else
+  andi  $1, $4, 3
+  srl   $2, $2, 2
+  sll   $2, $2, 2                 # clear out the lower 2 bits of $2 first
+  or    $2, $2, $1                # and add the lower 2 bits of $1
+#endif
   load_u8 bios_read_protect
 
 2:
@@ -1422,9 +1442,14 @@ execute_load_bios_s8:
 
 1:
   lui $2, %hi(bios_read_protect)  # generate upper address
-#  ins $2, $4, 0, 2                # lower 2 bits contribute
-  andi $1, $4, 3
-  or   $2, $2, $1		  # emulate INS instruction
+#ifdef MIPS_32R2
+  ins   $2, $4, 0, 2              # lower 2 bits address contributes
+#else
+  andi  $1, $4, 3
+  srl   $2, $2, 2
+  sll   $2, $2, 2                 # clear out the lower 2 bits of $2 first
+  or    $2, $2, $1                # and add the lower 2 bits of $1
+#endif
   load_s8 bios_read_protect
 
 2:
@@ -1524,9 +1549,14 @@ execute_load_bios_u16:
 
 1:
   lui $2, %hi(bios_read_protect)  # generate upper address
-#  ins $2, $4, 0, 2                # bit 1 contributes
-  andi $1, $4, 3
-  or   $2, $2, $1
+#ifdef MIPS_32R2
+  ins   $2, $4, 0, 2              # bit 1 contributes, and bit 0 is unset
+#else
+  andi  $1, $4, 3
+  srl   $2, $2, 2
+  sll   $2, $2, 2                 # clear out the lower 2 bits of $2 first
+  or    $2, $2, $1                # and add the lower 2 bits of $1
+#endif
   load_u16 bios_read_protect
 
 2:
@@ -1603,10 +1633,15 @@ execute_load_bios_u16u:
 
 1:
   lui $2, %hi(bios_read_protect)  # generate upper address
-#  ext $1, $4, 1, 1
-#  ins $2, $1, 1, 1                # bit 1 contributes
+#ifdef MIPS_32R2
+  ext $1, $4, 1, 1
+  ins $2, $1, 1, 1                # bit 1 contributes
+#else
   andi $1, $4, 2
-  or   $2, $2, $1		  # emulate EXT and INS instructions
+  srl  $2, $2, 2
+  sll  $2, $2, 2
+  or   $2, $2, $1                 # bit 0 is unset (ANDI 0x3FFE earlier)
+#endif
   load_u16_unaligned bios_read_protect
 
 2:
@@ -1757,9 +1792,14 @@ execute_load_bios_s16:
 
 1:
   lui $2, %hi(bios_read_protect)  # generate upper address
-#  ins $2, $4, 0, 2                # bit 1 contributes
-  andi $1, $4, 3
-  or   $2, $2, $1		  # emulate INS instruction
+#ifdef MIPS_32R2
+  ins   $2, $4, 0, 2              # bit 1 contributes, and bit 0 is unset
+#else
+  andi  $1, $4, 3
+  srl   $2, $2, 2
+  sll   $2, $2, 2                 # clear out the lower 2 bits of $2 first
+  or    $2, $2, $1                # and add the lower 2 bits of $1
+#endif
   load_s16 bios_read_protect
 
 2:
@@ -1836,10 +1876,15 @@ execute_load_bios_s16u:
 
 1:
   lui $2, %hi(bios_read_protect)  # generate upper address
-#  ext $1, $4, 1, 1
-#  ins $2, $1, 1, 1                # bit 1 contributes
+#ifdef MIPS_32R2
+  ext $1, $4, 1, 1
+  ins $2, $1, 1, 1                # bit 1 contributes
+#else
   andi $1, $4, 2
-  or   $2, $2, $1		  # emulate EXT and INS instructions  
+  srl  $2, $2, 2
+  sll  $2, $2, 2
+  or   $2, $2, $1                 # bit 0 is unset (ANDI 0x3FFE earlier)
+#endif
   load_s16_unaligned bios_read_protect
 
 2:
@@ -2444,10 +2489,13 @@ execute_store_io_u8:
 execute_store_palette_u8:
   region_check 5, patch_store_u8
   lui $2, %hi(palette_ram)        # start loading palette_ram address (delay)
-#  ins $5, $5, 8, 8                # double value
-  andi $5, $5, 0x00FF
-  sll  $1, $5, 8
-  or   $5, $1, $5		  # emulate INS instruction
+#ifdef MIPS_32R2
+  ins   $5, $5, 8, 8              # double value
+#else
+  andi  $5, $5, 0x00FF
+  sll   $1, $5, 8
+  or    $5, $1, $5
+#endif
   andi $4, $4, 0x3FE              # align palette address
   addu $2, $2, $4
 
@@ -2463,10 +2511,6 @@ execute_store_vram_u8:
 execute_store_oam_u8:
 # 8-bit writes to OAM are not allowed by the GBA (?)
    jr $ra
-#  translate_region 7, patch_store_u8, oam_ram, 0x3FE
-#  lui $1, %hi(oam_update)         # write non-zero to oam_update
-#  sw $1, %lo(oam_update)($1)      # cheap, but the address is non-zero
-#  store_u8_double oam_ram
    nop
 
 execute_store_ignore8_u8:
@@ -2742,7 +2786,7 @@ execute_store_io_u32a:
   restore_registers
 
   lw $ra, REG_SAVE2($16)          # restore ra
-#ifndef NO_LOAD_DELAY_SLOT
+#ifndef MIPS_XBURST
   lw $6, REG_SAVE($16)            # restore a2 (delay)
   jr $ra
   nop
@@ -2825,13 +2869,13 @@ execute_load_full_u8:
   sll $2, $2, 2                   # adjust to word index
   addu $2, $2, $16                # $1 = memory_map_read[address >> 15]
   lw $1, -32768($2)
-#ifndef NO_LOAD_DELAY_SLOT
+#ifndef MIPS_XBURST
   nop
 #endif
   beq $1, $0, ext_load_u8         # if it's NULL perform an extended read
   andi $2, $4, 0x7FFF             # $2 = low 15bits of address (delay slot)
   addu $1, $1, $2                 # add the memory map offset
-#ifndef NO_LOAD_DELAY_SLOT
+#ifndef MIPS_XBURST
   lbu $2, ($1)                    # read the value
   jr $ra                          # return
   nop                             # delay for both things
@@ -2849,7 +2893,7 @@ ext_load_u8:
 
   restore_registers
   lw $ra, ($sp)                   # restore return address
-#ifndef NO_LOAD_DELAY_SLOT
+#ifndef MIPS_XBURST
   nop
 #endif
   jr $ra                          # return
@@ -2863,7 +2907,7 @@ execute_load_full_s8:
   sll $2, $2, 2                   # adjust to word index
   addu $2, $2, $16                # $1 = memory_map_read[address >> 15]
   lw $1, -32768($2)
-#ifndef NO_LOAD_DELAY_SLOT
+#ifndef MIPS_XBURST
   nop
 #endif
   beq $1, $0, ext_load_s8         # if it's NULL perform an extended read
@@ -2881,35 +2925,41 @@ ext_load_s8:
   nop
 
   restore_registers
-#  seb $2, $2                      # sign extend the read value
   lw $ra, ($sp)                   # restore return address
+#ifdef MIPS_32R2
+  seb $2, $2                      # sign extend the read value
+#else
   sll $2, $2, 24
-  sra $2, $2, 24                  # emulate SEB instruction
+  sra $2, $2, 24
+#endif
   jr $ra                          # return
   addiu $sp, $sp, 4               # fix stack (delay slot)
 
 #execute_load_u16:
 execute_load_full_u16:
   srl $1, $4, 28                  # check if the address is out of range
-#  ins $1, $4, 4, 1                # or unaligned (bottom bit)
+#ifdef MIPS_32R2
+  ins $1, $4, 4, 1                # or unaligned (bottom bit)
+#else
   ori  $2, $0, 0x10
   nor  $2, $0, $2
   and  $1, $1, $2
   andi $2, $4, 1
   sll  $2, $2, 4
-  or   $1, $1, $2		  # emulate INS instruction
+  or   $1, $1, $2
+#endif
   bne $1, $0, ext_load_u16        # if it is, perform an extended read
   srl $2, $4, 15                  # $1 = page number of address (delay)
   sll $2, $2, 2                   # adjust to word index
   addu $2, $2, $16                # $1 = memory_map_read[address >> 15]
   lw $1, -32768($2)
-#ifndef NO_LOAD_DELAY_SLOT
+#ifndef MIPS_XBURST
   nop
 #endif
   beq $1, $0, ext_load_u16        # if it's NULL perform an extended read
   andi $2, $4, 0x7FFF             # $2 = low 15bits of address (delay slot)
   addu $1, $1, $2                 # add the memory map offset
-#ifndef NO_LOAD_DELAY_SLOT
+#ifndef MIPS_XBURST
   lhu $2, ($1)                    # read the value (delay)
   jr $ra                          # return
   nop                             # delay for both things
@@ -2927,7 +2977,7 @@ ext_load_u16:
 
   restore_registers
   lw $ra, ($sp)                   # restore return address
-#ifndef NO_LOAD_DELAY_SLOT
+#ifndef MIPS_XBURST
   nop
 #endif
   jr $ra                          # return
@@ -2936,25 +2986,28 @@ ext_load_u16:
 #execute_load_s16:
 execute_load_full_s16:
   srl $1, $4, 28                  # check if the address is out of range
-#  ins $1, $4, 4, 1                # or unaligned (bottom bit)
-  ori $2, $0, 0x10
-  nor $2, $0, $2
-  and $1, $1, $2
+#ifdef MIPS_32R2
+  ins $1, $4, 4, 1                # or unaligned (bottom bit)
+#else
+  ori  $2, $0, 0x10
+  nor  $2, $0, $2
+  and  $1, $1, $2
   andi $2, $4, 1
-  sll $2, $2, 4
-  or  $1, $1, $2		  # emulate INS instruction
+  sll  $2, $2, 4
+  or   $1, $1, $2
+#endif
   bne $1, $0, ext_load_s16        # if it is, perform an extended read
   srl $2, $4, 15                  # $1 = page number of address (delay)
   sll $2, $2, 2                   # adjust to word index
   addu $2, $2, $16                # $1 = memory_map_read[address >> 15]
   lw $1, -32768($2)
-#ifndef NO_LOAD_DELAY_SLOT
+#ifndef MIPS_XBURST
   nop
 #endif
   beq $1, $0, ext_load_s16        # if it's NULL perform an extended read
   andi $2, $4, 0x7FFF             # $2 = low 15bits of address (delay slot)
   addu $1, $1, $2                 # add the memory map offset
-#ifndef NO_LOAD_DELAY_SLOT
+#ifndef MIPS_XBURST
   lh $2, ($1)                     # read the value (delay)
   jr $ra                          # return
   nop
@@ -2971,35 +3024,41 @@ ext_load_s16:
   nop
 
   restore_registers
-#  seh $2, $2                      # sign extend the return value
   lw $ra, ($sp)                   # restore return address
-  sll $2, $2, 24
-  sra $2, $2, 24                  # emulate SEB instruction
+#ifdef MIPS_32R2
+  seh $2, $2                      # sign extend the return value
+#else
+  sll $2, $2, 16
+  sra $2, $2, 16
+#endif
   jr $ra                          # return
   addiu $sp, $sp, 4               # fix stack (delay slot)
 
 #execute_load_u32:
 execute_load_full_u32:
   srl $1, $4, 28                  # check if the address is out of range
-#  ins $1, $4, 4, 2                # or unaligned (bottom two bits)
+#ifdef MIPS_32R2
+  ins $1, $4, 4, 2                # or unaligned (bottom two bits)
+#else
   ori $2, $0, 0x18
   nor $2, $0, $2
   and $1, $1, $2
   andi $2, $4, 3
   sll  $2, $2, 4
-  or  $1, $1, $2		  # emulate INS instruction
+  or  $1, $1, $2
+#endif
   bne $1, $0, ext_load_u32        # if it is, perform an extended read
   srl $2, $4, 15                  # $1 = page number of address (delay)
   sll $2, $2, 2                   # adjust to word index
   addu $2, $2, $16                # $1 = memory_map_read[address >> 15]
   lw $1, -32768($2)
-#ifndef NO_LOAD_DELAY_SLOT
+#ifndef MIPS_XBURST
   nop
 #endif
   beq $1, $0, ext_load_u32        # if it's NULL perform an extended read
   andi $2, $4, 0x7FFF             # $2 = low 15bits of address (delay slot)
   addu $1, $1, $2                 # add the memory map offset
-#ifndef NO_LOAD_DELAY_SLOT
+#ifndef MIPS_XBURST
   lw $2, ($1)                     # read the value (delay)
   jr $ra                          # return
   nop
@@ -3017,24 +3076,11 @@ ext_load_u32:
 
   restore_registers
   lw $ra, ($sp)                   # restore return address
-#ifndef NO_LOAD_DELAY_SLOT
+#ifndef MIPS_XBURST
   nop
 #endif
   jr $ra                          # return
   addiu $sp, $sp, 4               # fix stack (delay slot)
-
-#execute_aligned_load32:
-#  srl $2, $4, 28                  # check if the address is out of range
-#  bne $2, $0, ext_aligned_load32  # if it is, perform an extended load
-#  srl $1, $4, 15                  # $1 = page number of address (delay)
-#  sll $1, $1, 2                   # adjust to word index
-#  addu $1, $1, $16                # $1 = memory_map_read[address >> 15]
-#  lw $1, -32768($1)
-#  beq $1, $0, ext_aligned_load32  # if it's NULL perform an extended read
-#  andi $2, $4, 0x7FFF             # $2 = low 15bits of address (delay slot)
-#  addu $1, $1, $2                 # add the memory map offset
-#  jr $ra                          # return
-#  lw $2, ($1)                     # read the value (delay)
 
 ext_aligned_load32:
   addiu $sp, $sp, -8              # make room on the stack for $ra
@@ -3070,7 +3116,7 @@ alert_loop:
   jal update_gba                  # process the next event
   nop                             # cannot delay usefully here
   lw $1, CPU_HALT_STATE($16)      # check if CPU is sleeping
-#ifndef NO_LOAD_DELAY_SLOT
+#ifndef MIPS_XBURST
   nop
 #endif
   bne $1, $0, alert_loop          # see if it hasn't changed
@@ -3090,7 +3136,7 @@ irq_alert:
 no_alert:
   restore_registers
   lw $ra, ($sp)                   # restore return address
-#ifndef NO_LOAD_DELAY_SLOT
+#ifndef MIPS_XBURST
   nop
 #endif
   jr $ra                          # we can return
@@ -3110,7 +3156,7 @@ ext_store_eeprom:
 
   restore_registers
   lw $ra, ($sp)                   # restore return address
-#ifndef NO_LOAD_DELAY_SLOT
+#ifndef MIPS_XBURST
   nop
 #endif
   jr $ra                          # we can return
@@ -3134,14 +3180,17 @@ ext_store_palette8:
   andi $4, $4, 0x3FE              # wrap + align (delay)
 
 ext_store_vram8:
-#  ins $5, $5, 8, 8                # value = (value << 8) | value
-#  ext $4, $4, 0, 17               # address = adress & 0x1FFFF
-#  ins $4, $0, 0, 1                # align out bottom bit
+#ifdef MIPS_32R2
+  ins $5, $5, 8, 8                # value = (value << 8) | value
+  ext $4, $4, 0, 17               # address = adress & 0x1FFFF
+  ins $4, $0, 0, 1                # align out bottom bit
+#else
   andi $5, $5, 0x00FF
   sll  $1, $5, 8
   or   $5, $5, $1
   sll  $4, $4, 15
-  srl  $4, $4, 15		  # emulate INS and EXT instructions
+  srl  $4, $4, 15
+#endif
   li $1, 0x18000
   sltu $1, $4, $1                 # if $4 >= $1 then $1 = 0 else $1 = 1
   bne $1, $0, ext_store_vram8b    # if $1 != 0 then j ext_store_vram8b
@@ -3158,10 +3207,13 @@ ext_store_oam8:
   lui $1, %hi(oam_update)         # write non-zero to oam_update
   sw $1, %lo(oam_update)($1)      # cheap, but the address is non-zero
   andi $4, $4, 0x3FE              # wrap around address and align to 16bits
-#  ins $5, $5, 8, 8                # value = (value << 8) | value
+#ifdef MIPS_32R2
+  ins $5, $5, 8, 8                # value = (value << 8) | value
+#else
   andi $5, $5, 0x00FF
   sll  $1, $5, 8
-  or   $5, $5, $1		  # emulate INS instruction
+  or   $5, $5, $1
+#endif
   lui $1, %hi(oam_ram)            # $1 = (hi)oam_ram
   addu $1, $1, $4                 # $1 = (hi)oam_ram + address
   jr $ra                          # return
@@ -3178,7 +3230,7 @@ ext_store_backup:
 
   restore_registers
   lw $ra, ($sp)                   # restore return address
-#ifndef NO_LOAD_DELAY_SLOT
+#ifndef MIPS_XBURST
   nop
 #endif
   jr $ra                          # we can return
@@ -3213,31 +3265,11 @@ ext_store_u8:
   addu $2, $2, $1
   # $2 = ext_store_u8_jtable[address >> 24]
   lw $2, %lo(ext_store_u8_jtable)($2)
-#ifndef NO_LOAD_DELAY_SLOT
+#ifndef MIPS_XBURST
   nop
 #endif
   jr $2                           # jump to table location
   nop                             # cannot delay usefully here
-
-# $4: address to write to
-# $5: value to write
-# $6: current PC
-
-#execute_store_u8:
-#  srl $1, $4, 28                  # check if the address is out of range
-#  bne $1, $0, ext_store_u8        # if it is, perform an extended write
-#  srl $2, $4, 15                  # $1 = page number of address (delay slot)
-#  sll $2, $2, 2                   # adjust to word index
-#  addu $2, $2, $16
-#  lw $1, 256($2)                  # $1 = memory_map_write[address >> 15]
-#  beq $1, $0, ext_store_u8        # if it's NULL perform an extended write
-#  andi $2, $4, 0x7FFF             # $2 = low 15bits of address (delay slot)
-#  addu $1, $1, $2                 # add the memory map offset
-#  lb $2, -32768($1)               # load the SMC status
-#  bne $2, $0, smc_write           # is there code there?
-#  sb $5, ($1)                     # store the value (delay slot)
-#  jr $ra                          # return
-#  nop
 
 # 16bit ext memory routines
 
@@ -3263,9 +3295,12 @@ ext_store_palette16b:
   sh $5, %lo(palette_ram)($2)     # palette_ram[address] = value
 
 ext_store_vram16:
-#  ext $4, $4, 0, 17               # address = adress & 0x1FFFF
+#ifdef MIPS_32R2
+  ext $4, $4, 0, 17               # address = adress & 0x1FFFF
+#else
   sll $4, $4, 15
-  srl $4, $4, 15		  # emulate EXT instruction
+  srl $4, $4, 15
+#endif
   li $1, 0x18000
   sltu $1, $4, $1                 # see if address < 0x18000
   bne $1, $0, ext_store_vram16b
@@ -3297,7 +3332,7 @@ ext_store_rtc:
 
   restore_registers
   lw $ra, ($sp)                   # restore return address
-#ifndef NO_LOAD_DELAY_SLOT
+#ifndef MIPS_XBURST
   nop
 #endif
   jr $ra                          # we can return
@@ -3329,28 +3364,11 @@ ext_store_u16:
   addu $2, $2, $1
   # $2 = ext_store_u16_jtable[address >> 24]
   lw $2, %lo(ext_store_u16_jtable)($2)
-#ifdef NO_LOAD_DELAY_SLOT
+#ifdef MIPS_XBURST
   nop
 #endif
   jr $2                           # jump to table location
   nop                             # cannot delay usefully here
-
-
-#execute_store_u16:
-#  srl $1, $4, 28                  # check if the address is out of range
-#  bne $1, $0, ext_store_u16       # if it is, perform an extended write
-#  srl $2, $4, 15                  # $1 = page number of address (delay slot)
-#  sll $2, $2, 2                   # adjust to word index
-#  addu $2, $2, $16
-#  lw $1, 256($2)                  # $1 = memory_map_write[address >> 15]
-#  beq $1, $0, ext_store_u16       # if it's NULL perform an extended write
-#  andi $2, $4, 0x7FFE             # $2 = low 15bits of address (delay slot)
-#  addu $1, $1, $2                 # add the memory map offset
-#  lh $2, -32768($1)               # load the SMC status
-#  bne $2, $0, smc_write           # is there code there?
-#  sh $5, ($1)                     # store the value (delay slot)
-#  jr $ra                          # return
-#  nop
 
 
 
@@ -3376,9 +3394,12 @@ ext_store_palette32:
   addu $ra, $6, $0                # restore return address (delay)
 
 ext_store_vram32:
-#  ext $4, $4, 0, 17               # address = adress & 0x1FFFF
+#ifdef MIPS_32R2
+  ext $4, $4, 0, 17               # address = adress & 0x1FFFF
+#else
   sll $4, $4, 15
-  srl $4, $4, 15		  # emulate EXT instruction
+  srl $4, $4, 15
+#endif
   li $1, 0x18000
   sltu $1, $4, $1                 # see if address < 0x18000
   bne $1, $0, ext_store_vram32b
@@ -3427,27 +3448,11 @@ ext_store_u32:
   addu $2, $2, $1
   # $2 = ext_store_u32_jtable[address >> 24]
   lw $2, %lo(ext_store_u32_jtable)($2)
-#ifdef NO_LOAD_DELAY_SLOT
+#ifdef MIPS_XBURST
   nop
 #endif
   jr $2                           # jump to table location
   nop                             # cannot delay usefully here
-
-#execute_store_u32:
-#  srl $1, $4, 28                  # check if the address is out of range
-#  bne $1, $0, ext_store_u32       # if it is, perform an extended write
-#  srl $2, $4, 15                  # $1 = page number of address (delay slot)
-#  sll $2, $2, 2                   # adjust to word index
-#  addu $2, $2, $16
-#  lw $1, 256($2)                  # $1 = memory_map_write[address >> 15]
-#  beq $1, $0, ext_store_u32       # if it's NULL perform an extended write
-#  andi $2, $4, 0x7FFC             # $2 = low 15bits of address (delay slot)
-#  addu $1, $1, $2                 # add the memory map offset
-#  lw $2, -32768($1)               # load the SMC status
-#  bne $2, $0, smc_write           # is there code there?
-#  sw $5, ($1)                     # store the value (delay slot)
-#  jr $ra                          # return
-#  nop
 
 
 # 32bit ext aligned, non a2 destroying routines
@@ -3460,7 +3465,7 @@ ext_store_io32a:
   jal write_io_register32         # write the value out
   sw $6, REG_SAVE($16)            # save a2 (delay)
 
-#ifndef NO_LOAD_DELAY_SLOT
+#ifndef MIPS_XBURST
   lw $6, REG_SAVE($16)            # restore a2
   j write_io_epilogue             # handle any state changes
   nop
@@ -3475,7 +3480,7 @@ ext_store_palette32a:
   andi $4, 0x3FF                  # wrap address (delay)
   addiu $4, $4, 2                 # go to next location
   srl $5, $5, 16                  # shift to next 16bit value
-#ifndef NO_LOAD_DELAY_SLOT
+#ifndef MIPS_XBURST
   lw $ra, REG_SAVE($16)           # restore return address
   j ext_store_palette16b          # write out next palette entry
   nop
@@ -3510,24 +3515,11 @@ ext_aligned_store32:
   addu $2, $2, $1
   # $2 = ext_store_u32a_jtable[address >> 24]
   lw $2, %lo(ext_store_u32a_jtable)($2)
-#ifndef NO_LOAD_DELAY_SLOT
+#ifndef MIPS_XBURST
   nop
 #endif
   jr $2                           # jump to table location
   nop                             # cannot delay usefully here
-
-#execute_aligned_store32:
-#  srl $2, $4, 28                  # check if the address is out of range
-#  bne $2, $0, ext_aligned_store32 # if it is, perform an extended load
-#  srl $1, $4, 15                  # $1 = page number of address (delay)
-#  sll $1, $1, 2                   # adjust to word index
-#  addu $1, $1, $16                # $1 = memory_map_write[address >> 15]
-#  lw $1, 256($1)
-#  beq $1, $0, ext_aligned_store32 # if it's NULL perform an extended write
-#  andi $2, $4, 0x7FFF             # $2 = low 15bits of address (delay slot)
-#  addu $1, $1, $2                 # add the memory map offset
-#  jr $ra                          # return
-#  sw $5, ($1)                     # write the value
 
 # smc_write expects three registers to be set:
 # $2 = GBA address line (0x02000000, 0x03000000, 0x06000000, etc.)
@@ -3541,7 +3533,7 @@ smc_write:
 
 lookup_pc:
   lw $2, REG_CPSR($16)            # $2 = cpsr
-#ifndef NO_LOAD_DELAY_SLOT
+#ifndef MIPS_XBURST
   nop
 #endif
   andi $2, $2, 0x20               # isolate mode bit
@@ -3549,7 +3541,7 @@ lookup_pc:
   nop                             # cannot delay usefully here
 
 lookup_pc_thumb:
-#ifndef NO_LOAD_DELAY_SLOT
+#ifndef MIPS_XBURST
   lw $4, REG_PC($16)              # load PC as arg 0 (delay slot)
   jal block_lookup_address_thumb  # get Thumb address
   nop
@@ -3558,14 +3550,12 @@ lookup_pc_thumb:
   lw $4, REG_PC($16)              # load PC as arg 0 (branch delay slot)
 #endif
 
-#	jal printf_reg
-#	nop
   restore_registers
   jr $2                           # jump to result
   nop                             # cannot delay usefully here
 
 lookup_pc_arm:
-#ifndef NO_LOAD_DELAY_SLOT
+#ifndef MIPS_XBURST
   lw $4, REG_PC($16)              # load PC as arg 0 (delay slot)
   jal block_lookup_address_arm    # get ARM address
   nop
@@ -3574,8 +3564,6 @@ lookup_pc_arm:
   lw $4, REG_PC($16)              # load PC as arg 0 (branch delay slot)
 #endif
 
-#	jal printf_reg
-#	nop
   restore_registers
   jr $2                           # jump to result
   nop                             # cannot delay usefully here
@@ -3595,7 +3583,7 @@ execute_read_spsr:
   sll $1, $1, 2                   # adjust to word offset size
   addu $2, $2, $1
   lw $2, %lo(spsr)($2)            # $2 = spsr[cpu_mode] (delay slot)
-#ifndef NO_LOAD_DELAY_SLOT
+#ifndef MIPS_XBURST
   nop
 #endif
   jr $ra                          # return
@@ -3612,9 +3600,12 @@ execute_swi:
   collapse_flags                  # get cpsr in $2
   lui $5, %hi(SUPERVISOR_SPSR)
   sw $2, %lo(SUPERVISOR_SPSR)($5) # save cpsr in SUPERVISOR_SPSR
-#  ins $2, $0, 0, 6                # zero out bottom 6 bits of CPSR
+#ifdef MIPS_32R2
+  ins $2, $0, 0, 6                # zero out bottom 6 bits of CPSR
+#else
   srl $2, $2, 6
-  sll $2, $2, 6			  # emulate INS instruction
+  sll $2, $2, 6
+#endif
   ori $2, 0x13                    # set mode to supervisor
   sw $2, REG_CPSR($16)            # write back CPSR
   save_registers
@@ -3623,7 +3614,7 @@ execute_swi:
 
   restore_registers
   lw $ra, ($sp)                   # pop $ra
-#ifndef NO_LOAD_DELAY_SLOT
+#ifndef MIPS_XBURST
   nop
 #endif
   jr $ra                          # return
@@ -3634,7 +3625,7 @@ execute_swi:
 
 execute_spsr_restore:
   lw $1, CPU_MODE($16)            # $1 = cpu_mode
-#ifndef NO_LOAD_DELAY_SLOT
+#ifndef MIPS_XBURST
   nop
 #endif
   beq $1, $0, no_spsr_restore     # only restore if the cpu isn't usermode
@@ -3643,7 +3634,7 @@ execute_spsr_restore:
   sll $1, $1, 2                   # adjust to word offset size
   addu $2, $2, $1
   lw $1, %lo(spsr)($2)            # $1 = spsr[cpu_mode]
-#ifndef NO_LOAD_DELAY_SLOT
+#ifndef MIPS_XBURST
   nop
 #endif
   sw $1, REG_CPSR($16)            # cpsr = spsr[cpu_mode]
@@ -3687,7 +3678,7 @@ execute_store_cpsr:
   restore_registers
 
   lw $ra, ($sp)
-#ifndef NO_LOAD_DELAY_SLOT
+#ifndef MIPS_XBURST
   nop
 #endif
   jr $ra
@@ -3798,6 +3789,7 @@ execute_ror_flags_reg:
   andi $22, $1, 1                 # c flag = $1 & 1
 
 ror_zero_shift:
+# TODO [Neb] Optimise with 
   subu $1, $0, $5
   addiu $1, $1, 32
   sllv $1, $4, $1
@@ -3821,7 +3813,7 @@ execute_arm_translate:
   extract_flags                   # $1 = CPSR, extract flags from $28..$31
 
   and $1, $1, 0x20                # $1 = $1 & 0x20
-#ifndef NO_LOAD_DELAY_SLOT
+#ifndef MIPS_XBURST
   lw $4, REG_PC($16)              # $4 = PC (delay)
   bne $1, $0, 1f                  # $1 != 0 Thumb Mode
   nop
@@ -3857,7 +3849,7 @@ call_bios_hle:
 
   restore_registers
   lw $ra, ($sp)
-#ifndef NO_LOAD_DELAY_SLOT
+#ifndef MIPS_XBURST
   nop
 #endif
   jr $ra
