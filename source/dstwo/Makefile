@@ -34,7 +34,7 @@ NM           = $(CROSS)nm
 OBJDUMP      = $(CROSS)objdump
 
 # - - - Sources, objects and headers - - -
-C_SOURCES    = gpsp_main.c cpu_common.c cpu_asm.c video.c gu.c memory.c       \
+C_SOURCES    = gpsp_main.c ../cpu_common.c cpu_asm.c video.c gu.c memory.c    \
                sound.c input.c gui.c cheats.c bios.c draw.c bdf_font.c        \
                zip.c bitmap.c ds2_main.c charsets.c stats.c guru_meditation.c \
                arm_guru_meditation.c port.c
@@ -47,7 +47,7 @@ CPP_OBJECTS  = $(CPP_SOURCES:.cpp=.o)
 ASM_OBJECTS  = $(ASM_SOURCES:.S=.o)
 OBJECTS      = $(C_OBJECTS) $(CPP_OBJECTS) $(ASM_OBJECTS)
 HEADERS      = bdf_font.h bios.h bitmap.h charsets.h cheats.h                 \
-               common.h cpu_common.h cpu.h draw.h gpsp_main.h gu.h gui.h      \
+               common.h ../cpu_common.h cpu.h draw.h gpsp_main.h gu.h gui.h   \
                input.h memory.h message.h mips_emit.h sound.h                 \
                stats.h video.h zip.h ../port.h
 
