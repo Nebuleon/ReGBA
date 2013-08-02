@@ -671,7 +671,7 @@ u32 update_gba()
             if(!skip_next_frame_flag)
             {
                 Stats.RenderedFrames++;
-                StatsDisplayFPS();
+                ReGBA_DisplayFPS();
                 flip_gba_screen();
                 to_skip= 0;
             }

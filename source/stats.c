@@ -75,31 +75,3 @@ void StatsInitGame(void)
 	Stats.WrongAddressLineCount = 0;
 #endif
 }
-
-void StatsDisplayFPS(void)
-{
-	u32 Visible = gpsp_persistent_config.DisplayFPS;
-	if (Visible)
-	{
-		unsigned int Now = getSysTime(), Duration = Now - Stats.LastFPSCalculationTime;
-		if (Duration >= 23437 /* 1 second */)
-		{
-			Stats.RenderedFPS = Stats.RenderedFrames * 23437 / Duration;
-			Stats.RenderedFrames = 0;
-			Stats.EmulatedFPS = Stats.EmulatedFrames * 23437 / Duration;
-			Stats.EmulatedFrames = 0;
-			Stats.LastFPSCalculationTime = Now;
-		}
-		else
-			Visible = Stats.RenderedFPS != -1 && Stats.EmulatedFPS != -1;
-	}
-
-	// Blacken the bottom bar
-	memset((u16*) *gba_screen_addr_ptr + 177 * 256, 0, 15 * 256 * sizeof(u16));
-	if (Visible)
-	{
-		char line[512];
-		sprintf(line, msg[FMT_STATUS_FRAMES_PER_SECOND], Stats.RenderedFPS, Stats.EmulatedFPS);
-		PRINT_STRING_BG_UTF8(*gba_screen_addr_ptr, line, 0x7FFF, 0x0000, 1, 177);
-	}
-}

@@ -31,7 +31,9 @@
 // reg_mode[new_mode][6]. When swapping to/from FIQ retire/load reg[8]
 // through reg[14] to/from reg_mode[MODE_FIQ][0] through reg_mode[MODE_FIQ][6].
 
-#include "mips_emit.h"
+// Included file resolution will choose the proper emitter for the port being
+// compiled. Make sure your Makefile specifies the proper include path.
+#include "emit.h"
 
 #define EXPAND_AS_STRING(x) AS_STRING(x)
 #define AS_STRING(x) #x
@@ -2431,17 +2433,6 @@ static void thumb_flag_status(block_data_thumb_type* block_data, u16 opcode)
 u32 translation_recursion_level = 0;
 u32 translation_flush_count = 0;
 
-/*
-u32 index;\
-for(index= 0; index < 1024*64; index++)\
-{\
-    if((index%8) == 0)\
-        printf("\n");\
-    printf("%08x ", rom_branch_hash[index]);\
-}\
-printf("\n");\
-*/
-
 u32     recursion_level= 0;
 
 extern void ARMBadJump(unsigned int SourcePC, unsigned int TargetPC);
@@ -2469,7 +2460,6 @@ static inline void AdjustTranslationBufferPeak(TRANSLATION_REGION_TYPE translati
   u32 block_tag;                                                              \
   u8 *block_address;                                                          \
                                                                               \
-/*printf("recursion in %d: %08x\n", recursion_level++, pc);*/\
                                                                               \
   /* Starting at the beginning, we allow for one translation cache flush. */  \
   if(translation_recursion_level == 0)                                        \
@@ -2553,9 +2543,6 @@ static inline void AdjustTranslationBufferPeak(TRANSLATION_REGION_TYPE translati
                                                                               \
           goto redo;                                                          \
         }                                                                     \
-                                                                              \
-        /* if(translation_recursion_level == 0)                                  \
-          translate_invalidate_dcache(); */                                      \
       }                                                                       \
       AdjustTranslationBufferPeak(TRANSLATION_REGION_READONLY);               \
       break;                                                                  \
@@ -2571,7 +2558,7 @@ static inline void AdjustTranslationBufferPeak(TRANSLATION_REGION_TYPE translati
          should never be hit) */                                              \
       if(translation_recursion_level == 0)                                    \
       {                                                                       \
-        ARMBadJump((unsigned int) reg[REG_PC], (unsigned int) pc);            \
+        ReGBA_BadJump((unsigned int) reg[REG_PC], (unsigned int) pc);         \
         /* Here, we can't return 0 or -1, because when the new gamepak is     \
            loaded, mips_stub.S's code which called into block_lookup_address  \
            _*type* will expect the return value to be a native address to     \
@@ -3080,7 +3067,7 @@ static s32 BinarySearch(u32* Array, u32 Value, u32 Size)
       }                                                                       \
       if(block_exit_position == MAX_EXITS)                                    \
       {                                                                       \
-        RecompilerMaxExitsReached(block_start_pc, block_end_pc, MAX_EXITS);   \
+        ReGBA_MaxBlockExitsReached(block_start_pc, block_end_pc, MAX_EXITS);  \
         translation_gate_required = 1;                                        \
         continue_block = 0;                                                   \
       }                                                                       \
@@ -3096,7 +3083,7 @@ static s32 BinarySearch(u32* Array, u32 Value, u32 Size)
      (block_end_pc == 0x3007FF0) || (block_end_pc == 0x203FFF0))              \
     {                                                                         \
       if(block_data_position == MAX_BLOCK_SIZE)                               \
-        RecompilerMaxBlockSizeReached(block_start_pc, block_end_pc,           \
+        ReGBA_MaxBlockSizeReached(block_start_pc, block_end_pc,               \
           MAX_BLOCK_SIZE);                                                    \
       translation_gate_required = 1;                                          \
       continue_block = 0;                                                     \

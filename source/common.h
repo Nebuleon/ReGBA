@@ -27,30 +27,10 @@
 #define COMMON_H
 
 #define OLD_COUNT
-#ifdef NDS_LAYER
-#define NO_VOLATILE_SOUND
-#endif
-
-/* Tunable parameters for the code emitter go here. Adjust them for your
- * platform, then add an #ifdef here for it. */
-#ifdef NDS_LAYER /* Supercard DSTwo */
-#  include "tune/mips/dstwo.h"
-#else
-#  define CACHE_LINE_SIZE 4 /* This will most likely be wrong */
-#  define READONLY_CODE_CACHE_SIZE          (1024 * 1024 * 2)
-#  define WRITABLE_CODE_CACHE_SIZE          (1024 * 1024 * 4)
-   /* The following parameter needs to be at least enough bytes to hold
-    * the generated code for the largest instruction on your platform.
-    * In most cases, that will be the ARM instruction
-    * STMDB R0!, {R0,R1,R2,R3,R4,R5,R6,R7,R8,R9,R10,R11,R12,R13,R14,R15} */
-#  define TRANSLATION_CACHE_LIMIT_THRESHOLD (1024)
-#endif
 
 /******************************************************************************
  * 
  ******************************************************************************/
-#include "ds2_types.h"
-#include "ds2_malloc.h"
 #include <stdio.h>
 #include <sys/stat.h>
 #include <ctype.h>
@@ -58,88 +38,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#ifndef NDS_LAYER
-#include <unistd.h>
-#else
-#include "fs_api.h"
-#include "ds2_unistd.h"
-#endif
-//#include <fastmath.h>
-
-//#include <zlib.h>
-
-#if 0
-#include <pspctrl.h>
-#include <pspgu.h>
-#include <pspgum.h>
-#include <pspdisplay.h>
-#include <pspaudio.h>
-#include <pspaudiolib.h>
-#include <psprtc.h>
-#include <psppower.h>
-#include <pspsdk.h>
-#include <pspkernel.h>
-#include <systemctrl_se.h>
-#include <psputility.h>
-#include <kubridge.h>
-#include <pspimpose_driver.h>
-
-#ifdef USE_ADHOC
-#include <pspnet.h>
-#include <pspnet_adhoc.h>
-#include <pspnet_adhocctl.h>
-#include <pspnet_adhocmatching.h>
-#include <pspwlan.h>
-#include <psputility_netmodules.h>
-#endif
-#endif
-
-/******************************************************************************
- * 宏定义
- ******************************************************************************/
-
-#define GET_DISK_FREE_SPACE FS_CMD_GET_DISKFREE
-#define FILE_ID FILE*
-
-//typedef SceUID FILE_TAG_TYPE;
-typedef FILE_ID FILE_TAG_TYPE;
-typedef u32 FIXED16_16;    // 整数部16bit 小数部16bit 的定点数
-typedef u32 FIXED8_24;     // 整数部 8bit 小数部24bit 的定点数
-
-#define MAX_PATH 512
-#define MAX_FILE 512
 
 #define SYS_CLOCK (16777216.0)
 
 #define ROR(dest, value, shift)                                             \
   dest = ((value) >> (shift)) | ((value) << (32 - (shift)))                 \
-
-//#define PSP_FILE_OPEN_APPEND (PSP_O_CREAT | PSP_O_APPEND | PSP_O_TRUNC)
-#define PSP_FILE_OPEN_APPEND ("a+")
-
-//#define PSP_FILE_OPEN_READ PSP_O_RDONLY
-#define PSP_FILE_OPEN_READ ("rb")
-
-//#define PSP_FILE_OPEN_WRITE (PSP_O_CREAT | PSP_O_WRONLY | PSP_O_TRUNC)
-#define PSP_FILE_OPEN_WRITE ("wb")
-
-#define FILE_OPEN(filename_tag, filename, mode)                             \
-  filename_tag = fopen(filename, PSP_FILE_OPEN_##mode)						\
-
-#define FILE_CHECK_VALID(filename_tag)                                      \
-  (filename_tag != NULL)                                                    \
-
-#define FILE_CLOSE(filename_tag)                                            \
-  fclose(filename_tag)                                                      \
-
-#define FILE_DELETE(filename)                                               \
-  unlink(filename)                                                          \
-
-#define FILE_READ(filename_tag, buffer, size)                               \
-  fread(buffer, 1, size, filename_tag)                                      \
-
-#define FILE_WRITE(filename_tag, buffer, size)                              \
-  fwrite(buffer, 1, size, filename_tag)                                     \
 
 #define FILE_READ_MEM(ptr, buffer, size)                                    \
 {                                                                           \
@@ -152,12 +55,6 @@ typedef u32 FIXED8_24;     // 整数部 8bit 小数部24bit 的定点数
   memcpy(ptr, buffer, size);                                                \
   ptr += size;                                                              \
 }                                                                           \
-
-#define FILE_SEEK(filename_tag, offset, type)                               \
-  fseek(filename_tag, offset, type)                                         \
-
-#define FILE_TELL(filename_tag)                                             \
-  ftell(filename_tag)                                                       \
 
 // These must be variables, not constants.
 
@@ -215,41 +112,16 @@ typedef u32 FIXED8_24;     // 整数部 8bit 小数部24bit 的定点数
 #define ADDRESS32(base, offset)                                             \
   *((u32 *)((u8 *)(base) + (offset)))                                       \
 
-//#define printf pspDebugScreenPrintf
-
 #define USE_BIOS 0
 #define EMU_BIOS 1
 
 #define NO  0
 #define YES 1
 
-#ifdef USE_DEBUG
-// デバッグ用の設定
-#define DBG_FILE_NAME "dbg_msg.txt"
-#define DBGOUT(...) if(gpsp_config.debug_flag != NO) fprintf(g_dbg_file, __VA_ARGS__)
-#define DBGOUT_1(...) if(gpsp_config.debug_flag >= 1) fprintf(g_dbg_file, __VA_ARGS__)
-#define DBGOUT_2(...) if(gpsp_config.debug_flag >= 2) fprintf(g_dbg_file, __VA_ARGS__)
-#define DBGOUT_3(...) if(gpsp_config.debug_flag >= 3) fprintf(g_dbg_file, __VA_ARGS__)
-#define DBGOUT_4(...) if(gpsp_config.debug_flag >= 4) fprintf(g_dbg_file, __VA_ARGS__)
-#define DBGOUT_5(...) if(gpsp_config.debug_flag >= 5) fprintf(g_dbg_file, __VA_ARGS__)
-FILE *g_dbg_file;
+#include "port.h"
 
-u64 dbg_time_1;
-u64 dbg_time_2;
-//#define GET_TIME_1() sceRtcGetCurrentTick(&dbg_time_1);
-#define GET_TIME_1()
-//#define GET_TIME_2() sceRtcGetCurrentTick(&dbg_time_2);
-#define GET_TIME_2()
-#define WRITE_TIME(msg) DBGOUT("%s: %d μs\n",msg,(int)(dbg_time_2 - dbg_time_1));
-#else
-#define DBGOUT(...)
-#endif
+typedef u32 FIXED16_16;   // Q16.16 fixed-point
 
-#define dbg_printf printf
-
-/******************************************************************************
- * ローカルなヘッダファイルの読込み
- ******************************************************************************/
 #include "cpu.h"
 #include "memory.h"
 #include "video.h"
@@ -260,23 +132,82 @@ u64 dbg_time_2;
 #include "zip.h"
 #include "message.h"
 #include "bios.h"
-#include "draw.h"
-// #include "bitmap.h"
-#include "bdf_font.h"
-
-#if 0
-#include "homehook.h"
-#include "dvemgr.h"
-#endif
-
-#include "gui.h"
-#include "gu.h"
 #include "stats.h"
 
-#if 0
-#ifdef USE_ADHOC
-#include "adhoc.h"
-#endif
-#endif
+// - - - CROSS-PLATFORM FUNCTION DEFINITIONS - - -
+
+/*
+ * Traces a printf-formatted message to the output mechanism most appropriate
+ * for the port being compiled.
+ */
+void ReGBA_Trace(const char* Format, ...);
+
+/*
+ * Makes newly-generated code visible to the processor(s) for execution.
+ * Input:
+ *   Code: Address of the first byte of code to be made visible.
+ *   CodeLength: Number of bytes of code to be made visible.
+ * Input assertions:
+ *   Code is not NULL and is mapped into the address space.
+ *   (char*) Code + CodeLength - 1 is mapped into the address space.
+ *
+ * Some ports run on architectures that hold a cache of instructions that is
+ * not kept up to date after writes to the data cache or memory. In those
+ * ports, the instruction cache, or at least the portion of the instruction
+ * cache containing newly-generated code, must be flushed.
+ *
+ * Some other ports may need a few instructions merely to flush a pipeline,
+ * in which case an asm statement containing no-operation instructions is
+ * appropriate.
+ *
+ * The rest runs on architectures that resynchronise the code seen by the
+ * processor automatically; in that case, the function is still required, but
+ * shall be empty.
+ */
+void ReGBA_MakeCodeVisible(void* Code, unsigned int CodeLength);
+
+/*
+ * Advises the user that the GBA game attempted to make an unsupported jump.
+ * This function must either exit or never return, because otherwise
+ * a jump to NULL would be made.
+ * Input:
+ *   SourcePC: The address, in the GBA address space, containing the bad jump.
+ *   TargetPC: The address, in the GBA address space, that would be jumped to.
+ * Output:
+ *   Completes abnormally.
+ */
+void ReGBA_BadJump(u32 SourcePC, u32 TargetPC);
+
+/*
+ * Advises the user that the GBA code translator encountered a block with more
+ * possible exits than it was prepared to handle.
+ * Input:
+ *   BlockStartPC: The address, in the GBA address space, of the instruction
+ *   starting the code block.
+ *   BlockEndPC: The address, in the GBA address space, of the instruction
+ *   ending the code block.
+ *   Exits: The number of exits encountered.
+ */
+void ReGBA_MaxBlockExitsReached(u32 BlockStartPC, u32 BlockEndPC, u32 Exits);
+
+/*
+ * Advises the user that the GBA code translator encountered a block with more
+ * instructions than it was prepared to handle.
+ * Input:
+ *   BlockStartPC: The address, in the GBA address space, of the instruction
+ *   starting the code block.
+ *   BlockEndPC: The address, in the GBA address space, of the instruction
+ *   ending the code block.
+ *   BlockSize: The number of instructions encountered.
+ */
+void ReGBA_MaxBlockSizeReached(u32 BlockStartPC, u32 BlockEndPC, u32 BlockSize);
+
+/*
+ * Displays current frames per second, as calculated using the Stats struct,
+ * to the output mechanism most appropriate for the port being compiled.
+ * Input:
+ *   (implied) Stats: The struct containing framerate data.
+ */
+void ReGBA_DisplayFPS(void);
 
 #endif /* COMMON_H */
