@@ -194,7 +194,7 @@
   extract_flags_body
 .endm
 
-save_registers_body:
+.macro save_registers
   sw $3, REG_R0($16)
   sw $7, REG_R1($16)
   sw $8, REG_R2($16)
@@ -209,10 +209,10 @@ save_registers_body:
   sw $25, REG_R12($16)
   sw $18, REG_R10($16)
   sw $28, REG_R13($16)
-  jr $ra
   sw $30, REG_R14($16)
+.endm
 
-restore_registers_body:
+.macro restore_registers
   lw $3, REG_R0($16)
   lw $7, REG_R1($16)
   lw $8, REG_R2($16)
@@ -227,33 +227,10 @@ restore_registers_body:
   lw $25, REG_R12($16)
   lw $18, REG_R10($16)
   lw $28, REG_R13($16)
+  lw $30, REG_R14($16)
 #ifndef MIPS_XBURST
-  lw $30, REG_R14($16)
-  jr $ra
-  nop                             # delay for both things
-#else
-  jr $ra
-  lw $30, REG_R14($16)
+  nop                             # load delay slot for $30
 #endif
-
-.macro save_registers
-  addiu $sp, $sp, -4              # adjust the stack to allow for a call
-  sw    $ra, 0($sp)               # save the return address (branch delay)
-  jal   save_registers_body       # go save registers
-  nop
-
-  lw    $ra, 0($sp)
-  addiu $sp, $sp, 4               # adjust the stack back
-.endm
-
-.macro restore_registers
-  addiu $sp, $sp, -4              # adjust the stack to allow for a call
-  sw    $ra, 0($sp)               # save the return address (branch delay)
-  jal   restore_registers_body    # go save registers
-  nop
-
-  lw    $ra, 0($sp)
-  addiu $sp, $sp, 4               # adjust the stack back
 .endm
 
 # Process a hardware event. Since an interrupt might be
@@ -1008,12 +985,9 @@ mips_indirect_branch_dual:
   addu $4, $5, $4                 # a0 = PC
 
 2:                                # join point
+  lw $ra, REG_SAVE($16)           # restore return address
   restore_registers               # restore the other registers
 
-  lw $ra, REG_SAVE($16)           # restore return address
-#ifndef MIPS_XBURST
-  nop
-#endif
   jr $ra                          # return
   nop                             # delay for both things
 .endm
@@ -1051,9 +1025,9 @@ mips_indirect_branch_dual:
   addu $4, $5, $4                 # a0 = PC
 
 2:
+  lw $ra, REG_SAVE($16)           # restore return address
   restore_registers               # restore the other registers
 
-  lw $ra, REG_SAVE($16)           # restore return address
 #ifndef MIPS_XBURST
   lw $6, REG_SAVE2($16)           # restore a2 (delay)
   jr $ra                          # return
@@ -1083,12 +1057,9 @@ mips_indirect_branch_dual:
   jal \function                   # store value out
   andi $4, $4, \mask              # mask address (delay)
 
+  lw $ra, REG_SAVE($16)           # restore return address
   restore_registers               # restore the other registers
 
-  lw $ra, REG_SAVE($16)           # restore return address
-#ifndef MIPS_XBURST
-  nop
-#endif
   jr $ra                          # return
   nop
 .endm
@@ -1103,12 +1074,9 @@ mips_indirect_branch_dual:
   jal \function                   # store value out
   andi $4, $4, \mask              # mask address (delay)
 
+  lw $ra, REG_SAVE($16)           # restore return address
   restore_registers               # restore the other registers
 
-  lw $ra, REG_SAVE($16)           # restore return address
-#ifndef MIPS_XBURST
-  nop
-#endif
   jr $ra                          # return
   nop                             # delay for both things
 .endm
@@ -2777,15 +2745,14 @@ execute_store_io_u32a:
   sw $6, REG_SAVE($16)            # save a2
   sw $ra, REG_SAVE2($16)          # save ra
 
-  andi $4, $4, 0x3FC              # wrap around/align address
 
   save_registers
   jal write_io_register32         # write the value out
-  nop
-
-  restore_registers
+  andi $4, $4, 0x3FC              # wrap around/align address (branch delay)
 
   lw $ra, REG_SAVE2($16)          # restore ra
+  restore_registers
+
 #ifndef MIPS_XBURST
   lw $6, REG_SAVE($16)            # restore a2 (delay)
   jr $ra
@@ -2891,11 +2858,9 @@ ext_load_u8:
   jal read_memory8                # read the value
   nop
 
-  restore_registers
   lw $ra, ($sp)                   # restore return address
-#ifndef MIPS_XBURST
-  nop
-#endif
+  restore_registers
+
   jr $ra                          # return
   addiu $sp, $sp, 4               # fix stack (delay slot)
 
@@ -2924,8 +2889,9 @@ ext_load_s8:
   jal read_memory8                # read the value
   nop
 
-  restore_registers
   lw $ra, ($sp)                   # restore return address
+  restore_registers
+
 #ifdef MIPS_32R2
   seb $2, $2                      # sign extend the read value
 #else
@@ -2975,11 +2941,9 @@ ext_load_u16:
   jal read_memory16               # read the value
   nop
 
-  restore_registers
   lw $ra, ($sp)                   # restore return address
-#ifndef MIPS_XBURST
-  nop
-#endif
+  restore_registers
+
   jr $ra                          # return
   addiu $sp, $sp, 4               # fix stack (delay slot)
 
@@ -3023,8 +2987,9 @@ ext_load_s16:
   jal read_memory16_signed        # read the value
   nop
 
-  restore_registers
   lw $ra, ($sp)                   # restore return address
+  restore_registers
+
 #ifdef MIPS_32R2
   seh $2, $2                      # sign extend the return value
 #else
@@ -3074,25 +3039,23 @@ ext_load_u32:
   jal read_memory32               # read the value
   nop
 
-  restore_registers
   lw $ra, ($sp)                   # restore return address
-#ifndef MIPS_XBURST
-  nop
-#endif
+  restore_registers
+
   jr $ra                          # return
   addiu $sp, $sp, 4               # fix stack (delay slot)
 
 ext_aligned_load32:
   addiu $sp, $sp, -8              # make room on the stack for $ra
-  sw $6, 4($sp)
   sw $ra, ($sp)                   # store return address
   save_registers
   jal read_memory32               # read the value
-  nop
+  sw $6, 4($sp)                   # save the GBA PC register (branch delay)
 
-  restore_registers
   lw $ra, ($sp)                   # restore return address
-  lw $6, 4($sp)                   # restore $6, delaying usefully for $ra
+  restore_registers
+  lw $6, 4($sp)                   # restore the GBA PC register
+
   jr $ra                          # return
   addiu $sp, $sp, 8               # fix stack (delay slot)
 
@@ -3134,11 +3097,9 @@ irq_alert:
   addiu $sp, $sp, 4               # fix the stack (delay)
 
 no_alert:
-  restore_registers
   lw $ra, ($sp)                   # restore return address
-#ifndef MIPS_XBURST
-  nop
-#endif
+  restore_registers
+
   jr $ra                          # we can return
   addiu $sp, $sp, 4               # fix the stack (delay)
 
@@ -3154,11 +3115,9 @@ ext_store_eeprom:
   jal write_eeprom                # write the value out
   sw $6, REG_PC($16)              # save the PC (delay slot)
 
-  restore_registers
   lw $ra, ($sp)                   # restore return address
-#ifndef MIPS_XBURST
-  nop
-#endif
+  restore_registers
+
   jr $ra                          # we can return
   addiu $sp, $sp, 4               # fix the stack (delay)
 
@@ -3228,11 +3187,9 @@ ext_store_backup:
   jal write_backup                # write the value out
   sw $6, REG_PC($16)              # save the PC (delay slot)
 
-  restore_registers
   lw $ra, ($sp)                   # restore return address
-#ifndef MIPS_XBURST
-  nop
-#endif
+  restore_registers
+
   jr $ra                          # we can return
   addiu $sp, $sp, 4               # fix the stack (delay)
 
@@ -3330,11 +3287,9 @@ ext_store_rtc:
   jal write_rtc                   # write the value out
   sw $6, REG_PC($16)              # save the PC (delay slot)
 
-  restore_registers
   lw $ra, ($sp)                   # restore return address
-#ifndef MIPS_XBURST
-  nop
-#endif
+  restore_registers
+
   jr $ra                          # we can return
   addiu $sp, $sp, 4               # fix the stack (delay)
 
@@ -3583,9 +3538,7 @@ execute_read_spsr:
   sll $1, $1, 2                   # adjust to word offset size
   addu $2, $2, $1
   lw $2, %lo(spsr)($2)            # $2 = spsr[cpu_mode] (delay slot)
-#ifndef MIPS_XBURST
-  nop
-#endif
+
   jr $ra                          # return
   nop
 
@@ -3612,11 +3565,9 @@ execute_swi:
   jal set_cpu_mode                # set the CPU mode to supervisor
   ori $4, $0, 3                   # 3 is supervisor mode (delay slot)
 
-  restore_registers
   lw $ra, ($sp)                   # pop $ra
-#ifndef MIPS_XBURST
-  nop
-#endif
+  restore_registers
+
   jr $ra                          # return
   addiu $sp, $sp, 4               # fix stack (delay slot)
 
@@ -3645,9 +3596,10 @@ execute_spsr_restore:
   jal execute_spsr_restore_body   # do the dirty work in this C function
   nop
 
-  restore_registers
   lw $ra, ($sp)
-  addu $4, $2, $0                 # move return value to $4 (delay usefully)
+  restore_registers
+  addu $4, $2, $0                 # move return value to $4
+
   jr $ra
   addiu $sp, $sp, 4
 
@@ -3675,12 +3627,9 @@ execute_store_cpsr:
   bne $2, $0, changed_pc_cpsr     # this could have changed the pc
   nop
 
+  lw $ra, ($sp)
   restore_registers
 
-  lw $ra, ($sp)
-#ifndef MIPS_XBURST
-  nop
-#endif
   jr $ra
   addiu $sp, $sp, 4
 
@@ -3789,7 +3738,7 @@ execute_ror_flags_reg:
   andi $22, $1, 1                 # c flag = $1 & 1
 
 ror_zero_shift:
-# TODO [Neb] Optimise with 
+# TODO [Neb] Optimise with ROTRV instruction
   subu $1, $0, $5
   addiu $1, $1, 32
   sllv $1, $4, $1
@@ -3822,10 +3771,9 @@ execute_arm_translate:
   lw $4, REG_PC($16)              # $4 = PC (branch delay slot)
 #endif
 
-#  syscall -2  
   jal block_lookup_address_arm    # lookup initial jump address
   nop                             # cannot delay usefully here
-#  syscall -1
+
   restore_registers               # load initial register values
   jr $2                           # jump to return
   nop
@@ -3847,11 +3795,9 @@ call_bios_hle:
   jalr $1
   nop
 
-  restore_registers
   lw $ra, ($sp)
-#ifndef MIPS_XBURST
-  nop
-#endif
+  restore_registers
+
   jr $ra
   addiu $sp, $sp, 4               # branch delay
 
