@@ -63,7 +63,7 @@ void render_scanline_obj_copy_tile_2D(u32 priority, u32 start, u32 end, render_s
 void render_scanline_obj_copy_bitmap_1D(u32 priority, u32 start, u32 end, render_scanline_dest_copy_bitmap *scanline);
 void render_scanline_obj_copy_bitmap_2D(u32 priority, u32 start, u32 end, render_scanline_dest_copy_bitmap *scanline);
 void order_obj(u32 video_mode);
-void order_layers(u32 layer_flags);
+void order_layers(u8 layer_flags);
 void fill_line_normal(u16 color, render_scanline_dest_normal *dest_ptr, u32 start, u32 end);
 void fill_line_alpha(u16 color, render_scanline_dest_alpha *dest_ptr, u32 start, u32 end);
 void fill_line_color16(u16 color, render_scanline_dest_color16 *dest_ptr, u32 start, u32 end);
@@ -924,8 +924,7 @@ void render_scanline_conditional_bitmap(u32 start, u32 end, u16 *scanline,
 
 // Map widths and heights
 
-u32 map_widths[] = { 256, 512, 256, 512 };
-u32 map_heights[] = { 256, 256, 512, 512 };
+const u16 map_widths[] = { 256, 512, 256, 512 };
 
 // Build text scanline rendering functions.
 
@@ -936,8 +935,7 @@ void render_scanline_text_##combine_op##_##alpha_op(u32 layer,                \
   render_scanline_extra_variables_##combine_op##_##alpha_op(text);            \
   u32 bg_control = io_registers[REG_BG0CNT + layer];                          \
   u32 map_size = (bg_control >> 14) & 0x03;                                   \
-  u32 map_width = map_widths[map_size];                                       \
-  /*u32 map_height = map_heights[map_size];*/                                     \
+  u16 map_width = map_widths[map_size];                                       \
   u32 horizontal_offset =                                                     \
    (io_registers[REG_BG0HOFS + (layer * 2)] + start) % 512;                   \
   u32 vertical_offset = (io_registers[REG_VCOUNT] +                           \
@@ -1798,12 +1796,12 @@ bitmap_layer_render_struct bitmap_mode_renderers[3] =
   }                                                                           \
 }                                                                             \
 
-u32 obj_width_table[12]= {  8, 16, 32, 64, 16, 32, 32, 64, 8, 8, 16, 32};
-u32 obj_height_table[12] = {  8, 16, 32, 64, 8, 8, 16, 32, 16, 32, 32, 64};
+const u8 obj_width_table[12] = {  8, 16, 32, 64, 16, 32, 32, 64, 8, 8, 16, 32 };
+const u8 obj_height_table[12] = {  8, 16, 32, 64, 8, 8, 16, 32, 16, 32, 32, 64 };
 
 u8 obj_priority_list[5][160][128];
-u32 obj_priority_count[5][160];
-u32 obj_alpha_count[160];
+u8 obj_priority_count[5][160];
+u8 obj_alpha_count[160];
 
 
 // Build obj rendering functions
@@ -2011,30 +2009,28 @@ render_scanline_obj_builder(copy, copy_bitmap, 2D, no_partial_alpha);
 // オブジェクトを優先順位にあわせて並べ替える。
 void order_obj(u32 video_mode)
 {
-  s32 obj_num, row;
-  s32 obj_x, obj_y;
-  s32 obj_size, obj_mode;
-  s32 obj_width, obj_height;
-  u32 obj_priority;
-  u32 obj_attribute_0, obj_attribute_1, obj_attribute_2;
-//  u32 current_count;
+  s8  obj_num;
+  u8  row;
+  s16 obj_x, obj_y;
+  u16 obj_size;
+  u8  obj_mode;
+  u8  obj_width, obj_height;
+  u8  obj_priority;
+  u16 obj_attribute_0, obj_attribute_1, obj_attribute_2;
   u16 *oam_ptr = oam_ram + 508;
 
   memset( obj_priority_count, 0, sizeof(obj_priority_count) );
-//  memset( obj_priority_list, 0, sizeof(obj_priority_list) );
   memset( obj_alpha_count, 0, sizeof(obj_alpha_count) );
 
   for(obj_num = 127; obj_num >= 0; obj_num--, oam_ptr -= 4)
   {
     obj_attribute_0 = oam_ptr[0];
-    obj_attribute_2 = oam_ptr[2];
     obj_size = obj_attribute_0 & 0xC000;
     obj_mode = (obj_attribute_0 >> 10) & 0x03;
+    obj_attribute_2 = oam_ptr[2];
 
-//    if(((obj_attribute_0 & 0x0300) != 0x0200) && (obj_size != 0xC000) && (obj_mode != 3) &&
-//        !((video_mode >= 3) && ((obj_attribute_2 & 0x3FF) < 512)))
-    if(((obj_attribute_0 & 0x0300) != 0x0200) && (obj_size != 0xC000) &&
-       (obj_mode != 3) && ((video_mode < 3) || ((obj_attribute_2 & 0x3FF) >= 512)))
+    if (((obj_attribute_0 & 0x0300) != 0x0200) && (obj_size != 0xC000) &&
+        (obj_mode != 3) && ((video_mode < 3) || (obj_attribute_2 & 0x200)))
     {
       obj_y = obj_attribute_0 & 0xFF;
       if(obj_y > 160)
@@ -2071,25 +2067,24 @@ void order_obj(u32 video_mode)
 
           u32 temp = obj_y + obj_height;
 
-          if(obj_mode == 1)
+          switch (obj_mode)
           {
-            for(row = obj_y; row < temp; row++)
-            {
-              obj_priority_list[obj_priority][row][obj_priority_count[obj_priority][row]++] = obj_num;
-              obj_alpha_count[row]++;
-            }
-          }
-          else
-          {
-            if(obj_mode == 2)
-            {
-              obj_priority = 4;
-            }
+            case 1:
+              for(row = obj_y; row < temp; row++)
+              {
+                obj_priority_list[obj_priority][row][obj_priority_count[obj_priority][row]++] = obj_num;
+                obj_alpha_count[row]++;
+              }
+              break;
 
-            for(row = obj_y; row < temp; row++)
-            {
-              obj_priority_list[obj_priority][row][obj_priority_count[obj_priority][row]++] = obj_num;
-            }
+            case 2:
+              obj_priority = 4;
+              break;
+          }
+
+          for(row = obj_y; row < temp; row++)
+          {
+            obj_priority_list[obj_priority][row][obj_priority_count[obj_priority][row]++] = obj_num;
           }
         }
       }
@@ -2097,13 +2092,13 @@ void order_obj(u32 video_mode)
   }
 }
 
-u32 layer_order[16];
-u32 layer_count;
+u8 layer_order[16];
+u8 layer_count;
 
 // レイヤーのソート
-void order_layers(u32 layer_flags)
+void order_layers(u8 layer_flags)
 {
-  s32 priority, layer_number;
+  s8 priority, layer_number;
   layer_count = 0;
 
   for(priority = 3; priority >= 0; priority--)
@@ -2607,8 +2602,8 @@ void expand_brighten_partial_alpha(u32 *screen_src_ptr, u16 *screen_dest_ptr,
 
 void render_scanline_tile(u16 *scanline, u32 dispcnt)
 {
-  u32 current_layer;
-  u32 layer_order_pos;
+  u8 current_layer;
+  u8 layer_order_pos;
   u32 bldcnt = io_registers[REG_BLDCNT];
   render_scanline_layer_functions_tile();
 
@@ -2621,8 +2616,8 @@ void render_scanline_bitmap(u16 *scanline, u32 dispcnt)
 {
   // layer_renderersをVIDEO MODEより設定
   render_scanline_layer_functions_bitmap();
-  u32 current_layer;
-  u32 layer_order_pos;
+  u8 current_layer;
+  u8 layer_order_pos;
 
   fill_line_bg(normal, scanline, 0, 240);
 
@@ -2742,8 +2737,8 @@ void render_scanline_conditional_tile(u32 start, u32 end, u16 *scanline,
  u32 enable_flags, u32 dispcnt, u32 bldcnt, tile_layer_render_struct
  *layer_renderers)
 {
-  u32 current_layer;
-  u32 layer_order_pos = 0;
+  u8 current_layer;
+  u8 layer_order_pos = 0;
 
   render_layers_color_effect(render_layers_conditional,
    (layer_count && (enable_flags & 0x1F)),
@@ -2759,8 +2754,8 @@ void render_scanline_conditional_bitmap(u32 start, u32 end, u16 *scanline,
  u32 enable_flags, u32 dispcnt, u32 bldcnt, bitmap_layer_render_struct
  *layer_renderers)
 {
-  u32 current_layer;
-  u32 layer_order_pos;
+  u8 current_layer;
+  u8 layer_order_pos;
 
   fill_line_bg(normal, scanline, start, end);
 
@@ -3047,7 +3042,6 @@ void render_scanline_window_##type(u16 *scanline, u32 dispcnt)                \
     /* Just OBJ windows */                                                    \
     case 0x04:                                                                \
     {                                                                         \
-      /*u32 window_obj_enable = winout >> 8;*/                                    \
       render_window_clip_obj(type, 0, 240);                                   \
       break;                                                                  \
     }                                                                         \
@@ -3055,7 +3049,6 @@ void render_scanline_window_##type(u16 *scanline, u32 dispcnt)                \
     /* Window 0 and OBJ window */                                             \
     case 0x05:                                                                \
     {                                                                         \
-      /*u32 window_obj_enable = winout >> 8;*/                                    \
       u32 winin = io_registers[REG_WININ];                                    \
       window_coords(0);                                                       \
       render_window_multi(type, 0, obj);                                      \
@@ -3065,7 +3058,6 @@ void render_scanline_window_##type(u16 *scanline, u32 dispcnt)                \
     /* Window 1 and OBJ window */                                             \
     case 0x06:                                                                \
     {                                                                         \
-      /*u32 window_obj_enable = winout >> 8;*/                                    \
       u32 winin = io_registers[REG_WININ];                                    \
       window_coords(1);                                                       \
       render_window_multi(type, 1, obj);                                      \
@@ -3075,7 +3067,6 @@ void render_scanline_window_##type(u16 *scanline, u32 dispcnt)                \
     /* Window 0, 1, and OBJ window */                                         \
     case 0x07:                                                                \
     {                                                                         \
-      /*u32 window_obj_enable = winout >> 8;*/                                    \
       u32 winin = io_registers[REG_WININ];                                    \
       window_coords(0);                                                       \
       window_coords(1);                                                       \
@@ -3089,10 +3080,8 @@ render_scanline_window_builder(tile);
 render_scanline_window_builder(bitmap);
 
 // VIDEO MODEごとの有効BG
-u32 active_layers[6] = { 0x1F, 0x17, 0x1C, 0x14, 0x14, 0x14 };
+const u8 active_layers[6] = { 0x1F, 0x17, 0x1C, 0x14, 0x14, 0x14 };
 
-u32 small_resolution_width = 240;
-u32 small_resolution_height = 160;
 u32 resolution_width, resolution_height;
 
 // 渲染一行图像
