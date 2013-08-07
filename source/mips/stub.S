@@ -252,13 +252,10 @@ mips_update_gba:
   jal update_gba                  # process the next event
   sw $0, CHANGED_PC_STATUS($16)
 
+  lw $1, CHANGED_PC_STATUS($16)   # load the new value 3 instructions early
   lw $ra, ($sp)                   # restore return address
   addiu $sp, $sp, 4               # fix stack
-
-  lw $1, CHANGED_PC_STATUS($16)
-#ifndef MIPS_XBURST
-  nop
-#endif
+  
   bne $1, $0, lookup_pc
   addu $17, $2, $0                # $17 = new cycle count (delay slot)
 
@@ -810,12 +807,9 @@ mips_indirect_branch_dual:
   jal read_backup                 # get backup value in $2
   andi $4, $4, 0xFFFF		      # address &= 0xFFFF (delay)
 
+  lw $ra, REG_SAVE($16)           # restore return address
   restore_registers               # restore the other registers
 
-  lw $ra, REG_SAVE($16)           # restore return address
-#ifndef MIPS_XBURST
-  nop
-#endif
   jr $ra                          # return
   nop
 .endm
@@ -934,14 +928,11 @@ mips_indirect_branch_dual:
   jal read_memory16               # get instruction at PC
   addu $4, $5, $4                 # a0 = PC + low bits of address
 
+  lw $ra, REG_SAVE($16)           # restore return address
   restore_registers               # restore the other registers
 
-  lw $ra, REG_SAVE($16)           # restore return address
-#ifndef MIPS_XBURST
-  nop
-#endif
   jr $ra                          # return
-  nop                             # delay for both things
+  nop                             # cannot delay usefully here
 .endm
 
 .macro open_load16_align align_bits, alignment, patch_handler
@@ -971,13 +962,13 @@ mips_indirect_branch_dual:
   addu $4, $5, $0                 # a0 = PC (delay)
 
 #ifdef MIPS_32R2
-  j     2f
+  beq   $0, $0, 2f                # (short unconditional jump)
   ins   $2, $2, 16, 16            # result = (result << 16) | result (delay)
 #else
   sll   $2, $2, 16
   srl   $1, $2, 16
-  j     2f
-  or    $2, $1, $2		          # result = (result << 16) | result (delay)
+  beq   $0, $0, 2f                # (short unconditional jump)
+  or    $2, $1, $2                # result = (result << 16) | result (delay)
 #endif
 
 1:
@@ -1011,13 +1002,13 @@ mips_indirect_branch_dual:
   addu $4, $5, $0                 # a0 = PC (delay)
 
 #ifdef MIPS_32R2
-  j     2f
+  beq   $0, $0, 2f                # (short unconditional jump)
   ins   $2, $2, 16, 16            # result = (result << 16) | result (delay)
 #else
   sll   $2, $2, 16
   srl   $1, $2, 16
-  j     2f
-  or    $2, $1, $2		          # result = (result << 16) | result (delay)
+  beq   $0, $0, 2f                # (short unconditional jump)
+  or    $2, $1, $2                # result = (result << 16) | result (delay)
 #endif
 
 1:
@@ -3367,6 +3358,7 @@ ext_store_vram32b:
   j post_write_metadata_vram
   sw $5, %lo(vram)($2)            # vram[address] = value (delay)
   jr $ra                          # return
+  nop                             # cannot delay usefully here
 
 ext_store_oam32:
   lui $1, %hi(oam_update)         # write non-zero to oam_update
