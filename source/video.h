@@ -47,4 +47,7 @@ typedef struct
   bitmap_render_function normal_render;
 } bitmap_layer_render_struct;
 
+void video_read_mem_savestate();
+void video_write_mem_savestate();
+
 #endif

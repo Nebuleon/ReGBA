@@ -20,6 +20,9 @@
 
 #include "common.h"
 
+// This file outputs GBA frames in the RGB555 pixel format, with the upper bit
+// unused (XRGB 1555). It is endian-neutral.
+
 #define render_scanline_dest_normal         u16
 #define render_scanline_dest_alpha          u32
 #define render_scanline_dest_alpha_obj      u32
@@ -3082,18 +3085,16 @@ render_scanline_window_builder(bitmap);
 // VIDEO MODEごとの有効BG
 const u8 active_layers[6] = { 0x1F, 0x17, 0x1C, 0x14, 0x14, 0x14 };
 
-u32 resolution_width, resolution_height;
+// u32 resolution_width, resolution_height;
 
 // 渲染一行图像
 void update_scanline()
 {
-  u32 dispcnt = io_registers[REG_DISPCNT];                // IO DISPCNT
-  u32 vcount = io_registers[REG_VCOUNT];                  // IO VCOUNT 現在的值(0~277)
-  u32 video_mode = dispcnt & 0x07;                        // VIDEO MODE(0~5)
-//  u32 pitch = screen_pitch;                               // 帧缓冲区的宽度(240/512)
-  u32 pitch = gba_screen_pitch;
-//  u16 *screen_offset = screen_address + (vcount * pitch); // 最左边的像素在帧缓存中的地址
-  u16 *screen_offset= gba_screen_address + (vcount * pitch);
+  u32  dispcnt = io_registers[REG_DISPCNT];
+  u32  vcount = io_registers[REG_VCOUNT];              // (0~277)
+  u32  video_mode = dispcnt & 0x07;                    // (0~5)
+  u32  pitch = GBAScreenPitch;
+  u16* screen_offset = GBAScreen + (vcount * pitch);
 
   // 如果 OAM 有变化，对其维护，排序
   if(oam_update)
@@ -3144,3 +3145,14 @@ void update_scanline()
   affine_reference_y[1] += (s16)io_registers[REG_BG3PD];
 }
 
+#define video_savestate_body(type)                                            \
+{                                                                             \
+  FILE_##type##_ARRAY(g_state_buffer_ptr, affine_reference_x);            \
+  FILE_##type##_ARRAY(g_state_buffer_ptr, affine_reference_y);            \
+}                                                                             \
+
+void video_read_mem_savestate()
+video_savestate_body(READ_MEM);
+
+void video_write_mem_savestate()
+video_savestate_body(WRITE_MEM);

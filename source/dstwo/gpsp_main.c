@@ -664,15 +664,13 @@ u32 update_gba()
 //            sync_flag ^= 1;
 //         }
 
-//          if(!skip_next_frame_flag)
-//            flip_gba_screen();
             Stats.EmulatedFrames++;
             Stats.TotalEmulatedFrames++;
             if(!skip_next_frame_flag)
             {
                 Stats.RenderedFrames++;
                 ReGBA_DisplayFPS();
-                flip_gba_screen();
+                ReGBA_RenderScreen();
                 to_skip= 0;
             }
             else

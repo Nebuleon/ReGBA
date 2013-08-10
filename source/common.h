@@ -134,6 +134,10 @@ typedef u32 FIXED16_16;   // Q16.16 fixed-point
 #include "bios.h"
 #include "stats.h"
 
+// - - - CROSS-PLATFORM VARIABLE DEFINITIONS - - -
+extern u16* GBAScreen;
+extern u32  GBAScreenPitch;
+
 // - - - CROSS-PLATFORM FUNCTION DEFINITIONS - - -
 
 /*
@@ -201,6 +205,33 @@ void ReGBA_MaxBlockExitsReached(u32 BlockStartPC, u32 BlockEndPC, u32 Exits);
  *   BlockSize: The number of instructions encountered.
  */
 void ReGBA_MaxBlockSizeReached(u32 BlockStartPC, u32 BlockEndPC, u32 BlockSize);
+
+/*
+ * Renders the current contents of the GBA screen to the display of the device
+ * most appropriate for the port being compiled and makes it ready for another
+ * frame.
+ * Input:
+ *   (implied) GBAScreen: The pointer to the first 16-bit RGB555 pixel to be
+ *   rendered.
+ *   (implied) GBAScreenPitch: The number of contiguous 16-bit pixels that
+ *   form a scanline in memory. This value should be 240 if the port performs
+ *   pixel format conversion before rendering to the display and hands ReGBA
+ *   a different buffer to render in RGB555 into.
+ * Output:
+ *   (implied) GBAScreen: Gets updated with the address of the first 16-bit
+ *   RGB555 pixel of the next GBA frame to be rendered.
+ */
+void ReGBA_RenderScreen(void);
+
+/*
+ * Determines whether ReGBA should set up to render the next frame to the
+ * GBAScreen variable. The determination is made according to the method most
+ * appropriate for the port being compiled, for example either of these:
+ * a) Returning non-zero if there is enough sound in the buffers;
+ * b) Returning non-zero if the previous frame was rendered early according to
+ *    the system's high-resolution timers.
+ */
+u32 ReGBA_IsRenderingNextFrame(void);
 
 /*
  * Displays current frames per second, as calculated using the Stats struct,
