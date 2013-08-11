@@ -838,23 +838,6 @@ u32 draw_hotkey_dialog(enum SCREEN_ID screen, u32 sy, char *clear, char *cancel)
 	return TotalKeys;
 }
 
-/**** PROGRESS BAR FUNCTIONS are present for gpSP but empty ****/
-
-//	progress bar initialize
-void init_progress(enum SCREEN_ID screen, u32 total, char *text)
-{
-}
-
-//	update progress bar
-void update_progress(void)
-{
-}
-
-//	display progress string
-void show_progress(char *text)
-{
-}
-
 /*
 *	Drawing scroll bar
 */

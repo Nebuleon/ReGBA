@@ -140,3 +140,29 @@ void ReGBA_DisplayFPS(void)
 		PRINT_STRING_BG_UTF8(*gba_screen_addr_ptr, line, 0x7FFF, 0x0000, 1, 177);
 	}
 }
+
+void ReGBA_LoadRTCTime(struct ReGBA_RTC* RTCData)
+{
+	struct rtc Time;
+	ds2_getTime(&Time);
+
+	RTCData->year = Time.year;
+	RTCData->month = Time.month;
+	RTCData->day = Time.day;
+	// Weekday conforms to the expectations (0 = Sunday, 6 = Saturday).
+	RTCData->weekday = Time.weekday;
+	RTCData->hours = Time.hours;
+	RTCData->minutes = Time.minutes;
+	RTCData->seconds = Time.seconds;
+}
+
+size_t FILE_LENGTH(FILE_TAG_TYPE File)
+{
+  u32 pos, size;
+  pos = ftell(File);
+  fseek(File, 0, SEEK_END);
+  size = ftell(File);
+  fseek(File, pos, SEEK_SET);
+
+  return size;
+}

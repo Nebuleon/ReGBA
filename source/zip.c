@@ -52,12 +52,16 @@ void* zip_malloc_func(void* opaque, unsigned int items, unsigned int size)
 
 void zip_free_func(void* opaque, void* address)
 {
-    free((unsigned int)address);
+    free(address);
 }
 
 // ZIPで圧縮されたRONのロード
 // 返り値:-2=一時ファイルを作成/-1=エラー/その他=ROMのサイズ
 // もし、ROMのサイズ>ROMバッファのサイズ の場合は一時ファイルを作成
+
+// TODO Support big-endian systems.
+// The ZIP file header contains little-endian fields, and byte swapping is
+// needed on big-endian systems.
 s32 load_file_zip(char *filename)
 {
   struct SZIPFileHeader data;
@@ -66,8 +70,8 @@ s32 load_file_zip(char *filename)
   u8 *buffer = NULL;
   u8 *cbuffer;
   char *ext;
-  FILE_ID fd;
-  FILE_ID tmp_fd= NULL;
+  FILE_TAG_TYPE fd;
+  FILE_TAG_TYPE tmp_fd= FILE_TAG_INVALID;
   u32 zip_buffer_size;
   u32 write_tmp_flag = NO;
 
@@ -83,7 +87,7 @@ s32 load_file_zip(char *filename)
 
   if(!FILE_CHECK_VALID(fd))
   {
-	free((int)cbuffer);
+	free(cbuffer);
     return -1;
   }
 
@@ -131,8 +135,23 @@ s32 load_file_zip(char *filename)
       switch(data.CompressionMethod)
       {
         case 0: //No compress
-          retval = data.DataDescriptor.UncompressedSize;//if UncompressedSize > gamepak_rom_size then do ?
-          FILE_READ(fd, buffer, retval);
+          retval = data.DataDescriptor.UncompressedSize;
+          if (write_tmp_flag == NO)
+          {
+            FILE_READ(fd, buffer, retval);
+          }
+          else
+          {
+            while (retval > 0)
+            {
+              int bytes_to_read = zip_buffer_size;
+              if (retval < bytes_to_read) bytes_to_read = retval;
+              FILE_READ(fd, cbuffer, zip_buffer_size);
+              FILE_WRITE(tmp_fd, cbuffer, zip_buffer_size);
+              retval -= bytes_to_read;
+            }
+            retval = -2;
+          }
 
           goto outcode;
 
@@ -217,6 +236,6 @@ outcode:
 
 //printf("Load ZIP over\n");
 
-	free((int)cbuffer);
+	free(cbuffer);
   return retval;
 }

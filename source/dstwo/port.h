@@ -24,17 +24,23 @@
 #include "ds2_malloc.h"
 
 #include "draw.h"
-// #include "bitmap.h"
 #include "bdf_font.h"
 
 #include "gui.h"
 #include "gu.h"
 
+#define MAX_PATH 512
+#define MAX_FILE 512
+
+typedef FILE* FILE_TAG_TYPE;
+
+typedef u32 FIXED16_16;   // Q16.16 fixed-point
+
 #include "fs_api.h"
 #include "ds2_unistd.h"
 
-#define MAX_PATH 512
-#define MAX_FILE 512
+#include "message.h"
+#include "gpsp_main.h"
 
 /* Tuning parameters for the Supercard DSTwo version of gpSP */
 /* Its processor is an Ingenic JZ4740 at 360 MHz with 32 MiB of RAM */
@@ -48,9 +54,6 @@
 
 #define NO_VOLATILE_SOUND
 
-#define FILE_ID FILE*
-typedef FILE_ID FILE_TAG_TYPE;
-
 #define FILE_OPEN_APPEND ("a+")
 
 #define FILE_OPEN_READ ("rb")
@@ -58,10 +61,13 @@ typedef FILE_ID FILE_TAG_TYPE;
 #define FILE_OPEN_WRITE ("wb")
 
 #define FILE_OPEN(filename_tag, filename, mode)                             \
-  filename_tag = fopen(filename, FILE_OPEN_##mode)						\
+  filename_tag = fopen(filename, FILE_OPEN_##mode)                          \
 
 #define FILE_CHECK_VALID(filename_tag)                                      \
-  (filename_tag != NULL)                                                    \
+  (filename_tag != FILE_TAG_INVALID)                                        \
+
+#define FILE_TAG_INVALID                                                    \
+  (NULL)                                                                    \
 
 #define FILE_CLOSE(filename_tag)                                            \
   fclose(filename_tag)                                                      \
@@ -80,5 +86,7 @@ typedef FILE_ID FILE_TAG_TYPE;
 
 #define FILE_TELL(filename_tag)                                             \
   ftell(filename_tag)                                                       \
+
+extern u32 frameskip_0_hack_flag; // described in sound.c:sound_update()
 
 #endif

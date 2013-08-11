@@ -120,19 +120,29 @@
 
 #include "port.h"
 
-typedef u32 FIXED16_16;   // Q16.16 fixed-point
-
 #include "cpu.h"
 #include "memory.h"
 #include "video.h"
 #include "input.h"
 #include "sound.h"
-#include "gpsp_main.h"
 #include "cheats.h"
 #include "zip.h"
-#include "message.h"
-#include "bios.h"
 #include "stats.h"
+
+// - - - CROSS-PLATFORM TYPE DEFINITIONS - - -
+
+/*
+ * A struct used in the GBA RTC code and in the saved state header.
+ */
+struct ReGBA_RTC {
+	unsigned char year;        // Range: 0..99 (Add 2000 to get a 4-digit year)
+	unsigned char month;       // Range: 1..12
+	unsigned char day;         // Range: 1..31 (Varies by month)
+	unsigned char weekday;     // Range: 0..6 (0 is Sunday, 6 is Saturday)
+	unsigned char hours;       // Range: 0..23
+	unsigned char minutes;     // Range: 0..59
+	unsigned char seconds;     // Range: 0..59
+};
 
 // - - - CROSS-PLATFORM VARIABLE DEFINITIONS - - -
 extern u16* GBAScreen;
@@ -240,5 +250,33 @@ u32 ReGBA_IsRenderingNextFrame(void);
  *   (implied) Stats: The struct containing framerate data.
  */
 void ReGBA_DisplayFPS(void);
+
+/*
+ * Loads the given memory buffer with real-time clock data from the clock most
+ * appropriate for the port being compiled.
+ * Output:
+ *   RTCData: A pointer to a struct that the port function updates with the
+ *   date-time components of the real time as of the function call.
+ * Output assertions:
+ *   b) Year's range is 0..99. The century is not stored.
+ *   c) Month's range is 1..12.
+ *   d) Day's range depends on the month, and is 1..31.
+ *   e) Weekday's range is 0..6.
+ *      0 is Sunday. 1 is Monday. 2 is Tuesday. 3 is Wednesday. 4 is Thursday.
+ *      5 is Friday. 6 is Saturday.
+ *   f) Hours's range is 0..23 (24-hour time).
+ *   g) Minutes's range is 0..59.
+ *   h) Seconds's range is 0..59.
+ */
+void ReGBA_LoadRTCTime(struct ReGBA_RTC* RTCData);
+
+/*
+ * Returns the length, in bytes, of the specified open file.
+ * Input:
+ *   File: The handle of the file to get the length of.
+ * Returns:
+ *   The length of the file whose handle was passed in, in bytes.
+ */
+size_t FILE_LENGTH(FILE_TAG_TYPE File);
 
 #endif /* COMMON_H */

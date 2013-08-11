@@ -306,6 +306,14 @@ typedef struct
   ADDRESS16(io_registers, 0x84) =                                             \
     (ADDRESS16(io_registers, 0x84) & 0x000F) | (value & 0xFFF0);              \
 
+// タイマーの値の調整
+// TODO:調整必要
+#define ADJUST_SOUND_BUFFER(timer_number, channel)                            \
+  if(timer[timer_number].direct_sound_channels & (0x01 << (channel)))         \
+  {                                                                           \
+    direct_sound_channel[channel].buffer_index = gbc_sound_buffer_index;      \
+  }                                                                           \
+
 #define SOUND_UPDATE_FREQUENCY_STEP(timer_number)                             \
   timer[timer_number].frequency_step =                                        \
    FLOAT_TO_FP16_16((SYS_CLOCK / SOUND_FREQUENCY) / timer_reload)             \

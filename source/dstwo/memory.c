@@ -24,15 +24,10 @@
 u8 savestate_write_buffer[SAVESTATE_SIZE];
 u8 *g_state_buffer_ptr;
 
-//#define PACKROM_MEM_SIZE (19*1024*1024)     //20MB
-//u8 PACKROM_MEM[ PACKROM_MEM_SIZE ] __attribute__ ((aligned (4))) ;
-//u8 PACKROM_MEM_MAP[ PACKROM_MEM_SIZE/(32*1024)*8 ];
-
-#define SAVESTATE_FAST_SIZE (SAVESTATE_FAST_LEN*SAVESTATE_FAST_NUM)	//~5MB
-//fast save state length: 0x68e3f
-#define SAVESTATE_FAST_LEN (0x68e40)
-#define SAVESTATE_FAST_NUM (10)
-u8 SAVEFAST_MEM[ SAVESTATE_FAST_SIZE ] __attribute__ ((aligned (4))) ;
+#define SAVESTATE_REWIND_SIZE (SAVESTATE_REWIND_LEN*SAVESTATE_REWIND_NUM)	//~5MB
+#define SAVESTATE_REWIND_LEN (0x69040)
+#define SAVESTATE_REWIND_NUM (10)
+u8 SAVESTATE_REWIND_MEM[ SAVESTATE_REWIND_SIZE ] __attribute__ ((aligned (4))) ;
 
 const u8 SVS_HEADER_E[SVS_HEADER_SIZE] = {'N', 'G', 'B', 'A', 'R', 'T', 'S',
   '1', '.', '0', 'e'}; // 1.0e is written with sound frequency-dependent
@@ -193,6 +188,11 @@ u32 bios_read_protect;
 u8 *gamepak_rom;
 u32 gamepak_size;
 
+/******************************************************************************
+ * 全局变量定义
+ ******************************************************************************/
+TIMER_TYPE timer[4];                              // 定时器
+
 #ifdef USE_EXT_MEM
 u8 *gamepak_rom_resume;
 #endif
@@ -227,8 +227,7 @@ gamepak_swap_entry_type *gamepak_memory_map;
 // pages from, so there's no slowdown with opening and closing the file
 // a lot.
 
-//FILE_TAG_TYPE gamepak_file_large = (FILE_TAG_TYPE)(-1);
-FILE_TAG_TYPE gamepak_file_large = NULL;
+FILE_TAG_TYPE gamepak_file_large = FILE_TAG_INVALID;
 
 u32 direct_map_vram = 0;
 
@@ -292,9 +291,6 @@ FLASH_DEVICE_ID_TYPE flash_device_id = FLASH_DEVICE_MACRONIX_64KB;
 FLASH_MANUFACTURER_ID_TYPE flash_manufacturer_id =
  FLASH_MANUFACTURER_MACRONIX;
 flash_size_type flash_size = FLASH_SIZE_64KB;
-
-const u8 gba_md5[16] = { 0xA8, 0x60, 0xE8, 0xC0, 0xB6, 0xD5, 0x73, 0xD1, 0x91, 0xE4, 0xEC, 0x7D, 0xB1, 0xB1, 0xE4, 0xF6 };
-const u8 nds_md5[16] = { 0x1C, 0x0D, 0x67, 0xDB, 0x9E, 0x12, 0x08, 0xB9, 0x5A, 0x15, 0x06, 0xB1, 0x68, 0x8A, 0x0A, 0xD6 };
 
 u8 read_backup(u32 address)
 {
@@ -481,7 +477,6 @@ void write_eeprom(u32 address, u32 value)
       }
       break;
     default:
-      ;
       break;
   }
 }
@@ -665,12 +660,12 @@ u32 read_eeprom()
     if(dma[dma_number].start_type == DMA_INACTIVE)                            \
     {                                                                         \
       u32 start_type = (value >> 12) & 0x03;                                  \
-      u32 dest_address = ADDRESS32(io_registers, (dma_number * 12) + 0xB4) &  \
+      u32 dest_address = ADDRESS32(io_registers, ((dma_number) * 12) + 0xB4) &\
        0xFFFFFFF;                                                             \
                                                                               \
       dma[dma_number].dma_channel = dma_number;                               \
       dma[dma_number].source_address =                                        \
-       ADDRESS32(io_registers, (dma_number * 12) + 0xB0) & 0xFFFFFFF;         \
+       ADDRESS32(io_registers, ((dma_number) * 12) + 0xB0) & 0xFFFFFFF;       \
       dma[dma_number].dest_address = dest_address;                            \
       dma[dma_number].source_direction = (value >>  7) & 0x03;                \
       dma[dma_number].repeat_type = (value >> 9) & 0x01;                      \
@@ -678,7 +673,7 @@ u32 read_eeprom()
       dma[dma_number].irq = (value >> 14) & 0x01;                             \
                                                                               \
       /* If it is sound FIFO DMA make sure the settings are a certain way */  \
-      if((dma_number >= 1) && (dma_number <= 2) &&                            \
+      if(((dma_number) >= 1) && ((dma_number) <= 2) &&                        \
        (start_type == DMA_START_SPECIAL))                                     \
       {                                                                       \
         dma[dma_number].length_type = DMA_32BIT;                              \
@@ -692,20 +687,20 @@ u32 read_eeprom()
       else                                                                    \
       {                                                                       \
         u32 length =                                                          \
-         ADDRESS16(io_registers, (dma_number * 12) + 0xB8);                   \
+         ADDRESS16(io_registers, ((dma_number) * 12) + 0xB8);                 \
                                                                               \
-        if((dma_number == 3) && ((dest_address >> 24) == 0x0D) &&             \
+        if(((dma_number) == 3) && ((dest_address >> 24) == 0x0D) &&           \
          ((length & 0x1F) == 17))                                             \
         {                                                                     \
           eeprom_size = EEPROM_8_KBYTE;                                       \
         }                                                                     \
                                                                               \
-        if(dma_number < 3)                                                    \
+        if((dma_number) < 3)                                                  \
           length &= 0x3FFF;                                                   \
                                                                               \
         if(length == 0)                                                       \
         {                                                                     \
-          if(dma_number == 3)                                                 \
+          if((dma_number) == 3)                                               \
             length = 0x10000;                                                 \
           else                                                                \
             length = 0x04000;                                                 \
@@ -716,17 +711,94 @@ u32 read_eeprom()
         dma[dma_number].dest_direction = (value >> 5) & 0x03;                 \
       }                                                                       \
                                                                               \
-      ADDRESS16(io_registers, (dma_number * 12) + 0xBA) = value;              \
+      ADDRESS16(io_registers, ((dma_number) * 12) + 0xBA) = value;            \
       if(start_type == DMA_START_IMMEDIATELY)                                 \
-        return dma_transfer(dma + dma_number);                                \
+        return dma_transfer(dma + (dma_number));                              \
     }                                                                         \
   }                                                                           \
   else                                                                        \
   {                                                                           \
     dma[dma_number].start_type = DMA_INACTIVE;                                \
     dma[dma_number].direct_sound_channel = DMA_NO_DIRECT_SOUND;               \
-    ADDRESS16(io_registers, (dma_number * 12) + 0xBA) = value;                \
+    ADDRESS16(io_registers, ((dma_number) * 12) + 0xBA) = value;              \
   }                                                                           \
+
+// TODO:タイマーカウンタ周りの処理は再検討
+
+// タイマーリロード時のカウンタの設定(この時点ではタイマーにセットされない)
+// タイマースタート時にカウンタに設定される
+// ただし、32bitアクセス時には即座にタイマーにセットされる
+// 実機では0~0xFFFFだが、gpSP内部では (0x10000~1)<<prescale(0,6,8,10)の値をとる
+// 各カウンターにリロードする際にprescale分シフトされる
+// TODO:32bitアクセスと8/16bitアクセスで処理を分ける必要がある
+// 8/16ビットアクセス時には呼び出す必要がない？
+#define COUNT_TIMER(timer_number)                                             \
+  timer[timer_number].reload = 0x10000 - value;                               \
+  if(timer_number < 2)                                                        \
+  {                                                                           \
+    u32 timer_reload =                                                        \
+     timer[timer_number].reload;              \
+    SOUND_UPDATE_FREQUENCY_STEP(timer_number);                                \
+  }                                                                           \
+
+// タイマーのアクセスとカウント開始処理
+#define TRIGGER_TIMER(timer_number)                                           \
+  if(value & 0x80)                                                            \
+  {                                                                           \
+    /* スタートビットが”1”だった場合 */                                     \
+    if(timer[timer_number].status == TIMER_INACTIVE)                          \
+    {                                                                         \
+      /* タイマーが停止していた場合 */                                        \
+      /* 各種設定をして、タイマー作動 */                                      \
+                                                                              \
+      /* リロード値を読み込む */                                              \
+      u32 timer_reload = timer[timer_number].reload;                          \
+                                                                              \
+      /* カスケードモードか判別(タイマー0以外)*/                              \
+      if(((value >> 2) & 0x01) && ((timer_number) != 0))                      \
+      {                                                                       \
+        /* カスケードモード */                                                \
+        timer[timer_number].status = TIMER_CASCADE;                           \
+        /* プリスケールの設定 */                                              \
+        timer[timer_number].prescale = 0;                                     \
+      }                                                                       \
+      else                                                                    \
+      {                                                                       \
+        /* プリスケールモード */                                              \
+        timer[timer_number].status = TIMER_PRESCALE;                          \
+        u32 prescale = prescale_table[value & 0x03];                          \
+        /* プリスケールの設定 */                                              \
+        timer[timer_number].prescale = prescale;                              \
+      }                                                                       \
+                                                                              \
+      /* IRQの設定 */                                                         \
+      timer[timer_number].irq = (value >> 6) & 0x01;                          \
+                                                                              \
+      /* カウンタを設定 */                                                    \
+      timer[timer_number].count = timer_reload << timer[timer_number].prescale; \
+      ADDRESS16(io_registers, 0x100 + ((timer_number) * 4)) =                 \
+      0x10000 - timer_reload;                                                 \
+                                                                              \
+      if(timer[timer_number].count < execute_cycles)                          \
+        execute_cycles = timer[timer_number].count;                           \
+                                                                              \
+      if((timer_number) < 2)                                                  \
+      {                                                                       \
+        /* 小数点以下を切り捨てていたので、GBCサウンドと同様の処理にした*/   \
+        SOUND_UPDATE_FREQUENCY_STEP(timer_number);                            \
+        ADJUST_SOUND_BUFFER(timer_number, 0);                                 \
+        ADJUST_SOUND_BUFFER(timer_number, 1);                                 \
+      }                                                                       \
+    }                                                                         \
+  }                                                                           \
+  else                                                                        \
+  {                                                                           \
+    if(timer[timer_number].status != TIMER_INACTIVE)                          \
+    {                                                                         \
+      timer[timer_number].status = TIMER_INACTIVE;                            \
+    }                                                                         \
+  }                                                                           \
+  ADDRESS16(io_registers, 0x102 + ((timer_number) * 4)) = value;              \
 
 // configure game pak access timings
 #define waitstate_control()                                                   \
@@ -1098,24 +1170,12 @@ CPU_ALERT_TYPE write_io_register8(u32 address, u32 value)
       break;
 
     // DMA control (trigger byte)
-    case 0xBB:
-      access_register8_high(0xBA);
-      trigger_dma(0);
-      break;
-
-    case 0xC7:
-      access_register8_high(0xC6);
-      trigger_dma(1);
-      break;
-
-    case 0xD3:
-      access_register8_high(0xD2);
-      trigger_dma(2);
-      break;
-
-    case 0xDF:
-      access_register8_high(0xDE);
-      trigger_dma(3);
+    case 0xBB:  // DMA channel 0
+    case 0xC7:  // DMA channel 1
+    case 0xD3:  // DMA channel 2
+    case 0xDF:  // DMA channel 3
+      access_register8_high(address - 1);
+      trigger_dma((address - 0xBB) / 12);
       break;
 
     // Timer counts
@@ -1160,24 +1220,12 @@ CPU_ALERT_TYPE write_io_register8(u32 address, u32 value)
       break;
 
     // Timer control (trigger byte)
-    case 0x103:
-      access_register8_high(0x102);
-      TRIGGER_TIMER(0);
-      break;
-
-    case 0x107:
-      access_register8_high(0x106);
-      TRIGGER_TIMER(1);
-      break;
-
-    case 0x10B:
-      access_register8_high(0x10A);
-      TRIGGER_TIMER(2);
-      break;
-
-    case 0x10F:
-      access_register8_high(0x10E);
-      TRIGGER_TIMER(3);
+    case 0x103:  // Timer 0
+    case 0x107:  // Timer 1
+    case 0x10B:  // Timer 2
+    case 0x10F:  // Timer 3
+      access_register8_high(address - 1);
+      TRIGGER_TIMER((address - 0x103) / 4);
       break;
 
     case 0x128:
@@ -1188,14 +1236,8 @@ CPU_ALERT_TYPE write_io_register8(u32 address, u32 value)
       break;
 
     case 0x129:
-      break;
-
     case 0x134:
-      break;
-
     case 0x135:
-      break;
-
     // P1
     case 0x130:
     case 0x131:
@@ -1414,58 +1456,27 @@ CPU_ALERT_TYPE write_io_register16(u32 address, u32 value)
       break;
 
     // DMA control
-    case 0xBA:
-      trigger_dma(0);
-      break;
-
-    case 0xC6:
-      trigger_dma(1);
-      break;
-
-    case 0xD2:
-      trigger_dma(2);
-      break;
-
-    case 0xDE:
-      trigger_dma(3);
+    case 0xBA:  // DMA channel 0
+    case 0xC6:  // DMA channel 1
+    case 0xD2:  // DMA channel 2
+    case 0xDE:  // DMA channel 3
+      trigger_dma((address - 0xBA) / 12);
       break;
 
     // Timer counts
     case 0x100:
-//      ADDRESS16(io_registers, address) = value;
-      COUNT_TIMER(0);
-      break;
-
     case 0x104:
-//      ADDRESS16(io_registers, address) = value;
-      COUNT_TIMER(1);
-      break;
-
     case 0x108:
-//      ADDRESS16(io_registers, address) = value;
-      COUNT_TIMER(2);
-      break;
-
     case 0x10C:
-//      ADDRESS16(io_registers, address) = value;
-      COUNT_TIMER(3);
+      COUNT_TIMER((address - 0x100) / 4);
       break;
 
     // Timer control
-    case 0x102:
-      TRIGGER_TIMER(0);
-      break;
-
-    case 0x106:
-      TRIGGER_TIMER(1);
-      break;
-
-    case 0x10A:
-      TRIGGER_TIMER(2);
-      break;
-
-    case 0x10E:
-      TRIGGER_TIMER(3);
+    case 0x102:  // Timer 0
+    case 0x106:  // Timer 1
+    case 0x10A:  // Timer 2
+    case 0x10E:  // Timer 3
+      TRIGGER_TIMER((address - 0x102) / 4);
       break;
 
 #ifdef USE_ADHOC
@@ -1952,26 +1963,18 @@ void write_rtc(u32 address, u32 value)
                   // 0x65
                   case RTC_COMMAND_OUTPUT_TIME_FULL:
                   {
-                    //pspTime current_time;
-                    //sceRtcGetCurrentClockLocalTime(&current_time);
-					struct rtc  current_time;
-				    ds2_getTime(&current_time);
-
-                    //int day_of_week = sceRtcGetDayOfWeek(current_time.year, current_time.month , current_time.day);
-                    //if(day_of_week == 0)
-                    //  day_of_week = 6;
-                    //else
-                    //  day_of_week--;
-
                     rtc_state = RTC_OUTPUT_DATA;
                     rtc_data_bytes = 7;
-                    rtc_data[0] = encode_bcd(current_time.year % 100);
-                    rtc_data[1] = encode_bcd(current_time.month);
-                    rtc_data[2] = encode_bcd(current_time.day);
-                    rtc_data[3] = encode_bcd(current_time.weekday);
-                    rtc_data[4] = encode_bcd(current_time.hours);
-                    rtc_data[5] = encode_bcd(current_time.minutes);
-                    rtc_data[6] = encode_bcd(current_time.seconds);
+
+                    struct ReGBA_RTC Time;
+                    ReGBA_LoadRTCTime(&Time);
+                    rtc_data[0] = encode_bcd(Time.year % 100);
+                    rtc_data[1] = encode_bcd(Time.month);
+                    rtc_data[2] = encode_bcd(Time.day);
+                    rtc_data[3] = encode_bcd(Time.weekday);
+                    rtc_data[4] = encode_bcd(Time.hours);
+                    rtc_data[5] = encode_bcd(Time.minutes);
+                    rtc_data[6] = encode_bcd(Time.seconds);
 
                     break;
                   }
@@ -1980,16 +1983,14 @@ void write_rtc(u32 address, u32 value)
                   // 0x67
                   case RTC_COMMAND_OUTPUT_TIME:
                   {
-                    //pspTime current_time;
-                    //sceRtcGetCurrentClockLocalTime(&current_time);
-				    struct rtc  current_time;
-				    ds2_getTime(&current_time);
-
                     rtc_state = RTC_OUTPUT_DATA;
                     rtc_data_bytes = 3;
-                    rtc_data[0] = encode_bcd(current_time.hours);
-                    rtc_data[1] = encode_bcd(current_time.minutes);
-                    rtc_data[2] = encode_bcd(current_time.seconds);
+
+                    struct ReGBA_RTC Time;
+                    ReGBA_LoadRTCTime(&Time);
+                    rtc_data[0] = encode_bcd(Time.hours);
+                    rtc_data[1] = encode_bcd(Time.minutes);
+                    rtc_data[2] = encode_bcd(Time.seconds);
 
                     break;
                   }
@@ -2024,7 +2025,6 @@ void write_rtc(u32 address, u32 value)
                         break;
 
                       default:
-                        ;
                         break;
                     }
                   }
@@ -2120,10 +2120,6 @@ void write_rtc(u32 address, u32 value)
                                                                               \
     case 0x06:                                                                \
       /* VRAM */                                                              \
-      /*address &= 0x1FFFF;                                                     \
-      if(address >= 0x18000)                                                  \
-        address -= 0x8000;*/                                                    \
-                                                                              \
       write_vram##type();                                                     \
       break;                                                                  \
                                                                               \
@@ -2239,14 +2235,14 @@ char backup_filename[MAX_FILE];
 u32 load_backup(char *name)
 {
   char backup_path[MAX_PATH];
-  FILE_ID backup_file;
+  FILE_TAG_TYPE backup_file;
 
   sprintf(backup_path, "%s/%s", DEFAULT_SAVE_DIR, name);
   FILE_OPEN(backup_file, backup_path, READ);
 
   if(FILE_CHECK_VALID(backup_file))
   {
-    u32 backup_size = file_length(backup_file);
+    u32 backup_size = FILE_LENGTH(backup_file);
 
     FILE_READ(backup_file, gamepak_backup, backup_size);
     FILE_CLOSE(backup_file);
@@ -2294,7 +2290,7 @@ u32 load_backup(char *name)
 u32 save_backup(char *name)
 {
   char backup_path[MAX_PATH];
-  FILE_ID backup_file;
+  FILE_TAG_TYPE backup_file;
 
   if(backup_type != BACKUP_NONE)
   {
@@ -2329,7 +2325,6 @@ u32 save_backup(char *name)
           break;
 
         default:
-          ;
           break;
       }
 
@@ -2409,9 +2404,7 @@ s32 load_game_config(char *gamepak_title, char *gamepak_code, char *gamepak_make
   char current_variable[256];
   char current_value[256];
   char config_path[MAX_PATH];
-//  u8 *line_ptr;
-//  u32 fgets_value;
-  FILE *config_file;
+  FILE_TAG_TYPE config_file;
 
   idle_loop_targets = 0;
   idle_loop_target_pc[0] = 0xFFFFFFFF;
@@ -2421,12 +2414,11 @@ s32 load_game_config(char *gamepak_title, char *gamepak_code, char *gamepak_make
   flash_device_id = FLASH_DEVICE_MACRONIX_64KB;
   backup_type = BACKUP_NONE;
 
-
   sprintf(config_path, "%s/%s", main_path, CONFIG_FILENAME);
 
-  config_file = fopen(config_path, "rb");
+  FILE_OPEN(config_file, config_path, READ);
 
-  if(config_file)
+  if(FILE_CHECK_VALID(config_file))
   {
     while(fgets(current_line, 256, config_file))
     {
@@ -2502,30 +2494,28 @@ s32 load_game_config(char *gamepak_title, char *gamepak_code, char *gamepak_make
           }
         }
 
-        fclose(config_file);
+        FILE_CLOSE(config_file);
         return 0;
       }
     }
 
-    fclose(config_file);
+    FILE_CLOSE(config_file);
   }
 
   return -1;
 }
 
-//#define LOAD_ON_MEMORY -1
-#define LOAD_ON_MEMORY NULL
+#define LOAD_ON_MEMORY FILE_TAG_INVALID
 
 static s32 load_gamepak_raw(char *name_path)
 {
-  FILE_ID gamepak_file;
+  FILE_TAG_TYPE gamepak_file;
 
-printf("rom file %s\n", name_path);
   FILE_OPEN(gamepak_file, name_path, READ);
 
   if(FILE_CHECK_VALID(gamepak_file))
   {
-    u32 gamepak_size = file_length(gamepak_file);
+    u32 gamepak_size = FILE_LENGTH(gamepak_file);
 
     // If it's a big file size keep it don't close it, we'll
     // probably want to load it later
@@ -2541,19 +2531,11 @@ printf("rom file %s\n", name_path);
       // Read in just enough for the header
       FILE_READ(gamepak_file, gamepak_rom, 0x100);
       gamepak_file_large = (FILE_TAG_TYPE)gamepak_file;
-      // 如果改变当前目录中的文件列表
-      // 因此，不可读文件，完整路径
-//      char temp_path[MAX_PATH];
-//      getcwd(temp_path, MAX_PATH);
-//      sprintf(gamepak_filename_full_path, "%s/%s", temp_path, name);
-	  strcpy(gamepak_filename_full_path, name_path);
+      strcpy(gamepak_filename_full_path, name_path);
     }
 
     return gamepak_size;
   }
-  else
-//dgprintf("open rom file failure\n")
-	;
 
   return -1;
 }
@@ -2568,20 +2550,13 @@ s32 load_gamepak(char *file_path)
   s32 file_size;
   char cheats_filename[MAX_FILE];
 
-//dgprintf("file_name %s\n", name);
-
-  // 如果文件是打开的， 先关闭
   if(FILE_CHECK_VALID(gamepak_file_large))
     FILE_CLOSE(gamepak_file_large);
 
-//  gamepak_file_large = (FILE_TAG_TYPE)(-1);
-  gamepak_file_large = NULL;
+  gamepak_file_large = FILE_TAG_INVALID;
 
   if(!strcasecmp(dot_position, ".zip"))
   {
-    // 如果是 ZIP 文件时
-//    set_cpu_clock(2);
-    init_progress(DOWN_SCREEN, 4, "Load ZIP ROM.");  // TODO 显示进度
     file_size = load_file_zip(file_path);
     if(file_size == -2)
     {
@@ -2591,23 +2566,20 @@ s32 load_gamepak(char *file_path)
     }
   }
   else
-  {  // 查看进度条
-    init_progress(DOWN_SCREEN, 4, "Load ROM.");  // TODO
+  {
     file_size = load_gamepak_raw(file_path);
   }
-  update_progress();
 
 printf("file_size %d\n", file_size);
 
-	frame_ticks = 0;
-	savefast_int();					//Initial savefast
+  frame_ticks = 0;
+  init_rewind(); // Initialise rewinds for this game
 
   if(file_size != -1)
   {
     gamepak_size = (file_size + 0x7FFF) & ~0x7FFF;
     change_ext(gamepak_filename, backup_filename, ".sav");
     load_backup(backup_filename);
-    update_progress();
 
     memcpy(gamepak_title, gamepak_rom + 0xA0, 12);
     memcpy(gamepak_code, gamepak_rom + 0xAC, 4);
@@ -2638,46 +2610,23 @@ printf("file_size %d\n", file_size);
     mem_save_flag = 0;
 
     load_game_config(gamepak_title, gamepak_code, gamepak_maker);
-    update_progress();
-//    load_game_config_file();
-//    update_progress();
-
-#if 0
-    change_ext(gamepak_filename, cheats_filename, ".cht");
-    add_cheats(cheats_filename);
-#endif
-    update_progress();
-
-    show_progress("Load ROM OK.");  // TODO
     return 0;
   }
 
   return -1;
 }
 
-
-// BIOS的加载
-// 返回值: MD5编码正常为0，否则 -2/-1
 s32 load_bios(char *name)
 {
-//  u8 md5[16];
-  FILE_ID bios_file;
+  FILE_TAG_TYPE bios_file;
   FILE_OPEN(bios_file, name, READ);
 
   if(FILE_CHECK_VALID(bios_file))
   {
     FILE_READ(bios_file, bios.rom, 0x4000);
     FILE_CLOSE(bios_file);
-    // 获得BIOS的MD5
-//    sceKernelUtilsMd5Digest(bios.rom, 0x4000, md5);
-//    if (memcmp(md5,gba_md5,16) == 0)
-      return 0;
-//    if (memcmp(md5,nds_md5,16) == 0)
-//      return 0;
-//    return -2;
+    return 0;
   }
-
-printf("BIOS not opened\n");
 
   return -1;
 }
@@ -3354,17 +3303,6 @@ CPU_ALERT_TYPE dma_transfer(DMA_TRANSFER_TYPE *dma)
     memory_map_##type[map_offset + 3] = vram + (0x8000 * 2);                  \
   }                                                                           \
 
-#define map_vram_firstpage(type)                                              \
-  for(map_offset = 0x6000000 / 0x8000; map_offset < (0x7000000 / 0x8000);     \
-   map_offset += 4)                                                           \
-  {                                                                           \
-    memory_map_##type[map_offset] = vram;                                     \
-    memory_map_##type[map_offset + 1] = NULL;                                 \
-    memory_map_##type[map_offset + 2] = NULL;                                 \
-    memory_map_##type[map_offset + 3] = NULL;                                 \
-  }                                                                           \
-
-
 // Picks a page to evict
 u32 page_time = 0;
 
@@ -3407,12 +3345,8 @@ u8 *load_gamepak_page(u32 physical_index)
   gamepak_memory_map[page_index].physical_index = physical_index;
   page_time++;
 
-//  FILE_OPEN(gamepak_file_large, gamepak_filename_full_path, READ);
-
   FILE_SEEK(gamepak_file_large, physical_index * (32 * 1024), SEEK_SET);
   FILE_READ(gamepak_file_large, swap_location, (32 * 1024));
-
-//  FILE_CLOSE(gamepak_file_large);
 
   memory_map_read[(0x8000000 / (32 * 1024)) + physical_index] = swap_location;
   memory_map_read[(0xA000000 / (32 * 1024)) + physical_index] = swap_location;
@@ -3542,26 +3476,7 @@ void init_memory()
   map_null(write, 0x4000000, 0x5000000);
   map_null(write, 0x5000000, 0x6000000);
 
-  // The problem here is that the current method of handling self-modifying code
-  // requires writeable memory to be proceeded by 32KB SMC data areas or be
-  // indirectly writeable. It's possible to get around this if you turn off the SMC
-  // check altogether, but this will make a good number of ROMs crash (perhaps most
-  // of the ones that actually need it? This has yet to be determined).
-
-  // This is because VRAM cannot be efficiently made incontiguous, and still allow
-  // the renderer to work as efficiently. It would, at the very least, require a
-  // lot of hacking of the renderer which I'm not prepared to do.
-
-  // However, it IS possible to directly map the first page no matter what because
-  // there's 32kb of blank stuff sitting beneath it.
-  if(direct_map_vram)
-  {
-    map_vram(write);
-  }
-  else
-  {
-    map_null(write, 0x6000000, 0x7000000);
-  }
+  map_vram(write);
 
   map_null(write, 0x7000000, 0x8000000);
   map_null(write, 0x8000000, 0xE000000);
@@ -3621,65 +3536,49 @@ void bios_region_read_protect()
 // type = read_mem / write_mem
 #define savestate_block(type)                                                 \
   cpu_##type##_savestate();                                                   \
-  update_progress();                                                          \
   input_##type##_savestate();                                                 \
-  update_progress();                                                          \
   main_##type##_savestate();                                                  \
-  update_progress();                                                          \
   memory_##type##_savestate();                                                \
-  update_progress();                                                          \
-  sound_##type##_savestate();                                                 \
-  update_progress();                                                          \
-  video_##type##_savestate();                                                 \
-  update_progress();                                                          \
-
-#define savestate_block_fast(type)											  \
-  cpu_##type##_savestate();                                                   \
-  input_##type##_savestate();                                                 \
-  main_##type##_savestate();                                                  \
-  memory_##type##_fast_savestate();                                           \
   sound_##type##_savestate();                                                 \
   video_##type##_savestate();                                                 \
 
-static unsigned int savefast_queue_wr_len;
-unsigned int savefast_queue_len;
-void savefast_int(void)
+static unsigned int rewind_queue_wr_len;
+unsigned int rewind_queue_len;
+void init_rewind(void)
 {
-	savefast_queue_wr_len = 0;
-	savefast_queue_len = 0;
+	rewind_queue_wr_len = 0;
+	rewind_queue_len = 0;
 }
 
-void savestate_fast(void)
+void savestate_rewind(void)
 {
-	int len0, len1;
+	g_state_buffer_ptr = SAVESTATE_REWIND_MEM + rewind_queue_wr_len * SAVESTATE_REWIND_LEN;
+	savestate_block(write_mem);
 
-	g_state_buffer_ptr = SAVEFAST_MEM + savefast_queue_wr_len * SAVESTATE_FAST_LEN;
-	savestate_block_fast(write_mem);
+	rewind_queue_wr_len += 1;
+	if(rewind_queue_wr_len >= SAVESTATE_REWIND_NUM)
+		rewind_queue_wr_len = 0;
 
-	savefast_queue_wr_len += 1;
-	if(savefast_queue_wr_len >= SAVESTATE_FAST_NUM)
-		savefast_queue_wr_len = 0;
-
-	if(savefast_queue_len < SAVESTATE_FAST_NUM)
-		savefast_queue_len += 1;
+	if(rewind_queue_len < SAVESTATE_REWIND_NUM)
+		rewind_queue_len += 1;
 }
 
-void loadstate_fast(void)
+void loadstate_rewind(void)
 {
 	int i;
 
-	if(savefast_queue_len == 0)		//There's no fast save state
+	if(rewind_queue_len == 0)  // There's no rewind data
 		return;
 
 	//Load latest recently
-	savefast_queue_len -= 1;
-	if(savefast_queue_wr_len == 0)
-		savefast_queue_wr_len = SAVESTATE_FAST_NUM -1;
+	rewind_queue_len--;
+	if(rewind_queue_wr_len == 0)
+		rewind_queue_wr_len = SAVESTATE_REWIND_NUM - 1;
 	else
-		savefast_queue_wr_len -= 1;
+		rewind_queue_wr_len--;
 
-	g_state_buffer_ptr = SAVEFAST_MEM + savefast_queue_wr_len * SAVESTATE_FAST_LEN;
-	savestate_block_fast(read_mem);
+	g_state_buffer_ptr = SAVESTATE_REWIND_MEM + rewind_queue_wr_len * SAVESTATE_REWIND_LEN;
+	savestate_block(read_mem);
 
 	clear_metadata_area(METADATA_AREA_IWRAM, CLEAR_REASON_LOADING_STATE);
 	clear_metadata_area(METADATA_AREA_EWRAM, CLEAR_REASON_LOADING_STATE);
@@ -3697,138 +3596,6 @@ void loadstate_fast(void)
 	reg[CHANGED_PC_STATUS] = 1;
 }
 
-/*--------------------------------------------------------
-  ステートロード
-  input
-    char *savestate_filename ロードするファイルネーム
-    u32 slot_num             スロットNo. メモリロードの判別に使用
-  return
-    0 ロード失敗
-    1 ロード成功
---------------------------------------------------------*/
-#if 0
-u32 load_state(char *savestate_filename, u32 slot_num)
-{
-  char savestate_path[MAX_PATH];
-  FILE_ID savestate_file;
-  char current_gamepak_filename[MAX_FILE];
-  u32 i;
-  u32 file_size = 0;
-  char buf[256];
-
-  pause_sound(1);
-
-//  sprintf(buf,"Load State No.%d.", (int)slot_num);
-//  if(yesno_dialog(buf) == 1)
-//    return 0;
-
-  init_progress(9, msg[MSG_LOAD_STATE]);
-
-  if (slot_num != MEM_STATE_NUM)
-  {
-    sprintf(savestate_path, "%s/%s", DEFAULT_SAVE_DIR, savestate_filename);
-    FILE_OPEN(savestate_file, savestate_path, READ);
-    if(FILE_CHECK_VALID(savestate_file))
-    {
-	  file_size = file_length(savestate_file);
-      if (file_size == SAVESTATE_SIZE)
-        FILE_READ(savestate_file, savestate_write_buffer, sizeof(savestate_write_buffer));
-      else
-      {
-//        FILE_READ(savestate_file, savestate_write_buffer, sizeof(savestate_write_buffer) - 4);
-        FILE_CLOSE(savestate_file);
-        return 0;
-      }
-      FILE_CLOSE(savestate_file);
-    }
-    else
-      return 0;
-  }
-  else
-    if (mem_save_flag == 1)
-      file_size = SAVESTATE_SIZE;
-    else
-      return 0;
-
-  if (file_size == SAVESTATE_SIZE)
-//    g_state_buffer_ptr = savestate_write_buffer + (240 * 160 * 2) + sizeof(u64);
-    g_state_buffer_ptr = savestate_write_buffer + sizeof(struct rtc) + (240 * 160 * 2) + 2;
-//  else
-//    g_state_buffer_ptr = savestate_write_buffer + (240 * 160 * 2) + sizeof(u32);
-
-  strcpy(current_gamepak_filename, gamepak_filename);
-  update_progress();
-
-  savestate_block(read_mem);
-  update_progress();
-
-  clear_metadata_area(METADATA_AREA_IWRAM, CLEAR_REASON_LOADING_STATE);
-  clear_metadata_area(METADATA_AREA_EWRAM, CLEAR_REASON_LOADING_STATE);
-  clear_metadata_area(METADATA_AREA_VRAM, CLEAR_REASON_LOADING_STATE);
-  update_progress();
-
-  oam_update = 1;
-  gbc_sound_update = 1;
-  update_progress();
-//  show_progress(msg[MSG_LOAD_STATE_END]);
-
-printf("C %s\n", current_gamepak_filename);
-printf("G %s\n", gamepak_filename);
-  // TODO: savestate file not match the rom
-  char *dot_position;
-  dot_position = strrchr(gamepak_filename, '/');
-printf("D %s\n", dot_position);
-  if(strcmp(current_gamepak_filename, dot_position+1))  //compara file name
-  {
-    // We'll let it slide if the filenames of the savestate and
-    // the gamepak are similar enough.
-//    u32 dot_position = strcspn(current_gamepak_filename, ".");
-//    if(strncmp(savestate_filename, current_gamepak_filename, dot_position))
-//    {
-      strcpy(current_gamepak_filename, dot_position+1);
-      *dot_position= 0;
-      strcpy(rom_path, gamepak_filename);           //file path
-      strcpy(gamepak_filename, current_gamepak_filename);   //file name
-
-      if(load_gamepak(gamepak_filename) != -1)
-      {
-        reset_gba();
-        // Okay, so this takes a while, but for now it works.
-        load_state(savestate_filename, SAVESTATE_SLOT);
-      }
-      else
-      {
-        printf("loadstate: load rom file error\n");
-        quit(0);
-      }
-
-//      real_frame_count = 0;
-//      virtual_frame_count = 0;
-      pause_sound(0);
-      return 1;
-//    }
-  }
-  else
-  {
-    strcpy(current_gamepak_filename, dot_position+1);
-    strcpy(gamepak_filename, current_gamepak_filename);
-  }
-
-  // Oops, these contain raw pointers
-  for(i = 0; i < 4; i++)
-  {
-    gbc_sound_channel[i].sample_data = square_pattern_duty[2];
-  }
-
-  reg[CHANGED_PC_STATUS] = 1;
-
-//  real_frame_count = 0;
-//  virtual_frame_count = 0;
-  pause_sound(0);
-  return 1;
-}
-#endif
-
 /*
  * Loads a saved state, given its file name and a file handle already opened
  * in at least mode "rb" to the same file. This function is responsible for
@@ -3837,74 +3604,68 @@ printf("D %s\n", dot_position);
  * loaded.
  * Returns 0 on success, non-zero on failure.
  */
-u32 load_state(char *savestate_filename, FILE *fp)
+u32 load_state(char *savestate_filename, FILE_TAG_TYPE fp)
 {
     size_t i;
 
-//    pause_sound(1);
-
     if(fp != NULL)
     {
-	u8 header[SVS_HEADER_SIZE];
-	i = fread(header, 1, SVS_HEADER_SIZE, fp);
-	if (i < SVS_HEADER_SIZE) {
-		fclose(fp);
-		return 1; // Failed to fully read the file
-	}
-	if (!(
-		memcmp(header, SVS_HEADER_E, SVS_HEADER_SIZE) == 0
-	||	memcmp(header, SVS_HEADER_F, SVS_HEADER_SIZE) == 0
-	)) {
-		fclose(fp);
-		return 2; // Bad saved state format
-	}
-
-        i= fread(savestate_write_buffer, 1, SAVESTATE_SIZE, fp);
-printf("fread %d\n", i);
-	fclose(fp);
-	if (i < SAVESTATE_SIZE)
-		return 1; // Failed to fully read the file
-
-        g_state_buffer_ptr = savestate_write_buffer + sizeof(struct rtc) + (240 * 160 * 2) + 2;
-printf("gamepak_filename0: %s\n", gamepak_filename);
-
-        savestate_block(read_mem);
-
-	// Perform fixups by saved-state version.
-
-	// 1.0e: Uses precalculated variables with SOUND_FREQUENCY equal to
-	// 65536. Port these values forward to 1.0f where it's 88200.
-	if (memcmp(header, SVS_HEADER_E, SVS_HEADER_SIZE) == 0)
-	{
-		unsigned int n;
-		for (n = 0; n < 4; n++) {
-			gbc_sound_channel[n].frequency_step = FLOAT_TO_FP16_16(FP16_16_TO_FLOAT(gbc_sound_channel[n].frequency_step) * 65536.0 / SOUND_FREQUENCY);
+		u8 header[SVS_HEADER_SIZE];
+		i = FILE_READ(fp, header, SVS_HEADER_SIZE);
+		if (i < SVS_HEADER_SIZE) {
+			FILE_CLOSE(fp);
+			return 1; // Failed to fully read the file
 		}
-		for (n = 0; n < 2; n++) {
-			timer[n].frequency_step = FLOAT_TO_FP16_16(FP16_16_TO_FLOAT(timer[n].frequency_step) * 65536.0 / SOUND_FREQUENCY);
+		if (!(
+			memcmp(header, SVS_HEADER_E, SVS_HEADER_SIZE) == 0
+		||	memcmp(header, SVS_HEADER_F, SVS_HEADER_SIZE) == 0
+		)) {
+			FILE_CLOSE(fp);
+			return 2; // Bad saved state format
 		}
-	}
 
-	// End fixups.
+		i = FILE_READ(fp, savestate_write_buffer, SAVESTATE_SIZE);
+		FILE_CLOSE(fp);
+		if (i < SAVESTATE_SIZE)
+			return 1; // Failed to fully read the file
 
-	clear_metadata_area(METADATA_AREA_IWRAM, CLEAR_REASON_LOADING_STATE);
-	clear_metadata_area(METADATA_AREA_EWRAM, CLEAR_REASON_LOADING_STATE);
-	clear_metadata_area(METADATA_AREA_VRAM, CLEAR_REASON_LOADING_STATE);
+		g_state_buffer_ptr = savestate_write_buffer + sizeof(struct ReGBA_RTC) + (240 * 160 * sizeof(u16)) + 2;
 
-        oam_update = 1;
-        gbc_sound_update = 1;
+		savestate_block(read_mem);
 
-printf("gamepak_filename1: %s\n", gamepak_filename);
+		// Perform fixups by saved-state version.
 
-    // Oops, these contain raw pointers
-    for(i = 0; i < 4; i++)
-    {
-        gbc_sound_channel[i].sample_data = square_pattern_duty[2];
-    }
+		// 1.0e: Uses precalculated variables with SOUND_FREQUENCY equal to
+		// 65536. Port these values forward to 1.0f where it's 88200.
+		if (memcmp(header, SVS_HEADER_E, SVS_HEADER_SIZE) == 0)
+		{
+			unsigned int n;
+			for (n = 0; n < 4; n++) {
+				gbc_sound_channel[n].frequency_step = FLOAT_TO_FP16_16(FP16_16_TO_FLOAT(gbc_sound_channel[n].frequency_step) * 65536.0 / SOUND_FREQUENCY);
+			}
+			for (n = 0; n < 2; n++) {
+				timer[n].frequency_step = FLOAT_TO_FP16_16(FP16_16_TO_FLOAT(timer[n].frequency_step) * 65536.0 / SOUND_FREQUENCY);
+			}
+		}
 
-    reg[CHANGED_PC_STATUS] = 1;
+		// End fixups.
 
-    return 0;
+		clear_metadata_area(METADATA_AREA_IWRAM, CLEAR_REASON_LOADING_STATE);
+		clear_metadata_area(METADATA_AREA_EWRAM, CLEAR_REASON_LOADING_STATE);
+		clear_metadata_area(METADATA_AREA_VRAM, CLEAR_REASON_LOADING_STATE);
+
+		oam_update = 1;
+		gbc_sound_update = 1;
+
+		// Oops, these contain raw pointers
+		for(i = 0; i < 4; i++)
+		{
+			gbc_sound_channel[i].sample_data = square_pattern_duty[2];
+		}
+
+		reg[CHANGED_PC_STATUS] = 1;
+
+		return 0;
     }
     else return 1;
 }
@@ -3923,36 +3684,26 @@ printf("gamepak_filename1: %s\n", gamepak_filename);
 u32 save_state(char *savestate_filename, u16 *screen_capture)
 {
   char savestate_path[MAX_PATH];
-  FILE_ID savestate_file;
+  FILE_TAG_TYPE savestate_file;
 //  char buf[256];
-  struct rtc current_time;
+  struct ReGBA_RTC Time;
   u32 ret;
 
-  ret= 1;
-//  pause_sound(1);
+  ret = 1;
 
   sprintf(savestate_path, "%s/%s", DEFAULT_SAVE_DIR, savestate_filename);
 
   g_state_buffer_ptr = savestate_write_buffer;
 
-  init_progress(DOWN_SCREEN, 9, msg[MSG_UNCERTAIN]);
-
-  ds2_getTime(&current_time);
-  FILE_WRITE_MEM_VARIABLE(g_state_buffer_ptr, current_time);
-  update_progress();
+  ReGBA_LoadRTCTime(&Time);
+  FILE_WRITE_MEM_VARIABLE(g_state_buffer_ptr, Time);
 
   FILE_WRITE_MEM(g_state_buffer_ptr, screen_capture, 240 * 160 * 2);
   //Identify ID
   *(g_state_buffer_ptr++)= 0x5A;
   *(g_state_buffer_ptr++)= 0x3C;
-  update_progress();
 
   savestate_block(write_mem);
-  //just for debug
-//  if((g_state_buffer_ptr - savestate_write_buffer) != SAVESTATE_SIZE)
-//  {
-//    printf("save sate error: %s:%d", __FILE__, __LINE__);
-//  }
 
   FILE_OPEN(savestate_file, savestate_path, WRITE);
   if(FILE_CHECK_VALID(savestate_file))
@@ -3963,16 +3714,11 @@ u32 save_state(char *savestate_filename, u16 *screen_capture)
   }
   else
   {
-    printf("Open %s\n failure\n", savestate_path);
     ret = 0;
   }
 
   mem_save_flag = 1;
 
-  update_progress();
-  show_progress(msg[MSG_UNCERTAIN]);
-
-//  pause_sound(0);
   return ret;
 }
 
@@ -3985,7 +3731,7 @@ u32 save_state(char *savestate_filename, u16 *screen_capture)
 #define memory_savestate_body(type)                                           \
 {                                                                             \
   u32 i;                                                                      \
-  char fullname[MAX_FILE];                                                    \
+  char fullname[512];                                                         \
   memset(fullname, 0, sizeof(fullname));                                      \
                                                                               \
   FILE_##type##_VARIABLE(g_state_buffer_ptr, backup_type);                    \
@@ -4011,7 +3757,6 @@ u32 save_state(char *savestate_filename, u16 *screen_capture)
   FILE_##type##_VARIABLE(g_state_buffer_ptr, rtc_bit_count);                  \
   FILE_##type##_ARRAY(g_state_buffer_ptr, eeprom_buffer);                     \
   SAVESTATE_##type##_FILENAME(fullname);                                      \
-  /*FILE_##type##_ARRAY(g_state_buffer_ptr, gamepak_filename);*/              \
   FILE_##type##_ARRAY(g_state_buffer_ptr, dma);                               \
                                                                               \
   FILE_##type##_ARRAY(g_state_buffer_ptr, iwram_data);                        \
@@ -4027,49 +3772,6 @@ memory_savestate_body(READ_MEM);
 
 void memory_write_mem_savestate()
 memory_savestate_body(WRITE_MEM);
-
-
-#define memory_fast_savestate_body(type)									  \
-{                                                                             \
-  u32 i;                                                                      \
-                                                                              \
-  FILE_##type##_VARIABLE(g_state_buffer_ptr, backup_type);					  \
-  FILE_##type##_VARIABLE(g_state_buffer_ptr, sram_size);					  \
-  FILE_##type##_VARIABLE(g_state_buffer_ptr, flash_mode);					  \
-  FILE_##type##_VARIABLE(g_state_buffer_ptr, flash_command_position);		  \
-  FILE_##type##_VARIABLE(g_state_buffer_ptr, flash_bank_offset);				  \
-  FILE_##type##_VARIABLE(g_state_buffer_ptr, flash_device_id);				  \
-  FILE_##type##_VARIABLE(g_state_buffer_ptr, flash_manufacturer_id);		  \
-  FILE_##type##_VARIABLE(g_state_buffer_ptr, flash_size);					  \
-  FILE_##type##_VARIABLE(g_state_buffer_ptr, eeprom_size);					  \
-  FILE_##type##_VARIABLE(g_state_buffer_ptr, eeprom_mode);					  \
-  FILE_##type##_VARIABLE(g_state_buffer_ptr, eeprom_address_length);		  \
-  FILE_##type##_VARIABLE(g_state_buffer_ptr, eeprom_address);				  \
-  FILE_##type##_VARIABLE(g_state_buffer_ptr, eeprom_counter);				  \
-  FILE_##type##_VARIABLE(g_state_buffer_ptr, rtc_state);					  \
-  FILE_##type##_VARIABLE(g_state_buffer_ptr, rtc_write_mode);				  \
-  FILE_##type##_ARRAY(g_state_buffer_ptr, rtc_registers);					  \
-  FILE_##type##_VARIABLE(g_state_buffer_ptr, rtc_command);					  \
-  FILE_##type##_ARRAY(g_state_buffer_ptr, rtc_data);						  \
-  FILE_##type##_VARIABLE(g_state_buffer_ptr, rtc_status);					  \
-  FILE_##type##_VARIABLE(g_state_buffer_ptr, rtc_data_bytes);				  \
-  FILE_##type##_VARIABLE(g_state_buffer_ptr, rtc_bit_count);				  \
-  FILE_##type##_ARRAY(g_state_buffer_ptr, eeprom_buffer);					  \
-  FILE_##type##_ARRAY(g_state_buffer_ptr, dma);								  \
-                                                                              \
-  FILE_##type##_ARRAY(g_state_buffer_ptr, iwram_data);				 \
-  FILE_##type##_ARRAY(g_state_buffer_ptr, ewram_data);				 \
-  FILE_##type(g_state_buffer_ptr, vram, 0x18000);							  \
-  FILE_##type(g_state_buffer_ptr, oam_ram, 0x400);							  \
-  FILE_##type(g_state_buffer_ptr, palette_ram, 0x400);						  \
-  FILE_##type(g_state_buffer_ptr, io_registers, 0x8000);					  \
-}                                                                             \
-
-void memory_read_mem_fast_savestate()
-memory_fast_savestate_body(READ_MEM);
-
-void memory_write_mem_fast_savestate()
-memory_fast_savestate_body(WRITE_MEM);
 
 u32 get_sio_mode(u16 io1, u16 io2)
 {

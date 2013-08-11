@@ -151,6 +151,39 @@ typedef enum
   REG_HALTCNT     = 0x180
 } HARDWARE_REGISTER;
 
+typedef enum
+{
+  TIMER_INACTIVE,
+  TIMER_PRESCALE,
+  TIMER_CASCADE
+} TIMER_STATUS_TYPE;
+
+typedef enum
+{
+  TIMER_NO_IRQ,
+  TIMER_TRIGGER_IRQ
+} TIMER_IRQ_TYPE;
+
+typedef enum
+{
+  TIMER_DS_CHANNEL_NONE,
+  TIMER_DS_CHANNEL_A,
+  TIMER_DS_CHANNEL_B,
+  TIMER_DS_CHANNEL_BOTH
+} TIMER_DS_CHANNEL_TYPE;
+
+typedef struct
+{
+  s32 count;
+  u32 reload;
+  u32 prescale;
+  u32 stop_cpu_ticks; /* NOT USE */
+  FIXED16_16 frequency_step;
+  TIMER_DS_CHANNEL_TYPE direct_sound_channels;
+  TIMER_IRQ_TYPE irq;
+  TIMER_STATUS_TYPE status;
+} TIMER_TYPE;
+
 // グローバル変数宣言
 
 extern u32 mem_save_flag;
@@ -167,6 +200,7 @@ extern u32 gamepak_ram_buffer_size;
 extern u32 oam_update;
 extern u32 gbc_sound_update;
 extern DMA_TRANSFER_TYPE dma[4];
+extern TIMER_TYPE timer[4];
 
 extern u8 savestate_write_buffer[];
 extern u8 *g_state_buffer_ptr;
@@ -245,10 +279,10 @@ extern void bios_region_read_protect();
 //extern u32 load_state(char *savestate_filename, u32 slot_num);
 extern u32 load_state(char *savestate_filename, FILE *fp);
 extern u32 save_state(char *savestate_filename, u16 *screen_capture);
-extern void savefast_int(void);
-extern void savestate_fast(void);
-extern void loadstate_fast(void);
+extern void init_rewind(void);
+extern void savestate_rewind(void);
+extern void loadstate_rewind(void);
 
-extern unsigned int savefast_queue_len;
+extern unsigned int rewind_queue_len;
 
 #endif

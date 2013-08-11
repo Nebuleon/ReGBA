@@ -1425,7 +1425,7 @@ void init_default_gpsp_config()
 void load_game_config_file(void)
 {
     char game_config_filename[MAX_PATH];
-    FILE_ID game_config_file;
+    FILE_TAG_TYPE game_config_file;
     char *pt;
 
     // 设置初始值
@@ -1458,7 +1458,7 @@ void load_game_config_file(void)
 s32 load_config_file()
 {
     char gpsp_config_path[MAX_PATH];
-    FILE_ID gpsp_config_file;
+    FILE_TAG_TYPE gpsp_config_file;
     char *pt;
 
     init_default_gpsp_config();
@@ -5215,7 +5215,7 @@ void get_savestate_filename_noshot(u32 slot, char *name_buffer)
 s32 save_game_config_file()
 {
     char game_config_filename[MAX_PATH];
-    FILE_ID game_config_file;
+    FILE_TAG_TYPE game_config_file;
     char *pt;
 
     if(gamepak_filename[0] == 0) return -1;
@@ -5243,7 +5243,7 @@ s32 save_game_config_file()
 s32 save_config_file()
 {
     char gpsp_config_path[MAX_PATH];
-    FILE_ID gpsp_config_file;
+    FILE_TAG_TYPE gpsp_config_file;
 
     sprintf(gpsp_config_path, "%s/%s", main_path, GPSP_CONFIG_FILENAME);
 
@@ -5487,7 +5487,7 @@ void QuickLoadState (void)
 	ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
 
 	int flag = 0;
-	FILE_ID fp;
+	FILE_TAG_TYPE fp;
 	FILE_OPEN(fp, FullName, READ);
 	if(!FILE_CHECK_VALID(fp))
 	{
@@ -5865,7 +5865,7 @@ void game_set_rewind() {
 	{
 		game_config.backward = 1;
 		game_config.backward_time = game_persistent_config.rewind_value - 1;
-		savefast_int();
+		init_rewind();
 		switch(game_config.backward_time)
 		{
 			case 0 : frame_interval = 15; break;

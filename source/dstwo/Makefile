@@ -47,9 +47,9 @@ CPP_OBJECTS  = $(CPP_SOURCES:.cpp=.o)
 ASM_OBJECTS  = $(ASM_SOURCES:.S=.o)
 OBJECTS      = $(C_OBJECTS) $(CPP_OBJECTS) $(ASM_OBJECTS)
 HEADERS      = bdf_font.h bitmap.h charsets.h cheats.h                        \
-               ../common.h ../cpu_common.h cpu.h draw.h gpsp_main.h gu.h gui.h\
-               input.h memory.h message.h ../mips/emit.h sound.h              \
-               ../stats.h ../video.h ../zip.h
+               ../common.h ../cpu_common.h ../cpu.h draw.h gpsp_main.h gu.h   \
+               gui.h input.h memory.h message.h ../mips/emit.h sound.h        \
+               ../stats.h ../video.h ../zip.h port.h
 
 # - - - Compilation flags - - -
 CFLAGS := -mips32 -mno-abicalls -fno-pic -fno-builtin \

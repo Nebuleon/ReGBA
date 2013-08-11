@@ -204,6 +204,9 @@ void clear_metadata_area(METADATA_AREA_TYPE metadata_area,
   METADATA_CLEAR_REASON_TYPE clear_reason);
 void dump_translation_cache();
 
+void set_cpu_mode(CPU_MODE_TYPE new_mode);
+void raise_interrupt(IRQ_TYPE irq_raised);
+
 extern u32 reg_mode[7][7];
 extern u32 spsr[6];
 

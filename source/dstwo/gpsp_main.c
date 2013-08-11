@@ -33,11 +33,6 @@
 /******************************************************************************
  * 全局变量定义
  ******************************************************************************/
-TIMER_TYPE timer[4];                              // 定时器
-
-/******************************************************************************
- * 全局变量定义
- ******************************************************************************/
 
 u32 global_cycles_per_instruction = 1;
 //u64 frame_count_initial_timestamp = 0;
@@ -83,10 +78,6 @@ int date_format= 2;
 u32 prescale_table[] = { 0, 6, 8, 10 };
 
 char *file_ext[] = { ".gba", ".bin", ".zip", NULL };
-
-// PSP类型
-//MODEL_TYPE psp_model;
-const MODEL_TYPE psp_model= PSP_1000;
 
 /******************************************************************************
  * 宏定义
@@ -158,23 +149,6 @@ void init_main();
 int main(int argc, char *argv[]);
 void print_memory_stats(u32 *counter, u32 *region_stats, u8 *stats_str);
 u32 into_suspend();
-
-//int exit_callback(int arg1, int arg2, void *common);
-//SceKernelCallbackFunction power_callback(int unknown, int powerInfo, void *common);
-//int CallbackThread(SceSize args, void *argp);
-//int SetupCallbacks();
-//int user_main(SceSize args, char *argp[]);
-//void psp_exception_handler(PspDebugRegBlock *regs);
-
-// 改变CPU时钟
-//void set_cpu_clock(u32 num)
-//{
-//  const u32 clock_speed_table[4] = {120, 240, 360, 396};
-//  const u32 sdram_speed_table[4] = {1, 2, 3, 3};
-//  num = num % 4;
-//  scePowerSetClockFrequency(clock_speed_table[num], clock_speed_table[num], clock_speed_table[num] / 2);
-//  jz_pm_pllconvert(clock_speed_table[num]*1000000, sdram_speed_table[num]);	//pllin= clock, sdram_clk= pllin/div
-//}
 
 static u8 caches_inited = 0;
 
@@ -253,237 +227,69 @@ int plug_valid= 0;
 
 int gpsp_main(int argc, char *argv[])
 {
-  char load_filename[MAX_FILE];
+	char load_filename[MAX_FILE];
 
-/*
-unsigned short ch[2500];
-FILE *fp;
-u32 i;
-
-    memset((unsigned char*)ch, 0, 5000);
-
-    fp= fopen("mmc:\\newfile.txt", "r");
-    if(fp == NULL)
-        printf("Open newfile.txt failure\n");
-    else
-    {
-        i= fread((unsigned char*)ch, 2, 2500, fp);
-        printf("0 read %d\n", i);
-
-//        i= fread((unsigned char*)&ch[50], 2, 1500, fp);
-//        printf("1 read %d\n", i);
-
-//        i= fread((unsigned char*)&ch[1550], 2, 650, fp);
-//        printf("2 read %d\n", i);
-
-        fclose(fp);
-
-        for(i= 0; i < 2500; i++)
-        {
-            if((i % 256) == 0)
-            {
-                printf("\n\n\nsector%d\n\n", i/256);
-            }
-
-            if((i % 8) == 0)
-                printf("\n%d : ", i/8);
-            printf("%d ", ch[i]);
-            if(ch[i] != i) printf("Read error %d\n", i);
-        }
-    }
-
-while(1);
-*/
-
-  // Copy the directory path of the executable into main_path
-//  getcwd(main_path, MAX_FILE);
-//  chdir(main_path);
-
-//    OSTimeDly(OS_TICKS_PER_SEC*3);
-
-//  init_progress(7, "");
-
-    if(gui_init(0) < 0)
-        quit();
-  // Initial path information
-  initial_gpsp_config();
-  // 初始化进度条
-//  update_progress();
+	if(gui_init(0) < 0)
+		quit();
+	// Initialidse paths
+	initial_gpsp_config();
 
     init_video();
+	power_flag = 0;
 
- // 读取gpSP配置文件
-    //config is loaded in gui_init
-  //load_config_file();
+	// 初始化
+	init_game_config();
 
-//  psp_model = get_model();
+	init_main();
+	init_sound();
+	init_input();
 
-//  quit_flag = 0;				//commented already
-  power_flag = 0;
-//  SetupCallbacks();	<----电池电量不足等紧急事件处理进程，以后再说吧!
+	// 分配仿真ROM
+	init_gamepak_buffer();
 
-//  sceKernelRegisterSubIntrHandler(PSP_VBLANK_INT, 0, vblank_interrupt_handler, NULL);
-//  sceKernelEnableSubIntr(PSP_VBLANK_INT, 0);
-//  sceKernelRegisterSubIntrHandler(vblank_interrupt_handler, NULL);
+	// ROM文件名初始化
+	gamepak_filename[0] = 0;
 
-#ifdef USE_DEBUG
-  // 打开调试输出文件
-  g_dbg_file = fopen(DBG_FILE_NAME, "awb");
-  DBGOUT("\nStart gpSP\n");
-#endif
+	// BIOS的读入
+	char bios_filename[MAX_FILE];
+	sprintf(bios_filename, "%s/%s", main_path, "gba_bios.bin");
+	u32 bios_ret = load_bios(bios_filename);
+	if(bios_ret == -1) // 当读取失败
+	{
+		err_msg(DOWN_SCREEN, "The GBA BIOS is not present\nPlease see README.md for\nmore information\n\nLe BIOS GBA n'est pas present\nLisez README.md pour plus\nd'information (en anglais)");
+		ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
+		wait_Anykey_press(0);
+		quit();
+	}
 
-  // 初始化
-  init_game_config();
+	init_cpu();
+	init_memory();
+	reset_sound();
 
-  init_main();
-  init_sound();
-  init_input();
+	u16 screen_copy[GBA_SCREEN_BUFF_SIZE];
+	memset((char*)screen_copy, 0, sizeof(screen_copy));
+	menu(screen_copy, 1 /* first invocation: yes */);
 
-//  video_resolution(FRAME_MENU);
-//  video_resolution(FRAME_GAME);
-//  video_resolution(FRAME_MENU);
+	last_frame = 0;
 
-/*
-  clear_screen(COLOR_BG);
-  flip_screen();
-  OSTimeDly(OS_TICKS_PER_SEC/10);
-  clear_screen(COLOR_BG);
-  flip_screen();
-*/
+	pause_sound(0);
+	real_frame_count = 0;
+	virtual_frame_count = 0;
 
-  // 分配仿真ROM
-  init_gamepak_buffer();
-//  update_progress();
-
-  // ROM文件名初始化
-  gamepak_filename[0] = 0;
-
-  // BIOS的读入
-  char bios_filename[MAX_FILE];
-  sprintf(bios_filename, "%s/%s", main_path, "gba_bios.bin");
-  u32 bios_ret = load_bios(bios_filename);
-  if(bios_ret == -1) // 当读取失败
-  {
-    err_msg(DOWN_SCREEN, "The GBA BIOS is not present\nPlease see README.md for\nmore information\n\nLe BIOS GBA n'est pas present\nLisez README.md pour plus\nd'information (en anglais)");
-    ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
-    wait_Anykey_press(0);
-    quit();
-  }
-//  update_progress();
-#if 0
-  if(bios_ret == -2) // MD5校验不符
-  {
-    error_msg("MD5 check not match\n");
-  }
-#endif
-//  update_progress();
-
-//  show_progress(msg[MSG_INIT_END]);
-    //OSTimeDly(OS_TICKS_PER_SEC*2);
-
-	// Huh? What's all of this for? [Neb]
-#if 0
-dgprintf("Global cmd: %s\n", get_gba_file());
-    char *ppt;
-    ppt= get_gba_file();
-    if(ppt != NULL)
-    {
-        strcpy(load_filename, ppt);
-        ppt= strrchr(load_filename, '\\');
-        if(ppt != NULL)
-        {
-            strcpy(gamepak_filename, ppt+1);
-            *ppt = '\0';
-            strcpy(rom_path, load_filename);
-            plug_valid= 1;
-        }
-    }
-#endif
-
-#if 0
-  if(argc > 1)
-  {
-    if(load_gamepak((char *)argv[1]) == -1)
-    {
-      quit();
-    }
-
-    clear_screen(0);
-    flip_screen();
-    clear_screen(0);
-    flip_screen();
-//    video_resolution(FRAME_GAME);
-
-    init_cpu();
-    init_memory();
-    reset_sound();
-  }
-  else
-  {
-    if(load_file(file_ext, load_filename, g_default_rom_dir) == -1)
-    {
-      u16 screen_copy[GBA_SCREEN_BUFF_SIZE];
-      copy_screen(screen_copy);
-      menu(screen_copy);
-    }
-    else
-    {
-      if(load_gamepak(load_filename) == -1)
-      {
-        video_resolution(FRAME_MENU);
-        quit();
-      }
-
-      clear_screen(0);
-      flip_screen();
-      clear_screen(0);
-      flip_screen();
-//      video_resolution(FRAME_GAME);
-
-      init_cpu();
-      init_memory();
-      reset_sound();
-    }
-  }
-#endif
-
-	//strcpy(rom_path, "fat:");
-	//if(load_gamepak("test.gba") == -1)
-  //  {
-	//	error_msg("Test.gba could not be loaded.\n");
-  //      quit();
-  //  }
-
-    init_cpu();
-    init_memory();
-    reset_sound();
-
-    u16 screen_copy[GBA_SCREEN_BUFF_SIZE];
-    memset((char*)screen_copy, 0, sizeof(screen_copy));
-    menu(screen_copy, 1 /* first invocation: yes */);
-
-  last_frame = 0;
-
-  pause_sound(0);
-  real_frame_count = 0;
-  virtual_frame_count = 0;
-
-//  set_cpu_clock(2);
-  //
 #ifdef USE_C_CORE
-  if(gpsp_config.emulate_core == ASM_CORE)
-  {
-    execute_arm_translate(execute_cycles);
-  }
-  else
-  {
-    execute_arm(execute_cycles);
-  }
+	if(gpsp_config.emulate_core == ASM_CORE)
+	{
+		execute_arm_translate(execute_cycles);
+	}
+	else
+	{
+		execute_arm(execute_cycles);
+	}
 #else
-  execute_arm_translate(execute_cycles);
+	execute_arm_translate(execute_cycles);
 #endif
 
-  return 0;
+	return 0;
 }
 
 // 暂停处理进入菜单
@@ -615,14 +421,14 @@ u32 update_gba()
 				if(fast_backward) // Rewinding requested
 				{
 					fast_backward = 0;
-					if(savefast_queue_len > 0)
+					if(rewind_queue_len > 0)
 					{
 						if(frame_ticks > 3)
 						{
 							if(pen)
 								mdelay(500);
 
-							loadstate_fast();
+							loadstate_rewind();
 							pen = 1;
 							frame_ticks = 0;
 							continue;
@@ -637,7 +443,7 @@ u32 update_gba()
 				}
 				else if(frame_ticks ==0)
 				{
-					savestate_fast();
+					savestate_rewind();
 				}
 			}
 #if 0
@@ -724,145 +530,6 @@ void vblank_interrupt_handler(u32 sub, u32 *parg)
   vblank_count++;
 }
 
-// TODO:最適化/タイマー使ったものに変更
-// GBAの描画サイクルは 16.743 ms, 280896 cycles(16.78MHz) 59.737 Hz
-#if 0
-void synchronize()
-{
-//  char char_buffer[64];
-  static u32 fps = 60;
-  static u32 frames_drawn = 0;
-  static u32 frames_drawn_count = 0;
-
-  // FPS等の表示
-  if(psp_fps_debug)
-  {
-    char print_buffer[256];
-    sprintf(print_buffer, "FPS:%02d DRAW:(%02d) S_BUF:%02d PC:%08X", (int)fps, (int)frames_drawn, (int)left_buffer, (int)reg[REG_PC]);
-    PRINT_STRING_BG(print_buffer, 0xFFFF, 0x000, 0, 0);
-  }
-
-  // 初始化跳帧标志
-  skip_next_frame_flag = 0;
-  // 保持内部帧增加
-  frames++;
-
-  switch(game_config.frameskip_type)
-  {
-  // 自动跳帧时
-    case auto_frameskip:
-      virtual_frame_count++;
-
-      // 内部帧有延迟
-      if(real_frame_count > virtual_frame_count)
-      {
-        if(num_skipped_frames < game_config.frameskip_value)  // 小于设定值
-        {
-          // 跳到下一帧
-          skip_next_frame_flag = 1;
-          // 增加跳帧
-          num_skipped_frames++;
-        }
-        else
-        {
-          // 达到设定最大值
-//          real_frame_count = virtual_frame_count;
-          // 跳帧设置为0
-          num_skipped_frames = 0;
-          frames_drawn_count++;
-        }
-      }
-
-      // 内部帧与实际相同
-      if(real_frame_count == virtual_frame_count)
-      {
-        // 跳帧设置为0
-        num_skipped_frames = 0;
-        frames_drawn_count++;
-      }
-
-      // 内部帧率大于实际帧率
-      if(real_frame_count < virtual_frame_count)
-      {
-        num_skipped_frames = 0;
-        frames_drawn_count++;
-      }
-
-      // 内部帧率大于实际帧率时
-      if((real_frame_count < virtual_frame_count) && (synchronize_flag) && (skip_next_frame_flag == 0))
-      {
-        // 等待 VBANK
-        synchronize_sound();
-        sceDisplayWaitVblankStart();
-        real_frame_count = 0;
-        virtual_frame_count = 0;
-      }
-      break;
-
-    // 手动设置跳帧时
-    case manual_frameskip:
-      virtual_frame_count++;
-      // 增加跳帧数
-      num_skipped_frames = (num_skipped_frames + 1) % (game_config.frameskip_value + 1);
-      if(game_config.random_skip)
-      {
-        if(num_skipped_frames != (rand() % (game_config.frameskip_value + 1)))
-          skip_next_frame_flag = 1;
-        else
-          frames_drawn_count++;
-      }
-      else
-      {
-        // フレームスキップ数=0の時だけ画面更新
-        if(num_skipped_frames != 0)
-          skip_next_frame_flag = 1;
-        else
-          frames_drawn_count++;
-      }
-
-      // 内部帧率大于实际帧率时
-      if((real_frame_count < virtual_frame_count) && (synchronize_flag) && (skip_next_frame_flag == 0))
-      {
-        // 等待 VBANK
-        synchronize_sound();
-        sceDisplayWaitVblankStart();
-      }
-      real_frame_count = 0;
-      virtual_frame_count = 0;
-      break;
-
-    // 没有跳帧
-    case no_frameskip:
-      frames_drawn_count++;
-      virtual_frame_count++;
-      if((real_frame_count < virtual_frame_count) && (synchronize_flag))
-      {
-        // 内部フレーム数が実機を上回る場合
-        // VBANK待ち
-        synchronize_sound();
-        sceDisplayWaitVblankStart();
-      }
-      real_frame_count = 0;
-      virtual_frame_count = 0;
-      break;
-  }
-
-  // FPSのカウント
-  // 1/60秒のVBLANK割込みがあるので、タイマは使用しないようにした
-  if(frames == 60)
-  {
-    frames = 0;
-    fps = 3600 / vblank_count;
-    vblank_count = 0;
-    frames_drawn = frames_drawn_count;
-    frames_drawn_count = 0;
-  }
-
-  if(!synchronize_flag)
-    PRINT_STRING_BG("--FF--", 0xFFFF, 0x000, 0, 10);
-}
-#endif
-
 void reset_gba()
 {
   init_main();
@@ -870,27 +537,6 @@ void reset_gba()
   init_cpu();
   reset_sound();
 }
-
-#if 0
-u32 file_length(const char *filename)
-{
-  SceIoStat stats;
-  sceIoGetstat(filename, &stats);
-  return stats.st_size;
-}
-#endif
-
-u32 file_length(FILE_ID file)
-{
-  u32 pos, size;
-  pos= ftell(file);
-  fseek(file, 0, SEEK_END);
-  size= ftell(file);
-  fseek(file, pos, SEEK_SET);
-
-  return size;
-}
-
 
 void change_ext(char *src, char *buffer, char *extension)
 {
@@ -1008,7 +654,7 @@ MODEL_TYPE get_model()
 }
 #endif
 
-char* FS_FGets(char *buffer, int num, FILE *stream)
+char* FS_FGets(char *buffer, int num, FILE_TAG_TYPE stream)
 {
 	int m;
 	char *s;
