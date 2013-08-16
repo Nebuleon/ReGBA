@@ -279,8 +279,12 @@ void ReGBA_LoadRTCTime(struct ReGBA_RTC* RTCData);
  * Output assertions:
  *   a) If the port being compiled supports remapping buttons, the code in
  *      the core of ReGBA does not care about this and wants a return value in
- *      GBA bitfield format with ReGBA special buttons which it will resolve.
- *   b) Values are:
+ *      reverse GBA bitfield format with ReGBA special buttons which it will
+ *      resolve.
+ *   b) This function shall return SET bits for pressed buttons and UNSET bits
+ *      for unpressed buttons. The GBA expects the other way. The core handles
+ *      this after the function returns.
+ *   c) Values are:
  *      Button                 | Bit | Enum value
  *      -----------------------------------------------------
  *      GBA A                  |   0 | REGBA_BUTTON_A
