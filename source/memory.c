@@ -292,6 +292,11 @@ FLASH_MANUFACTURER_ID_TYPE flash_manufacturer_id =
  FLASH_MANUFACTURER_MACRONIX;
 flash_size_type flash_size = FLASH_SIZE_64KB;
 
+// Tilt sensor on the GBA side. It's mapped... somewhere... in the GBA address
+// space. See the read_backup function in memory.c for more information.
+u32 tilt_sensor_x;
+u32 tilt_sensor_y;
+
 u8 read_backup(u32 address)
 {
   u8 value = 0;

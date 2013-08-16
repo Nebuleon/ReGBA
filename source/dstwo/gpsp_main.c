@@ -242,7 +242,6 @@ int gpsp_main(int argc, char *argv[])
 
 	init_main();
 	init_sound();
-	init_input();
 
 	// 分配仿真ROM
 	init_gamepak_buffer();
@@ -266,9 +265,7 @@ int gpsp_main(int argc, char *argv[])
 	init_memory();
 	reset_sound();
 
-	u16 screen_copy[GBA_SCREEN_BUFF_SIZE];
-	memset((char*)screen_copy, 0, sizeof(screen_copy));
-	menu(screen_copy, 1 /* first invocation: yes */);
+	ReGBA_Menu(REGBA_MENU_ENTRY_REASON_NO_ROM);
 
 	last_frame = 0;
 
@@ -296,12 +293,11 @@ int gpsp_main(int argc, char *argv[])
 u32 into_suspend()
 {
 //  if (power_flag == 0) return 0; // TODO この処理はupdate_gba()側に移動
-  FILE_CLOSE(gamepak_file_large);
-  u16 screen_copy[GBA_SCREEN_BUFF_SIZE];
-  copy_screen(screen_copy);
-  u32 ret_val = menu(screen_copy, 0 /* first invocation: no */);
-  FILE_OPEN(gamepak_file_large, gamepak_filename_full_path, READ);
-  return ret_val;
+	FILE_CLOSE(gamepak_file_large);
+
+	u32 ret_val = ReGBA_Menu(REGBA_MENU_ENTRY_REASON_SUSPENDED);
+	FILE_OPEN(gamepak_file_large, gamepak_filename_full_path, READ);
+	return ret_val;
 }
 
 u32 sync_flag = 0;
@@ -438,7 +434,13 @@ u32 update_gba()
 					{
 						u32 HotkeyRewind = game_persistent_config.HotkeyRewind != 0 ? game_persistent_config.HotkeyRewind : gpsp_persistent_config.HotkeyRewind;
 
-						while(readkey() & HotkeyRewind);
+						struct key_buf inputdata;
+						ds2_getrawInput(&inputdata);
+
+						while (inputdata.key & HotkeyRewind)
+						{
+							ds2_getrawInput(&inputdata);
+						}
 					}
 				}
 				else if(frame_ticks ==0)

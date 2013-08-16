@@ -271,6 +271,50 @@ void ReGBA_DisplayFPS(void);
 void ReGBA_LoadRTCTime(struct ReGBA_RTC* RTCData);
 
 /*
+ * Reads the buttons pressed at the time of the function call on the input
+ * mechanism most appropriate for the port being compiled.
+ * Returns:
+ *   A bitfield of GBA buttons and possible ReGBA special buttons that are
+ *   pressed at the time of the function call.
+ * Output assertions:
+ *   a) If the port being compiled supports remapping buttons, the code in
+ *      the core of ReGBA does not care about this and wants a return value in
+ *      GBA bitfield format with ReGBA special buttons which it will resolve.
+ *   b) Values are:
+ *      Button                 | Bit | Enum value
+ *      -----------------------------------------------------
+ *      GBA A                  |   0 | REGBA_BUTTON_A
+ *      GBA B                  |   1 | REGBA_BUTTON_B
+ *      GBA Select             |   2 | REGBA_BUTTON_SELECT
+ *      GBA Start              |   3 | REGBA_BUTTON_START
+ *      GBA D-pad Right        |   4 | REGBA_BUTTON_RIGHT
+ *      GBA D-pad Left         |   5 | REGBA_BUTTON_LEFT
+ *      GBA D-pad Up           |   6 | REGBA_BUTTON_UP
+ *      GBA D-pad Down         |   7 | REGBA_BUTTON_DOWN
+ *      GBA R trigger          |   8 | REGBA_BUTTON_R
+ *      GBA L trigger          |   9 | REGBA_BUTTON_L
+ *      ReGBA rapid-fire A     |  10 | REGBA_BUTTON_RAPID_A
+ *      ReGBA rapid-fire B     |  11 | REGBA_BUTTON_RAPID_B
+ *      ReGBA Menu             |  12 | REGBA_BUTTON_MENU
+ */
+enum ReGBA_Buttons ReGBA_GetPressedButtons();
+
+/*
+ * Displays the emulator menu in a manner appropriate for the port being
+ * compiled.
+ * Input:
+ *   EntryReason: The reason for entering the menu. Depending on this reason,
+ *   the port may disable some interface elements or force the user to choose
+ *   a GBA game.
+ * Returns:
+ *   0 if the menu was exited in a way that allows the currently-loaded game
+ *   to continue.
+ *   1 if the menu was exited in a way that interrupts the current game:
+ *   restarting it, loading a new one, or loading a saved state.
+ */
+u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason);
+
+/*
  * Returns the length, in bytes, of the specified open file.
  * Input:
  *   File: The handle of the file to get the length of.

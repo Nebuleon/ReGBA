@@ -72,7 +72,17 @@
 #define TITLE_ICON_X              12
 #define TITLE_ICON_Y              9
 
+#define BUTTON_REPEAT_START (23437 / 2) /* 1/2 of a second */
+#define BUTTON_REPEAT_CONTINUE (23437 / 20) /* 1/20 of a second */
+
 #define MAX_GAMEPAD_CONFIG_MAP 16
+
+typedef enum
+{
+  BUTTON_NOT_HELD,
+  BUTTON_HELD_INITIAL,
+  BUTTON_HELD_REPEAT
+} button_repeat_state_type;
 
 // Runtime settings for the emulator. Not persistent.
 typedef struct
@@ -162,6 +172,22 @@ typedef struct
   u32 Reserved1[113];
 } GAME_CONFIG_FILE;
 
+typedef enum
+{
+  CURSOR_UP,
+  CURSOR_DOWN,
+  CURSOR_LEFT,
+  CURSOR_RIGHT,
+  CURSOR_SELECT,
+  CURSOR_BACK,
+  CURSOR_EXIT,
+  CURSOR_NONE,
+  CURSOR_RTRIGGER,
+  CURSOR_LTRIGGER,
+  CURSOR_KEY_SELECT,
+  CURSOR_TOUCH
+} gui_action_type;
+
 struct  FILE_LIST_INFO
 {
     char current_path[MAX_PATH];
@@ -208,7 +234,7 @@ s32 load_config_file();
 s32 save_game_config_file();
 s32 save_config_file();
 
-u32 menu(u16 *original_screen, int FirstInvocation);
+gui_action_type get_gui_input();
 
 u32 save_menu_ss_bmp(u16 *image);
 
@@ -222,6 +248,8 @@ extern  void get_newest_savestate(char *name_buffer);
 void initial_gpsp_config();
 void init_game_config();
 extern void reorder_latest_file(void);
+void wait_Allkey_release(unsigned int key_list);
+unsigned int wait_Anykey_press(unsigned int key_list);
 
 extern void game_set_frameskip(void);
 extern void game_set_rewind(void);

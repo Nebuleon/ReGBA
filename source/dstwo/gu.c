@@ -70,6 +70,7 @@ void copy_screen(u16 *buffer)
 	{
 		ptr= (u16*) *gba_screen_addr_ptr + (y + 16) * 256 + 8;
 		memcpy(buffer, ptr, GBA_SCREEN_WIDTH * sizeof(u16));
+		buffer += GBA_SCREEN_WIDTH;
 	}
 }
 
@@ -90,5 +91,6 @@ void blit_to_screen(u16 *src, u32 w, u32 h, u32 dest_x, u32 dest_y)
 	{
 		dst= screenp + (y + dest_y) * 256 + dest_x;
 		memcpy(dst, src, w * sizeof(u16));
+		src += GBA_SCREEN_WIDTH;
 	}
 }

@@ -361,6 +361,273 @@ void game_disableAudio();
 void game_set_frameskip();
 
 /*--------------------------------------------------------
+	GBA key input
+--------------------------------------------------------*/
+
+extern u32 temporary_fast_forward;
+u32 SoundHotkeyWasHeld = 0;
+u32 LoadStateWasHeld = 0;
+u32 SaveStateWasHeld = 0;
+
+u32 fast_backward= 0;
+u32 last_buttons;
+
+u32 ReGBA_GetPressedButtons()
+{
+	struct key_buf inputdata;
+	u32 i;
+	ds2_getrawInput(&inputdata);
+
+	u32 buttons = inputdata.key;
+	u32 non_repeat_buttons = (last_buttons ^ buttons) & buttons;
+	last_buttons = buttons;
+
+	enum ReGBA_Buttons Result = 0;
+
+	// Lid closed? (DS)
+	if (buttons & KEY_LID)
+	{
+		LowFrequencyCPU();
+		ds2_setSupend();
+		struct key_buf inputdata;
+		do {
+			ds2_getrawInput(&inputdata);
+			mdelay(1);
+		} while (inputdata.key & KEY_LID);
+		ds2_wakeup();
+		// Before starting to emulate again, turn off the lower
+		// screen's backlight.
+		mdelay(100); // needed to avoid ds2_setBacklight crashing
+		ds2_setBacklight(3 - gba_screen_num);
+		GameFrequencyCPU();
+	}
+
+	// Update sound toggle.
+	u32 HotkeyToggleSound = game_persistent_config.HotkeyToggleSound != 0 ? game_persistent_config.HotkeyToggleSound : gpsp_persistent_config.HotkeyToggleSound;
+
+	u32 SoundHotkeyIsHeld = HotkeyToggleSound && (buttons & HotkeyToggleSound) == HotkeyToggleSound;
+	if (!SoundHotkeyWasHeld && SoundHotkeyIsHeld)
+	{
+		sound_on ^= 1;
+	}
+	SoundHotkeyWasHeld = SoundHotkeyIsHeld;
+
+	// Update fast-forwarding.
+	u32 HotkeyTemporaryFastForward = game_persistent_config.HotkeyTemporaryFastForward != 0 ? game_persistent_config.HotkeyTemporaryFastForward : gpsp_persistent_config.HotkeyTemporaryFastForward;
+
+	u32 WasFastForwarding = temporary_fast_forward;
+	temporary_fast_forward = HotkeyTemporaryFastForward && (buttons & HotkeyTemporaryFastForward) == HotkeyTemporaryFastForward;
+	if (WasFastForwarding != temporary_fast_forward)
+		// update the frameskip value only if we were fast-forwarding
+		// but now are not, or if we were not and now are
+		game_set_frameskip();
+
+	// Go to the menu if the globally configured key is pressed
+	// (on the DS, that's the Touch Screen) or the hotkey.
+	u32 HotkeyReturnToMenu = game_persistent_config.HotkeyReturnToMenu != 0 ? game_persistent_config.HotkeyReturnToMenu : gpsp_persistent_config.HotkeyReturnToMenu;
+
+	if (non_repeat_buttons & game_config.gamepad_config_map[12] /* MENU */
+	 || (HotkeyReturnToMenu && (buttons & HotkeyReturnToMenu) == HotkeyReturnToMenu))
+	{
+		Result |= REGBA_BUTTON_MENU;
+	}
+
+	// Request rewinding in gpsp_main.c if the hotkey is pressed.
+	u32 HotkeyRewind = game_persistent_config.HotkeyRewind != 0 ? game_persistent_config.HotkeyRewind : gpsp_persistent_config.HotkeyRewind;
+
+	if(HotkeyRewind && (buttons & HotkeyRewind) == HotkeyRewind) // Rewind requested
+    {
+		fast_backward= 1;
+		return 0;
+    }
+
+	// Process saved state requests.
+	u32 HotkeyQuickLoadState = game_persistent_config.HotkeyQuickLoadState != 0 ? game_persistent_config.HotkeyQuickLoadState : gpsp_persistent_config.HotkeyQuickLoadState;
+
+	u32 LoadStateIsHeld = HotkeyQuickLoadState && (buttons & HotkeyQuickLoadState) == HotkeyQuickLoadState;
+	if (!LoadStateWasHeld && LoadStateIsHeld)
+	{
+		QuickLoadState();
+	}
+	LoadStateWasHeld = LoadStateIsHeld;
+
+	u32 HotkeyQuickSaveState = game_persistent_config.HotkeyQuickSaveState != 0 ? game_persistent_config.HotkeyQuickSaveState : gpsp_persistent_config.HotkeyQuickSaveState;
+
+	u32 SaveStateIsHeld = HotkeyQuickSaveState && (buttons & HotkeyQuickSaveState) == HotkeyQuickSaveState;
+	if (!SaveStateWasHeld && SaveStateIsHeld)
+	{
+		QuickSaveState();
+	}
+	SaveStateWasHeld = SaveStateIsHeld;
+
+	// Now update GBA keys.
+	for(i = 0; i < 12; i++)
+	{
+		if (buttons & game_config.gamepad_config_map[i]) // DS side
+			Result |= 1 << i; // GBA side
+	}
+    
+    return Result;
+}
+
+/*--------------------------------------------------------
+	Wait any key in [key_list] pressed
+	if key_list == NULL, return at any key pressed
+--------------------------------------------------------*/
+unsigned int wait_Anykey_press(unsigned int key_list)
+{
+	unsigned int key;
+
+	while(1)
+	{
+		key = getKey();
+		if(key) {
+			if(0 == key_list) break;
+			else if(key & key_list) break;
+		}
+	}
+
+	return key;
+}
+
+/*--------------------------------------------------------
+	Wait all key in [key_list] released
+	if key_list == NULL, return at all key released
+--------------------------------------------------------*/
+void wait_Allkey_release(unsigned int key_list)
+{
+	unsigned int key;
+    struct key_buf inputdata;
+
+	while(1)
+	{
+		ds2_getrawInput(&inputdata);
+		key = inputdata.key;
+
+		if(0 == key) break;
+		else if(!key_list) continue;
+		else if(0 == (key_list & key)) break;
+	}
+}
+
+// GUI输入处理
+
+button_repeat_state_type button_repeat_state = BUTTON_NOT_HELD;
+u32 button_repeat_timestamp;
+unsigned int gui_button_repeat = 0;
+
+gui_action_type key_to_cursor(unsigned int key)
+{
+	switch (key)
+	{
+		case KEY_UP:	return CURSOR_UP;
+		case KEY_DOWN:	return CURSOR_DOWN;
+		case KEY_LEFT:	return CURSOR_LEFT;
+		case KEY_RIGHT:	return CURSOR_RIGHT;
+		case KEY_L:	return CURSOR_LTRIGGER;
+		case KEY_R:	return CURSOR_RTRIGGER;
+		case KEY_A:	return CURSOR_SELECT;
+		case KEY_B:	return CURSOR_BACK;
+		case KEY_X:	return CURSOR_EXIT;
+		case KEY_TOUCH:	return CURSOR_TOUCH;
+		default:	return CURSOR_NONE;
+	}
+}
+
+static unsigned int gui_keys[] = {
+	KEY_A, KEY_B, KEY_X, KEY_L, KEY_R, KEY_TOUCH, KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT
+};
+
+gui_action_type get_gui_input(void)
+{
+	gui_action_type	ret;
+
+	struct key_buf inputdata;
+	ds2_getrawInput(&inputdata);
+
+	if (inputdata.key & KEY_LID)
+	{
+		ds2_setSupend();
+		do {
+			ds2_getrawInput(&inputdata);
+			mdelay(1);
+		} while (inputdata.key & KEY_LID);
+		ds2_wakeup();
+		// In the menu, the lower screen's backlight needs to be on,
+		// and it is on right away after resuming from suspend.
+		// mdelay(100); // needed to avoid ds2_setBacklight crashing
+		// ds2_setBacklight(3);
+	}
+
+	if ((inputdata.key & (KEY_L | KEY_R)) == (KEY_L | KEY_R))
+	{
+		save_menu_ss_bmp(down_screen_addr);
+		do {
+			ds2_getrawInput(&inputdata);
+			mdelay(1);
+		} while ((inputdata.key & (KEY_L | KEY_R)) == (KEY_L | KEY_R));
+	}
+
+	unsigned int i;
+	while (1)
+	{
+		switch (button_repeat_state)
+		{
+		case BUTTON_NOT_HELD:
+			// Pick the first pressed button out of the gui_keys array.
+			for (i = 0; i < sizeof(gui_keys) / sizeof(gui_keys[0]); i++)
+			{
+				if (inputdata.key & gui_keys[i])
+				{
+					button_repeat_state = BUTTON_HELD_INITIAL;
+					button_repeat_timestamp = getSysTime();
+					gui_button_repeat = gui_keys[i];
+					return key_to_cursor(gui_keys[i]);
+				}
+			}
+			return CURSOR_NONE;
+		case BUTTON_HELD_INITIAL:
+		case BUTTON_HELD_REPEAT:
+			// If the key that was being held isn't anymore...
+			if (!(inputdata.key & gui_button_repeat))
+			{
+				button_repeat_state = BUTTON_NOT_HELD;
+				// Go see if another key is held (try #2)
+				break;
+			}
+			else
+			{
+				unsigned int IsRepeatReady = getSysTime() - button_repeat_timestamp >= (button_repeat_state == BUTTON_HELD_INITIAL ? BUTTON_REPEAT_START : BUTTON_REPEAT_CONTINUE);
+				if (!IsRepeatReady)
+				{
+					// Temporarily turn off the key.
+					// It's not its turn to be repeated.
+					inputdata.key &= ~gui_button_repeat;
+				}
+				
+				// Pick the first pressed button out of the gui_keys array.
+				for (i = 0; i < sizeof(gui_keys) / sizeof(gui_keys[0]); i++)
+				{
+					if (inputdata.key & gui_keys[i])
+					{
+						// If it's the held key,
+						// it's now repeating quickly.
+						button_repeat_state = gui_keys[i] == gui_button_repeat ? BUTTON_HELD_REPEAT : BUTTON_HELD_INITIAL;
+						button_repeat_timestamp = getSysTime();
+						gui_button_repeat = gui_keys[i];
+						return key_to_cursor(gui_keys[i]);
+					}
+				}
+				// If it was time for the repeat but it
+				// didn't occur, stop repeating.
+				if (IsRepeatReady) button_repeat_state = BUTTON_NOT_HELD;
+				return CURSOR_NONE;
+			}
+		}
+	}
+}
+
+/*--------------------------------------------------------
 	Sort function
 --------------------------------------------------------*/
 static int nameSortFunction(char* a, char* b)
@@ -1498,7 +1765,7 @@ void initial_gpsp_config()
 /*--------------------------------------------------------
   メニューの表示
 --------------------------------------------------------*/
-u32 menu(u16 *screen, int FirstInvocation)
+u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason)
 {
     gui_action_type gui_action;
     u32 i;
@@ -1523,6 +1790,8 @@ u32 menu(u16 *screen, int FirstInvocation)
 
     GAME_CONFIG_FILE PreviousGameConfig; // Compared with current settings to
     GPSP_CONFIG_FILE PreviousGpspConfig; // determine if they need to be saved
+
+    u16 screen[GBA_SCREEN_BUFF_SIZE];
 
 	auto void choose_menu();
 	auto void menu_return();
@@ -4294,12 +4563,17 @@ u32 menu(u16 *screen, int FirstInvocation)
 //----------------------------------------------------------------------------//
 //	Menu Start
 	LowFrequencyCPU();
-	if (!FirstInvocation)
+	if (EntryReason != REGBA_MENU_ENTRY_REASON_NO_ROM)
 	{ // assume that the backlight is already at 3 when the emulator starts
+		copy_screen(screen);
 		mdelay(100); // to prevent ds2_setBacklight() from crashing
 		ds2_setBacklight(3);
 		// also allow the user to press A for New Game right away
 		wait_Allkey_release(0);
+	}
+	else
+	{
+		memset(screen, 0, sizeof(screen));
 	}
 
     bg_screenp= (u16*)malloc(256*192*2);
@@ -4308,11 +4582,11 @@ u32 menu(u16 *screen, int FirstInvocation)
 
 	gba_screen_addr_ptr = &up_screen_addr;
 	gba_screen_num = UP_SCREEN;
-	if(gamepak_filename[0] == 0)
+	if (EntryReason == REGBA_MENU_ENTRY_REASON_NO_ROM)
 	{
 		first_load = 1;
 		//try auto loading games passed through argv first
-		if(FirstInvocation && strlen(argv[1]) > 0 && LoadGameAndItsData(argv[1]))
+		if(strlen(argv[1]) > 0 && LoadGameAndItsData(argv[1]))
 			repeat = 0;
 		else
 		{
@@ -4813,156 +5087,6 @@ u32 menu(u16 *screen, int FirstInvocation)
 	return return_value;
 }
 
-#ifndef NDS_LAYER
-u32 load_dircfg(char *file_name)  // TODO: Working directory configure
-{
-  int loop;
-  int next_line;
-  char current_line[256];
-  char current_str[256];
-  FILE *msg_file;
-  char msg_path[MAX_PATH];
-
-  sprintf(msg_path, "%s/%s", main_path, file_name);
-  msg_file = fopen(msg_path, "r");
-
-  next_line = 0;
-  if(msg_file)
-  {
-    loop = 0;
-    while(fgets(current_line, 256, msg_file))
-    {
-
-      if(parse_line(current_line, current_str) != -1)
-      {
-        sprintf(current_line, "%s/%s", main_path, current_str+2);
-
-        switch(loop)
-        {
-          case 0:
-            strcpy(g_default_rom_dir, current_line);
-            if(opendir(current_line) == NULL)
-            {
-              printf("can't open rom dir : %s\n", g_default_rom_dir);
-              strcpy(g_default_rom_dir, main_path);
-//              *g_default_rom_dir = (char)NULL;
-            }
-            loop++;
-            break;
-
-          case 1:
-            strcpy(DEFAULT_SAVE_DIR, current_line);
-            if(opendir(current_line) == NULL)
-            {
-              printf("can't open save dir : %s\n", DEFAULT_SAVE_DIR);
-              strcpy(DEFAULT_SAVE_DIR, main_path);
-//              *DEFAULT_SAVE_DIR = (char)NULL;
-            }
-            loop++;
-            break;
-
-          case 2:
-            strcpy(DEFAULT_CFG_DIR, current_line);
-            if(opendir(current_line) == NULL)
-            {
-              printf("can't open cfg dir : %s\n", DEFAULT_CFG_DIR);
-              strcpy(DEFAULT_CFG_DIR, main_path);
-//              *DEFAULT_CFG_DIR = (char)NULL;
-            }
-            loop++;
-            break;
-
-          case 3:
-            strcpy(DEFAULT_SS_DIR, current_line);
-            if(opendir(current_line) == NULL)
-            {
-              printf("can't open screen shot dir : %s\n", current_line);
-              strcpy(DEFAULT_SS_DIR, main_path);
-//              *DEFAULT_SS_DIR = (char)NULL;
-            }
-            loop++;
-            break;
-
-          case 4:
-            strcpy(DEFAULT_CHEAT_DIR, current_line);
-            if(opendir(current_line) == NULL)
-            {
-              printf("can't open cheat dir : %s\n", current_line);
-              strcpy(DEFAULT_CHEAT_DIR, main_path);
-//              *DEFAULT_CHEAT_DIR = (char)NULL;
-            }
-            loop++;
-            break;
-        }
-      }
-    }
-
-    fclose(msg_file);
-    if (loop == 5)
-    {
-      return 0;
-    }
-    else
-    {
-      return -1;
-    }
-  }
-  fclose(msg_file);
-  return -1;
-}
-
-u32 load_fontcfg(char *file_name)  // TODO:スマートな実装に書き直す
-{
-  int loop;
-  int next_line;
-  char current_line[256];
-  char current_str[256];
-  FILE *msg_file;
-  char msg_path[MAX_PATH];
-
-  sprintf(msg_path, "%s/%s", main_path, file_name);
-
-  m_font[0] = '\0';
-  s_font[0] = '\0';
-
-  msg_file = fopen(msg_path, "rb");
-
-  next_line = 0;
-  if(msg_file)
-  {
-    loop = 0;
-    while(fgets(current_line, 256, msg_file))
-    {
-      if(parse_line(current_line, current_str) != -1)
-      {
-        sprintf(current_line, "%s/%s", main_path, current_str+2);
-printf("main_path %s\n", main_path);
-printf("current_str %s\n", current_str);
-        switch(loop)
-        {
-          case 0:
-            strcpy(m_font, current_line);
-            loop++;
-            break;
-          case 1:
-            strcpy(s_font, current_line);
-            loop++;
-            break;
-        }
-      }
-    }
-
-    fclose(msg_file);
-    if (loop > 0)
-      return 0;
-    else
-      return -1;
-  }
-  fclose(msg_file);
-  return -1;
-}
-#endif // !NDS_LAYER
-
 /*--------------------------------------------------------
 	Load language message
 --------------------------------------------------------*/
@@ -5180,13 +5304,6 @@ int load_language_msg(char *filename, u32 language)
 			}
 		}
 	}
-
-	#if 0
-	loop= 0;
-	printf("------\n");
-	while(loop != MSG_END)
-	printf("%d: %s\n",loop, msg[loop++]);
-	#endif
 
 load_language_msg_error:
 	fclose(fp);

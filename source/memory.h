@@ -254,6 +254,11 @@ extern u8 cpu_waitstate_cycles_seq[2][16];
 extern u32 g_multi_mode;
 extern u32 g_adhoc_transfer_flag;
 
+// Tilt sensor on the GBA side. It's mapped... somewhere... in the GBA address
+// space. See the read_backup function in memory.c for more information.
+extern u32 tilt_sensor_x;
+extern u32 tilt_sensor_y;
+
 // 関数宣言
 
 extern u8 read_memory8(u32 address);

@@ -54,6 +54,8 @@ extern u32 virtual_frame_count;
 extern int date_format;
 extern u32 frame_ticks;
 extern unsigned int frame_interval; // For in-memory saved states used in rewinding
+
+extern u32 fast_backward;
 /******************************************************************************
  * グローバル関数の宣言
  ******************************************************************************/
