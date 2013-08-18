@@ -304,6 +304,46 @@ void ReGBA_LoadRTCTime(struct ReGBA_RTC* RTCData);
 enum ReGBA_Buttons ReGBA_GetPressedButtons();
 
 /*
+ * Outputs audio from the core's audio buffer onto the audio hardware most
+ * appropriate for the port being compiled.
+ * 
+ * This function can actually take many courses of action, depending on how
+ * that sound hardware works:
+ * a) The function returns -1 immediately if it finds that the return
+ *    value of ReGBA_GetAudioSamplesAvailable is not sufficient for one full
+ *    native buffer of audio data (for example, one SDL audio buffer of 512
+ *    samples at 44100 Hz). ReGBA_GetAudioSamplesAvailable returns a number of
+ *    samples available at SOUND_FREQUENCY Hz.
+ * b) The function finds that the return value of ReGBA_GetAudioSamplesAvailable
+ *    is sufficient for one full native buffer of audio data, and blocks until
+ *    the audio hardware takes the buffer before returning zero.
+ * c) The function finds that the return value of ReGBA_GetAudioSamplesAvailable
+ *    is sufficient for one full native buffer of audio data, and polls for
+ *    the status of the audio hardware, looping until it's available before
+ *    returning zero.
+ * d) The function finds that the return value of ReGBA_GetAudioSamplesAvailable
+ *    is greater than zero, takes all samples to post them onto a queue
+ *    readable by a dedicated audio output thread, then returns zero.
+ * 
+ * Input:
+ *   (implied) ReGBA_GetAudioSamplesAvailable: The return value of this core
+ *   function determines whether there are enough audio samples available in
+ *   the core to output to the native audio hardware.
+ *   (implied) ReGBA_LoadNextAudioSample: This function loads rendered audio
+ *   samples from the core into two variables, one per stereo channel, then
+ *   consumes them. Even if the user requests muting the audio, this function
+ *   MUST be called in order to prevent the accumulation of audio in the
+ *   core's buffer; this will prevent echoes and clipping when the user
+ *   requests unmuting the audio.
+ * Returns:
+ *   Zero on success.
+ *   -1 when there are insufficient samples in the core's audio buffer and
+ *   this port function requests more from the core first.
+ *   Any other value on failure.
+ */
+signed int ReGBA_AudioUpdate();
+
+/*
  * Displays the emulator menu in a manner appropriate for the port being
  * compiled.
  * Input:

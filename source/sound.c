@@ -29,17 +29,9 @@
  ******************************************************************************/
 #include "common.h"
 
-#define TASK_SOUND_STK_SIZE 1024		//1024words= 4KB
-
-//extern u32 SKIP_RATE;
-
 /******************************************************************************
  * 宏定义
  ******************************************************************************/
-// TODO:需要调整的参数（设定的声音缓冲区目前忽视/调整所需的）
-//#define SAMPLE_COUNT        PSP_AUDIO_SAMPLE_ALIGN(256) // 样片= 256, 64字节对齐
-#define SAMPLE_COUNT		256
-#define SAMPLE_SIZE         (SAMPLE_COUNT * 2)          // 每缓冲区样本数
 #define GBC_NOISE_WRAP_FULL 32767
 #define GBC_NOISE_WRAP_HALF 126
 
@@ -67,7 +59,7 @@
   {                                                                           \
     RENDER_SAMPLE_##type();                                                   \
     fifo_fractional += frequency_step;                                        \
-    sound_write_offset = (sound_write_offset + 2) % BUFFER_SIZE;              \
+    sound_write_offset = (sound_write_offset + 2) & BUFFER_SIZE_MASK;         \
   }                                                                           \
 
 #define UPDATE_VOLUME_CHANNEL_ENVELOPE(channel)                               \
@@ -190,7 +182,7 @@
     GBC_SOUND_RENDER_SAMPLE_##type();                                         \
                                                                               \
     sample_index += frequency_step;                                           \
-    sound_write_offset = (sound_write_offset + 2) % BUFFER_SIZE;              \
+    sound_write_offset = (sound_write_offset + 2) & BUFFER_SIZE_MASK;         \
                                                                               \
     UPDATE_TONE_COUNTERS(envelope_op, sweep_op);                              \
   }                                                                           \
@@ -216,7 +208,7 @@
     if(sample_index >= U32_TO_FP16_16(GBC_NOISE_WRAP_##noise_type))           \
       sample_index -= U32_TO_FP16_16(GBC_NOISE_WRAP_##noise_type);            \
                                                                               \
-    sound_write_offset = (sound_write_offset + 2) % BUFFER_SIZE;              \
+    sound_write_offset = (sound_write_offset + 2) & BUFFER_SIZE_MASK;         \
                                                                               \
     UPDATE_TONE_COUNTERS(envelope_op, sweep_op);                              \
   }                                                                           \
@@ -275,12 +267,6 @@
   FILE_##type##_ARRAY(g_state_buffer_ptr, gbc_sound_channel);                 \
 }                                                                             \
 
-#define CHECK_BUFFER()                                                        \
-  ((gbc_sound_buffer_index - sound_read_offset) % BUFFER_SIZE)                \
-
-#define SET_AUDIO_BUFFER_SIZE()                                               \
-    audio_buffer_size = SAMPLE_SIZE * (5 + game_config.audio_buffer_size_number) \
-
 /******************************************************************************
  * 定义全局变量
  ******************************************************************************/
@@ -288,29 +274,21 @@ DIRECT_SOUND_STRUCT direct_sound_channel[2];
 GBC_SOUND_STRUCT gbc_sound_channel[4];
 u32 sound_on = 0;
 u32 gbc_sound_wave_volume[4] = { 0, 16384, 8192, 4096 };
-u32 left_buffer;
+// u32 left_buffer;
 
 /******************************************************************************
  * 局部变量定义
  ******************************************************************************/
-static u32 audio_buffer_size;
 static s16 sound_buffer[BUFFER_SIZE];       // 音频缓冲区 2n = Left / 2n+1 = Right
-static SOUND_RELATED u32 sound_read_offset = 0;  // 音频缓冲区读指针
-//static SceUID sound_thread;
+static u32 sound_read_offset = 0;  // 音频缓冲区读指针
 static u32 sound_last_cpu_ticks = 0;
 static FIXED16_16 gbc_sound_tick_step;
-static SOUND_RELATED u32 audio_thread_exit_flag; // 音频处理线程结束标志
-static SOUND_RELATED u32 pause_sound_flag;
 
 /******************************************************************************
  * 本地函数声明
  ******************************************************************************/
 static void init_noise_table(u32 *table, u32 period, u32 bit_length);
-#define SceSize int
-static int sound_update_thread(SceSize args, void *argp);
 
-static int sound_update();
-static void sound_skip(void);
 /******************************************************************************
  * 全局函数定义
  ******************************************************************************/
@@ -454,7 +432,7 @@ u32 gbc_sound_envelope_volume_table[16] =
     FIXED_DIV(14, 15, 14),
     FIXED_DIV(15, 15, 14) };
 
-/*static*/ SOUND_RELATED u32 gbc_sound_buffer_index = 0;
+u32 gbc_sound_buffer_index = 0;
 
 u32 gbc_sound_last_cpu_ticks = 0;
 u32 gbc_sound_partial_ticks = 0;
@@ -463,11 +441,6 @@ u32 gbc_sound_master_volume_left;
 u32 gbc_sound_master_volume_right;
 u32 gbc_sound_master_volume;
 
-#ifdef NDS_LAYER
-//u32 start_flag= 0;
-extern u32 game_fast_forward;
-extern u32 temporary_fast_forward;
-#endif
 void update_gbc_sound(u32 cpu_ticks)
   {
     // TODO 実数部のビット数を多くした方がいい？
@@ -563,26 +536,13 @@ void update_gbc_sound(u32 cpu_ticks)
 
     gbc_sound_last_cpu_ticks = cpu_ticks;
     // サウンドタイミングの調整
-    gbc_sound_buffer_index =(gbc_sound_buffer_index + (buffer_ticks << 1)) % BUFFER_SIZE;
+    gbc_sound_buffer_index =(gbc_sound_buffer_index + (buffer_ticks << 1)) & BUFFER_SIZE_MASK;
 
-#ifdef NDS_LAYER
-//    if(start_flag== 0)
-//    {
-//            start_flag= 1;
-//            OSSemPost(sound_sem);
-//            if(game_fast_forward)  // [Neb] Enable sound while
-                                     //       fast-forwarding, 2013-03-20
-//                sound_skip();
-//            else
-                sound_update();
-//    }
-#endif
+    ReGBA_AudioUpdate();
   }
 
 void init_sound()
   {
-    SET_AUDIO_BUFFER_SIZE();
-
     gbc_sound_tick_step = FLOAT_TO_FP16_16(256.0 / SOUND_FREQUENCY);
 
     init_noise_table(noise_table15, 32767, 14);
@@ -590,28 +550,6 @@ void init_sound()
 
     // 局部变量等初始化
     reset_sound();
-
-#if 0
-    // 创建进程
-    sound_thread = sceKernelCreateThread("Sound thread", sound_update_thread, 0x8, 0x1000, 0, NULL);
-    if (sound_thread < 0)
-    {
-      quit(1);
-    }
-
-    //启动会话
-    sceKernelStartThread(sound_thread, 0, 0);
-#endif
-
-	// 创建进程, 基于uCOS II
-#if 0
-	u8 errmsg;
-	errmsg= OSTaskCreate(sound_update_thread, (void *)0, (void *)&TaskSoundStk[TASK_SOUND_STK_SIZE - 1], 0x8);
-	if(errmsg != OS_NO_ERR)
-	{
-		quit(1);
-	}
-#endif
   }
 
 void reset_sound()
@@ -620,7 +558,6 @@ void reset_sound()
     GBC_SOUND_STRUCT *gs = gbc_sound_channel;
     u32 i;
 
-    audio_thread_exit_flag = 0;
     sound_on = 0;
     memset(sound_buffer, 0, sizeof(sound_buffer));
 
@@ -645,7 +582,7 @@ void reset_sound()
     gbc_sound_master_volume = 0;
     memset(wave_samples, 0, sizeof(wave_samples));
 
-    pause_sound(1);
+    sound_on = 1;
 
     for (i = 0; i < 4; i++, gs++)
     {
@@ -655,199 +592,29 @@ void reset_sound()
     }
   }
 
-void pause_sound(u32 flag)
-  {
-    pause_sound_flag = flag;
-    SET_AUDIO_BUFFER_SIZE();
-  }
-
-void sound_exit()
-  {
-    audio_thread_exit_flag = 1;
-  }
-
 void sound_read_mem_savestate()
   sound_savestate_body(READ_MEM);
 
 void sound_write_mem_savestate()
   sound_savestate_body(WRITE_MEM);
 
-#define DAMPEN_SAMPLE_COUNT  (AUDIO_LEN / 32)
-
-static s16 LastFastForwardedLeft[DAMPEN_SAMPLE_COUNT];
-static s16 LastFastForwardedRight[DAMPEN_SAMPLE_COUNT];
-
-// Each pointer should be towards the last N samples output for a channel
-// during fast-forwarding. This procedure stores these samples for damping
-// the next 8.
-static void EndFastForwardedSound(s16* left, s16* right)
+u32 ReGBA_GetAudioSamplesAvailable()
 {
-	memcpy(LastFastForwardedLeft,  left,  DAMPEN_SAMPLE_COUNT * sizeof(s16));
-	memcpy(LastFastForwardedRight, right, DAMPEN_SAMPLE_COUNT * sizeof(s16));
+	return ((gbc_sound_buffer_index - sound_read_offset) & BUFFER_SIZE_MASK) / 2;
 }
 
-// Each pointer should be towards the first N samples which are about to be
-// output for a channel during fast-forwarding. Using the last emitted
-// samples, this sound is dampened.
-static void StartFastForwardedSound(s16* left, s16* right)
+u32 ReGBA_LoadNextAudioSample(s16* Left, s16* Right)
 {
-	// Start by bringing the start sample of each channel much closer
-	// to the last sample written, to avoid a loud pop.
-	// Subsequent samples are paired with an earlier sample. In a way,
-	// this is a form of cross-fading.
-	s32 index;
-	for (index = 0; index < DAMPEN_SAMPLE_COUNT; index++)
-	{
-		left[index] = (s16) (
-			((LastFastForwardedLeft[DAMPEN_SAMPLE_COUNT - index - 1])
-				* (DAMPEN_SAMPLE_COUNT - index) / (DAMPEN_SAMPLE_COUNT + 1))
-			+ ((left[index])
-				* (index + 1) / (DAMPEN_SAMPLE_COUNT + 1))
-			);
-		right[index] = (s16) (
-			((LastFastForwardedRight[DAMPEN_SAMPLE_COUNT - index - 1])
-				* (DAMPEN_SAMPLE_COUNT - index) / (DAMPEN_SAMPLE_COUNT + 1))
-			+ ((right[index])
-				* (index + 1) / (DAMPEN_SAMPLE_COUNT + 1))
-			);
-	}
-}
+	if (sound_read_offset == gbc_sound_buffer_index)
+		return 0;
 
-static int sound_update()
-{
-  u32 i, j;
-  s16 sample;
-  s16* audio_buff;
-  s16 *dst_ptr, *dst_ptr1;
-  u32 n = ds2_checkAudiobuff();
-  int ret;
-
-	u8 WasInUnderrun = Stats.InSoundBufferUnderrun;
-	Stats.InSoundBufferUnderrun = n == 0 && CHECK_BUFFER() < AUDIO_LEN * 4;
-	if (Stats.InSoundBufferUnderrun && !WasInUnderrun)
-		Stats.SoundBufferUnderrunCount++;
-
-	// On auto frameskip, sound buffers being full or empty determines
-	// whether we're late.
-	if (AUTO_SKIP)
-	{
-		if (n >= 2)
-		{
-			// We're in no hurry, because 2 buffers are still full.
-			// Minimum skip 1
-			if(SKIP_RATE > 1)
-			{
-#if defined TRACE || defined TRACE_FRAMESKIP
-				ReGBA_Trace("I: Decreasing automatic frameskip: %u..%u", SKIP_RATE, SKIP_RATE - 1);
-#endif
-				SKIP_RATE--;
-			}
-		}
-		else
-		{
-			// Maximum skip 9
-			if(SKIP_RATE < 8)
-			{
-#if defined TRACE || defined TRACE_FRAMESKIP
-				ReGBA_Trace("I: Increasing automatic frameskip: %u..%u", SKIP_RATE, SKIP_RATE + 1);
-#endif
-				SKIP_RATE++;
-			}
-		}
-	}
-
-	if (CHECK_BUFFER() < AUDIO_LEN * 4)
-	{
-		// Generate more sound first, please!
-		return -1;
-	}
-
-	// We have enough sound. Complete this update.
-	if (game_fast_forward || temporary_fast_forward)
-	{
-		if (n >= AUDIO_BUFFER_COUNT)
-		{
-			// Drain the buffer down to a manageable size, then exit.
-			// This needs to be high to avoid audible crackling/bubbling,
-			// but not so high as to require all of the sound to be emitted.
-			// gpSP synchronises on the sound, after all. -Neb, 2013-03-23
-			while (CHECK_BUFFER() > AUDIO_LEN * 4) {
-				sound_buffer[sound_read_offset] = 0;
-				sound_read_offset = (sound_read_offset +1) & BUFFER_SIZE;
-				sound_buffer[sound_read_offset] = 0;
-				sound_read_offset = (sound_read_offset +1) & BUFFER_SIZE;
-			}
-			return 0;
-		}
-	}
-	else
-	{
-		// Wait for at least one buffer to be free for audio.
-		// Output assertion: The return value is between 0, inclusive,
-		// and AUDIO_BUFFER_COUNT, inclusive, but can also be
-		// 4294967295; that's (unsigned int) -1. (DSTWO SPECIFIC HACK)
-		unsigned int n2;
-		while ((n2 = ds2_checkAudiobuff()) >= AUDIO_BUFFER_COUNT && (int) n2 >= 0);
-	}
-
-	audio_buff = ds2_getAudiobuff();
-	if (audio_buff == NULL) {
-#if defined TRACE || defined TRACE_SOUND
-		ReGBA_Trace("Recovered from the lack of a buffer");
-#endif
-		return -1;
-	}
-
-	dst_ptr = audio_buff; // left (stereo)
-	dst_ptr1 = dst_ptr + (int) (AUDIO_LEN / OUTPUT_FREQUENCY_DIVISOR); // right (stereo)
-
-	for(i= 0; i<AUDIO_LEN; i += OUTPUT_FREQUENCY_DIVISOR)
-	{
-		s16 left = 0, right = 0;
-		for (j = 0; j < OUTPUT_FREQUENCY_DIVISOR; j++) {
-			sample = sound_buffer[sound_read_offset];
-			if(sample > 2047) sample= 2047;
-			if(sample < -2048) sample= -2048;
-			left += (sample << 4) / OUTPUT_FREQUENCY_DIVISOR;
-			sound_buffer[sound_read_offset] = 0;
-			sound_read_offset = (sound_read_offset + 1) & BUFFER_SIZE;
-
-			sample = sound_buffer[sound_read_offset];
-			if(sample > 2047) sample= 2047;
-			if(sample < -2048) sample= -2048;
-			right += (sample << 4) / OUTPUT_FREQUENCY_DIVISOR;
-			sound_buffer[sound_read_offset] = 0;
-			sound_read_offset = (sound_read_offset + 1) & BUFFER_SIZE;
-		}
-		*dst_ptr++ = left;
-		*dst_ptr1++ = right;
-	}
-
-	if (game_fast_forward || temporary_fast_forward)
-	{
-		// Dampen the sound with the previous samples written
-		// (or unitialised data if we just started the emulator)
-		StartFastForwardedSound(audio_buff,
-			&audio_buff[(int) (AUDIO_LEN / OUTPUT_FREQUENCY_DIVISOR)]);
-		// Store the end for the next time
-		EndFastForwardedSound(&audio_buff[(int) (AUDIO_LEN / OUTPUT_FREQUENCY_DIVISOR) - DAMPEN_SAMPLE_COUNT],
-			&audio_buff[(int) (AUDIO_LEN / OUTPUT_FREQUENCY_DIVISOR) * 2 - DAMPEN_SAMPLE_COUNT]);
-	}
-
-	Stats.InSoundBufferUnderrun = 0;
-	ds2_updateAudio();
-	return 0;
-}
-
-static void sound_skip(void)
-{
-    u32 i;
-
-    for(i= 0; i<AUDIO_LEN*2; i++)
-    {
-        sound_buffer[sound_read_offset] = 0;
-        sound_read_offset = (sound_read_offset +1) & BUFFER_SIZE;
-    }
+	*Left  = sound_buffer[sound_read_offset];
+	sound_buffer[sound_read_offset] = 0;
+	sound_read_offset = (sound_read_offset + 1) & BUFFER_SIZE_MASK;
+	*Right = sound_buffer[sound_read_offset];
+	sound_buffer[sound_read_offset] = 0;
+	sound_read_offset = (sound_read_offset + 1) & BUFFER_SIZE_MASK;
+	return 1;
 }
 
   // Special thanks to blarrg for the LSFR frequency used in Meridian, as posted
@@ -881,8 +648,3 @@ void init_noise_table(u32 *table, u32 period, u32 bit_length)
       table[table_pos] = current_entry;
     }
   }
-
-
-void synchronize_sound()
-{
-}

@@ -96,33 +96,15 @@ typedef struct
   s8 *sample_data;
 } GBC_SOUND_STRUCT;
 
-#define BUFFER_SIZE (0xffff)                        // バッファのバイト数。変更しないこと
-
-#ifdef NDS_LAYER
-#define AUDIO_LEN 1536
-#endif
-
-// Define NO_VOLATILE_SOUND somewhere if your port of gpSP does not need the
-// sound to be volatile. This allows more compiler optimisations.
-#ifdef NO_VOLATILE_SOUND
-#define SOUND_RELATED
-#else
-#define SOUND_RELATED volatile
-#endif
+#define BUFFER_SIZE (0x10000)
+#define BUFFER_SIZE_MASK (0xffff)                        // バッファのバイト数。変更しないこと
 
 // This is the frequency of sound output by the GBA. It is stored in a
-// buffer containing BUFFER_SIZE bytes, and AUDIO_LEN refers to samples
-// at this frequency.
+// ring buffer containing BUFFER_SIZE bytes.
 // The value should technically be 32768, but at least the GBA Video ROMs and
 // Golden Sun - The Lost Age require this to be 2 times that, and
 // the Pokémon GBA games require it to be a multiple or divisor of 22050 Hz.
 #define SOUND_FREQUENCY (88200.0)
-
-// OUTPUT_SOUND_FREQUENCY should be a power-of-2 fraction of SOUND_FREQUENCY;
-// if not, sound.c's sound_update() needs to resample the output.
-#define OUTPUT_SOUND_FREQUENCY 44100
-
-#define OUTPUT_FREQUENCY_DIVISOR ((int) (SOUND_FREQUENCY) / (OUTPUT_SOUND_FREQUENCY))
 
 #define GBC_SOUND_TONE_CONTROL_LOW(channel, address)                          \
 {                                                                             \
@@ -330,10 +312,9 @@ extern u32 gbc_sound_master_volume;
 
 extern u32 sound_on;
 
-extern u32 left_buffer;
 extern u32 gbc_sound_wave_volume[4];
 
-extern SOUND_RELATED u32 gbc_sound_buffer_index;
+extern u32 gbc_sound_buffer_index;
 
 void sound_timer_queue32(u8 channel);
 void sound_timer(FIXED16_16 frequency_step, u32 channel);
@@ -342,14 +323,38 @@ void update_gbc_sound(u32 cpu_ticks);
 void init_sound();
 void sound_read_mem_savestate();
 void sound_write_mem_savestate();
-void pause_sound(u32 flag);
 void reset_sound();
-void sound_exit();
-void synchronize_sound();
 
-#ifdef NDS_LAYER
-extern int sound_queue_hook(void);
-#endif 
+// Services provided to ports
 
+/*
+ * Returns the number of samples available in the core's audio buffer.
+ * This number of samples is always interpreted with a sample rate of
+ * SOUND_FREQUENCY Hz, which is used by the core to render to its buffer.
+ * 
+ * Returns:
+ *   The number of samples available for reading by ReGBA_LoadNextAudioSample
+ *   at the time of the function call, counting 1 for each two stereo samples
+ *   available; that is, the number of times ReGBA_LoadNextAudioSample can be
+ *   called with Left and Right without it returning zero.
+ */
+u32 ReGBA_GetAudioSamplesAvailable(void);
+
+/*
+ * Loads and consumes the next audio sample from the core's audio buffer.
+ * The sample rate is SOUND_FREQUENCY Hz.
+ * Output:
+ *   Left: A pointer to a signed 16-bit variable updated with the value for
+ *   the next sample's left stereo channel.
+ *   Right: A pointer to a signed 16-bit variable updated with the value for
+ *   the next sample's right stereo channel.
+ * Returns:
+ *   Non-zero if a sample was available; zero if no samples were available.
+ * Output assertions:
+ *   If non-zero is returned, the loaded sample is consumed in the core's
+ *   audio buffer.
+ *   If zero is returned, neither variable is written to.
+ */
+u32 ReGBA_LoadNextAudioSample(s16* Left, s16* Right);
 
 #endif /* SOUND_H */

@@ -41,6 +41,7 @@ typedef u32 FIXED16_16;   // Q16.16 fixed-point
 
 #include "message.h"
 #include "gpsp_main.h"
+#include "ds2sound.h"
 
 /* Tuning parameters for the Supercard DSTwo version of gpSP */
 /* Its processor is an Ingenic JZ4740 at 360 MHz with 32 MiB of RAM */

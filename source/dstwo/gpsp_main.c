@@ -269,7 +269,6 @@ int gpsp_main(int argc, char *argv[])
 
 	last_frame = 0;
 
-	pause_sound(0);
 	real_frame_count = 0;
 	virtual_frame_count = 0;
 
