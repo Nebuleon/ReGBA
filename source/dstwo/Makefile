@@ -77,6 +77,7 @@ all: $(OUTPUT_DIR)/$(OUTPUT).plg
 
 release: all makedirs
 	-rm -f $(OUTPUT).zip
+	cp ../../game_config.txt $(PLUGIN_DIR)
 	zip -r $(OUTPUT).zip $(PLUGIN_DIR) $(OUTPUT_DIR)
 	zip -j -r $(OUTPUT).zip ../../doc ../../README.md
 
@@ -104,7 +105,7 @@ makedirs:
 	-mkdir $(PLUGIN_DIR)/PICS
 
 clean:
-	-rm -rf $(OUTPUT).plg $(OUTPUT).dat $(OUTPUT).elf depend $(OBJECTS) $(START_O)
+	-rm -rf $(OUTPUT).plg $(OUTPUT).dat $(OUTPUT).elf depend $(OBJECTS) $(START_O) $(PLUGIN_DIR)/game_config.txt
 
 .c.o:
 	$(CC) $(CFLAGS) $(INCLUDE) $(DEFS) -o $@ -c $<

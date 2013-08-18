@@ -41,15 +41,6 @@
 #  you don't know what you're doing, it can break the game. Some games
 #  will run miserably slowly without this option.
 
-# translation_gate_target - tells the recompiler to put an indirect
-#  branch (gate) at this point, so artificially stop the current block.
-#  This is useful if the game performs self modifying code from within
-#  the same block it is currently executing - this can prevent it from
-#  causing SMC hits far more times than it should. This is also only a
-#  speed hack; you can have up to 8 of these. Don't use this if you don't
-#  know what you're doing, they'll just make the game slower and are
-#  rarely helpful (good for Camelot games).
-
 # iwram_stack_optimize - set this to "no" to turn it off. By default this
 #  is set on. It will turn off an optimization that assumes that the stack
 #  is always in IWRAM, and thus makes ldm/stm relative to the stack much
@@ -428,28 +419,12 @@ game_code = BRLE
 vender_code = AF
 idle_loop_eliminate_target = 0800041a
 
-# Golden Sun (U)
-game_name = Golden_Sun_A
-game_code = AGSE
-vender_code = 01
-#translation_gate_target = 03000820
-#translation_gate_target = 030009ac
-#translation_gate_target = 03007dac
-
 # Golden Sun: The Lost Age (U)
 # Probably the most horrifically coded GBA game in existence.
 game_name = GOLDEN_SUN_B
 game_code = AGFE
 vender_code = 01
 idle_loop_eliminate_target = 08013542
-#translation_gate_target = 030009ac
-#translation_gate_target = 03007d70
-
-# Nothing to see here :/
-# Mario & Luigi: Superstar Saga (U)
-game_name = MARIO&LUIGIU
-game_code = A88E
-vender_code = 01
 
 # Mario Party Advance (U)
 game_name = MARIOPARTYUS
@@ -469,8 +444,6 @@ game_code = BMGE
 vender_code = 01
 iwram_stack_optimize = no
 idle_loop_eliminate_target = 08014e0a
-#translation_gate_target = 03000d00
-#translation_gate_target = 03000a30
 
 # Mario Golf: Advance Tour (E)
 game_name = MARIOGOLFGBA
@@ -478,17 +451,13 @@ game_code = BMGP
 vender_code = 01
 iwram_stack_optimize = no
 idle_loop_eliminate_target = 08014e0a
-#translation_gate_target = 03000d00
-#translation_gate_target = 03000a30
 
 # Mario Golf: Advance Tour (S)
 game_name = MARIOGOLFGBA
 game_code = BMGS
 vender_code = 01
 iwram_stack_optimize = no
-#idle_loop_eliminate_target = 08014e0a
-#translation_gate_target = 03000d00
-#translation_gate_target = 03000a30
+idle_loop_eliminate_target = 08014e0a
 
 # Mario Golf: Advance Tour (F)
 game_name = MARIOGOLFGBA
@@ -496,8 +465,6 @@ game_code = BMGF
 vender_code = 01
 iwram_stack_optimize = no
 idle_loop_eliminate_target = 08014e0a
-#translation_gate_target = 03000d00
-#translation_gate_target = 03000a30
 
 # Mario Golf: Advance Tour (I)
 game_name = MARIOGOLFGBA
@@ -505,8 +472,6 @@ game_code = BMGI
 vender_code = 01
 iwram_stack_optimize = no
 idle_loop_eliminate_target = 08014e0a
-#translation_gate_target = 03000d00
-#translation_gate_target = 03000a30
 
 # Mario Golf: Advance Tour (G)
 game_name = MARIOGOLFGBA
@@ -514,8 +479,6 @@ game_code = BMGD
 vender_code = 01
 iwram_stack_optimize = no
 idle_loop_eliminate_target = 08014e0a
-#translation_gate_target = 03000d00
-#translation_gate_target = 03000a30
 
 # Mario Golf: Advance Tour (A)
 game_name = MARIOGOLFGBA
@@ -523,8 +486,6 @@ game_code = BMGU
 vender_code = 01
 iwram_stack_optimize = no
 idle_loop_eliminate_target = 08014e0a
-#translation_gate_target = 03000d00
-#translation_gate_target = 03000a30
 
 # Tales of Phantasia (U)
 game_name = PHANTASIA
@@ -792,13 +753,6 @@ game_code = ANXP
 vender_code = A4
 iwram_stack_optimize = no
 
-# Doom 2 (U)
-game_name = DOOM II
-game_code = A9DE
-vender_code = 52
-#translation_gate_target = 030041c8
-#translation_gate_target = 03004fa0
-
 # Shining Soul (U)
 game_name = SHINING SOUL
 game_code = AHUE
@@ -843,11 +797,12 @@ idle_loop_eliminate_target = 080008a2
 
 # This is needed to make the game work.
 # Another World (Homebrew)
-game_name = FoxAnWorld
-game_code = Home
-vender_code = 00
-translation_gate_target = 03000f1c
-
+# game_name = FoxAnWorld
+# game_code = Home
+# vender_code = 00
+# translation_gate_target = 03000f1c
+# Nebuleon says: [2013-08-18] Translation gates have been totally disabled,
+# but I'm not sure if this game works!
 
 
 # 星のカービィ 夢の泉デラックス (J)
@@ -1290,13 +1245,6 @@ game_code = B4ZP
 vender_code = 08
 idle_loop_eliminate_target = 0800090c
 
-# Doom 2 (E)
-game_name = DOOM II
-game_code = A9DP
-vender_code = 52
-#translation_gate_target = 030041c8
-#translation_gate_target = 03004fa0
-
 # Super Mario Advance (U/E)
 game_name = SUPER MARIOA
 game_code = AMAE
@@ -1352,22 +1300,12 @@ game_code = BRLP
 vender_code = AF
 idle_loop_eliminate_target = 0800041a
 
-# Golden Sun (S)
-game_name = Golden_Sun_A
-game_code = AGSS
-vender_code = 01
-#translation_gate_target = 03000820
-#translation_gate_target = 030009ac
-#translation_gate_target = 03007dac
-
 # Golden Sun: The Lost Age (S)
 # Probably the most horrifically coded GBA game in existence.
 game_name = GOLDEN_SUN_B
 game_code = AGFS
 vender_code = 01
 idle_loop_eliminate_target = 08013542
-#translation_gate_target = 030009ac
-#translation_gate_target = 03007d70
 
 # Broken Sword - The Shadow of the Templars (E)
 game_name = BROKENSWORD

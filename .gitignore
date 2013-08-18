@@ -8,4 +8,5 @@
 depend
 [Tt]humbs.db
 log
-TEMPGBA/system/ndsgba.cfg
+source/dstwo/TEMPGBA/system/ndsgba.cfg
+source/dstwo/TEMPGBA/game_config.txt
