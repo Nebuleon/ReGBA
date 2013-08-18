@@ -45,8 +45,8 @@ typedef u32 FIXED16_16;   // Q16.16 fixed-point
 
 /* Tuning parameters for the Supercard DSTwo version of gpSP */
 /* Its processor is an Ingenic JZ4740 at 360 MHz with 32 MiB of RAM */
-#define READONLY_CODE_CACHE_SIZE          (2 * 1024 * 1024)
-#define WRITABLE_CODE_CACHE_SIZE          (6 * 1024 * 1024)
+#define READONLY_CODE_CACHE_SIZE          (4 * 1024 * 1024)
+#define WRITABLE_CODE_CACHE_SIZE          (4 * 1024 * 1024)
 /* The following parameter needs to be at least enough bytes to hold
  * the generated code for the largest instruction on your platform.
  * In most cases, that will be the ARM instruction
@@ -88,6 +88,6 @@ typedef u32 FIXED16_16;   // Q16.16 fixed-point
 #define FILE_TELL(filename_tag)                                             \
   ftell(filename_tag)                                                       \
 
-extern u32 frameskip_0_hack_flag; // described in sound.c:sound_update()
+extern u32 frameskip_0_hack_flag; // described in ds2sound.c:ReGBA_AudioUpdate()
 
 #endif
