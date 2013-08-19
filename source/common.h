@@ -39,6 +39,16 @@
 #include <string.h>
 #include <math.h>
 
+#ifdef __GNUC__
+#	define likely(x)       __builtin_expect((x),1)
+#	define unlikely(x)     __builtin_expect((x),0)
+#	define prefetch(x, y)  __builtin_prefetch((x),(y))
+#else
+#	define likely(x)       (x)
+#	define unlikely(x)     (x)
+#   define prefetch(x, y)
+#endif
+
 #define SYS_CLOCK (16777216.0)
 
 #define ROR(dest, value, shift)                                             \

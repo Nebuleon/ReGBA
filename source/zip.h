@@ -22,7 +22,7 @@
 #ifndef ZIP_H
 #define ZIP_H
 
-#include "zlib.h"
+#include <zlib.h>
 
 #define ZIP_TMP "ZIPTMP.GBA" /* Acceptable on all platforms */
 

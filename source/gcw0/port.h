@@ -1,50 +1,10 @@
-/* Per-platform settings and headers - gpSP on DSTwo
- *
- * Copyright (C) 2013 GBATemp user Nebuleon
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public Licens e as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
- */
+#ifndef _PORT_H_
+#define _PORT_H_
 
-#ifndef __GPSP_PORT_H__
-#define __GPSP_PORT_H__
+#include <SDL/SDL.h>
 
-#include "ds2_types.h"
-#include "ds2_malloc.h"
-
-#include "draw.h"
-#include "bdf_font.h"
-
-#include "gui.h"
-#include "gu.h"
-
-#define MAX_PATH 512
-#define MAX_FILE 512
-
-typedef FILE* FILE_TAG_TYPE;
-
-typedef u32 FIXED16_16;   // Q16.16 fixed-point
-
-#include "fs_api.h"
-#include "ds2_unistd.h"
-
-#include "message.h"
-#include "gpsp_main.h"
-#include "ds2sound.h"
-
-/* Tuning parameters for the Supercard DSTwo version of gpSP */
-/* Its processor is an Ingenic JZ4740 at 360 MHz with 32 MiB of RAM */
+/* Tuning parameters for the GCW Zero version of gpSP */
+/* Its processor is an Ingenic JZ4770 at 1000 MHz with 256..512 MiB of RAM */
 #define READONLY_CODE_CACHE_SIZE          (4 * 1024 * 1024)
 #define WRITABLE_CODE_CACHE_SIZE          (4 * 1024 * 1024)
 /* The following parameter needs to be at least enough bytes to hold
@@ -85,7 +45,5 @@ typedef u32 FIXED16_16;   // Q16.16 fixed-point
 
 #define FILE_TELL(filename_tag)                                             \
   ftell(filename_tag)                                                       \
-
-extern u32 frameskip_0_hack_flag; // described in ds2sound.c:ReGBA_AudioUpdate()
 
 #endif

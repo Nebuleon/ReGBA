@@ -50,6 +50,47 @@
 #include "homehook.h"
 #include "dvemgr.h"
 
+#include <pspkernel.h>
+#include <pspdebug.h>
+#include <pspctrl.h>
+#include <pspgu.h>
+#include <pspaudio.h>
+#include <pspaudiolib.h>
+#include <psprtc.h>
+
+#define printf pspDebugScreenPrintf
+
+#define convert_palette(value)                                              \
+  value = ((value & 0x7FE0) << 1) | (value & 0x1F)                          \
+
+
+typedef u32 FIXED16_16;   // Q16.16 fixed-point
+
+#define FILE_OPEN_APPEND (PSP_O_CREAT | PSP_O_APPEND | PSP_O_TRUNC)
+#define FILE_OPEN_READ PSP_O_RDONLY
+#define FILE_OPEN_WRITE (PSP_O_CREAT | PSP_O_WRONLY | PSP_O_TRUNC)
+
+#define FILE_OPEN(filename_tag, filename, mode)                             \
+  s32 filename_tag = sceIoOpen(filename, FILE_OPEN_##mode, 0777)            \
+
+#define FILE_CHECK_VALID(filename_tag)                                      \
+  (filename_tag >= 0)                                                       \
+
+#define FILE_TAG_INVALID                                                    \
+  (-1)                                                                      \
+
+#define FILE_CLOSE(filename_tag)                                            \
+  sceIoClose(filename_tag)                                                  \
+
+#define FILE_READ(filename_tag, buffer, size)                               \
+  sceIoRead(filename_tag, buffer, size)                                     \
+
+#define FILE_WRITE(filename_tag, buffer, size)                              \
+  sceIoWrite(filename_tag, buffer, size)                                    \
+
+#define FILE_SEEK(filename_tag, offset, type)                               \
+  sceIoLseek(filename_tag, offset, PSP_##type)                              \
+
 /* Tuning parameters for the PSP version of gpSP */
 /* Its processors are:
  * a) a Sony CXD2962GG at 222 MHz based on the MIPS R4000
@@ -58,8 +99,8 @@
  * b) an embedded graphics core at 111 MHz;
  * c) a Sony CXD1876 Media Engine chip based on the MIPS R4000
  *    64-bit core with 2 MiB of RAM (2.6 Gbit/s). */
-#define READONLY_CODE_CACHE_SIZE          (2 * 1024 * 1024)
-#define WRITABLE_CODE_CACHE_SIZE          (6 * 1024 * 1024)
+#define READONLY_CODE_CACHE_SIZE          (4 * 1024 * 1024)
+#define WRITABLE_CODE_CACHE_SIZE          (4 * 1024 * 1024)
 /* The following parameter needs to be at least enough bytes to hold
  * the generated code for the largest instruction on your platform.
  * In most cases, that will be the ARM instruction
@@ -68,12 +109,6 @@
 
 #define GET_DISK_FREE_SPACE FS_CMD_GET_DISKFREE
 
-typedef SceUID FILE_TAG_TYPE;
-
-#define FILE_OPEN_APPEND (PSP_O_CREAT | PSP_O_APPEND | PSP_O_TRUNC)
-
-#define FILE_OPEN_READ PSP_O_RDONLY
-
-#define FILE_OPEN_WRITE (PSP_O_CREAT | PSP_O_WRONLY | PSP_O_TRUNC)
+typedef s32 FILE_TAG_TYPE;
 
 #endif
