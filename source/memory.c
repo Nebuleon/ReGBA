@@ -2414,8 +2414,10 @@ s32 load_game_config(char *gamepak_title, char *gamepak_code, char *gamepak_make
   idle_loop_targets = 0;
   idle_loop_target_pc[0] = 0xFFFFFFFF;
   iwram_stack_optimize = 1;
-  bios.rom[0x39] = 0x00;
-  bios.rom[0x2C] = 0x00;
+  /*
+  bios.rom[0x39] = 0x00; // Removed to make Normmatt's open-source GBA BIOS
+  bios.rom[0x2C] = 0x00; // replacement work. - Neb, 2013-08-21
+  */
   flash_device_id = FLASH_DEVICE_MACRONIX_64KB;
   backup_type = BACKUP_NONE;
 
