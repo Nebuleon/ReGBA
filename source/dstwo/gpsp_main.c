@@ -261,7 +261,7 @@ int gpsp_main(int argc, char *argv[])
 		quit();
 	}
 
-	init_cpu();
+	init_cpu(gpsp_persistent_config.BootFromBIOS);
 	init_memory();
 	reset_sound();
 
@@ -535,7 +535,7 @@ void reset_gba()
 {
   init_main();
   init_memory();
-  init_cpu();
+  init_cpu(gpsp_persistent_config.BootFromBIOS);
   reset_sound();
 }
 

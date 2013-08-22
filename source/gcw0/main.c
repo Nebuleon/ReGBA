@@ -218,7 +218,7 @@ int main(int argc, char *argv[])
     set_gba_resolution(screen_scale);
     video_resolution_small();
 
-    init_cpu();
+    init_cpu(0 /* boot from BIOS: no */);
     init_memory();
   }
   else
@@ -244,7 +244,7 @@ int main(int argc, char *argv[])
       video_resolution_small();
       clear_screen(0);
       flip_screen();
-      init_cpu();
+      init_cpu(0 /* boot from BIOS: no */);
       init_memory();
     }
   }
@@ -539,7 +539,7 @@ void reset_gba()
 {
   init_main();
   init_memory();
-  init_cpu();
+  init_cpu(0 /* boot from BIOS: no */);
   reset_sound();
 }
 

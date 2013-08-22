@@ -212,6 +212,6 @@ extern u32 spsr[6];
 
 extern const u8 cpu_modes[32];
 
-void init_cpu();
+void init_cpu(u32 BootFromBIOS);
 
 #endif

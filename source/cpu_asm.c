@@ -3854,7 +3854,7 @@ void dump_translation_cache()
   printf("RO:%08X R/W:%08X\n", readonly_next_code - readonly_code_cache, writable_next_code - writable_code_cache);
 }
 
-void init_cpu() 
+void init_cpu(u32 BootFromBIOS) 
 {
   u32 i;
 
@@ -3864,7 +3864,7 @@ void init_cpu()
   }
 
   reg[REG_SP] = 0x03007F00;
-  reg[REG_PC] = gpsp_persistent_config.BootFromBIOS
+  reg[REG_PC] = BootFromBIOS
     ? 0x00000000
     : 0x08000000;
   reg[REG_CPSR] = 0x0000001F;
