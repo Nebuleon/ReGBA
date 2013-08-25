@@ -24,6 +24,10 @@
 #define GBA_SCREEN_WIDTH 240
 #define GBA_SCREEN_HEIGHT 160
 
+#define GBA_RED_MASK     0x1F
+#define GBA_GREEN_MASK  0x3E0
+#define GBA_BLUE_MASK  0x7C00
+
 void update_scanline();
 
 extern s32 affine_reference_x[2];

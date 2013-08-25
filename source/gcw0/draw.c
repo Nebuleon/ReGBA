@@ -41,12 +41,12 @@ void init_video()
 
 	OutputSurface = SDL_SetVideoMode(GCW0_SCREEN_WIDTH, GCW0_SCREEN_HEIGHT, 16, SDL_HWSURFACE | SDL_DOUBLEBUF);
 	GBAScreenSurface = SDL_CreateRGBSurface(SDL_SWSURFACE, GCW0_SCREEN_WIDTH, GCW0_SCREEN_HEIGHT, 16,
-	  OutputSurface->format->Rmask,
-	  OutputSurface->format->Gmask,
-	  OutputSurface->format->Bmask,
-	  OutputSurface->format->Amask);
+	  GBA_RED_MASK,
+	  GBA_GREEN_MASK,
+	  GBA_BLUE_MASK,
+	  0 /* alpha: none */);
 
-	GBAScreen = (uint16_t*) OutputSurface->pixels
+	GBAScreen = (uint16_t*) GBAScreenSurface->pixels
 	  + ((GCW0_SCREEN_HEIGHT - GBA_SCREEN_HEIGHT) / 2) * GCW0_SCREEN_WIDTH
 	  + (GCW0_SCREEN_WIDTH - GBA_SCREEN_WIDTH);
 
