@@ -40,8 +40,7 @@ void ReGBA_Trace(const char* Format, ...)
 	printf(line);
 	va_end(args);
 	free(line);
-	printf('\r');
-	printf('\n');
+	printf("\r\n");
 }
 
 void ReGBA_BadJump(u32 SourcePC, u32 TargetPC)
