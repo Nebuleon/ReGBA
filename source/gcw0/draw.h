@@ -12,4 +12,6 @@ typedef enum
   scaled_aspect,
 } video_scale_type;
 
+void init_video();
+
 #endif /* __DRAW_H__ */

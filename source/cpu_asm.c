@@ -3029,7 +3029,7 @@ static s32 BinarySearch(u32* Array, u32 Value, u32 Size)
                                                                               \
         /* Give the branch target macro somewhere to bail if it turns out to  \
            be an indirect branch (ala malformed Thumb bl) */                  \
-        no_direct_branch:;                                                    \
+        no_direct_branch: __attribute__((unused));                            \
       }                                                                       \
                                                                               \
       /* SWI branches to the BIOS, this will likely change when               \
@@ -3132,7 +3132,7 @@ static s32 BinarySearch(u32* Array, u32 Value, u32 Size)
 #if defined TRACE || defined TRACE_REUSE
 
 #define trace_reuse()                                                         \
-        ReGBA_Trace("T: At %08X, block size %u, checksum %04X, "reused",      \
+        ReGBA_Trace("T: At %08X, block size %u, checksum %04X, \"reused\"",      \
         block_start_pc, block_end_pc - block_start_pc, checksum);             \
 
 #else
@@ -3155,7 +3155,7 @@ static s32 BinarySearch(u32* Array, u32 Value, u32 Size)
 #define translate_block_builder(type)                                         \
 u8* translate_block_##type(u32 pc)                                            \
 {                                                                             \
-  u32 opcode;                                                                 \
+  u32 opcode = 0;                                                             \
   u32 last_opcode;                                                            \
   u32 condition;                                                              \
   u32 pc_region = (pc >> 15);                                                 \
@@ -3236,7 +3236,7 @@ u8* translate_block_##type(u32 pc)                                            \
     while (Header != NULL)                                                    \
     {                                                                         \
       if (Header->PC == block_start_pc                                        \
-       && Header->GBACodeSize == block_end_pc - block_start_pc                \
+       && Header->GBACodeSize == (block_end_pc - block_start_pc)              \
        && memcmp(opcodes.type, Header + 1, Header->GBACodeSize) == 0)         \
       {                                                                       \
         /* The code has been determined to be identical. Yay! */              \
