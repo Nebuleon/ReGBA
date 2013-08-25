@@ -1,4 +1,4 @@
-TARGET := gpsp
+TARGET := regba
 
 CROSS_COMPILE ?= mipsel-linux-
 CC := $(CROSS_COMPILE)gcc
