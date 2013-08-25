@@ -20,10 +20,6 @@
 
 #include "common.h" 
 
-u8 *memory_map_read[8 * 1024];
-u32 reg[64];
-u8 *memory_map_write[8 * 1024];
-
 // TODO:PSP-1000はフレームバッファは256KBあれば足りるので、VRAMを使用する
 u8 savestate_write_buffer[SAVESTATE_SIZE];
 u8 *g_state_buffer_ptr;
