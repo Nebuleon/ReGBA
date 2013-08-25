@@ -3793,6 +3793,8 @@ call_bios_hle:
   jr $ra
   addiu $sp, $sp, 4               # branch delay
 
+.bss
+
 memory_map_read:
   .space 0x8000
 
@@ -3801,4 +3803,3 @@ reg:
 
 memory_map_write:
   .space 0x8000
-
