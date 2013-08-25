@@ -1,6 +1,7 @@
 
 TARGET := gpsp
 
+CROSS_COMPILE ?= mipsel-linux-
 CC := $(CROSS_COMPILE)gcc
 
 SYSROOT := $(shell $(CC) --print-sysroot)
