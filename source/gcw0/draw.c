@@ -48,7 +48,7 @@ void init_video()
 
 	GBAScreen = (uint16_t*) GBAScreenSurface->pixels
 	  + ((GCW0_SCREEN_HEIGHT - GBA_SCREEN_HEIGHT) / 2) * GCW0_SCREEN_WIDTH
-	  + (GCW0_SCREEN_WIDTH - GBA_SCREEN_WIDTH);
+	  + ((GCW0_SCREEN_WIDTH - GBA_SCREEN_WIDTH) / 2);
 
 	SDL_ShowCursor(0);
 }
