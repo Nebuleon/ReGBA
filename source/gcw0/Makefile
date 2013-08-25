@@ -13,7 +13,7 @@ OBJS := main.o draw.o port.o port-asm.o ../video.o ../input.o ../bios.o \
 	../cpu_common.o ../cpu_asm.o
 
 INC := -I. -I.. -I../mips
-CFLAGS := $(SDL_CFLAGS) $(INC) -mno-shared -mno-abicalls \
+CFLAGS := $(SDL_CFLAGS) $(INC) -mno-abicalls \
 	-DZAURUS -DMIPS_XBURST -DMIPS_32R2 \
 	-Wall -Wno-unused-variable -O2 -fomit-frame-pointer
 ASFLAGS := $(CFLAGS)
