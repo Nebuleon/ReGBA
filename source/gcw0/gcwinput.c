@@ -92,7 +92,7 @@ static void UpdateGCWZeroButtons()
 					{
 						if (ev.type == SDL_KEYDOWN)
 							LastButtons |= 1 << (uint_fast16_t) i;
-						ekse
+						else
 							LastButtons &= ~(1 << (uint_fast16_t) i);
 						break;
 					}
