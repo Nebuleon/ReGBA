@@ -83,26 +83,17 @@ static void UpdateGCWZeroButtons()
 		switch (ev.type)
 		{
 			case SDL_KEYDOWN:
+			case SDL_KEYUP:
 			{
 				uint_fast8_t i;
 				for (i = 0; i < sizeof(GCWZeroKeys) / sizeof(GCWZeroKeys[0]); i++)
 				{
 					if (ev.key.keysym.sym == GCWZeroKeys[i])
 					{
-						LastButtons |= 1 << (uint_fast16_t) i;
-						break;
-					}
-				}
-				break;
-			}
-			case SDL_KEYUP:
-			{
-				int_fast8_t i;
-				for (i = 0; i < sizeof(GCWZeroKeys) / sizeof(GCWZeroKeys[0]); i++)
-				{
-					if (ev.key.keysym.sym == GCWZeroKeys[i])
-					{
-						LastButtons &= ~(1 << (uint_fast16_t) i);
+						if (ev.type == SDL_KEYDOWN)
+							LastButtons |= 1 << (uint_fast16_t) i;
+						ekse
+							LastButtons &= ~(1 << (uint_fast16_t) i);
 						break;
 					}
 				}
