@@ -120,9 +120,3 @@ signed int ReGBA_AudioUpdate()
 	// TODO Fill this function in
 	return 0;
 }
-
-enum ReGBA_Buttons ReGBA_GetPressedButtons()
-{
-	// TODO Fill this function in
-	return 0;
-}

@@ -347,10 +347,8 @@ u32 update_gba()
           flush_ram_count = 0;
   #endif
 
-#if 0
           if(update_input())
             continue;
-#endif
 
           update_gbc_sound(cpu_ticks);
 #if 0
