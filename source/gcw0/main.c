@@ -21,9 +21,7 @@
 #include <sys/time.h>
 #include <stdlib.h>
 
-extern SDL_Surface *screen;
-
-timer_type timer[4];
+TIMER_TYPE timer[4];
 
 frameskip_type current_frameskip_type = auto_frameskip;
 u32 frameskip_value = 4;
@@ -44,23 +42,11 @@ u32 arm_frame = 0;
 u32 thumb_frame = 0;
 u32 last_frame = 0;
 
-u32 cycle_memory_access = 0;
-u32 cycle_pc_relative_access = 0;
-u32 cycle_sp_relative_access = 0;
-u32 cycle_block_memory_access = 0;
-u32 cycle_block_memory_sp_access = 0;
-u32 cycle_block_memory_words = 0;
-u32 cycle_dma16_words = 0;
-u32 cycle_dma32_words = 0;
-u32 flush_ram_count = 0;
-u32 gbc_update_count = 0;
-u32 oam_update_count = 0;
-
 u32 synchronize_flag = 1;
 
 u32 update_backup_flag = 1;
 u32 clock_speed = 333;
-u8 main_path[512];
+char main_path[MAX_PATH];
 
 #define check_count(count_var)                                                \
   if(count_var < execute_cycles)                                              \
@@ -107,9 +93,9 @@ u8 main_path[512];
     }                                                                         \
   }                                                                           \
 
-u8 *file_ext[] = { ".gba", ".bin", ".zip", NULL };
+char *file_ext[] = { ".gba", ".bin", ".zip", NULL };
 
-static u8 caches_inited = 0;
+static bool caches_inited = false;
 
 void init_main()
 {
@@ -148,7 +134,7 @@ void init_main()
     clear_metadata_area(METADATA_AREA_VRAM, CLEAR_REASON_LOADING_ROM);
   }
 
-  caches_inited = 1;
+  caches_inited = true;
 
   StatsInitGame();
 }
@@ -159,25 +145,17 @@ int main(int argc, char *argv[])
   u32 vcount = 0;
   u32 ticks;
   u32 dispstat;
-  u8 load_filename[512];
-  u8 bios_file[512];
-	
-#ifdef PSP_BUILD
-  sceKernelRegisterSubIntrHandler(PSP_VBLANK_INT, 0,
-   vblank_interrupt_handler, NULL);
-  sceKernelEnableSubIntr(PSP_VBLANK_INT, 0);
-#else
-#ifndef ZAURUS
-  freopen("CON", "wb", stdout);
-#endif
-#endif
+  char load_filename[512];
+  char bios_file[512];
 
   init_gamepak_buffer();
 
   // Copy the directory path of the executable into main_path
   sprintf(main_path, "%s/.gpsp", getenv("HOME"));
   mkdir(main_path, 0755);
+#if 0
   load_config_file();
+#endif
 
   gamepak_filename[0] = 0;
 
@@ -201,7 +179,9 @@ int main(int argc, char *argv[])
 
   init_main();
 
+#if 0
   video_resolution_large();
+#endif
 
   if(argc > 1)
   {
@@ -212,17 +192,21 @@ int main(int argc, char *argv[])
     }
 
 	init_video();
+#if 0
 	init_sound();
 	init_input();
 
     set_gba_resolution(screen_scale);
     video_resolution_small();
+#endif
 
     init_cpu(0 /* boot from BIOS: no */);
     init_memory();
   }
   else
   {
+	    quit();
+#if 0
 	init_video();
 	init_sound();
 	init_input();
@@ -247,9 +231,12 @@ int main(int argc, char *argv[])
       init_cpu(0 /* boot from BIOS: no */);
       init_memory();
     }
+#endif
   }
 
+#if 0
   last_frame = 0;
+#endif
 
   // We'll never actually return from here.
 
@@ -259,7 +246,7 @@ int main(int argc, char *argv[])
 
 u32 update_gba()
 {
-  irq_type irq_raised = IRQ_NONE;
+  IRQ_TYPE irq_raised = IRQ_NONE;
   do
   {
     cpu_ticks += execute_cycles;
@@ -267,7 +254,6 @@ u32 update_gba()
 
     if(gbc_sound_update)
     {
-      gbc_update_count++;
       update_gbc_sound(cpu_ticks);
       gbc_sound_update = 0;
     }
@@ -293,11 +279,6 @@ u32 update_gba()
         if((dispstat & 0x01) == 0)
         {
           u32 i;
-          if(oam_update)
-            oam_update_count++;
-
-	  if(no_alpha)
-              io_registers[REG_BLDCNT] = 0;
 
           update_scanline();
 
@@ -332,13 +313,13 @@ u32 update_gba()
           }
 
           affine_reference_x[0] =
-           (s32)(address32(io_registers, 0x28) << 4) >> 4;
+           (s32)(ADDRESS32(io_registers, 0x28) << 4) >> 4;
           affine_reference_y[0] =
-           (s32)(address32(io_registers, 0x2C) << 4) >> 4;
+           (s32)(ADDRESS32(io_registers, 0x2C) << 4) >> 4;
           affine_reference_x[1] =
-           (s32)(address32(io_registers, 0x38) << 4) >> 4;
+           (s32)(ADDRESS32(io_registers, 0x38) << 4) >> 4;
           affine_reference_y[1] =
-           (s32)(address32(io_registers, 0x3C) << 4) >> 4;
+           (s32)(ADDRESS32(io_registers, 0x3C) << 4) >> 4;
 
           for(i = 0; i < 4; i++)
           {
@@ -366,18 +347,24 @@ u32 update_gba()
           flush_ram_count = 0;
   #endif
 
+#if 0
           if(update_input())
             continue;
+#endif
 
           update_gbc_sound(cpu_ticks);
+#if 0
           synchronize();
+#endif
 
-          update_screen();
+		ReGBA_RenderScreen();
 
           if(update_backup_flag)
             update_backup();
 
+#if 0
           process_cheats();
+#endif
 
           vcount = 0;
         }
@@ -424,6 +411,7 @@ u32 skipped_num_frame = 60;
 const u32 frame_interval = 60;
 u32 skipped_num = 0;
 
+#if 0
 void synchronize()
 {
   u64 new_ticks;
@@ -523,13 +511,16 @@ void synchronize()
     }
   }
 }
+#endif
 
 void quit()
 {
   if(!update_backup_flag)
     update_backup_force();
 
+#if 0
   sound_exit();
+#endif
 
   SDL_Quit();
   exit(0);
@@ -597,13 +588,3 @@ MAIN_SAVESTATE_BODY(READ_MEM);
 
 void main_write_mem_savestate()
 MAIN_SAVESTATE_BODY(WRITE_MEM);
-
-void print_out(u32 address, u32 pc)
-{
-  char buffer[256];
-  sprintf(buffer, "patching from gp8 %x", address);
-  print_string(buffer, 0xFFFF, 0x0000, 0, 0);
-  update_screen();
-  delay_us(5000000);
-}
-

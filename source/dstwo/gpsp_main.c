@@ -75,8 +75,6 @@ unsigned int frame_interval = 60; // For in-memory saved states used in rewindin
 
 int date_format= 2;
 
-u32 prescale_table[] = { 0, 6, 8, 10 };
-
 char *file_ext[] = { ".gba", ".bin", ".zip", NULL };
 
 /******************************************************************************
@@ -575,65 +573,6 @@ void error_msg(char *text)
       gui_action = get_gui_input();
 //      sceKernelDelayThread(15000); /* 0.0015s */
     }
-}
-
-void set_cpu_mode(CPU_MODE_TYPE new_mode)
-{
-  u32 i;
-  CPU_MODE_TYPE cpu_mode = reg[CPU_MODE];
-
-  if(cpu_mode != new_mode)
-  {
-    if(new_mode == MODE_FIQ)
-    {
-      for(i = 8; i < 15; i++)
-      {
-        reg_mode[cpu_mode][i - 8] = reg[i];
-      }
-    }
-    else
-    {
-      reg_mode[cpu_mode][5] = reg[REG_SP];
-      reg_mode[cpu_mode][6] = reg[REG_LR];
-    }
-
-    if(cpu_mode == MODE_FIQ)
-    {
-      for(i = 8; i < 15; i++)
-      {
-        reg[i] = reg_mode[new_mode][i - 8];
-      }
-    }
-    else
-    {
-      reg[REG_SP] = reg_mode[new_mode][5];
-      reg[REG_LR] = reg_mode[new_mode][6];
-    }
-
-    reg[CPU_MODE] = new_mode;
-  }
-}
-
-void raise_interrupt(IRQ_TYPE irq_raised)
-{
-  // The specific IRQ must be enabled in IE, master IRQ enable must be on,
-  // and it must be on in the flags.
-  io_registers[REG_IF] |= irq_raised;
-
-  if((io_registers[REG_IME] & 0x01) && (io_registers[REG_IE] & io_registers[REG_IF]) && ((reg[REG_CPSR] & 0x80) == 0))
-  {
-    bios_read_protect = 0xe55ec002;
-
-    // Interrupt handler in BIOS
-    reg_mode[MODE_IRQ][6] = reg[REG_PC] + 4;
-    spsr[MODE_IRQ] = reg[REG_CPSR];
-    reg[REG_CPSR] = 0xD2;
-    reg[REG_PC] = 0x00000018;
-    bios_region_read_allow();
-    set_cpu_mode(MODE_IRQ);
-    reg[CPU_HALT_STATE] = CPU_ACTIVE;
-    reg[CHANGED_PC_STATUS] = 1;
-  }
 }
 
 #if 0

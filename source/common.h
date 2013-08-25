@@ -31,6 +31,10 @@
 /******************************************************************************
  * 
  ******************************************************************************/
+#include <stdint.h>
+typedef uint32_t FIXED16_16;  // Q16.16 fixed-point
+#include <stdbool.h>
+
 #include <stdio.h>
 #include <sys/stat.h>
 #include <ctype.h>
@@ -155,8 +159,8 @@ struct ReGBA_RTC {
 };
 
 // - - - CROSS-PLATFORM VARIABLE DEFINITIONS - - -
-extern u16* GBAScreen;
-extern u32  GBAScreenPitch;
+extern u16*     GBAScreen;
+extern uint32_t GBAScreenPitch;
 
 // - - - CROSS-PLATFORM FUNCTION DEFINITIONS - - -
 

@@ -1,7 +1,6 @@
 .global ReGBA_MakeCodeVisible
 
 .set noat
-.set mips2
 
 .ent ReGBA_MakeCodeVisible
 
@@ -28,7 +27,9 @@ ReGBA_MakeCodeVisible:
   
   # Now git 'er done.
 1:
+.set mips32r2
   synci ($4)              # Combined Data Writeback-Instruction Invalidate (R2)
+.set mips0
   addiu $4, $4, 32        # go to the next cache line
   sltu  $1, $4, $5        # if Code < End
   bne   $1, $0, 1b        #   goto 1

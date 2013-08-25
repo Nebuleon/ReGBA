@@ -19,8 +19,14 @@
 
 #include "common.h"
 
-SDL_Surface *screen = NULL;
-SDL_Surface *display = NULL;
+#define GCW0_SCREEN_WIDTH  320
+#define GCW0_SCREEN_HEIGHT 240
+
+uint16_t* GBAScreen;
+uint32_t  GBAScreenPitch = 320;
+
+SDL_Surface *GBAScreenSurface = NULL;
+SDL_Surface *OutputSurface = NULL;
 
 const u32 video_scale = 1;
 
@@ -33,16 +39,21 @@ void init_video()
 		// exit(1);
 	}
 
-	display = SDL_SetVideoMode(320, 240, 16, SDL_HWSURFACE | SDL_DOUBLEBUF);
-	screen = SDL_CreateRGBSurface(SDL_SWSURFACE, 320, 240, 16,
-	  display->format->Rmask,
-	  display->format->Gmask,
-	  display->format->Bmask,
-	  display->format->Amask);
+	OutputSurface = SDL_SetVideoMode(GCW0_SCREEN_WIDTH, GCW0_SCREEN_HEIGHT, 16, SDL_HWSURFACE | SDL_DOUBLEBUF);
+	GBAScreenSurface = SDL_CreateRGBSurface(SDL_SWSURFACE, GCW0_SCREEN_WIDTH, GCW0_SCREEN_HEIGHT, 16,
+	  OutputSurface->format->Rmask,
+	  OutputSurface->format->Gmask,
+	  OutputSurface->format->Bmask,
+	  OutputSurface->format->Amask);
+
+	GBAScreen = (uint16_t*) OutputSurface->pixels
+	  + ((GCW0_SCREEN_HEIGHT - GBA_SCREEN_HEIGHT) / 2) * GCW0_SCREEN_WIDTH
+	  + (GCW0_SCREEN_WIDTH - GBA_SCREEN_WIDTH);
 
 	SDL_ShowCursor(0);
 }
 
+#if 0
 void video_resolution_large()
 {
   if(current_scale != unscaled)
@@ -93,6 +104,7 @@ void clear_screen(u16 color)
     dest_ptr += line_skip;
   }
 }
+#endif
 
 #define integer_scale_copy_2()                                                \
   current_scanline_ptr[x2] = current_pixel;                                   \
@@ -251,12 +263,13 @@ void gba_upscale(uint32_t *to, uint32_t *from, uint32_t src_x, uint32_t src_y, u
 	}
 }
 
-void update_normal(void)
+void ReGBA_RenderScreen(void)
 {
-	SDL_BlitSurface(screen,NULL,display,NULL);
-	SDL_Flip(display);
+	SDL_BlitSurface(GBAScreenSurface, NULL, OutputSurface, NULL);
+	SDL_Flip(OutputSurface);
 }
 
+#if 0
 void update_display(void)
 {
 	if (!screen_scale)
@@ -314,60 +327,51 @@ void flip_screen()
   }
   update_normal();
 }
+#endif
 
 u32 frame_to_render;
 
+#if 0
 void update_screen()
 {
-#ifdef ZAURUS
-  if (!screen)
+  if (!GBAScreenSurface)
 		return;
   if(!skip_next_frame)
 	  update_display();
-
-#else
-	if(!skip_next_frame)
-		flip_screen();
-#endif
 }
+#endif
 
 video_scale_type screen_scale = fullscreen;
 video_scale_type current_scale = fullscreen;
+#if 0
 video_filter_type screen_filter = filter_bilinear;
+#endif
 
 u16 *copy_screen()
 {
-#ifdef ZAURUS
-	u32 pitch = get_screen_pitch();
-	u16 *copy = malloc(240 * 160 * 2);
+	u32 pitch = GBAScreenPitch;
+	u16 *copy = malloc(GBA_SCREEN_WIDTH * GBA_SCREEN_HEIGHT * sizeof(uint16_t));
 	u16 *dest_ptr = copy;
-	u16 *src_ptr = get_screen_pixels() + 40 + (40 * pitch);
-	u32 line_skip = pitch - 240;
+	u16 *src_ptr = GBAScreen;
+	u32 line_skip = pitch - GBA_SCREEN_WIDTH;
 	u32 x, y;
 
-	for(y = 0; y < 160; y++)
+	for(y = 0; y < GBA_SCREEN_HEIGHT; y++)
 	{
-		for(x = 0; x < 240; x++, src_ptr++, dest_ptr++)
+		for(x = 0; x < GBA_SCREEN_WIDTH; x++, src_ptr++, dest_ptr++)
 		{
 			*dest_ptr = *src_ptr;
 		}
 		src_ptr += line_skip;
 	}
-#else
-  u16 *copy = malloc(240 * 160 * 2);
-  memcpy(copy, get_screen_pixels(), 240 * 160 * 2);
-#endif
-  return copy;
+
+	return copy;
 }
 
 void blit_to_screen(u16 *src, u32 w, u32 h, u32 dest_x, u32 dest_y)
 {	
-  u32 pitch = get_screen_pitch();
-#ifdef ZAURUS
-  u16 *dest_ptr = get_screen_pixels();
-#else
-  u16 *dest_ptr = get_screen_pixels() + dest_x + (dest_y * pitch);
-#endif
+  u32 pitch = GBAScreenPitch;
+  u16 *dest_ptr = GBAScreen;
   u16 *src_ptr = src;
   u32 line_skip = pitch - w;
   u32 x, y;
@@ -382,6 +386,7 @@ void blit_to_screen(u16 *src, u32 w, u32 h, u32 dest_x, u32 dest_y)
   }
 }
 
+#if 0
 void print_string_ext(const char *str, u16 fg_color, u16 bg_color,
  u32 x, u32 y, void *_dest_ptr, u32 pitch, u32 pad)
 {
@@ -456,3 +461,4 @@ void print_string_pad(const char *str, u16 fg_color, u16 bg_color,
   print_string_ext(str, fg_color, bg_color, x, y, get_screen_pixels(),
    get_screen_pitch(), pad);
 }
+#endif

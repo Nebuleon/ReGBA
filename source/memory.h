@@ -22,9 +22,7 @@
 #ifndef MEMORY_H
 #define MEMORY_H
 
-#define MEM_STATE_NUM (10)
-
-#define PSP2K_MEM_TOP (0x0a000000)
+#include "cpu.h"
 
 #define SAVESTATE_SIZE 506952
 #define SAVESTATE_SIZE_OLD 506947

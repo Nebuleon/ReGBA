@@ -60,14 +60,14 @@ u32 update_input()
 		return ReGBA_Menu(REGBA_MENU_ENTRY_REASON_MENU_KEY);
 	}
 
-	u32 RapidFireUsed = 0;
+	bool RapidFireUsed = false;
 
 	if (new_key & REGBA_BUTTON_RAPID_A)
 	{
 		if (rapidfire_flag) new_key |=  REGBA_BUTTON_A;
 		else                new_key &= ~REGBA_BUTTON_A;
 
-		RapidFireUsed = 1;
+		RapidFireUsed = true;
 	}
 
 	if (new_key & REGBA_BUTTON_RAPID_B)
@@ -75,12 +75,12 @@ u32 update_input()
 		if (rapidfire_flag) new_key |=  REGBA_BUTTON_B;
 		else                new_key &= ~REGBA_BUTTON_B;
 
-		RapidFireUsed = 1;
+		RapidFireUsed = true;
 	}
 
 	if (RapidFireUsed)
 	{
-		rapidfire_flag ^= 1;
+		rapidfire_flag = !rapidfire_flag;
 	}
 
 	if((new_key | key) != key)

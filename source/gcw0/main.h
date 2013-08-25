@@ -20,39 +20,7 @@
 #ifndef MAIN_H
 #define MAIN_H
 
-typedef enum
-{
-  TIMER_INACTIVE,
-  TIMER_PRESCALE,
-  TIMER_CASCADE
-} timer_status_type;
-
-typedef enum
-{
-  TIMER_NO_IRQ,
-  TIMER_TRIGGER_IRQ
-} timer_irq_type;
-
-
-typedef enum
-{
-  TIMER_DS_CHANNEL_NONE,
-  TIMER_DS_CHANNEL_A,
-  TIMER_DS_CHANNEL_B,
-  TIMER_DS_CHANNEL_BOTH
-} timer_ds_channel_type;
-
-typedef struct
-{
-  s32 count;
-  u32 reload;
-  u32 prescale;
-  u32 stop_cpu_ticks;
-  FIXED16_16 frequency_step;
-  timer_ds_channel_type direct_sound_channels;
-  timer_irq_type irq;
-  timer_status_type status;
-} timer_type;
+#include "memory.h"
 
 typedef enum
 {
@@ -71,22 +39,9 @@ extern u32 global_cycles_per_instruction;
 extern u32 synchronize_flag;
 extern u32 skip_next_frame;
 
-extern timer_type timer[4];
-static u32 prescale_table[] = { 0, 6, 8, 10 };
-
-extern u32 cycle_memory_access;
-extern u32 cycle_pc_relative_access;
-extern u32 cycle_sp_relative_access;
-extern u32 cycle_block_memory_access;
-extern u32 cycle_block_memory_sp_access;
-extern u32 cycle_block_memory_words;
-extern u32 cycle_dma16_words;
-extern u32 cycle_dma32_words;
-extern u32 flush_ram_count;
-
 extern u64 base_timestamp;
 
-extern u8 main_path[512];
+extern char main_path[MAX_PATH];
 
 extern u32 update_backup_flag;
 extern u32 clock_speed;
@@ -98,8 +53,8 @@ void quit();
 void delay_us(u32 us_count);
 void get_ticks_us(u64 *tick_return);
 void game_name_ext(u8 *src, u8 *buffer, u8 *extension);
-void main_write_mem_savestate(FILE_TAG_TYPE savestate_file);
-void main_read_mem_savestate(FILE_TAG_TYPE savestate_file);
+void main_write_mem_savestate();
+void main_read_mem_savestate();
 
 #define count_timer(timer_number)                                             \
   timer[timer_number].reload = 0x10000 - value;                               \

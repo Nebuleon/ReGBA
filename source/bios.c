@@ -20,8 +20,8 @@
 
 #include "common.h"
 
-unsigned int swi_hle_handle[0x2B][3] = {
-  /* { (unsigned int) void* HandlerAddress, unsigned int InputParameterCount, unsigned int ReturnsValue } */
+intptr_t swi_hle_handle[0x2B][3] = {
+  /* { (intptr_t) void* HandlerAddress, unsigned int InputParameterCount, unsigned int ReturnsValue } */
   { 0, 0, 0, },              // SWI 0:  SoftReset
   { 0, 0, 0, },              // SWI 1:  RegisterRAMReset
   { 0, 0, 0, },              // SWI 2:  Halt

@@ -5083,6 +5083,7 @@ u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason)
 
 	GameFrequencyCPU();
 
+	Stats.LastFPSCalculationTime = getSysTime();
 	StatsStopFPS(); // FPS will be 0 if we return, so stop it showing
 	return return_value;
 }

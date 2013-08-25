@@ -21,6 +21,9 @@
 #ifndef VIDEO_H
 #define VIDEO_H
 
+#define GBA_SCREEN_WIDTH 240
+#define GBA_SCREEN_HEIGHT 160
+
 void update_scanline();
 
 extern s32 affine_reference_x[2];

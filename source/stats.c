@@ -26,7 +26,6 @@ struct GPSP_STATS Stats;
 
 void StatsStopFPS(void)
 {
-	Stats.LastFPSCalculationTime = getSysTime();
 	Stats.RenderedFPS = -1;
 	Stats.EmulatedFPS = -1;
 	Stats.RenderedFrames = 0;

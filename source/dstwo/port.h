@@ -34,8 +34,6 @@
 
 typedef FILE* FILE_TAG_TYPE;
 
-typedef u32 FIXED16_16;   // Q16.16 fixed-point
-
 #include "fs_api.h"
 #include "ds2_unistd.h"
 

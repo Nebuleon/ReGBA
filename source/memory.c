@@ -153,6 +153,8 @@ u8 cpu_waitstate_cycles_seq[2][16] =
 };
 #endif
 
+u32 prescale_table[] = { 0, 6, 8, 10 };
+
 // GBA memory areas.
 
 u16 palette_ram   [  0x200]; // Palette RAM             (05000000h)      1 KiB

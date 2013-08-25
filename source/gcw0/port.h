@@ -1,6 +1,19 @@
 #ifndef _PORT_H_
 #define _PORT_H_
 
+typedef uint8_t u8;
+typedef uint16_t u16;
+typedef uint32_t u32;
+typedef int8_t s8;
+typedef int16_t s16;
+typedef int32_t s32;
+typedef uint64_t u64;
+
+typedef FILE* FILE_TAG_TYPE;
+
+#define MAX_PATH PATH_MAX
+#define MAX_FILE PATH_MAX
+
 #include <SDL/SDL.h>
 
 /* Tuning parameters for the GCW Zero version of gpSP */
@@ -45,5 +58,9 @@
 
 #define FILE_TELL(filename_tag)                                             \
   ftell(filename_tag)                                                       \
+
+#include "draw.h"
+#include "gui.h"
+#include "main.h"
 
 #endif

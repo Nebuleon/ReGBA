@@ -2708,7 +2708,7 @@ u32 execute_store_cpsr_body(u32 _cpsr, u32 store_mask, u32 address)
    block_exits[block_exit_position].branch_target);                           \
   block_exit_position++                                                       \
 
-extern unsigned int swi_hle_handle[0x2B][3];
+extern intptr_t swi_hle_handle[0x2B][3];
 
 #define generate_swi_hle_handler(_swi_number)                                 \
 {                                                                             \
