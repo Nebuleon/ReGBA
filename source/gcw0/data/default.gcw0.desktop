@@ -1,0 +1,11 @@
+[Desktop Entry]
+
+Name=ReGBA
+Comment=GameBoy Advance Emulator
+Comment[fr]=Émulateur GameBoy Advance
+Comment[es]=Emulador GameBoy Advance
+Exec=regba
+Terminal=false
+Type=Application
+StartupNotify=true
+Categories=emulators;
