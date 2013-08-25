@@ -63,11 +63,15 @@
 .global reg_check
 .global call_bios_hle
 
-.global memory_map_read
-.global memory_map_write
-.global reg
+.extern memory_map_read
+.extern memory_map_write
+.extern reg
 
+.extern block_lookup_address_arm
+.extern block_lookup_address_thumb
+.extern execute_store_cpsr_body
 .extern ReGBA_MakeCodeVisible
+.extern update_gba
 
 .extern spsr
 
@@ -3792,13 +3796,3 @@ call_bios_hle:
 
   jr $ra
   addiu $sp, $sp, 4               # branch delay
-
-memory_map_read:
-  .space 0x8000
-
-reg:
-  .space 0x100
-
-memory_map_write:
-  .space 0x8000
-
