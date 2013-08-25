@@ -1,4 +1,3 @@
-
 TARGET := gpsp
 
 CROSS_COMPILE ?= mipsel-linux-
@@ -19,12 +18,7 @@ CFLAGS := $(SDL_CFLAGS) $(INC) \
 ASFLAGS := $(CFLAGS)
 LDFLAGS := $(SDL_LIBS) -lpthread -lz -lm
 
-.PHONY: all $(TARGET) clean
+include ../Makefile.rules
 
+.PHONY: all
 all: $(TARGET)
-
-$(TARGET): $(OBJS)
-	$(CC) $(CFLAGS) $(LDFLAGS) $^ -o $@
-
-clean:
-	rm -f $(TARGET) $(OBJS)
