@@ -52,7 +52,7 @@ void synchronize();
 void quit();
 void delay_us(u32 us_count);
 void get_ticks_us(u64 *tick_return);
-void game_name_ext(u8 *src, u8 *buffer, u8 *extension);
+void change_ext(const char *src, char *buffer, char *extension);
 void main_write_mem_savestate();
 void main_read_mem_savestate();
 

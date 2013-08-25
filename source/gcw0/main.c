@@ -534,7 +534,7 @@ void reset_gba()
   reset_sound();
 }
 
-u32 FILE_LENGTH(FILE_TAG_TYPE fp)
+size_t FILE_LENGTH(FILE_TAG_TYPE fp)
 {
   u32 length;
 
@@ -556,9 +556,9 @@ void get_ticks_us(u64 *ticks_return)
   *ticks_return = (SDL_GetTicks() * 1000);
 }
 
-void change_ext(u8 *src, u8 *buffer, u8 *extension)
+void change_ext(const char *src, char *buffer, char *extension)
 {
-  u8 *position;
+  char *position;
 
   strcpy(buffer, main_path);
   strcat(buffer, "/");
