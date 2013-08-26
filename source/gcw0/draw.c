@@ -23,7 +23,7 @@
 #define GCW0_SCREEN_HEIGHT 240
 
 uint16_t* GBAScreen;
-uint32_t  GBAScreenPitch = 320;
+uint32_t  GBAScreenPitch = GBA_SCREEN_WIDTH;
 
 SDL_Surface *GBAScreenSurface = NULL;
 SDL_Surface *OutputSurface = NULL;
@@ -40,15 +40,13 @@ void init_video()
 	}
 
 	OutputSurface = SDL_SetVideoMode(GCW0_SCREEN_WIDTH, GCW0_SCREEN_HEIGHT, 16, SDL_HWSURFACE | SDL_DOUBLEBUF);
-	GBAScreenSurface = SDL_CreateRGBSurface(SDL_SWSURFACE, GCW0_SCREEN_WIDTH, GCW0_SCREEN_HEIGHT, 16,
+	GBAScreenSurface = SDL_CreateRGBSurface(SDL_SWSURFACE, GBA_SCREEN_WIDTH, GBA_SCREEN_HEIGHT, 16,
 	  GBA_RED_MASK,
 	  GBA_GREEN_MASK,
 	  GBA_BLUE_MASK,
 	  0 /* alpha: none */);
 
-	GBAScreen = (uint16_t*) GBAScreenSurface->pixels
-	  + ((GCW0_SCREEN_HEIGHT - GBA_SCREEN_HEIGHT) / 2) * GCW0_SCREEN_WIDTH
-	  + ((GCW0_SCREEN_WIDTH - GBA_SCREEN_WIDTH) / 2);
+	GBAScreen = (uint16_t*) GBAScreenSurface->pixels;
 
 	SDL_ShowCursor(0);
 }
@@ -265,7 +263,13 @@ void gba_upscale(uint32_t *to, uint32_t *from, uint32_t src_x, uint32_t src_y, u
 
 void ReGBA_RenderScreen(void)
 {
-	SDL_BlitSurface(GBAScreenSurface, NULL, OutputSurface, NULL);
+	SDL_Rect rect = {
+		(GCW0_SCREEN_WIDTH - GBA_SCREEN_WIDTH) / 2,
+		(GCW0_SCREEN_HEIGHT - GBA_SCREEN_HEIGHT) / 2,
+		GBA_SCREEN_WIDTH,
+		GBA_SCREEN_HEIGHT
+	};
+	SDL_BlitSurface(GBAScreenSurface, NULL, OutputSurface, &rect);
 	SDL_Flip(OutputSurface);
 }
 
