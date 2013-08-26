@@ -136,10 +136,31 @@ void clear_screen(u16 color)
     current_scanline_ptr += pitch;                                            \
   }                                                                           \
 
+/***************************************************************************
+ *   Scaler copyright (C) 2013 by Paul Cercueil                            *
+ *   paul@crapouillou.net                                                  *
+ ***************************************************************************/
+static inline uint32_t bgr555_to_rgb565(uint32_t px)
+{
+	return ((px & 0x7c007c00) >> 10)
+	  | ((px & 0x03e003e0) << 1)
+	  | ((px & 0x001f001f) << 11);
+}
 
-// GPL software scaler, courtesy of Ayla (paul@crapouillou.net)
-// Upscale from 240x160 to 320x240
-void gba_upscale(uint32_t *to, uint32_t *from, uint32_t src_x, uint32_t src_y, uint32_t pitch)
+/* Upscales an image by 33% in with and 50% in height; also does color
+ * conversion using the function above.
+ * Input:
+ *   from: A pointer to the pixels member of a src_x by src_y surface to be
+ *     read by this function. The pixel format of this surface is XBGR 1555.
+ *   src_x: The width of the source.
+ *   src_y: The height of the source.
+ * Output:
+ *   to: A pointer to the pixels member of a (src_x * 4/3) by (src_y * 3/2)
+ *     surface to be filled with the upscaled GBA image. The pixel format of
+ *     this surface is RGB 565.
+ */
+static inline void gba_upscale(uint32_t *to, uint32_t *from,
+	  uint32_t src_x, uint32_t src_y)
 {
 	/* Before:
 	 *    a b c d e f
@@ -162,11 +183,11 @@ void gba_upscale(uint32_t *to, uint32_t *from, uint32_t src_x, uint32_t src_y, u
 			prefetch(to+4, 1);
 
 			/* Read b-a */
-			reg1 = *from;
+			reg1 = bgr555_to_rgb565(*from);
 			reg2 = ((reg1 & 0xf7de0000) >> 1) + (reg1 & 0x08210000);
 
 			/* Read h-g */
-			reg3 = *(from++ + src_x/2 + pitch/2);
+			reg3 = bgr555_to_rgb565(*(from++ + src_x/2));
 			reg4 = ((reg3 & 0xf7de0000) >> 1) + (reg3 & 0x08210000);
 
 			reg1 &= 0xffff;
@@ -182,37 +203,37 @@ void gba_upscale(uint32_t *to, uint32_t *from, uint32_t src_x, uint32_t src_y, u
 			*(to + 2*dst_x/2) = reg3;
 
 			if (unlikely(reg1 != reg3))
-				reg1 = (reg1 & 0x08210821)
-					+ ((reg1 & 0xf7def7de) >> 1)
-					+ ((reg3 & 0xf7def7de) >> 1);
+			  reg1 = (reg1 & 0x08210821)
+				+ ((reg1 & 0xf7def7de) >> 1)
+				+ ((reg3 & 0xf7def7de) >> 1);
 
 			/* Write (a,b,g,h)-(a,g) */
 			*(to++ + dst_x/2) = reg1;
 
 			/* Read d-c */
-			reg1 = *from;
+			reg1 = bgr555_to_rgb565(*from);
 			reg2 = ((reg2 + ((reg1 & 0xf7de) << 15)) >> 16) | ((reg1 & 0xffff) << 16);
 
 			/* Write c-(b,c) */
 			*to = reg2;
 
 			/* Read j-i */
-			reg3 = *(from++ + src_x/2 + pitch/2);
+			reg3 = bgr555_to_rgb565(*(from++ + src_x/2));
 			reg4 = ((reg4 + ((reg3 & 0xf7de) << 15)) >> 16) | ((reg3 & 0xffff) << 16);
 
 			/* Write i-(h,i) */
 			*(to + 2*dst_x/2) = reg4;
 
 			if (unlikely(reg2 != reg4))
-				reg2 = (reg2 & 0x08210821)
-					+ ((reg2 & 0xf7def7de) >> 1)
-					+ ((reg4 & 0xf7def7de) >> 1);
+			  reg2 = (reg2 & 0x08210821)
+				+ ((reg2 & 0xf7def7de) >> 1)
+				+ ((reg4 & 0xf7def7de) >> 1);
 
 			/* Write (c,i)-(b,c,h,i) */
 			*(to++ + dst_x/2) = reg2;
 
 			/* Read f-e */
-			reg2 = *from;
+			reg2 = bgr555_to_rgb565(*from);
 			reg4 = (reg2 & 0xf7def7de) >> 1;
 
 			/* Write (d,e)-d */
@@ -221,7 +242,7 @@ void gba_upscale(uint32_t *to, uint32_t *from, uint32_t src_x, uint32_t src_y, u
 			*to = reg4;
 
 			/* Read l-k */
-			reg1 = *(from++ + src_x/2 + pitch/2);
+			reg1 = bgr555_to_rgb565(*(from++ + src_x/2));
 			reg5 = (reg1 & 0xf7def7de) >> 1;
 
 			/* Write (j,k)-j */
@@ -230,9 +251,9 @@ void gba_upscale(uint32_t *to, uint32_t *from, uint32_t src_x, uint32_t src_y, u
 			*(to + 2*dst_x/2) = reg5;
 
 			if (unlikely(reg4 != reg5))
-				reg4 = (reg4 & 0x08210821)
-					+ ((reg4 & 0xf7def7de) >> 1)
-					+ ((reg5 & 0xf7def7de) >> 1);
+			  reg4 = (reg4 & 0x08210821)
+				+ ((reg4 & 0xf7def7de) >> 1)
+				+ ((reg5 & 0xf7def7de) >> 1);
 
 			/* Write (d,e,j,k)-(d,j) */
 			*(to++ + dst_x/2) = reg4;
@@ -248,21 +269,22 @@ void gba_upscale(uint32_t *to, uint32_t *from, uint32_t src_x, uint32_t src_y, u
 			*(to + 2*dst_x/2) = reg1;
 
 			if (unlikely(reg1 != reg2))
-				reg1 = (reg1 & 0x08210821)
-					+ ((reg1 & 0xf7def7de) >> 1)
-					+ ((reg2 & 0xf7def7de) >> 1);
+			  reg1 = (reg1 & 0x08210821)
+				+ ((reg1 & 0xf7def7de) >> 1)
+				+ ((reg2 & 0xf7def7de) >> 1);
 
 			/* Write (f,l)-(e,f,k,l) */
 			*(to++ + dst_x/2) = reg1;
 		}
 
 		to += 2*dst_x/2;
-		from += src_x/2 + 2*pitch/2;
+		from += src_x/2;
 	}
 }
 
 void ReGBA_RenderScreen(void)
 {
+	/* Unscaled
 	SDL_Rect rect = {
 		(GCW0_SCREEN_WIDTH - GBA_SCREEN_WIDTH) / 2,
 		(GCW0_SCREEN_HEIGHT - GBA_SCREEN_HEIGHT) / 2,
@@ -270,6 +292,10 @@ void ReGBA_RenderScreen(void)
 		GBA_SCREEN_HEIGHT
 	};
 	SDL_BlitSurface(GBAScreenSurface, NULL, OutputSurface, &rect);
+	*/
+	uint32_t *src = (uint32_t *) GBAScreen;
+	gba_upscale((uint32_t*) OutputSurface->pixels, src, GBA_SCREEN_WIDTH, GBA_SCREEN_HEIGHT);
+
 	SDL_Flip(OutputSurface);
 }
 
