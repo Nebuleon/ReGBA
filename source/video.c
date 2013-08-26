@@ -20,8 +20,8 @@
 
 #include "common.h"
 
-// This file outputs GBA frames in the RGB555 pixel format, with the upper bit
-// unused (XRGB 1555). It is endian-neutral.
+// This file outputs GBA frames in the BGR 555 pixel format, with the upper bit
+// unused (XBGR 1555). It is endian-neutral.
 
 #define render_scanline_dest_normal         u16
 #define render_scanline_dest_alpha          u32
