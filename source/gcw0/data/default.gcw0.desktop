@@ -1,9 +1,10 @@
 [Desktop Entry]
 
 Name=ReGBA
-Comment=GameBoy Advance Emulator
-Comment[fr]=Émulateur GameBoy Advance
-Comment[es]=Emulador GameBoy Advance
+Comment=Game Boy Advance Emulator
+Comment[fr]=Émulateur Game Boy Advance
+Comment[es]=Emulador Game Boy Advance
+Icon=regba-silver
 Exec=regba %f
 Terminal=false
 Type=Application
