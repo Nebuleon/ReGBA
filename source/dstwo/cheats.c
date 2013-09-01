@@ -165,7 +165,7 @@ int string2utf8(unsigned char *src, unsigned char* dst)
 				*dst++ = 0xC0 | ((ucode >> 6) & 0x1F);
 				*dst++ = 0x80 | (ucode & 0x3F);
 			}
-			else if(ucode < 0x10000) //3 bytes
+			else /* if(ucode < 0x10000) */ //3 bytes
 			{
 				*dst++ = 0xE0 | (ucode >> 12);
 				*dst++ = 0x80 | ((ucode >>6) & 0x3F);

@@ -2425,7 +2425,7 @@ u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason)
 	MENU_TYPE *dynamic_cheat_menu = NULL;
 	MENU_OPTION_TYPE *dynamic_cheat_options = NULL;
 	unsigned char *dynamic_cheat_msg = NULL;
-	unsigned char **dynamic_cheat_pt = NULL;
+	char **dynamic_cheat_pt = NULL;
 	unsigned int dynamic_cheat_active;
 	int dynamic_cheat_scroll_value= 0;
 	unsigned int dynamic_cheat_msg_start;
@@ -2461,7 +2461,7 @@ u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason)
 			dynamic_cheat_msg = (unsigned char*)malloc(8*1024);
 			if(dynamic_cheat_msg == NULL) return;
 
-			dynamic_cheat_pt = (unsigned char**)malloc((nums+g_num_cheats)*4);
+			dynamic_cheat_pt = (char**)malloc((nums+g_num_cheats)*4);
 			if(dynamic_cheat_pt == NULL)
 			{
 				free(dynamic_cheat_msg);
