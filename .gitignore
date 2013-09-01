@@ -5,7 +5,5 @@
 *.zip
 *~
 *.bak
-depend
 [Tt]humbs.db
 log
-source/dstwo/TEMPGBA/system/ndsgba.cfg
