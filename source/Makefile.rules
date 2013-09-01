@@ -17,7 +17,7 @@ $(TARGET): $(OBJS)
 
 %.o: %.S
 	$(SUM) "  AS      $@"
-	$(CMD)$(CC) $(CFLAGS) -c $< -o $@
+	$(CMD)$(CC) $(ASFLAGS) -c $< -o $@
 
 .PHONY: clean
 clean:

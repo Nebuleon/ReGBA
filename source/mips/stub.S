@@ -18,16 +18,6 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-# Defines usable by this file:
-# -DMIPS_XBURST
-#   XBurst processors allow the programmer to skip the delay slot after memory
-#   load instructions. This may or may not be faster, but does lower the
-#   usage of the instruction cache.
-# -DMIPS_32R2
-#   The MIPS32 revision 2 instruction set includes INS and EXT, instructions
-#   that allow the programmer to insert and extract bits without much longer
-#   sequences of bitwise and shift (AND, OR, SLL, SRL) instructions.
-
 #ifdef MIPS_32R2
 .set mips32r2
 #endif
