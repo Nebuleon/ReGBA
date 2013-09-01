@@ -118,13 +118,13 @@ typedef uint32_t FIXED16_16;  // Q16.16 fixed-point
   ((((numerator) * (1 << (bits))) + ((denominator) / 2)) / (denominator))   \
 
 #define ADDRESS8(base, offset)                                              \
-  *((u8 *)((u8 *)(base) + (offset)))                                        \
+  *((u8 *)(base) + (offset))                                                \
 
 #define ADDRESS16(base, offset)                                             \
-  *((u16 *)((u8 *)(base) + (offset)))                                       \
+  *((u16 *)(base) + ((offset) / 2))                                         \
 
 #define ADDRESS32(base, offset)                                             \
-  *((u32 *)((u8 *)(base) + (offset)))                                       \
+  *((u32 *)(base) + ((offset) / 4))                                         \
 
 #define USE_BIOS 0
 #define EMU_BIOS 1

@@ -424,7 +424,7 @@ void write_eeprom(u32 address, u32 value)
             eeprom_mode = EEPROM_ADDRESS_MODE;
             break;
         }
-        ADDRESS16(eeprom_buffer, 0) = 0;
+        eeprom_buffer[0] = eeprom_buffer[1] = 0;
       }
       break;
 
@@ -437,16 +437,18 @@ void write_eeprom(u32 address, u32 value)
       {
         if(eeprom_size == EEPROM_512_BYTE)
         {
-          eeprom_address =
-           (ADDRESS16(eeprom_buffer, 0) >> 2) * 8;
+          // Little endian access
+          eeprom_address = (((u32)eeprom_buffer[0] >> 2) |
+           ((u32)eeprom_buffer[1] << 6)) * 8;
         }
         else
         {
+          // Big endian access
           eeprom_address = (((u32)eeprom_buffer[1] >> 2) |
            ((u32)eeprom_buffer[0] << 6)) * 8;
         }
 
-        ADDRESS16(eeprom_buffer, 0) = 0;
+        eeprom_buffer[0] = eeprom_buffer[1] = 0;
         eeprom_counter = 0;
 
         if(eeprom_mode == EEPROM_ADDRESS_MODE)
