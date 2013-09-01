@@ -44,8 +44,6 @@ u32 last_frame = 0;
 
 u32 synchronize_flag = 1;
 
-u32 update_backup_flag = 1;
-u32 clock_speed = 333;
 char main_path[MAX_PATH];
 
 #define check_count(count_var)                                                \
@@ -355,8 +353,7 @@ u32 update_gba()
 
 		ReGBA_RenderScreen();
 
-          if(update_backup_flag)
-            update_backup();
+          update_backup();
 
 #if 0
           process_cheats();
@@ -511,7 +508,7 @@ void synchronize()
 
 void quit()
 {
-  if(!update_backup_flag)
+  if(IsGameLoaded)
     update_backup_force();
 
 #if 0

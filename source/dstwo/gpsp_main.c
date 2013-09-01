@@ -436,8 +436,7 @@ u32 update_gba()
             continue;
 #endif
 
-          if(game_config.update_backup_flag == 1)
-            update_backup();
+          update_backup();
 
           process_cheats();
 

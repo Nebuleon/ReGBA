@@ -132,7 +132,6 @@ typedef struct
   u32 frameskip_type;
   u32 frameskip_value;
   u32 audio_buffer_size_number;
-  u32 update_backup_flag;
   CHEAT_TYPE cheats_flag[MAX_CHEATS];
   u32 gamepad_config_map[MAX_GAMEPAD_CONFIG_MAP];
   u32 backward;

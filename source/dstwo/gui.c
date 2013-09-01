@@ -1634,7 +1634,6 @@ void init_game_config()
     game_persistent_config.rewind_value = 6; // default: 10 seconds
     game_persistent_config.clock_speed_number = 3;
     game_config.audio_buffer_size_number = 15;
-    game_config.update_backup_flag = 1;
     for(i = 0; i < MAX_CHEATS; i++)
     {
         game_config.cheats_flag[i].cheat_active = NO;

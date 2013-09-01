@@ -43,7 +43,6 @@ extern u64 base_timestamp;
 
 extern char main_path[MAX_PATH];
 
-extern u32 update_backup_flag;
 extern u32 clock_speed;
 
 u32 update_gba();

@@ -678,7 +678,6 @@ s32 load_config_file()
 #else
       audio_buffer_size_number = file_options[3] % 11;
 #endif
-      update_backup_flag = file_options[4] % 2;
       global_enable_analog = file_options[5] % 2;
       analog_sensitivity_level = file_options[6] % 8;
 
@@ -760,7 +759,6 @@ s32 save_config_file()
     file_options[1] = screen_filter;
     file_options[2] = global_enable_audio;
     file_options[3] = audio_buffer_size_number;
-    file_options[4] = update_backup_flag;
     file_options[5] = global_enable_analog;
     file_options[6] = analog_sensitivity_level;
 
@@ -1035,7 +1033,6 @@ u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason)
   };
 
 #endif
-  u8 *update_backup_options[] = { "Exit only", "Automatic" };
 
 #ifndef ZAURUS
   u8 *gamepad_config_buttons[] =
@@ -1131,13 +1128,6 @@ u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason)
     cheat_option(7),
     cheat_option(8),
     cheat_option(9),
-    string_selection_option(NULL, "Update backup",
-     update_backup_options, &update_backup_flag, 2,
-     "Determines when in-game save files should be written back to\n"
-     "memstick. If set to 'automatic' writebacks will occur shortly after\n"
-     "the game's backup is altered. On 'exit only' it will only be written\n"
-     "back when you exit from this menu (NOT from using the home button).\n"
-     "Use the latter with extreme care.", 12),
     submenu_option(NULL, "Back", "Return to the main menu.", 14)
   };
 
