@@ -48,7 +48,6 @@ extern u32 global_cycles_per_instruction;
 extern u32 synchronize_flag;
 extern u32 skip_next_frame_flag;
 extern u32 prescale_table[];
-extern char main_path[MAX_PATH];
 extern volatile u32 real_frame_count;
 extern u32 virtual_frame_count;
 extern int date_format;

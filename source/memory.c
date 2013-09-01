@@ -235,6 +235,8 @@ gamepak_swap_entry_type *gamepak_memory_map;
 FILE_TAG_TYPE gamepak_file_large = FILE_TAG_INVALID;
 #endif
 
+char main_path[MAX_PATH + 1];
+
 // Writes to these respective locations should trigger an update
 // so the related subsystem may react to it.
 
@@ -2401,8 +2403,6 @@ void update_backup_force()
   backup_update = write_backup_delay + 1;
 }
 
-#define CONFIG_FILENAME "game_config.txt"
-
 char *skip_spaces(char *line_ptr)
 {
   while(*line_ptr == ' ')
@@ -2445,113 +2445,131 @@ s32 parse_config_line(char *current_line, char *current_variable, char *current_
   return 0;
 }
 
+static bool lookup_game_config(char *gamepak_title, char *gamepak_code, char *gamepak_maker, FILE_TAG_TYPE config_file);
+
 s32 load_game_config(char *gamepak_title, char *gamepak_code, char *gamepak_maker)
 {
-  char current_line[256];
-  char current_variable[256];
-  char current_value[256];
-  char config_path[MAX_PATH];
-  FILE_TAG_TYPE config_file;
+	char config_path[MAX_PATH];
+	FILE_TAG_TYPE config_file;
 
-  idle_loop_targets = 0;
-  idle_loop_target_pc[0] = 0xFFFFFFFF;
-  iwram_stack_optimize = 1;
-  /*
-  bios.rom[0x39] = 0x00; // Removed to make Normmatt's open-source GBA BIOS
-  bios.rom[0x2C] = 0x00; // replacement work. - Neb, 2013-08-21
-  */
-  flash_device_id = FLASH_DEVICE_MACRONIX_64KB;
-  backup_type = BACKUP_NONE;
+	idle_loop_targets = 0;
+	idle_loop_target_pc[0] = 0xFFFFFFFF;
+	iwram_stack_optimize = 1;
+	/*
+	bios.rom[0x39] = 0x00; // Removed to make Normmatt's open-source GBA BIOS
+	bios.rom[0x2C] = 0x00; // replacement work. - Neb, 2013-08-21
+	*/
+	flash_device_id = FLASH_DEVICE_MACRONIX_64KB;
+	backup_type = BACKUP_NONE;
 
-  sprintf(config_path, "%s/%s", main_path, CONFIG_FILENAME);
+	sprintf(config_path, "%s/%s", main_path, CONFIG_FILENAME);
 
-  FILE_OPEN(config_file, config_path, READ);
+	FILE_OPEN(config_file, config_path, READ);
 
-  if(FILE_CHECK_VALID(config_file))
-  {
-    while(fgets(current_line, 256, config_file))
-    {
-      if(parse_config_line(current_line, current_variable, current_value) != -1)
-      {
-        if(strcasecmp(current_variable, "game_name") || strcasecmp(current_value, gamepak_title))
-          continue;
+	if(FILE_CHECK_VALID(config_file))
+	{
+		if (lookup_game_config(gamepak_title, gamepak_code, gamepak_maker, config_file))
+			return 0;
+	}
 
-        if(!fgets(current_line, 256, config_file) || (parse_config_line(current_line, current_variable, current_value) == -1) ||
-         strcasecmp(current_variable, "game_code") || strcasecmp(current_value, gamepak_code))
-          continue;
+	if (ReGBA_GetBundledGameConfig(config_path))
+	{
+		FILE_OPEN(config_file, config_path, READ);
 
-        if(!fgets(current_line, 256, config_file) || (parse_config_line(current_line, current_variable, current_value) == -1) ||
-         strcasecmp(current_variable, "vender_code") || strcasecmp(current_value, gamepak_maker))
-          continue;
+		if(FILE_CHECK_VALID(config_file))
+		{
+			if (lookup_game_config(gamepak_title, gamepak_code, gamepak_maker, config_file))
+				return 0;
+		}
+	}
 
-        while(fgets(current_line, 256, config_file))
-        {
-          if(parse_config_line(current_line, current_variable, current_value)
-           != -1)
-          {
-            if(!strcasecmp(current_variable, "game_name"))
-            {
-              fclose(config_file);
-              return 0;
-            }
+	return -1;
+}
 
-            if(!strcasecmp(current_variable, "idle_loop_eliminate_target"))
-            {
-              if(idle_loop_targets < MAX_IDLE_LOOPS)
-              {
-                idle_loop_target_pc[idle_loop_targets] =
-                  strtol(current_value, NULL, 16);
-                idle_loop_targets++;
-              }
-            }
+static bool lookup_game_config(char *gamepak_title, char *gamepak_code, char *gamepak_maker, FILE_TAG_TYPE config_file)
+{
+	char current_line[256];
+	char current_variable[256];
+	char current_value[256];
 
-            if(!strcasecmp(current_variable, "iwram_stack_optimize") && !strcasecmp(current_value, "no"))
-            {
-                iwram_stack_optimize = 0;
-            }
+	while(fgets(current_line, 256, config_file))
+	{
+		if(parse_config_line(current_line, current_variable, current_value) != -1)
+		{
+			if(strcasecmp(current_variable, "game_name") != 0 || strcasecmp(current_value, gamepak_title) != 0)
+				continue;
 
-            if(!strcasecmp(current_variable, "flash_rom_type") && !strcasecmp(current_value, "128KB"))
-            {
-              flash_device_id = FLASH_DEVICE_MACRONIX_128KB;
-            }
+			if(!fgets(current_line, 256, config_file) || (parse_config_line(current_line, current_variable, current_value) == -1) ||
+			   strcasecmp(current_variable, "game_code") != 0 || strcasecmp(current_value, gamepak_code) != 0)
+				continue;
 
-            // DBZLGCYGOKU2 のプロテクト回避
-            // EEPROM_V124で特殊な物(現在判別不可) で指定すれば動作可
-            if(!strcasecmp(current_variable, "save_type"))
-            {
-              if(!strcasecmp(current_value, "sram"))
-                backup_type = BACKUP_SRAM;
-              else
-              if(!strcasecmp(current_value, "flash"))
-                backup_type = BACKUP_FLASH;
-              else
-              if(!strcasecmp(current_value, "eeprom"))
-                backup_type = BACKUP_EEPROM;
-            }
+			if(!fgets(current_line, 256, config_file) || (parse_config_line(current_line, current_variable, current_value) == -1) ||
+			   strcasecmp(current_variable, "vender_code") != 0 || strcasecmp(current_value, gamepak_maker) != 0)
+				continue;
 
-            if(!strcasecmp(current_variable, "bios_rom_hack_39") &&
-              !strcasecmp(current_value, "yes"))
-            {
-              bios.rom[0x39] = 0xC0;
-            }
+			while(fgets(current_line, 256, config_file))
+			{
+				if(parse_config_line(current_line, current_variable, current_value) != -1)
+				{
+					if(!strcasecmp(current_variable, "game_name"))
+					{
+						fclose(config_file);
+						return 0;
+					}
 
-            if(!strcasecmp(current_variable, "bios_rom_hack_2C") &&
-              !strcasecmp(current_value, "yes"))
-            {
-               bios.rom[0x2C] = 0x02;
-            }
-          }
-        }
+					if(!strcasecmp(current_variable, "idle_loop_eliminate_target"))
+					{
+						if(idle_loop_targets < MAX_IDLE_LOOPS)
+						{
+							idle_loop_target_pc[idle_loop_targets] =
+							strtol(current_value, NULL, 16);
+							idle_loop_targets++;
+						}
+					}
 
-        FILE_CLOSE(config_file);
-        return 0;
-      }
-    }
+					if(!strcasecmp(current_variable, "iwram_stack_optimize") && !strcasecmp(current_value, "no"))
+					{
+						iwram_stack_optimize = 0;
+					}
 
-    FILE_CLOSE(config_file);
-  }
+					if(!strcasecmp(current_variable, "flash_rom_type") && !strcasecmp(current_value, "128KB"))
+					{
+						flash_device_id = FLASH_DEVICE_MACRONIX_128KB;
+					}
 
-  return -1;
+					// DBZLGCYGOKU2 のプロテクト回避
+					// EEPROM_V124で特殊な物(現在判別不可) で指定すれば動作可
+					if(!strcasecmp(current_variable, "save_type"))
+					{
+						if(!strcasecmp(current_value, "sram"))
+							backup_type = BACKUP_SRAM;
+						else if(!strcasecmp(current_value, "flash"))
+							backup_type = BACKUP_FLASH;
+						else if(!strcasecmp(current_value, "eeprom"))
+							backup_type = BACKUP_EEPROM;
+					}
+
+					if(!strcasecmp(current_variable, "bios_rom_hack_39") &&
+					   !strcasecmp(current_value, "yes"))
+					{
+						bios.rom[0x39] = 0xC0;
+					}
+
+					if(!strcasecmp(current_variable, "bios_rom_hack_2C") &&
+					   !strcasecmp(current_value, "yes"))
+					{
+						bios.rom[0x2C] = 0x02;
+					}
+			}
+		}
+
+		FILE_CLOSE(config_file);
+		return true;
+		}
+	}
+
+	FILE_CLOSE(config_file);
+	return false;
 }
 
 #define LOAD_ON_MEMORY FILE_TAG_INVALID

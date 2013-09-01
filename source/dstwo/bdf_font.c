@@ -18,13 +18,7 @@
  */
 //v1.1
 
-#include <string.h>
-#include "ds2_types.h"
-#include "ds2_malloc.h"
-#include "ds2io.h"
-#include "fs_api.h"
-#include "bdf_font.h"
-#include "gui.h"
+#include "common.h"
 
 
 #define BDF_PICTOCHAT "SYSTEM/Pictochat-16.bdf"

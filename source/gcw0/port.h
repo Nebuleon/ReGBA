@@ -60,7 +60,6 @@ typedef FILE* FILE_TAG_TYPE;
   ftell(filename_tag)                                                       \
 
 #include "draw.h"
-#include "gui.h"
 #include "main.h"
 
 #endif

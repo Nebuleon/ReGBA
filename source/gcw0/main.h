@@ -41,7 +41,7 @@ extern u32 skip_next_frame;
 
 extern u64 base_timestamp;
 
-extern char main_path[MAX_PATH];
+extern char executable_path[MAX_PATH + 1];
 
 extern u32 clock_speed;
 

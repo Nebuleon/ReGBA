@@ -214,6 +214,11 @@ bool ReGBA_GetSavedStateFilename(char* Result, const char* GamePath, uint32_t Sl
 	return true;
 }
 
+bool ReGBA_GetBundledGameConfig(char* Result)
+{
+	return false;
+}
+
 size_t FILE_LENGTH(FILE_TAG_TYPE File)
 {
   u32 pos, size;

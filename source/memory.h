@@ -31,6 +31,8 @@ extern const u8 SVS_HEADER_E[SVS_HEADER_SIZE];
 extern const u8 SVS_HEADER_F[SVS_HEADER_SIZE];
 #define SVS_FILE_SIZE (SAVESTATE_SIZE+SVS_HEADER_SIZE)
 
+#define CONFIG_FILENAME "game_config.txt"
+
 typedef enum
 {
   DMA_START_IMMEDIATELY,
@@ -237,6 +239,10 @@ extern u32 bios_read_protect;
 extern u8 *memory_map_read[8 * 1024];
 extern u32 reg[64];
 extern u8 *memory_map_write[8 * 1024];
+
+// This is the path to per-user files for ReGBA. This path does not have
+// a trailing slash.
+extern char main_path[MAX_PATH + 1];
 
 #ifndef GAMEPAK_FITS_IN_RAM
 extern FILE_TAG_TYPE gamepak_file_large;

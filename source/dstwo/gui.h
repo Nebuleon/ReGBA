@@ -213,8 +213,6 @@ extern char DEFAULT_CFG_DIR[MAX_PATH];
 extern char DEFAULT_SS_DIR[MAX_PATH];
 extern char DEFAULT_CHEAT_DIR[MAX_PATH];
 
-extern char main_path[MAX_PATH];
-
 extern GPSP_CONFIG gpsp_config;
 extern GAME_CONFIG game_config;
 

@@ -18,9 +18,6 @@
  */
 #include "common.h"
 #include "stats.h"
-#include "gui.h"
-#include "draw.h"
-#include "message.h"
 
 struct GPSP_STATS Stats;
 

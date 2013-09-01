@@ -155,6 +155,18 @@ bool ReGBA_GetSavedStateFilename(char* Result, const char* GamePath, uint32_t Sl
 	return true;
 }
 
+bool ReGBA_GetBundledGameConfig(char* Result)
+{
+	if (executable_path[0] == '\0')
+		return false;
+
+	if (strlen(executable_path) + strlen(CONFIG_FILENAME) + 1 /* "/" */ > MAX_PATH)
+		return false;
+
+	sprintf(Result, "%s/%s", executable_path, CONFIG_FILENAME);
+	return true;
+}
+
 u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason)
 {
 	// TODO Fill this function in

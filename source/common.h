@@ -413,6 +413,22 @@ bool ReGBA_GetBackupFilename(char* Result, const char* GamePath);
 bool ReGBA_GetSavedStateFilename(char* Result, const char* GamePath, uint32_t SlotNumber);
 
 /*
+ * Retrieves the path to a bundled game_config.txt file, used for increased
+ * game compatibility, in the location most appropriate for the port being
+ * compiled. The semantics of this file is that lookups are made in it last,
+ * after consulting the per-user file in main_path for overrides.
+ * Output:
+ *   Result: Non-null pointer to a buffer containing at least MAX_PATH + 1
+ *   elements of type char.
+ * Returns:
+ *   true if the retrieval succeeeded; otherwise, false.
+ * Output assertions:
+ *   The contents of the buffer starting at Result are updated to contain the
+ *   full path to a bundled game_config.txt file, if the return value is true.
+ */
+bool ReGBA_GetBundledGameConfig(char* Result);
+
+/*
  * Performs actions appropriate for the port being compiled after loading a
  * GBA game.
  * Input:

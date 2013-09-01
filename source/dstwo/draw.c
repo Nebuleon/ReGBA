@@ -22,17 +22,7 @@
  * draw.cpp
  * basic program to draw some graphic
  ******************************************************************************/
-#include <string.h>
-#include <stdio.h>
-#include "ds2_malloc.h"
-#include "ds2_cpu.h"
-#include "bdf_font.h"
-#include "gui.h"
-#include "bitmap.h"
-#include "draw.h"
-#include "input.h"
-
-#include "gu.h"
+#include "common.h"
 
 /******************************************************************************
  * macro definition
