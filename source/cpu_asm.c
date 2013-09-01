@@ -1761,24 +1761,26 @@ static void arm_flag_status(block_data_arm_type* block_data, u32 opcode)
                                                                               \
     case 0x20 ... 0x27:                                                       \
       /* MOV r0..r7, imm */                                                   \
-      thumb_data_proc_unary(imm, movs, imm, (opcode >> 8) & 0xFF - 0x20, imm);\
+      thumb_data_proc_unary(imm, movs, imm, (((opcode >> 8) & 0xFF) - 0x20),  \
+       imm);                                                                  \
       break;                                                                  \
                                                                               \
     case 0x28 ... 0x2F:                                                       \
       /* CMP r0..r7, imm */                                                   \
-      thumb_data_proc_test(imm, cmp, imm, (opcode >> 8) & 0xFF - 0x28, imm);  \
+      thumb_data_proc_test(imm, cmp, imm, (((opcode >> 8) & 0xFF) - 0x28),    \
+       imm);                                                                  \
       break;                                                                  \
                                                                               \
     case 0x30 ... 0x37:                                                       \
       /* ADD r0..r7, imm */                                                   \
-      thumb_data_proc(imm, adds, imm, (opcode >> 8) & 0xFF - 0x30,            \
-        (opcode >> 8) & 0xFF - 0x30, imm);                                    \
+      thumb_data_proc(imm, adds, imm, (((opcode >> 8) & 0xFF) - 0x30),        \
+        (((opcode >> 8) & 0xFF) - 0x30), imm);                                \
       break;                                                                  \
                                                                               \
     case 0x38 ... 0x3F:                                                       \
       /* SUB r0..r7, imm */                                                   \
-      thumb_data_proc(imm, subs, imm, (opcode >> 8) & 0xFF - 0x38,            \
-        (opcode >> 8) & 0xFF - 0x38, imm);                                    \
+      thumb_data_proc(imm, subs, imm, (((opcode >> 8) & 0xFF) - 0x38),        \
+        (((opcode >> 8) & 0xFF) - 0x38), imm);                                \
       break;                                                                  \
                                                                               \
     case 0x40:                                                                \
@@ -1904,7 +1906,7 @@ static void arm_flag_status(block_data_arm_type* block_data, u32 opcode)
                                                                               \
     case 0x48 ... 0x4F:                                                       \
       /* LDR r0..r7, [pc + imm] */                                            \
-      thumb_access_memory(load, imm, (opcode >> 8) & 0xFF - 0x48, 0, 0,       \
+      thumb_access_memory(load, imm, (((opcode >> 8) & 0xFF) - 0x48), 0, 0,   \
        pc_relative, ((pc & ~2) + (imm << 2) + 4), u32);                       \
       break;                                                                  \
                                                                               \
@@ -1982,24 +1984,24 @@ static void arm_flag_status(block_data_arm_type* block_data, u32 opcode)
                                                                               \
     case 0x90 ... 0x97:                                                       \
       /* STR r0..r7, [sp + imm] */                                            \
-      thumb_access_memory(store, imm, (opcode >> 8) & 0xFF - 0x90, 13, 0,     \
+      thumb_access_memory(store, imm, (((opcode >> 8) & 0xFF) - 0x90), 13, 0, \
        reg_imm_sp, imm, u32);                                                 \
       break;                                                                  \
                                                                               \
     case 0x98 ... 0x9F:                                                       \
       /* LDR r0..r7, [sp + imm] */                                            \
-      thumb_access_memory(load, imm, (opcode >> 8) & 0xFF - 0x98, 13, 0,      \
+      thumb_access_memory(load, imm, (((opcode >> 8) & 0xFF) - 0x98), 13, 0,  \
        reg_imm_sp, imm, u32);                                                 \
       break;                                                                  \
                                                                               \
     case 0xA0 ... 0xA7:                                                       \
       /* ADD r0..r7, pc, +imm */                                              \
-      thumb_load_pc((opcode >> 8) & 0xFF - 0xA0);                             \
+      thumb_load_pc((((opcode >> 8) & 0xFF) - 0xA0));                         \
       break;                                                                  \
                                                                               \
     case 0xA8 ... 0xAF:                                                       \
       /* ADD r0..r7, sp, +imm */                                              \
-      thumb_load_sp((opcode >> 8) & 0xFF - 0xA8);                             \
+      thumb_load_sp((((opcode >> 8) & 0xFF) - 0xA8));                         \
       break;                                                                  \
                                                                               \
     case 0xB0:                                                                \
@@ -2037,12 +2039,12 @@ static void arm_flag_status(block_data_arm_type* block_data, u32 opcode)
                                                                               \
     case 0xC0 ... 0xC7:                                                       \
       /* STMIA r0..r7!, rlist */                                              \
-      thumb_block_memory(store, no, up, (opcode >> 8) & 0xFF - 0xC0);         \
+      thumb_block_memory(store, no, up, (((opcode >> 8) & 0xFF) - 0xC0));     \
       break;                                                                  \
                                                                               \
     case 0xC8 ... 0xCF:                                                       \
       /* LDMIA r0..r7!, rlist */                                              \
-      thumb_block_memory(load, no, up, (opcode >> 8) & 0xFF - 0xC8);          \
+      thumb_block_memory(load, no, up, (((opcode >> 8) & 0xFF) - 0xC8));      \
       break;                                                                  \
                                                                               \
     case 0xD0:                                                                \
@@ -3222,6 +3224,8 @@ u8* translate_block_##type(u32 pc)                                            \
     case 0x06: /* VRAM */                                                     \
       translation_region = TRANSLATION_REGION_WRITABLE;                       \
       break;                                                                  \
+    default:                                                                  \
+      return NULL; /* internal error; satisfies the compiler */               \
   }                                                                           \
                                                                               \
   switch (translation_region)                                                 \
@@ -3236,6 +3240,8 @@ u8* translate_block_##type(u32 pc)                                            \
       translation_cache_limit = writable_code_cache + WRITABLE_CODE_CACHE_SIZE\
        - TRANSLATION_CACHE_LIMIT_THRESHOLD;                                   \
       break;                                                                  \
+    default:                                                                  \
+      return NULL; /* internal error; satisfies the compiler */               \
   }                                                                           \
                                                                               \
   update_metadata_area_start(pc);                                             \
@@ -3598,6 +3604,8 @@ void partial_clear_metadata(u32 address)
       metadata_area = vram_metadata;
       metadata_area_end = vram_metadata + 0x18000;
       break;
+    default:
+      return;
   }
 
   u16 contents = metadata[3];

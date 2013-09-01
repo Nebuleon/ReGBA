@@ -1931,7 +1931,7 @@ u32 execute_store_cpsr_body(u32 _cpsr, u32 store_mask, u32 address)
 }                                                                             \
 
 #define word_bit_count(word)                                                  \
-  (bit_count[word >> 8] + bit_count[word & 0xFF])                             \
+  (bit_count[(word) >> 8] + bit_count[(word) & 0xFF])                             \
 
 #define sprint_no(access_type, pre_op, post_op, wb)                           \
 
