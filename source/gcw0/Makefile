@@ -33,6 +33,7 @@ $(TARGET).opk: $(TARGET)
 	$(SUM) "  OPK     $@"
 	$(CMD)rm -rf .opk_data
 	$(CMD)cp -r data .opk_data
+	$(CMD)cp ../../game_config.txt .opk_data
 	$(CMD)cp $< .opk_data/regba
 	$(CMD)$(STRIP) .opk_data/regba
 	$(CMD)mksquashfs .opk_data $@ -all-root -noappend -no-exports -no-xattrs -no-progress >/dev/null
