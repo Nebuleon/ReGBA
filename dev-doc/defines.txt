@@ -1,0 +1,72 @@
+The compilation of ReGBA can be affected by various conditional compilation
+directives. Here are some of the most important ones:
+
+* GAMEPAK_FITS_IN_RAM, cross-platform optimisation option.
+  If compiled with this option, ReGBA will assume that the host is always able
+  to allocate a full 32 MiB to serve as the Game Pak buffer, in addition to the
+  rest of the allocations needed to perform the emulation, as well as the code
+  cache.
+  In particular, ReGBA does not use data structures meant for loading Game Pak
+  pages on demand, and does not check for unloaded pages before accessing them.
+  Do not use this option if the hosts you reasonably expect users to run your
+  port on, do not have 64 MiB of memory available to them.
+* MIPS_XBURST, MIPS optimisation option.
+  If compiled with this option, ReGBA's MIPS assembly core will assume that the
+  instruction following a load-memory instruction may read the register that
+  was just loaded. This reduces the instruction count in the programm, making
+  better use of the instruction cache.
+  Do not use this option if you are using an older MIPS processor which
+  requires that the instruction following a load-memory instruction not use the
+  register being loaded. This is known as a *load delay slot*.
+* MIPS_32R2, MIPS optimisation option.
+  If compiled with this option, ReGBA's MIPS assembly core and code generator
+  will assume that the MIPS32 Revision II architecture instructions can be used
+  to insert and extract bits from 32-bit values. This speeds up address
+  calculations for GBA memory access, because these operations can use single
+  INS and EXT instructions instead of much longer sequences of bitwise and
+  shift (AND, OR, SLL, SRL) instructions.
+  The SYNCI instruction, which flushes native code that has just been written,
+  is also faster than needing to switch to the kernel constantly.
+  Do not use this option if you are using a MIPS32 Revision I processor.
+* PERFORMANCE_IMPACTING_STATISTICS, cross-platform statistics gathering option.
+  If compiled with this option, ReGBA will fill the Stats structure in stats.c
+  with statistics that would make the emulator unacceptably slow for playing
+  on.
+  In particular, ReGBA gathers statistics about GBA opcode decoding, memory
+  accessor patching, and a few other things that are useful for optimisations,
+  as required.
+  Release builds should not use this option.
+
+The following options are also available on the DSTwo port:
+
+* TRACE_FRAMESKIP, low-volume tracing option.
+  If compiled with this option, ReGBA will emit trace information when the
+  automatic frame skip value changes during emulation.
+* TRACE_SOUND, low-volume tracing option.
+  If compiled with this option, ReGBA will emit trace information when there
+  are -1 audio buffers left.
+* GIT_VERSION, version variable.
+  The DSTwo port uses the value of this variable to show the Git commit hash
+  of the version being compiled.
+
+The following trace options are available on all platforms:
+
+* TRACE_FLUSHING, medium-volume tracing option in some games.
+  If compiled with this option, ReGBA will emit trace information when a code
+  cache is being flushed.
+* TRACE_TRANSLATION_REQUESTS, high-volume tracing option.
+  If compiled with this option, ReGBA will emit trace information the first
+  time a certain GBA code block is being recompiled to native code while
+  emulating a certain game.
+* TRACE_REUSE, high-volume tracing option in some games.
+  If compiled with this option, ReGBA will emit trace information every time
+  the current game rewrites code that ReGBA has seen before in GBA RAM at the
+  same location.
+* TRACE_RECOMPILATION, high-volume tracing option.
+  If compiled with this option, ReGBA will emit trace information when a code
+  block is being recompiled, giving the address in the GBA memory space, the
+  length of the code block, and even a hexadecimal dump of the instructions in
+  it.
+* TRACE, very high-volume tracing option.
+  If compiled with this option, ReGBA will emit trace information when anything
+  happens in the Universe.
