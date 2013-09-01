@@ -92,19 +92,17 @@ void ReGBA_DisplayFPS(void)
 
 void ReGBA_LoadRTCTime(struct ReGBA_RTC* RTCData)
 {
-#if 0
-	struct rtc Time;
-	ds2_getTime(&Time);
+	time_t GMTTime = time(NULL);
+	struct tm* Time = localtime(&GMTTime);
 
-	RTCData->year = Time.year;
-	RTCData->month = Time.month;
-	RTCData->day = Time.day;
+	RTCData->year = Time->tm_year;
+	RTCData->month = Time->tm_mon + 1;
+	RTCData->day = Time->tm_mday;
 	// Weekday conforms to the expectations (0 = Sunday, 6 = Saturday).
-	RTCData->weekday = Time.weekday;
-	RTCData->hours = Time.hours;
-	RTCData->minutes = Time.minutes;
-	RTCData->seconds = Time.seconds;
-#endif
+	RTCData->weekday = Time->tm_wday;
+	RTCData->hours = Time->tm_hour;
+	RTCData->minutes = Time->tm_min;
+	RTCData->seconds = Time->tm_sec;
 }
 
 const char* GetFileName(const char* Path)
