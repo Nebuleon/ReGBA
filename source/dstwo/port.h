@@ -86,4 +86,8 @@ typedef FILE* FILE_TAG_TYPE;
 
 extern u32 frameskip_0_hack_flag; // described in ds2sound.c:ReGBA_AudioUpdate()
 
+extern const char* GetFileName(const char* Path);
+extern void RemoveExtension(char* Result, const char* FileName);
+extern void GetFileNameNoExtension(char* Result, const char* Path);
+
 #endif

@@ -26,7 +26,7 @@
 
 #define ZIP_TMP "ZIPTMP.GBA" /* Acceptable on all platforms */
 
-s32 load_file_zip(char *filename);
+ssize_t load_file_zip(char *filename);
 
 #endif
 

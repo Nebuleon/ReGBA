@@ -243,11 +243,9 @@ u32 load_fontcfg(char *file_name);
 //u32 load_msgcfg(char *file_name);
 extern int load_language_msg(char *filename, u32 language);
 u32 load_font();
-void get_savestate_filename_noshot(u32 slot, char *name_buffer);
-extern  void get_newest_savestate(char *name_buffer);
 void initial_gpsp_config();
 void init_game_config();
-extern void reorder_latest_file(void);
+extern void reorder_latest_file(const char* GamePath);
 void wait_Allkey_release(unsigned int key_list);
 unsigned int wait_Anykey_press(unsigned int key_list);
 

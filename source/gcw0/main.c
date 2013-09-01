@@ -157,8 +157,6 @@ int main(int argc, char *argv[])
   load_config_file();
 #endif
 
-  gamepak_filename[0] = 0;
-
   sprintf(bios_file, "%s/gba_bios.bin", main_path);
   if(load_bios(bios_file) == -1)
   {

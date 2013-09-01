@@ -5,6 +5,4 @@
 
 extern char main_path[MAX_PATH];
 
-extern char DEFAULT_SAVE_DIR[MAX_PATH];
-
 #endif /* __GUI_H__ */

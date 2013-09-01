@@ -244,9 +244,6 @@ int gpsp_main(int argc, char *argv[])
 	// 分配仿真ROM
 	init_gamepak_buffer();
 
-	// ROM文件名初始化
-	gamepak_filename[0] = 0;
-
 	// BIOS的读入
 	char bios_filename[MAX_FILE];
 	sprintf(bios_filename, "%s/%s", main_path, "gba_bios.bin");
@@ -284,17 +281,6 @@ int gpsp_main(int argc, char *argv[])
 #endif
 
 	return 0;
-}
-
-// 暂停处理进入菜单
-u32 into_suspend()
-{
-//  if (power_flag == 0) return 0; // TODO この処理はupdate_gba()側に移動
-	FILE_CLOSE(gamepak_file_large);
-
-	u32 ret_val = ReGBA_Menu(REGBA_MENU_ENTRY_REASON_SUSPENDED);
-	FILE_OPEN(gamepak_file_large, gamepak_filename_full_path, READ);
-	return ret_val;
 }
 
 u32 sync_flag = 0;

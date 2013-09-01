@@ -20,8 +20,6 @@
 #include "common.h"
 #include <stdarg.h>
 
-char DEFAULT_SAVE_DIR[MAX_PATH];
-
 void ReGBA_Trace(const char* Format, ...)
 {
 	char* line = malloc(82);
@@ -109,6 +107,54 @@ void ReGBA_LoadRTCTime(struct ReGBA_RTC* RTCData)
 #endif
 }
 
+const char* GetFileName(const char* Path)
+{
+	const char* Result = strrchr(Path, '/');
+	if (Result)
+		return Result + 1;
+	return Path;
+}
+
+void RemoveExtension(char* Result, const char* FileName)
+{
+	strcpy(Result, FileName);
+	char* Dot = strrchr(Result, '.');
+	if (Dot)
+		*Dot = '\0';
+}
+
+void GetFileNameNoExtension(char* Result, const char* Path)
+{
+	const char* FileName = GetFileName(Path);
+	RemoveExtension(Result, FileName);
+}
+
+bool ReGBA_GetBackupFilename(char* Result, const char* GamePath)
+{
+	char FileNameNoExt[MAX_PATH + 1];
+	GetFileNameNoExtension(FileNameNoExt, GamePath);
+	if (strlen(main_path) + strlen(FileNameNoExt) + 5 /* / .sav */ > MAX_PATH)
+		return false;
+	sprintf(Result, "%s/%s.sav", main_path, FileNameNoExt);
+	return true;
+}
+
+bool ReGBA_GetSavedStateFilename(char* Result, const char* GamePath, uint32_t SlotNumber)
+{
+	if (SlotNumber >= 100)
+		return false;
+
+	char FileNameNoExt[MAX_PATH + 1];
+	char SlotNumberString[11];
+	GetFileNameNoExtension(FileNameNoExt, GamePath);
+	sprintf(SlotNumberString, "%02u", SlotNumber);
+	
+	if (strlen(main_path) + strlen(FileNameNoExt) + strlen(SlotNumberString) + 2 /* / . */ > MAX_PATH)
+		return false;
+	sprintf(Result, "%s/%s.s%s", main_path, FileNameNoExt, SlotNumberString);
+	return true;
+}
+
 u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason)
 {
 	// TODO Fill this function in
@@ -119,4 +165,8 @@ signed int ReGBA_AudioUpdate()
 {
 	// TODO Fill this function in
 	return 0;
+}
+
+void ReGBA_OnGameLoaded(const char* GamePath)
+{
 }

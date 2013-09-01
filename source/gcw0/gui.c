@@ -837,24 +837,6 @@ void get_savestate_snapshot(u8 *savestate_filename)
 #endif
 }
 
-void get_savestate_filename(u32 slot, u8 *name_buffer)
-{
-  u8 savestate_ext[16];
-
-  sprintf(savestate_ext, "%d.svs", slot);
-  change_ext(gamepak_filename, name_buffer, savestate_ext);
-
-  get_savestate_snapshot(name_buffer);
-}
-
-void get_savestate_filename_noshot(u32 slot, u8 *name_buffer)
-{
-  u8 savestate_ext[16];
-
-  sprintf(savestate_ext, "%d.svs", slot);
-  change_ext(gamepak_filename, name_buffer, savestate_ext);
-}
-
 u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason)
 {
   u32 clock_speed_number = clock_speed - 1;
@@ -951,15 +933,17 @@ u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason)
 
   void menu_change_state()
   {
-    get_savestate_filename(savestate_slot, current_savestate_filename);
+	  // TODO [Neb] Deal with this when creating the saved states menu
+    // get_savestate_filename(savestate_slot, current_savestate_filename);
   }
 
   void menu_save_state()
   {
     if(!first_load)
     {
-      get_savestate_filename_noshot(savestate_slot,
-       current_savestate_filename);
+	  // TODO [Neb] Deal with this when creating the saved states menu
+      // get_savestate_filename_noshot(savestate_slot,
+      //  current_savestate_filename);
       save_state(current_savestate_filename, original_screen);
     }
     menu_change_state();
@@ -1027,8 +1011,9 @@ u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason)
 
   void submenu_main()
   {
-    get_savestate_filename_noshot(savestate_slot,
-     current_savestate_filename);
+	  // TODO [Neb] Deal with this when creating the saved states menu
+    // get_savestate_filename_noshot(savestate_slot,
+    //  current_savestate_filename);
   }
 
   u8 *yes_no_options[] = { "no", "yes" };

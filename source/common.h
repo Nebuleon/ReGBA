@@ -392,6 +392,36 @@ u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason);
 bool ReGBA_GetBackupFilename(char* Result, const char* GamePath);
 
 /*
+ * Retrieves the path to the saved state file corresponding to the given game
+ * and slot number, in the location most appropriate for the port being
+ * compiled.
+ * Input:
+ *   GamePath: The full path to the file containing the game that is currently
+ *   loaded, and for which a saved state filename is being requested.
+ *   SlotNumber: The number of the slot selected by the user for saving.
+ *   Starts at 0, even if the menu starts them at 1.
+ * Output:
+ *   Result: Non-null pointer to a buffer containing at least MAX_PATH + 1
+ *   elements of type char.
+ * Returns:
+ *   true if the retrieval succeeeded; otherwise, false.
+ * Output assertions:
+ *   The contents of the buffer starting at Result are updated to contain the
+ *   full path to the saved state file corresponding to the given game and
+ *   slot number, null-terminated as usual, if the return value is true.
+ */
+bool ReGBA_GetSavedStateFilename(char* Result, const char* GamePath, uint32_t SlotNumber);
+
+/*
+ * Performs actions appropriate for the port being compiled after loading a
+ * GBA game.
+ * Input:
+ *   GamePath: The full path to the file containing the game that has just
+ *   been loaded.
+ */
+void ReGBA_OnGameLoaded(const char* GamePath);
+
+/*
  * Returns the length, in bytes, of the specified open file.
  * Input:
  *   File: The handle of the file to get the length of.

@@ -51,8 +51,6 @@ void ReGBA_Trace(const char* Format, ...)
 	serial_putc('\n');
 }
 
-extern char gamepak_filename[MAX_FILE];
-
 void ReGBA_BadJump(u32 SourcePC, u32 TargetPC)
 {
 	ds2_clearScreen(gba_screen_num, COLOR16(15, 0, 0));
@@ -141,6 +139,21 @@ void ReGBA_DisplayFPS(void)
 	}
 }
 
+void ReGBA_OnGameLoaded(const char* GamePath)
+{
+    char tempPath[MAX_PATH];
+    strcpy(tempPath, GamePath);
+
+    char *dirEnd = strrchr(tempPath, '/');
+
+    if(!dirEnd)
+      return;
+
+    //then strip filename from directory path and set it
+    *dirEnd = '\0';
+    strcpy(g_default_rom_dir, tempPath);
+}
+
 void ReGBA_LoadRTCTime(struct ReGBA_RTC* RTCData)
 {
 	struct rtc Time;
@@ -154,6 +167,51 @@ void ReGBA_LoadRTCTime(struct ReGBA_RTC* RTCData)
 	RTCData->hours = Time.hours;
 	RTCData->minutes = Time.minutes;
 	RTCData->seconds = Time.seconds;
+}
+
+const char* GetFileName(const char* Path)
+{
+	char* Result = strrchr(Path, '/');
+	if (Result)
+		return Result + 1;
+	return Path;
+}
+
+void RemoveExtension(char* Result, const char* FileName)
+{
+	strcpy(Result, FileName);
+	char* Dot = strrchr(Result, '.');
+	if (Dot)
+		*Dot = '\0';
+}
+
+void GetFileNameNoExtension(char* Result, const char* Path)
+{
+	const char* FileName = GetFileName(Path);
+	RemoveExtension(Result, FileName);
+}
+
+bool ReGBA_GetBackupFilename(char* Result, const char* GamePath)
+{
+	char FileNameNoExt[MAX_PATH + 1];
+	GetFileNameNoExtension(FileNameNoExt, GamePath);
+	if (strlen(DEFAULT_SAVE_DIR) + strlen(FileNameNoExt) + 5 /* / .sav */ > MAX_PATH)
+		return false;
+	sprintf(Result, "%s/%s.sav", DEFAULT_SAVE_DIR, FileNameNoExt);
+	return true;
+}
+
+bool ReGBA_GetSavedStateFilename(char* Result, const char* GamePath, uint32_t SlotNumber)
+{
+	char FileNameNoExt[MAX_PATH + 1];
+	char SlotNumberString[11];
+	GetFileNameNoExtension(FileNameNoExt, GamePath);
+	sprintf(SlotNumberString, "%u", SlotNumber + 1);
+	
+	if (strlen(DEFAULT_SAVE_DIR) + strlen(FileNameNoExt) + strlen(SlotNumberString) + 6 /* / _ .rts */ > MAX_PATH)
+		return false;
+	sprintf(Result, "%s/%s_%s.rts", DEFAULT_SAVE_DIR, FileNameNoExt, SlotNumberString);
+	return true;
 }
 
 size_t FILE_LENGTH(FILE_TAG_TYPE File)

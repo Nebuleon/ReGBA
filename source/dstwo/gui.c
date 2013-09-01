@@ -342,8 +342,7 @@ static void dbg_Color(unsigned short color){
 /******************************************************************************
  * 本地函数的声明
  ******************************************************************************/
-static void get_savestate_filelist(void);
-static void get_savestate_filename(u32 slot, char *name_buffer);
+static void get_savestate_filelist(const char* GamePath);
 static unsigned char SavedStateSquareX (u32 slot);
 static unsigned char SavedStateFileExists (u32 slot);
 static void SavedStateCacheInvalidate (void);
@@ -1679,10 +1678,6 @@ void init_default_gpsp_config()
   gpsp_config.rom_file[0]= 0;
   gpsp_config.rom_path[0]= 0;
   memset(gpsp_persistent_config.latest_file, 0, sizeof(gpsp_persistent_config.latest_file));
-
-  //Removing rom_path due to confusion
-  //strcpy(rom_path, main_path);
-  gamepak_filename[0] = '\0';
 }
 
 /*--------------------------------------------------------
@@ -1693,21 +1688,20 @@ void load_game_config_file(void)
 {
     char game_config_filename[MAX_PATH];
     FILE_TAG_TYPE game_config_file;
-    char *pt;
+	char FileNameNoExt[MAX_PATH + 1];
 
     // 设置初始值
     init_game_config();
 
-    sprintf(game_config_filename, "%s/%s", DEFAULT_CFG_DIR, gamepak_filename);
-    pt= strrchr(game_config_filename, '.');
-    *pt= 0;
-    strcat(game_config_filename, "_0.rts");
+	GetFileNameNoExtension(FileNameNoExt, CurrentGamePath);
+
+    sprintf(game_config_filename, "%s/%s_0.rts", DEFAULT_CFG_DIR, FileNameNoExt);
 
     FILE_OPEN(game_config_file, game_config_filename, READ);
     if(FILE_CHECK_VALID(game_config_file))
     {
         //Check file header
-        pt= game_config_filename;
+        char* pt= game_config_filename;
         FILE_READ(game_config_file, pt, GAME_CONFIG_HEADER_SIZE);
 
         if (!strncmp(pt, GAME_CONFIG_HEADER, GAME_CONFIG_HEADER_SIZE))
@@ -1899,7 +1893,7 @@ u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason)
 	void menu_exit()
 	{
 		HighFrequencyCPU(); // Crank it up, leave quickly
-		if(gamepak_filename[0] != 0)
+		if(IsGameLoaded)
 		{
 			update_backup_force();
 		}
@@ -1921,30 +1915,9 @@ u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason)
 	}
 
   int LoadGameAndItsData(char *filename) {
-    if (gamepak_filename[0] != '\0') {
-      update_backup_force();
-    }
-
     draw_message(down_screen_addr, bg_screenp, 28, 31, 227, 165, bg_screenp_color);
     draw_string_vcenter(down_screen_addr, MESSAGE_BOX_TEXT_X, MESSAGE_BOX_TEXT_Y, MESSAGE_BOX_TEXT_SX, COLOR_MSSG, msg[MSG_PROGRESS_LOADING_GAME]);
     ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
-
-    // load_gamepak requires gamepak_filename to be set first.
-
-    char tempPath[MAX_PATH];
-    strcpy(tempPath, filename);
-
-    //update folders and names for settings/config uses
-    char *dirEnd = strrchr(tempPath, '/');
-    //make sure a valid path was provided
-    if(!dirEnd)
-      return 0;
-
-    //copy file name as gamepak_filename
-    strcpy(gamepak_filename, dirEnd+1);
-    //then strip filename from directory path and set it
-    *dirEnd = '\0';
-    strcpy(g_default_rom_dir, tempPath);
 
     HighFrequencyCPU();
     int load_result = load_gamepak(filename);
@@ -1953,13 +1926,7 @@ u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason)
     if(load_result == -1)
     {
       first_load = 1;
-      gamepak_filename[0] = '\0';
       return 0;
-    }
-    else
-    {
-      reset_gba();
-      reg[CHANGED_PC_STATUS] = 1;
     }
 
     first_load = 0;
@@ -1970,10 +1937,11 @@ u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason)
     return_value = 1;
     repeat = 0;
 
-    reorder_latest_file();
-    get_savestate_filelist();
+    reorder_latest_file(filename);
+    get_savestate_filelist(filename);
 
     game_fast_forward= 0;
+
     return 1;
   }
 
@@ -2022,8 +1990,7 @@ u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason)
 
 	void clear_savestate_slot(u32 slot_index)
 	{
-		get_savestate_filename(slot_index, tmp_filename);
-		sprintf(line_buffer, "%s/%s", DEFAULT_SAVE_DIR, tmp_filename);
+		ReGBA_GetSavedStateFilename(line_buffer, CurrentGamePath, slot_index);
 		remove(line_buffer);
 		SavedStateCacheInvalidate ();
 	}
@@ -2061,9 +2028,8 @@ u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason)
 		}
 		else if(SavedStateFileExists(savestate_index))
 		{
-			get_savestate_filename(savestate_index, tmp_filename);
-			sprintf(line_buffer, "%s/%s", DEFAULT_SAVE_DIR, tmp_filename);
-			load_game_stat_snapshot(tmp_filename);
+			ReGBA_GetSavedStateFilename(line_buffer, CurrentGamePath, savestate_index);
+			load_game_stat_snapshot(line_buffer);
 		}
 		else
 		{
@@ -2163,9 +2129,8 @@ u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason)
 		}
 		else if(SavedStateFileExists(delette_savestate_num))
 		{
-			get_savestate_filename(delette_savestate_num, tmp_filename);
-			sprintf(line_buffer, "%s/%s", DEFAULT_SAVE_DIR, tmp_filename);
-			load_game_stat_snapshot(tmp_filename);
+			ReGBA_GetSavedStateFilename(line_buffer, CurrentGamePath, delette_savestate_num);
+			load_game_stat_snapshot(line_buffer);
 		}
 		else
 		{
@@ -2261,14 +2226,12 @@ u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason)
 					clear_savestate_slot(savestate_index);
 				}
 
-				get_savestate_filename(savestate_index, tmp_filename);
-
 				draw_message(down_screen_addr, NULL, 28, 31, 227, 165, 0);
 				draw_string_vcenter(down_screen_addr, MESSAGE_BOX_TEXT_X, MESSAGE_BOX_TEXT_Y, MESSAGE_BOX_TEXT_SX, COLOR_MSSG, msg[MSG_PROGRESS_SAVED_STATE_CREATING]);
 				ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
 
 				HighFrequencyCPU();
-				int flag = save_state(tmp_filename, (void*)screen);
+				int flag = save_state(savestate_index, (void*)screen);
 				LowFrequencyCPU();
 				//clear message
 				draw_message(down_screen_addr, NULL, 28, 31, 227, 96, 0);
@@ -2288,20 +2251,18 @@ u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason)
 				mdelay(500); // let the progress message linger
 
 				// Now show the screen of what we just wrote.
-				get_savestate_filename(savestate_index, tmp_filename);
-				sprintf(line_buffer, "%s/%s", DEFAULT_SAVE_DIR, tmp_filename);
+				ReGBA_GetSavedStateFilename(line_buffer, CurrentGamePath, savestate_index);
 				HighFrequencyCPU();
-				load_game_stat_snapshot(tmp_filename);
+				load_game_stat_snapshot(line_buffer);
 				LowFrequencyCPU();
 			}
 			else	//load screen snapshot
 			{
 				if(SavedStateFileExists(savestate_index))
 				{
-					get_savestate_filename(savestate_index, tmp_filename);
-					sprintf(line_buffer, "%s/%s", DEFAULT_SAVE_DIR, tmp_filename);
+					ReGBA_GetSavedStateFilename(line_buffer, CurrentGamePath, savestate_index);
 					HighFrequencyCPU();
-					load_game_stat_snapshot(tmp_filename);
+					load_game_stat_snapshot(line_buffer);
 					LowFrequencyCPU();
 				}
 				else
@@ -2318,8 +2279,6 @@ u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason)
 	{
 		if(!first_load)
 		{
-			FILE *fp= NULL;
-
 			if(bg_screenp != NULL)
 			{
 				bg_screenp_color = COLOR16(43, 11, 11);
@@ -2330,9 +2289,6 @@ u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason)
 
 			if(SavedStateFileExists(savestate_index))
 			{
-				get_savestate_filename(savestate_index, tmp_filename);
-				sprintf(line_buffer, "%s/%s", DEFAULT_SAVE_DIR, tmp_filename);
-
 				//right
 				if(gui_action == CURSOR_SELECT)
 				{
@@ -2341,8 +2297,7 @@ u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason)
 					ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
 
 					HighFrequencyCPU();
-					fp = fopen(line_buffer, "rb");
-					int flag = load_state(tmp_filename, fp);
+					int flag = load_state(savestate_index);
 					LowFrequencyCPU();
 					if(0 == flag)
 					{
@@ -2362,8 +2317,9 @@ u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason)
 				}
 				else	//load screen snapshot
 				{
+					ReGBA_GetSavedStateFilename(line_buffer, CurrentGamePath, savestate_index);
 					HighFrequencyCPU();
-					load_game_stat_snapshot(tmp_filename);
+					load_game_stat_snapshot(line_buffer);
 					LowFrequencyCPU();
 				}
 			}
@@ -2410,11 +2366,10 @@ u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason)
 							wait_Allkey_release(0);
 							for(i= 0; i < SAVE_STATE_SLOT_NUM; i++)
 							{
-								get_savestate_filename(i, tmp_filename);
-								sprintf(line_buffer, "%s/%s", DEFAULT_SAVE_DIR, tmp_filename);
+								ReGBA_GetSavedStateFilename(line_buffer, CurrentGamePath, i);
 								remove(line_buffer);
-								SavedStateCacheInvalidate ();
 							}
+							SavedStateCacheInvalidate ();
 							savestate_index= 0;
 						}
 					}
@@ -2452,10 +2407,9 @@ u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason)
 			{
 				if(SavedStateFileExists(delette_savestate_num))
 				{
-					get_savestate_filename(delette_savestate_num, tmp_filename);
-					sprintf(line_buffer, "%s/%s", DEFAULT_SAVE_DIR, tmp_filename);
+					ReGBA_GetSavedStateFilename(line_buffer, CurrentGamePath, delette_savestate_num);
 					HighFrequencyCPU();
-					load_game_stat_snapshot(tmp_filename);
+					load_game_stat_snapshot(line_buffer);
 					LowFrequencyCPU();
 				}
 				else
@@ -4420,12 +4374,9 @@ u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason)
 
 		LoadGameAndItsData(ext_pos);
 
-		get_newest_savestate(tmp_filename);
-		if(tmp_filename[0] != '\0')
+		if (latest_save >= 0)
 		{
-			sprintf(line_buffer, "%s/%s", DEFAULT_SAVE_DIR, tmp_filename);
-			FILE *fp = fopen(line_buffer, "rb");
-			load_state(tmp_filename, fp);
+			load_state(latest_save);
 		}
     }
 
@@ -5319,14 +5270,6 @@ u32 load_font()
     return (u32)BDF_font_init();
 }
 
-void get_savestate_filename_noshot(u32 slot, char *name_buffer)
-{
-  char savestate_ext[16];
-
-  sprintf(savestate_ext, "_%d.rts", (int)slot);
-  change_ext(gamepak_filename, name_buffer, savestate_ext);
-}
-
 /*--------------------------------------------------------
   游戏的设置文件
 --------------------------------------------------------*/
@@ -5334,14 +5277,13 @@ s32 save_game_config_file()
 {
     char game_config_filename[MAX_PATH];
     FILE_TAG_TYPE game_config_file;
-    char *pt;
+    char FileNameNoExt[MAX_PATH + 1];
 
-    if(gamepak_filename[0] == 0) return -1;
+    if(!IsGameLoaded) return -1;
 
-    sprintf(game_config_filename, "%s/%s", DEFAULT_CFG_DIR, gamepak_filename);
-    pt = strrchr(game_config_filename, '.');
-    *pt = '\0';
-    strcat(pt, "_0.rts");
+	GetFileNameNoExtension(FileNameNoExt, CurrentGamePath);
+
+    sprintf(game_config_filename, "%s/%s_0.rts", DEFAULT_CFG_DIR, FileNameNoExt);
 
     FILE_OPEN(game_config_file, game_config_filename, WRITE);
     if(FILE_CHECK_VALID(game_config_file))
@@ -5380,20 +5322,17 @@ s32 save_config_file()
 /******************************************************************************
  * local function definition
  ******************************************************************************/
-void reorder_latest_file(void)
+void reorder_latest_file(const char* GamePath)
 {
 	s32 i, FoundIndex = -1;
-
-	if(gamepak_filename[0] == '\0')
-		return;
 
 	// Is the file's name already here?
 	for (i = 0; i < 5; i++)
 	{
-		char* RecentFileName = strrchr(gpsp_persistent_config.latest_file[i], '/');
-		if (RecentFileName)
+		char* RecentFileName = gpsp_persistent_config.latest_file[i];
+		if (RecentFileName && *RecentFileName)
 		{
-			if (strcasecmp(RecentFileName + 1, gamepak_filename) == 0)
+			if (strcmp(RecentFileName, GamePath) == 0)
 			{
 				FoundIndex = i; // Yes.
 				break;
@@ -5417,7 +5356,7 @@ void reorder_latest_file(void)
 	}
 
 	//Removing rom_path due to confusion, replacing with g_default_rom_dir
-	sprintf(gpsp_persistent_config.latest_file[0], "%s/%s", g_default_rom_dir, gamepak_filename);
+	strcpy(gpsp_persistent_config.latest_file[0], GamePath);
 }
 
 
@@ -5455,8 +5394,7 @@ int load_game_stat_snapshot(char* file)
 	char tmp_path[MAX_PATH];
 	unsigned int n, m, y;
 
-	sprintf(tmp_path, "%s/%s", DEFAULT_SAVE_DIR, file);
-	fp = fopen(tmp_path, "r");
+	fp = fopen(file, "r");
 	if(NULL == fp)
 		return -1;
 
@@ -5486,10 +5424,11 @@ int load_game_stat_snapshot(char* file)
 	return 0;
 }
 
-static void get_savestate_filelist(void)
+static void get_savestate_filelist(const char* GamePath)
 {
 	int i;
 	char savestate_path[MAX_PATH];
+	char FileNameNoExt[MAX_PATH];
 	char postdrix[8];
 	char *pt;
 	FILE *fp;
@@ -5500,8 +5439,9 @@ static void get_savestate_filelist(void)
 	struct rtc latest_save_time, current_time;
 	memset(&latest_save_time, 0, sizeof (struct rtc));
 
-	sprintf(savestate_path, "%s/%s", DEFAULT_SAVE_DIR, gamepak_filename);
-	pt= strrchr(savestate_path, '.');
+	GetFileNameNoExtension(FileNameNoExt, GamePath);
+	sprintf(savestate_path, "%s/%s", DEFAULT_SAVE_DIR, FileNameNoExt);
+	pt= savestate_path + strlen(savestate_path);
 	for(i= 0; i < SAVE_STATE_SLOT_NUM; i++)
 	{
 		sprintf(postdrix, "_%d.rts", i+1);
@@ -5510,7 +5450,7 @@ static void get_savestate_filelist(void)
 		fp= fopen(savestate_path, "r");
 		if (fp != NULL)
 		{
-			SavedStateExistenceCache [i] = TRUE;
+			SavedStateExistenceCache [i] = true;
 			read = fread(header, 1, SVS_HEADER_SIZE, fp);
 			if(read < SVS_HEADER_SIZE || !(
 				memcmp(header, SVS_HEADER_E, SVS_HEADER_SIZE) == 0
@@ -5530,9 +5470,9 @@ static void get_savestate_filelist(void)
 			fclose(fp);
 		}
 		else
-			SavedStateExistenceCache [i] = FALSE;
+			SavedStateExistenceCache [i] = false;
 
-		SavedStateExistenceCached [i] = TRUE;
+		SavedStateExistenceCached [i] = true;
 	}
 
 	if(latest_save < 0)
@@ -5541,44 +5481,27 @@ static void get_savestate_filelist(void)
 		savestate_index = latest_save;
 }
 
-static void get_savestate_filename(u32 slot, char *name_buffer)
-{
-	char savestate_ext[16];
-	char *pt;
-
-	sprintf(savestate_ext, "_%d.rts", slot+1);
-	pt = strrchr(gamepak_filename, '/');
-	if(NULL == pt)
-		pt = gamepak_filename;
-	else
-		pt += 1;
-
-	change_ext(pt, name_buffer, savestate_ext);
-}
-
 unsigned char SavedStateSquareX (u32 slot)
 {
 	return (SCREEN_WIDTH * (slot + 1) / (SAVE_STATE_SLOT_NUM + 1))
 		- ICON_STATEFULL.x / 2;
 }
 
-unsigned char SavedStateFileExists (u32 slot)
+unsigned char SavedStateFileExists (uint32_t slot)
 {
 	if (SavedStateExistenceCached [slot])
 		return SavedStateExistenceCache [slot];
 
-	char BaseName [MAX_PATH + 1];
-	char FullName [MAX_PATH + 1];
-	get_savestate_filename(slot, BaseName);
-	sprintf(FullName, "%s/%s", DEFAULT_SAVE_DIR, BaseName);
-	FILE *SavedStateFile = fopen(FullName, "r");
+	char SavedStateFilename[MAX_PATH + 1];
+	ReGBA_GetSavedStateFilename(SavedStateFilename, CurrentGamePath, slot);
+	FILE *SavedStateFile = fopen(SavedStateFilename, "r");
 	unsigned char Result = SavedStateFile != NULL;
 	if (Result)
 	{
 		fclose(SavedStateFile);
 	}
 	SavedStateExistenceCache [slot] = Result;
-	SavedStateExistenceCached [slot] = TRUE;
+	SavedStateExistenceCached [slot] = true;
 	return Result;
 }
 
@@ -5591,11 +5514,6 @@ void SavedStateCacheInvalidate (void)
 
 void QuickLoadState (void)
 {
-	char BaseName[MAX_PATH + 1];
-	get_savestate_filename(0, BaseName);
-	char FullName[MAX_PATH + 1];
-	sprintf(FullName, "%s/%s", DEFAULT_SAVE_DIR, BaseName);
-
 	mdelay(100); // needed to avoid ds2_setBacklight crashing
 	ds2_setBacklight((3 - DOWN_SCREEN) | (3 - gba_screen_num));
 
@@ -5605,26 +5523,16 @@ void QuickLoadState (void)
 	ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
 
 	int flag = 0;
-	FILE_TAG_TYPE fp;
-	FILE_OPEN(fp, FullName, READ);
-	if(!FILE_CHECK_VALID(fp))
-	{
-		flag = 1; 
-	}
-	else
-	{
-		HighFrequencyCPU();
-		flag = load_state(BaseName, fp);
-		GameFrequencyCPU();
-	}
+
+	HighFrequencyCPU();
+	flag = load_state(0);
+	GameFrequencyCPU();
 
 	if(0 != flag)
 	{
 		draw_string_vcenter(down_screen_addr, MESSAGE_BOX_TEXT_X, MESSAGE_BOX_TEXT_Y, MESSAGE_BOX_TEXT_SX, COLOR_MSSG, msg[MSG_PROGRESS_SAVED_STATE_LOAD_FAILED]);
 		mdelay(500); // let the failure show
 	}
-
-	SavedStateCacheInvalidate ();
 
 	ds2_clearScreen(DOWN_SCREEN, RGB15(0, 0, 0));
 	ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
@@ -5635,8 +5543,6 @@ void QuickLoadState (void)
 
 void QuickSaveState (void)
 {
-	char BaseName[MAX_PATH + 1];
-	get_savestate_filename(0, BaseName);
 	unsigned short screen[GBA_SCREEN_WIDTH*GBA_SCREEN_HEIGHT];
 	copy_screen(screen);
 
@@ -5649,7 +5555,7 @@ void QuickSaveState (void)
 	ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
 
 	HighFrequencyCPU();
-	int flag = save_state(BaseName, screen);
+	int flag = save_state(0, screen);
 	GameFrequencyCPU();
 	if(flag < 0)
 	{
@@ -5664,17 +5570,6 @@ void QuickSaveState (void)
 
 	mdelay(100); // needed to avoid ds2_setBacklight crashing
 	ds2_setBacklight(3 - gba_screen_num);
-}
-
-void get_newest_savestate(char *name_buffer)
-{
-    if (latest_save < 0)
-    {
-        name_buffer[0]= '\0';
-        return;
-    }
-
-    get_savestate_filename(latest_save, name_buffer);
 }
 
 #ifndef NDS_LAYER
@@ -5753,7 +5648,6 @@ static void print_status(u32 mode)
 
 //  if (mode == 0)
 //  {
-//    strncpy(print_buffer_1, gamepak_filename, 40);
 //    PRINT_STRING_BG_SJIS(utf8, print_buffer_1, COLOR_ROM_INFO, COLOR_BG, 10, 10);
 //    sprintf(print_buffer_1, "%s  %s  %s  %0X", gamepak_title, gamepak_code,
 //        gamepak_maker, (unsigned int)gamepak_crc32);
@@ -5841,17 +5735,17 @@ static u32 save_ss_bmp(u16 *image)
                                     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                                     0x00, 0x00, 0x00, 0x00, 0x00};
 
-    char ss_filename[MAX_FILE];
-    char save_ss_path[MAX_PATH];
+    char FileNameNoExt[MAX_PATH + 1];
+    char save_ss_path[MAX_PATH + 1];
     struct rtc current_time;
     char rgb_data[240*160*3];
     unsigned int x,y;
     unsigned short col;
     unsigned char r,g,b;
 
-    change_ext(gamepak_filename, ss_filename, "_");
+	GetFileNameNoExtension(FileNameNoExt, CurrentGamePath);
 	ds2_getTime(&current_time);
-    sprintf(save_ss_path, "%s/%s%02d%02d%02d%02d%02d.bmp", DEFAULT_SS_DIR, ss_filename,
+    sprintf(save_ss_path, "%s/%s_%02d%02d%02d%02d%02d.bmp", DEFAULT_SS_DIR, FileNameNoExt,
     current_time.month, current_time.day, current_time.hours, current_time.minutes, current_time.seconds);
 
     for(y = 0; y < 160; y++)

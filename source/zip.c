@@ -62,11 +62,11 @@ void zip_free_func(void* opaque, void* address)
 // TODO Support big-endian systems.
 // The ZIP file header contains little-endian fields, and byte swapping is
 // needed on big-endian systems.
-s32 load_file_zip(char *filename)
+ssize_t load_file_zip(char *filename)
 {
   struct SZIPFileHeader data;
   char tmp[MAX_PATH];
-  s32 retval = -1;
+  ssize_t retval = -1;
   u8 *buffer = NULL;
   u8 *cbuffer;
   char *ext;
@@ -81,9 +81,7 @@ s32 load_file_zip(char *filename)
   if(cbuffer == NULL)
 	return -1;
 
-//  sprintf(tmp, "%s/%s", rom_path, filename);
-  sprintf(tmp, "%s", filename);
-  FILE_OPEN(fd, tmp, READ);
+  FILE_OPEN(fd, filename, READ);
 
   if(!FILE_CHECK_VALID(fd))
   {
@@ -127,7 +125,7 @@ s32 load_file_zip(char *filename)
     else
       write_tmp_flag = NO;
 
-    if(!strcasecmp(ext, "bin") || !strcasecmp(ext, "gba"))
+    if(ext && (!strcasecmp(ext, "bin") || !strcasecmp(ext, "gba")))
     {
       buffer = gamepak_rom;
 

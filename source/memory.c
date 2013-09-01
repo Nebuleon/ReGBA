@@ -67,7 +67,7 @@ CPU_ALERT_TYPE write_io_register32(u32 address, u32 value);
 void write_backup(u32 address, u32 value);
 u32 encode_bcd(u8 value);
 void write_rtc(u32 address, u32 value);
-u32 save_backup(char *name);
+u32 save_backup();
 s32 parse_config_line(char *current_line, char *current_variable, char *current_value);
 s32 load_game_config(char *gamepak_title, char *gamepak_code, char *gamepak_maker);
 char *skip_spaces(char *line_ptr);
@@ -216,8 +216,8 @@ u32 gamepak_ram_pages;
 char gamepak_title[13];
 char gamepak_code[5];
 char gamepak_maker[3];
-char gamepak_filename[MAX_FILE];
-char gamepak_filename_full_path[MAX_PATH];
+char CurrentGamePath[MAX_PATH];
+bool IsGameLoaded = false;
 u32 gamepak_crc32;
 
 u32 mem_save_flag;
@@ -2239,13 +2239,17 @@ CPU_ALERT_TYPE write_memory32(u32 address, u32 value)
 
 char backup_filename[MAX_FILE];
 
-u32 load_backup(char *name)
+u32 load_backup()
 {
-  char backup_path[MAX_PATH];
+	char BackupFilename[MAX_PATH + 1];
+	if (!ReGBA_GetBackupFilename(BackupFilename, CurrentGamePath))
+	{
+		ReGBA_Trace("W: Failed to get the name of the saved data file for '%s'", CurrentGamePath);
+		return 0;
+	}
   FILE_TAG_TYPE backup_file;
 
-  sprintf(backup_path, "%s/%s", DEFAULT_SAVE_DIR, name);
-  FILE_OPEN(backup_file, backup_path, READ);
+  FILE_OPEN(backup_file, BackupFilename, READ);
 
   if(FILE_CHECK_VALID(backup_file))
   {
@@ -2294,15 +2298,20 @@ u32 load_backup(char *name)
   return 0;
 }
 
-u32 save_backup(char *name)
+u32 save_backup()
 {
-  char backup_path[MAX_PATH];
+	char BackupFilename[MAX_PATH + 1];
+	if (!ReGBA_GetBackupFilename(BackupFilename, CurrentGamePath))
+	{
+		ReGBA_Trace("W: Failed to get the name of the saved data file for '%s'", CurrentGamePath);
+		return 0;
+	}
+
   FILE_TAG_TYPE backup_file;
 
   if(backup_type != BACKUP_NONE)
   {
-    sprintf(backup_path, "%s/%s", DEFAULT_SAVE_DIR, name);
-    FILE_OPEN(backup_file, backup_path, WRITE);
+    FILE_OPEN(backup_file, BackupFilename, WRITE);
 
     if(FILE_CHECK_VALID(backup_file))
     {
@@ -2351,14 +2360,15 @@ void update_backup()
 
   if(backup_update == 0)
   {
-    save_backup(backup_filename);
+    save_backup();
     backup_update = write_backup_delay + 1;
   }
 }
 
 void update_backup_force()
 {
-  save_backup(backup_filename);
+  save_backup();
+  backup_update = write_backup_delay + 1;
 }
 
 #define CONFIG_FILENAME "game_config.txt"
@@ -2516,7 +2526,7 @@ s32 load_game_config(char *gamepak_title, char *gamepak_code, char *gamepak_make
 
 #define LOAD_ON_MEMORY FILE_TAG_INVALID
 
-static s32 load_gamepak_raw(char *name_path)
+static ssize_t load_gamepak_raw(char *name_path)
 {
   FILE_TAG_TYPE gamepak_file;
 
@@ -2533,14 +2543,13 @@ static s32 load_gamepak_raw(char *name_path)
       FILE_READ(gamepak_file, gamepak_rom, gamepak_size);
       FILE_CLOSE(gamepak_file);
 
-      gamepak_file_large = (FILE_TAG_TYPE)LOAD_ON_MEMORY;
+      gamepak_file_large = FILE_TAG_INVALID;
     }
     else
     {
       // Read in just enough for the header
       FILE_READ(gamepak_file, gamepak_rom, 0x100);
-      gamepak_file_large = (FILE_TAG_TYPE)gamepak_file;
-      strcpy(gamepak_filename_full_path, name_path);
+      gamepak_file_large = gamepak_file;
     }
 
     return gamepak_size;
@@ -2553,24 +2562,30 @@ static s32 load_gamepak_raw(char *name_path)
  * Loads a GBA ROM from a file whose full path is in the first parameter.
  * Returns 0 on success and -1 on failure.
  */
-s32 load_gamepak(char *file_path)
+ssize_t load_gamepak(char *file_path)
 {
+	if (IsGameLoaded) {
+		update_backup_force();
+		if(FILE_CHECK_VALID(gamepak_file_large))
+		{
+			FILE_CLOSE(gamepak_file_large);
+			gamepak_file_large = FILE_TAG_INVALID;
+		}
+		IsGameLoaded = false;
+	}
+
   char *dot_position = strrchr(file_path, '.');
-  s32 file_size;
-  char cheats_filename[MAX_FILE];
+  ssize_t file_size;
 
-  if(FILE_CHECK_VALID(gamepak_file_large))
-    FILE_CLOSE(gamepak_file_large);
-
-  gamepak_file_large = FILE_TAG_INVALID;
-
-  if(!strcasecmp(dot_position, ".zip"))
+  if(dot_position && strcasecmp(dot_position, ".zip") == 0)
   {
     file_size = load_file_zip(file_path);
     if(file_size == -2)
     {
       char extracted_file[MAX_FILE];
       sprintf(extracted_file, "%s/%s", main_path, ZIP_TMP);
+	  // load_gamepak_raw will not set CurrentGamePath.
+	  // Calling load_gamepak again would make it ZIPTMP.GBA...
       file_size = load_gamepak_raw(extracted_file);
     }
   }
@@ -2579,23 +2594,24 @@ s32 load_gamepak(char *file_path)
     file_size = load_gamepak_raw(file_path);
   }
 
-printf("file_size %d\n", file_size);
-
-  frame_ticks = 0;
-  init_rewind(); // Initialise rewinds for this game
-
   if(file_size != -1)
   {
+	  strcpy(CurrentGamePath, file_path);
+	  IsGameLoaded = true;
+
+    frame_ticks = 0;
+    init_rewind(); // Initialise rewinds for this game
+
     gamepak_size = (file_size + 0x7FFF) & ~0x7FFF;
-    change_ext(gamepak_filename, backup_filename, ".sav");
-    load_backup(backup_filename);
+
+	load_backup();
 
     memcpy(gamepak_title, gamepak_rom + 0xA0, 12);
     memcpy(gamepak_code, gamepak_rom + 0xAC, 4);
     memcpy(gamepak_maker, gamepak_rom + 0xB0, 2);
-    gamepak_title[12] = 0;
-    gamepak_code[4] = 0;
-    gamepak_maker[2] = 0;
+    gamepak_title[12] = '\0';
+    gamepak_code[4] = '\0';
+    gamepak_maker[2] = '\0';
 
     //Validate the GBA title
 /* // Doesn't work for some reason [Neb]
@@ -2619,6 +2635,12 @@ printf("file_size %d\n", file_size);
     mem_save_flag = 0;
 
     load_game_config(gamepak_title, gamepak_code, gamepak_maker);
+
+      reset_gba();
+      reg[CHANGED_PC_STATUS] = 1;
+	  
+	ReGBA_OnGameLoaded(file_path);
+
     return 0;
   }
 
@@ -3606,35 +3628,40 @@ void loadstate_rewind(void)
 }
 
 /*
- * Loads a saved state, given its file name and a file handle already opened
- * in at least mode "rb" to the same file. This function is responsible for
- * closing that file handle.
- * Assumes the gamepak used to save the state is the one that is currently
- * loaded.
+ * Loads a saved state, given its slot number.
  * Returns 0 on success, non-zero on failure.
  */
-u32 load_state(char *savestate_filename, FILE_TAG_TYPE fp)
+u32 load_state(uint32_t SlotNumber)
 {
+	FILE_TAG_TYPE savestate_file;
     size_t i;
 
-    if(fp != NULL)
+	char SavedStateFilename[MAX_PATH + 1];
+	if (!ReGBA_GetSavedStateFilename(SavedStateFilename, CurrentGamePath, SlotNumber))
+	{
+		ReGBA_Trace("W: Failed to get the name of saved state #%d for '%s'", SlotNumber, CurrentGamePath);
+		return 0;
+	}
+
+	FILE_OPEN(savestate_file, SavedStateFilename, READ);
+	if(FILE_CHECK_VALID(savestate_file))
     {
 		u8 header[SVS_HEADER_SIZE];
-		i = FILE_READ(fp, header, SVS_HEADER_SIZE);
+		i = FILE_READ(savestate_file, header, SVS_HEADER_SIZE);
 		if (i < SVS_HEADER_SIZE) {
-			FILE_CLOSE(fp);
+			FILE_CLOSE(savestate_file);
 			return 1; // Failed to fully read the file
 		}
 		if (!(
 			memcmp(header, SVS_HEADER_E, SVS_HEADER_SIZE) == 0
 		||	memcmp(header, SVS_HEADER_F, SVS_HEADER_SIZE) == 0
 		)) {
-			FILE_CLOSE(fp);
+			FILE_CLOSE(savestate_file);
 			return 2; // Bad saved state format
 		}
 
-		i = FILE_READ(fp, savestate_write_buffer, SAVESTATE_SIZE);
-		FILE_CLOSE(fp);
+		i = FILE_READ(savestate_file, savestate_write_buffer, SAVESTATE_SIZE);
+		FILE_CLOSE(savestate_file);
 		if (i < SAVESTATE_SIZE)
 			return 1; // Failed to fully read the file
 
@@ -3683,24 +3710,26 @@ u32 load_state(char *savestate_filename, FILE_TAG_TYPE fp)
 /*--------------------------------------------------------
   保存即时存档
   input
-    char *savestate_filename 存档文件名
+    u32 SlotNumber           存档槽
     u16 *screen_capture      存档索引画面
-    u32 slot_num             存档槽
   return
     0 失败
     1 成功
 --------------------------------------------------------*/
-u32 save_state(char *savestate_filename, u16 *screen_capture)
+u32 save_state(uint32_t SlotNumber, u16 *screen_capture)
 {
   char savestate_path[MAX_PATH];
   FILE_TAG_TYPE savestate_file;
 //  char buf[256];
   struct ReGBA_RTC Time;
-  u32 ret;
+  u32 ret = 1;
 
-  ret = 1;
-
-  sprintf(savestate_path, "%s/%s", DEFAULT_SAVE_DIR, savestate_filename);
+	char SavedStateFilename[MAX_PATH + 1];
+	if (!ReGBA_GetSavedStateFilename(SavedStateFilename, CurrentGamePath, SlotNumber))
+	{
+		ReGBA_Trace("W: Failed to get the name of saved state #%d for '%s'", SlotNumber, CurrentGamePath);
+		return 0;
+	}
 
   g_state_buffer_ptr = savestate_write_buffer;
 
@@ -3714,7 +3743,7 @@ u32 save_state(char *savestate_filename, u16 *screen_capture)
 
   savestate_block(write_mem);
 
-  FILE_OPEN(savestate_file, savestate_path, WRITE);
+  FILE_OPEN(savestate_file, SavedStateFilename, WRITE);
   if(FILE_CHECK_VALID(savestate_file))
   {
     FILE_WRITE(savestate_file, SVS_HEADER_F, SVS_HEADER_SIZE);
