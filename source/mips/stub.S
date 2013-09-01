@@ -657,6 +657,7 @@ mips_indirect_branch_dual:
 #ifndef MIPS_XBURST
   nop
 #endif
+#ifndef GAMEPAK_FITS_IN_RAM
   bne $2, $0, 1f                  # if it's non-NULL continue
   andi $1, $4, \mask              # $1 = low 15bits of address (delay slot)
 
@@ -679,6 +680,9 @@ mips_indirect_branch_dual:
   lw $ra, REG_SAVE2($16)          # restore return address
 
 1:
+#else
+  andi $1, $4, \mask              # $1 = low 15bits of address
+#endif
   addu $2, $2, $1                 # add the memory map offset
 .endm
 
@@ -712,6 +716,7 @@ mips_indirect_branch_dual:
 #ifndef MIPS_XBURST
   nop
 #endif
+#ifndef GAMEPAK_FITS_IN_RAM
   bne $2, $0, 1f                  # if it's non-NULL continue
   andi $1, $4, 0x7FFF             # $1 = low 15bits of address (delay slot)
 
@@ -736,6 +741,9 @@ mips_indirect_branch_dual:
   lw $6, REG_SAVE3($16)           # restore a2
 
 1:
+#else
+  andi $1, $4, 0x7FFF             # $1 = low 15bits of address
+#endif
   addu $2, $2, $1                 # add the memory map offset
 .endm
 

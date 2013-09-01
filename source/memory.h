@@ -194,7 +194,9 @@ extern u32 gamepak_crc32;
 
 extern u8 *gamepak_rom;
 extern u8 *gamepak_rom_resume;
+#ifndef GAMEPAK_FITS_IN_RAM
 extern u32 gamepak_ram_buffer_size;
+#endif
 extern u32 oam_update;
 extern u32 gbc_sound_update;
 extern DMA_TRANSFER_TYPE dma[4];
@@ -236,7 +238,9 @@ extern u8 *memory_map_read[8 * 1024];
 extern u32 reg[64];
 extern u8 *memory_map_write[8 * 1024];
 
+#ifndef GAMEPAK_FITS_IN_RAM
 extern FILE_TAG_TYPE gamepak_file_large;
+#endif
 
 extern u32 gbc_sound_wave_update;
 
@@ -271,7 +275,9 @@ extern CPU_ALERT_TYPE dma_transfer(DMA_TRANSFER_TYPE *dma);
 extern u8 *memory_region(u32 address, u32 *memory_limit);
 extern s32 load_bios(char *name);
 extern ssize_t load_gamepak(char *file_path);
+#ifndef GAMEPAK_FITS_IN_RAM
 extern u8 *load_gamepak_page(u32 physical_index);
+#endif
 extern u32 load_backup();
 extern void init_memory();
 extern void init_gamepak_buffer();

@@ -204,11 +204,13 @@ DMA_TRANSFER_TYPE dma[4];
 u8 *memory_regions[16];
 u32 memory_limits[16];
 
+#ifndef GAMEPAK_FITS_IN_RAM
 typedef struct
 {
   u32 page_timestamp;
   u32 physical_index;
 } gamepak_swap_entry_type;
+#endif
 
 u32 gamepak_ram_buffer_size;
 u32 gamepak_ram_pages;
@@ -222,6 +224,7 @@ u32 gamepak_crc32;
 
 u32 mem_save_flag;
 
+#ifndef GAMEPAK_FITS_IN_RAM
 // Enough to map the gamepak RAM space.
 gamepak_swap_entry_type *gamepak_memory_map;
 
@@ -230,8 +233,7 @@ gamepak_swap_entry_type *gamepak_memory_map;
 // a lot.
 
 FILE_TAG_TYPE gamepak_file_large = FILE_TAG_INVALID;
-
-u32 direct_map_vram = 0;
+#endif
 
 // Writes to these respective locations should trigger an update
 // so the related subsystem may react to it.
@@ -488,6 +490,16 @@ void write_eeprom(u32 address, u32 value)
   }
 }
 
+#ifdef GAMEPAK_FITS_IN_RAM
+
+#define read_memory_gamepak(type)                                             \
+  u32 gamepak_index = address >> 15;                                          \
+  u8 *map = memory_map_read[gamepak_index];                                   \
+                                                                              \
+  value = ADDRESS##type(map, address & 0x7FFF)                                \
+  
+#else
+
 #define read_memory_gamepak(type)                                             \
   u32 gamepak_index = address >> 15;                                          \
   u8 *map = memory_map_read[gamepak_index];                                   \
@@ -496,6 +508,8 @@ void write_eeprom(u32 address, u32 value)
     map = load_gamepak_page(gamepak_index & 0x3FF);                           \
                                                                               \
   value = ADDRESS##type(map, address & 0x7FFF)                                \
+
+#endif
 
 #define read_open8()                                                          \
   if(reg[REG_CPSR] & 0x20)                                                    \
@@ -1883,6 +1897,18 @@ u32 encode_bcd(u8 value)
   return ((value / 10) << 4) | (value % 10);
 }
 
+#ifdef GAMEPAK_FITS_IN_RAM
+
+#define write_rtc_register(index, _value)                                     \
+  update_address = 0x80000C4 + (index * 2);                                   \
+  rtc_registers[index] = _value;                                              \
+  rtc_page_index = update_address >> 15;                                      \
+  map = memory_map_read[rtc_page_index];                                      \
+                                                                              \
+  ADDRESS16(map, update_address & 0x7FFF) = _value                            \
+
+#else
+
 #define write_rtc_register(index, _value)                                     \
   update_address = 0x80000C4 + (index * 2);                                   \
   rtc_registers[index] = _value;                                              \
@@ -1893,6 +1919,8 @@ u32 encode_bcd(u8 value)
     map = load_gamepak_page(rtc_page_index & 0x3FF);                          \
                                                                               \
   ADDRESS16(map, update_address & 0x7FFF) = _value                            \
+
+#endif
 
 void write_rtc(u32 address, u32 value)
 {
@@ -2536,21 +2564,32 @@ static ssize_t load_gamepak_raw(char *name_path)
   {
     u32 gamepak_size = FILE_LENGTH(gamepak_file);
 
+#ifndef GAMEPAK_FITS_IN_RAM
     // If it's a big file size keep it don't close it, we'll
     // probably want to load it later
     if(gamepak_size <= gamepak_ram_buffer_size)
     {
+#else
+    if (gamepak_size > 32 * 1024 * 1024)
+      return -1; // Fail if the file size is unexpectedly large
+    else
+    {
+#endif
       FILE_READ(gamepak_file, gamepak_rom, gamepak_size);
       FILE_CLOSE(gamepak_file);
 
+#ifndef GAMEPAK_FITS_IN_RAM
       gamepak_file_large = FILE_TAG_INVALID;
+#endif
     }
+#ifndef GAMEPAK_FITS_IN_RAM
     else
     {
       // Read in just enough for the header
       FILE_READ(gamepak_file, gamepak_rom, 0x100);
       gamepak_file_large = gamepak_file;
     }
+#endif
 
     return gamepak_size;
   }
@@ -2566,11 +2605,13 @@ ssize_t load_gamepak(char *file_path)
 {
 	if (IsGameLoaded) {
 		update_backup_force();
+#ifndef GAMEPAK_FITS_IN_RAM
 		if(FILE_CHECK_VALID(gamepak_file_large))
 		{
 			FILE_CLOSE(gamepak_file_large);
 			gamepak_file_large = FILE_TAG_INVALID;
 		}
+#endif
 		IsGameLoaded = false;
 	}
 
@@ -2753,6 +2794,15 @@ dma_region_type dma_region_map[16] =
 #define dma_segmented_load_dest()                                             \
   memory_map_write[dest_current_region]                                       \
 
+#ifdef GAMEPAK_FITS_IN_RAM
+
+#define dma_vars_gamepak(type)                                                \
+  u32 type##_new_region;                                                      \
+  u32 type##_current_region = type##_ptr >> 15;                               \
+  u8 *type##_address_block = dma_segmented_load_##type();                     \
+
+#else
+
 #define dma_vars_gamepak(type)                                                \
   u32 type##_new_region;                                                      \
   u32 type##_current_region = type##_ptr >> 15;                               \
@@ -2764,12 +2814,26 @@ dma_region_type dma_region_map[16] =
     type##_address_block = load_gamepak_page(type##_current_region & 0x3FF);  \
   }                                                                           \
 
+#endif
+
 #define dma_vars_ewram(type)                                                  \
   dma_smc_vars_##type();                                                      \
 
 #define dma_vars_bios(type)                                                   \
 
 #define dma_vars_ext(type)                                                    \
+
+#ifdef GAMEPAK_FITS_IN_RAM
+
+#define dma_gamepak_check_region(type)                                        \
+  type##_new_region = (type##_ptr >> 15);                                     \
+  if(type##_new_region != type##_current_region)                              \
+  {                                                                           \
+    type##_current_region = type##_new_region;                                \
+    type##_address_block = dma_segmented_load_##type();                       \
+  }                                                                           \
+
+#else
 
 #define dma_gamepak_check_region(type)                                        \
   type##_new_region = (type##_ptr >> 15);                                     \
@@ -2783,6 +2847,8 @@ dma_region_type dma_region_map[16] =
        load_gamepak_page(type##_current_region & 0x3FF);                      \
     }                                                                         \
   }                                                                           \
+
+#endif
 
 #define dma_read_iwram(type, transfer_size)                                   \
   read_value = ADDRESS##transfer_size(iwram_data, type##_ptr & 0x7FFF)        \
@@ -3337,6 +3403,7 @@ CPU_ALERT_TYPE dma_transfer(DMA_TRANSFER_TYPE *dma)
 // Picks a page to evict
 u32 page_time = 0;
 
+#ifndef GAMEPAK_FITS_IN_RAM
 u32 evict_gamepak_page()
 {
   // Find the one with the smallest frame timestamp
@@ -3391,11 +3458,13 @@ u8 *load_gamepak_page(u32 physical_index)
 
   return swap_location;
 }
+#endif
 
 void init_memory_gamepak()
 {
   u32 map_offset = 0;
 
+#ifndef GAMEPAK_FITS_IN_RAM
   if(gamepak_size > gamepak_ram_buffer_size)
   {
     // Large ROMs get special treatment because they
@@ -3411,17 +3480,23 @@ void init_memory_gamepak()
   }
   else
   {
+#endif
     map_region(read, 0x8000000, 0x8000000 + gamepak_size, 1024, gamepak_rom);
     map_null(read, 0x8000000 + gamepak_size, 0xA000000);
     map_region(read, 0xA000000, 0xA000000 + gamepak_size, 1024, gamepak_rom);
     map_null(read, 0xA000000 + gamepak_size, 0xC000000);
     map_region(read, 0xC000000, 0xC000000 + gamepak_size, 1024, gamepak_rom);
     map_null(read, 0xC000000 + gamepak_size, 0xE000000);
+#ifndef GAMEPAK_FITS_IN_RAM
   }
+#endif
 }
 
 void init_gamepak_buffer()
 {
+#ifdef GAMEPAK_FITS_IN_RAM
+	gamepak_rom = malloc(32 * 1024 * 1024);
+#else
 	/* At the end of this function, the ROM buffer will have been sized so
 	 * that at least 2 MiB are left for other operations.
 	 */
@@ -3450,6 +3525,7 @@ void init_gamepak_buffer()
 	gamepak_ram_pages = gamepak_ram_buffer_size / (32 * 1024);
 	gamepak_memory_map = malloc(sizeof(gamepak_swap_entry_type) *
 	gamepak_ram_pages);
+#endif
 }
 
 void init_memory()
