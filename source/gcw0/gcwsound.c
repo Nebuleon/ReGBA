@@ -9,19 +9,23 @@ void feed_buffer(void *udata, Uint8 *buffer, int len)
 	u32 Samples = ReGBA_GetAudioSamplesAvailable();
 	u32 Requested = len / (2 * sizeof(s16));
 
-	if (Samples < Requested)
-		return;
+	/* There must be AUDIO_BUFFER_OUTPUT_SIZE * 2 samples generated in order
+	 * for the first AUDIO_BUFFER_OUTPUT_SIZE to be valid. Some sound is
+	 * generated in the past from the future, and if the first
+	 * AUDIO_BUFFER_OUTPUT_SIZE is grabbed before the core has had time to
+	 * generate all of it (at AUDIO_BUFFER_OUTPUT_SIZE * 2), the end may
+	 * still be silence, causing crackling. */
+	if (Samples < Requested * 2)
+		return; // Generate more sound first, please!
 
 	u32 i;
 	for (i = 0; i < Requested; i++)
 	{
 		s16 Left, Right;
-		if (ReGBA_LoadNextAudioSample(&Left, &Right))
-		{
-			/* The GBA outputs in 12-bit sound. Make it louder. */
-			stream[i * 2    ] = Left  << 4;
-			stream[i * 2 + 1] = Right << 4;
-		}
+		ReGBA_LoadNextAudioSample(&Left, &Right);
+		/* The GBA outputs in 12-bit sound. Make it louder. */
+		stream[i * 2    ] = Left  << 4;
+		stream[i * 2 + 1] = Right << 4;
 	}
 }
 
