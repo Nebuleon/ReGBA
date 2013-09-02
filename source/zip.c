@@ -73,9 +73,7 @@ ssize_t load_file_zip(char *filename)
   FILE_TAG_TYPE fd;
   FILE_TAG_TYPE tmp_fd= FILE_TAG_INVALID;
   u32 zip_buffer_size;
-#ifndef GAMEPAK_FITS_IN_RAM
   u32 write_tmp_flag = NO;
-#endif
 
   zip_buffer_size = ZIP_BUFFER_SIZE;
 //  cbuffer = zip_buff;
@@ -118,7 +116,6 @@ ssize_t load_file_zip(char *filename)
     ext = strrchr(tmp, '.') + 1;
 
     // file is too big
-#ifndef GAMEPAK_FITS_IN_RAM
     if(data.DataDescriptor.UncompressedSize > gamepak_ram_buffer_size)
       {
         write_tmp_flag = YES; // テンポラリを使用するフラグをONに
@@ -127,7 +124,6 @@ ssize_t load_file_zip(char *filename)
       }
     else
       write_tmp_flag = NO;
-#endif
 
     if(ext && (!strcasecmp(ext, "bin") || !strcasecmp(ext, "gba")))
     {
@@ -138,12 +134,9 @@ ssize_t load_file_zip(char *filename)
       {
         case 0: //No compress
           retval = data.DataDescriptor.UncompressedSize;
-#ifndef GAMEPAK_FITS_IN_RAM
           if (write_tmp_flag == NO)
           {
-#endif
             FILE_READ(fd, buffer, retval);
-#ifndef GAMEPAK_FITS_IN_RAM
           }
           else
           {
@@ -157,7 +150,6 @@ ssize_t load_file_zip(char *filename)
             }
             retval = -2;
           }
-#endif
 
           goto outcode;
 
@@ -178,20 +170,16 @@ ssize_t load_file_zip(char *filename)
 
           stream.next_out = (Bytef*)buffer;
 
-#ifndef GAMEPAK_FITS_IN_RAM
           if(write_tmp_flag == NO)
             {
-#endif
               stream.avail_out = data.DataDescriptor.UncompressedSize;
               retval = (u32)data.DataDescriptor.UncompressedSize;
-#ifndef GAMEPAK_FITS_IN_RAM
             }
           else
             {
               stream.avail_out = gamepak_ram_buffer_size;
               retval = -2;
             }
-#endif
 
 //          stream.zalloc = (alloc_func)0;
 //          stream.zfree = (free_func)0;
@@ -216,7 +204,6 @@ ssize_t load_file_zip(char *filename)
                 FILE_READ(fd, cbuffer, zip_buffer_size);
               }
 
-#ifndef GAMEPAK_FITS_IN_RAM
               if((write_tmp_flag == YES) && (stream.avail_out == 0)) /* 出力バッファが尽きれば */
                 {
                   /* まとめて書き出す */
@@ -224,14 +211,11 @@ ssize_t load_file_zip(char *filename)
                   stream.next_out = buffer; /* 出力ポインタを元に戻す */
                   stream.avail_out = gamepak_ram_buffer_size; /* 出力バッファ残量を元に戻す */
                 }
-#endif
             }
 
-#ifndef GAMEPAK_FITS_IN_RAM
             /* 残りを吐き出す */
             if((write_tmp_flag == YES) && ((gamepak_ram_buffer_size - stream.avail_out) != 0))
                 FILE_WRITE(tmp_fd, buffer, gamepak_ram_buffer_size - stream.avail_out);
-#endif
 
             err = Z_OK;
             inflateEnd(&stream);
@@ -245,10 +229,10 @@ ssize_t load_file_zip(char *filename)
 outcode:
   FILE_CLOSE(fd);
 
-#ifndef GAMEPAK_FITS_IN_RAM
   if(write_tmp_flag == YES)
     FILE_CLOSE(tmp_fd);
-#endif
+
+//printf("Load ZIP over\n");
 
 	free(cbuffer);
   return retval;

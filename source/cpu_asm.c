@@ -261,18 +261,6 @@ struct ReuseHeader {
 
 extern void call_bios_hle(void* func);
 
-#ifdef GAMEPAK_FITS_IN_RAM
-
-#define check_pc_region(pc)                                                   \
-  new_pc_region = (pc >> 15);                                                 \
-  if(new_pc_region != pc_region)                                              \
-  {                                                                           \
-    pc_region = new_pc_region;                                                \
-    pc_address_block = memory_map_read[new_pc_region];                        \
-  }                                                                           \
-
-#else
-
 #define check_pc_region(pc)                                                   \
   new_pc_region = (pc >> 15);                                                 \
   if(new_pc_region != pc_region)                                              \
@@ -283,8 +271,6 @@ extern void call_bios_hle(void* func);
     if(pc_address_block == NULL)                                              \
       pc_address_block = load_gamepak_page(pc_region & 0x3FF);                \
   }                                                                           \
-
-#endif
 
 #ifdef PERFORMANCE_IMPACTING_STATISTICS
 static inline void StatsAddARMOpcode()
@@ -3168,18 +3154,6 @@ static s32 BinarySearch(u32* Array, u32 Value, u32 Size)
 
 #endif
 
-#ifdef GAMEPAK_FITS_IN_RAM
-
-#define check_initial_pc_block()                                              \
-
-#else
-
-#define check_initial_pc_block()                                              \
-  if(pc_address_block == NULL)                                                \
-    pc_address_block = load_gamepak_page(pc_region & 0x3FF);                  \
-
-#endif
-
 #define translate_block_builder(type)                                         \
 u8* translate_block_##type(u32 pc)                                            \
 {                                                                             \
@@ -3210,7 +3184,8 @@ u8* translate_block_##type(u32 pc)                                            \
                                                                               \
   trace_translation_request();                                                \
                                                                               \
-  check_initial_pc_block();                                                   \
+  if(pc_address_block == NULL)                                                \
+    pc_address_block = load_gamepak_page(pc_region & 0x3FF);                  \
                                                                               \
   switch(pc >> 24)                                                            \
   {                                                                           \
