@@ -3793,3 +3793,7 @@ reg:
 
 memory_map_write:
   .space 0x8000
+
+#ifdef MIPS_32R2
+.set mips0
+#endif
