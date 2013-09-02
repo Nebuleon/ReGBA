@@ -24,8 +24,14 @@ void feed_buffer(void *udata, Uint8 *buffer, int len)
 		s16 Left, Right;
 		ReGBA_LoadNextAudioSample(&Left, &Right);
 		/* The GBA outputs in 12-bit sound. Make it louder. */
-		stream[i * 2    ] = Left  << 4;
-		stream[i * 2 + 1] = Right << 4;
+		if      (Left >  4095) Left =  4095;
+		else if (Left < -4096) Left = -4096;
+
+		if      (Right >  4095) Right =  4095;
+		else if (Right < -4096) Right = -4096;
+
+		stream[i * 2    ] = Left  << 3;
+		stream[i * 2 + 1] = Right << 3;
 	}
 }
 
