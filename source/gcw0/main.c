@@ -204,8 +204,9 @@ int main(int argc, char *argv[])
     }
 
 	init_video();
-#if 0
+	init_sdlaudio();
 	init_sound();
+#if 0
 	init_input();
 
     set_gba_resolution(screen_scale);

@@ -297,6 +297,9 @@ void ReGBA_RenderScreen(void)
 	gba_upscale((uint32_t*) OutputSurface->pixels, src, GBA_SCREEN_WIDTH, GBA_SCREEN_HEIGHT);
 
 	SDL_Flip(OutputSurface);
+
+	while (ReGBA_GetAudioSamplesAvailable() > AUDIO_OUTPUT_BUFFER_SIZE * 3)
+		usleep(1000);
 }
 
 #if 0

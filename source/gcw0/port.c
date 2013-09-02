@@ -171,12 +171,6 @@ u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason)
 	return 0;
 }
 
-signed int ReGBA_AudioUpdate()
-{
-	// TODO Fill this function in
-	return 0;
-}
-
 void ReGBA_OnGameLoaded(const char* GamePath)
 {
 }

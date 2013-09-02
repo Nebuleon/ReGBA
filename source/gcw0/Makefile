@@ -10,11 +10,11 @@ SDL_LIBS    := $(shell $(SYSROOT)/usr/bin/sdl-config --libs)
 
 OBJS        := main.o draw.o port.o port-asm.o gcwinput.o ../video.o          \
               ../input.o ../bios.o ../zip.o ../sound.o ../mips/stub.o         \
-              ../stats.o ../memory.o ../cpu_common.o ../cpu_asm.o
+              ../stats.o ../memory.o ../cpu_common.o ../cpu_asm.o gcwsound.o
               
 HEADERS     := cheats.h ../common.h ../cpu_common.h ../cpu.h draw.h main.h    \
                ../input.h ../memory.h message.h ../mips/emit.h ../sound.h     \
-               ../stats.h ../video.h ../zip.h port.h
+               ../stats.h ../video.h ../zip.h port.h gcwsound.h
 
 INCLUDE     := -I. -I.. -I../mips
 DEFS        := -DGAMEPAK_FITS_IN_RAM -DMIPS_XBURST -DMIPS_32R2
