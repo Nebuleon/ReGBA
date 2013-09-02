@@ -171,22 +171,22 @@ int main(int argc, char *argv[])
   load_config_file();
 #endif
 
+	// Try loading the user's .gpsp directory's GBA BIOS first.
+	// Fall back on the bundled one.
 	sprintf(bios_file, "%s/gba_bios.bin", main_path);
 	if(load_bios(bios_file) == -1)
 	{
-		printf("Sorry, but ReGBA requires a Gameboy Advance BIOS image to run\n");
-		printf("correctly. Make sure to get an authentic one (search the web,\n");
-		printf("beg other people if you want, but don't hold me accountable\n");
-		printf("if you get hated or banned for it), it'll be exactly 16384\n");
-		printf("bytes large and should have the following md5sum value:\n\n");
-		printf("a860e8c0b6d573d191e4ec7db1b1e4f6\n\n");
-		printf("Other BIOS files might work either partially completely, I\n");
-		printf("really don't know.\n\n");
-		printf("When you do get it name it gba_bios.bin and put it in\n");
-		printf("/boot/local/home/.gpsp.\n\n");
-		printf("Good luck.\n");
+		sprintf(bios_file, "%s/gba_bios.bin", executable_path);
+		if (load_bios(bios_file) == -1)
+		{
+			printf("The GBA BIOS was not found in any location.\n");
+			printf("You can load one in your home directory's\n");
+			printf(".gpsp subdirectory. On this platform, that's:\n");
+			printf("%s\n", main_path);
+			printf("The file needs to be named gba_bios.bin.\n");
 
-		quit();
+			quit();
+		}
 	}
 
   init_main();

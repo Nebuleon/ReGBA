@@ -143,6 +143,8 @@ typedef uint32_t FIXED16_16;  // Q16.16 fixed-point
 #include "zip.h"
 #include "stats.h"
 
+#include "sha1.h"
+
 // - - - CROSS-PLATFORM TYPE DEFINITIONS - - -
 
 /*

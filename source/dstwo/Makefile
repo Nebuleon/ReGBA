@@ -33,7 +33,7 @@ NM           = $(CROSS)nm
 OBJDUMP      = $(CROSS)objdump
 
 # - - - Sources, objects and headers - - -
-C_SRC        = gpsp_main.c ../cpu_common.c ../cpu_asm.c ../video.c            \
+C_SRC        = gpsp_main.c ../cpu_common.c ../cpu_asm.c ../video.c ../sha1.c  \
                gu.c ../memory.c ../sound.c ../input.c gui.c cheats.c ../bios.c\
                draw.c bdf_font.c ../zip.c bitmap.c ds2_main.c charsets.c      \
                ../stats.c guru_meditation.c port.c ds2sound.c
@@ -44,7 +44,7 @@ C_OBJS       = $(C_SRC:.c=.o)
 CPP_OBJS     = $(CPP_SRC:.cpp=.o)
 ASM_OBJS     = $(ASM_SRC:.S=.o)
 OBJS         = $(C_OBJS) $(CPP_OBJS) $(ASM_OBJS) $(START_O)
-HEADERS      = bdf_font.h bitmap.h charsets.h cheats.h                        \
+HEADERS      = bdf_font.h bitmap.h charsets.h cheats.h ../sha1.h              \
                ../common.h ../cpu_common.h ../cpu.h draw.h gpsp_main.h gu.h   \
                gui.h ../input.h ../memory.h message.h ../mips/emit.h          \
                ../sound.h ../stats.h ../video.h ../zip.h port.h ds2sound.h
@@ -80,6 +80,7 @@ include ../Makefile.rules
 release: all
 	-rm -f $(NAME).zip
 	cp ../../game_config.txt $(PLUGIN_DIR)
+	cp ../../bios/gba_bios.bin $(PLUGIN_DIR)
 	-mkdir $(PLUGIN_DIR)/GAMES
 	-mkdir $(PLUGIN_DIR)/CHEATS
 	-mkdir $(PLUGIN_DIR)/SAVES

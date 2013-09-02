@@ -155,6 +155,8 @@ u8 cpu_waitstate_cycles_seq[2][16] =
 
 u32 prescale_table[] = { 0, 6, 8, 10 };
 
+bool IsNintendoBIOS = false;
+
 // GBA memory areas.
 
 u16 palette_ram   [  0x200]; // Palette RAM             (05000000h)      1 KiB
@@ -2455,10 +2457,11 @@ s32 load_game_config(char *gamepak_title, char *gamepak_code, char *gamepak_make
 	idle_loop_targets = 0;
 	idle_loop_target_pc[0] = 0xFFFFFFFF;
 	iwram_stack_optimize = 1;
-	/*
-	bios.rom[0x39] = 0x00; // Removed to make Normmatt's open-source GBA BIOS
-	bios.rom[0x2C] = 0x00; // replacement work. - Neb, 2013-08-21
-	*/
+	if (IsNintendoBIOS)
+	{
+		bios.rom[0x39] = 0x00; // Only Nintendo's BIOS requires this.
+		bios.rom[0x2C] = 0x00; // Normmatt's open-source replacement doesn't.
+	}
 	flash_device_id = FLASH_DEVICE_MACRONIX_64KB;
 	backup_type = BACKUP_NONE;
 
@@ -2550,13 +2553,15 @@ static bool lookup_game_config(char *gamepak_title, char *gamepak_code, char *ga
 					}
 
 					if(!strcasecmp(current_variable, "bios_rom_hack_39") &&
-					   !strcasecmp(current_value, "yes"))
+					   !strcasecmp(current_value, "yes") &&
+					   IsNintendoBIOS)
 					{
 						bios.rom[0x39] = 0xC0;
 					}
 
 					if(!strcasecmp(current_variable, "bios_rom_hack_2C") &&
-					   !strcasecmp(current_value, "yes"))
+					   !strcasecmp(current_value, "yes") &&
+					   IsNintendoBIOS)
 					{
 						bios.rom[0x2C] = 0x02;
 					}
@@ -2726,19 +2731,31 @@ ssize_t load_gamepak(char *file_path)
   return -1;
 }
 
+uint8_t nintendo_bios_sha1[] = {
+	0x30, 0x0c, 0x20, 0xdf, 0x67, 0x31, 0xa3, 0x39, 0x52, 0xde,
+	0xd8, 0xc4, 0x36, 0xf7, 0xf1, 0x86, 0xd2, 0x5d, 0x34, 0x92,
+};
+
 s32 load_bios(char *name)
 {
-  FILE_TAG_TYPE bios_file;
-  FILE_OPEN(bios_file, name, READ);
+	FILE_TAG_TYPE bios_file;
+	FILE_OPEN(bios_file, name, READ);
 
-  if(FILE_CHECK_VALID(bios_file))
-  {
-    FILE_READ(bios_file, bios.rom, 0x4000);
-    FILE_CLOSE(bios_file);
-    return 0;
-  }
+	if(FILE_CHECK_VALID(bios_file))
+	{
+		FILE_READ(bios_file, bios.rom, 0x4000);
+		FILE_CLOSE(bios_file);
 
-  return -1;
+		sha1nfo sha1;
+		sha1_init(&sha1);
+		sha1_write(&sha1, bios.rom, 0x4000);
+		uint8_t* digest = sha1_result(&sha1);
+		IsNintendoBIOS = memcmp(digest, nintendo_bios_sha1, SHA1_HASH_LENGTH) == 0;
+
+		return 0;
+	}
+
+	return -1;
 }
 
 // DMA memory regions can be one of the following:

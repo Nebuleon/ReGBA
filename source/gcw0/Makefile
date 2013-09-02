@@ -10,11 +10,12 @@ SDL_LIBS    := $(shell $(SYSROOT)/usr/bin/sdl-config --libs)
 
 OBJS        := main.o draw.o port.o port-asm.o gcwinput.o ../video.o          \
               ../input.o ../bios.o ../zip.o ../sound.o ../mips/stub.o         \
-              ../stats.o ../memory.o ../cpu_common.o ../cpu_asm.o gcwsound.o
+              ../stats.o ../memory.o ../cpu_common.o ../cpu_asm.o gcwsound.o  \
+              ../sha1.o
               
 HEADERS     := cheats.h ../common.h ../cpu_common.h ../cpu.h draw.h main.h    \
                ../input.h ../memory.h message.h ../mips/emit.h ../sound.h     \
-               ../stats.h ../video.h ../zip.h port.h gcwsound.h
+               ../stats.h ../video.h ../zip.h port.h gcwsound.h ../sha1.h
 
 INCLUDE     := -I. -I.. -I../mips
 DEFS        := -DGAMEPAK_FITS_IN_RAM -DMIPS_XBURST -DMIPS_32R2
@@ -38,6 +39,7 @@ $(TARGET).opk: $(TARGET)
 	$(CMD)rm -rf .opk_data
 	$(CMD)cp -r data .opk_data
 	$(CMD)cp ../../game_config.txt .opk_data
+	$(CMD)cp ../../bios/gba_bios.bin .opk_data
 	$(CMD)cp $< .opk_data/regba
 	$(CMD)$(STRIP) .opk_data/regba
 	$(CMD)mksquashfs .opk_data $@ -all-root -noappend -no-exports -no-xattrs -no-progress >/dev/null
