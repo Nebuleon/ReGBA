@@ -2623,6 +2623,8 @@ static ssize_t load_gamepak_raw(char *name_path)
  */
 ssize_t load_gamepak(char *file_path)
 {
+	u8 magicbit[4];
+	FILE_TAG_TYPE fd;
 	if (IsGameLoaded) {
 		update_backup_force();
 #ifndef GAMEPAK_FITS_IN_RAM
@@ -2635,25 +2637,41 @@ ssize_t load_gamepak(char *file_path)
 		IsGameLoaded = false;
 	}
 
-  char *dot_position = strrchr(file_path, '.');
   ssize_t file_size;
 
-  if(dot_position && strcasecmp(dot_position, ".zip") == 0)
-  {
-    file_size = load_file_zip(file_path);
-    if(file_size == -2)
-    {
-      char extracted_file[MAX_FILE];
-      sprintf(extracted_file, "%s/%s", main_path, ZIP_TMP);
-	  // load_gamepak_raw will not set CurrentGamePath.
-	  // Calling load_gamepak again would make it ZIPTMP.GBA...
-      file_size = load_gamepak_raw(extracted_file);
-    }
-  }
-  else
-  {
-    file_size = load_gamepak_raw(file_path);
-  }
+	FILE_OPEN(fd, file_path, READ);
+	if (fd)
+	{
+		FILE_READ(fd, &magicbit, 4);
+		FILE_CLOSE(fd);
+
+		if ((magicbit[0] == 0x50) && (magicbit[1] == 0x4B) && (magicbit[2] == 0x03) && (magicbit[3] == 0x04))
+		{
+			file_size = load_file_zip(file_path);
+#ifndef GAMEPAK_FITS_IN_RAM
+			if(file_size == -2)
+			{
+				char extracted_file[MAX_FILE];
+				sprintf(extracted_file, "%s/%s", main_path, ZIP_TMP);
+				file_size = load_gamepak_raw(extracted_file);
+			}
+#endif
+		}
+		else if (magicbit[3] == 0xEA)
+		{
+			file_size = load_gamepak_raw(file_path);
+		}
+		else
+		{
+			ReGBA_Trace("E: Unsupported file type; first 4 bytes are <%02X %02X %02X %02X>\n", magicbit[0], magicbit[1], magicbit[2], magicbit[3]);
+			return -1;
+		}
+	}
+	else
+	{
+		ReGBA_Trace("E: Failed to open %s\n", file_path);
+		return -1;
+	}
 
   if(file_size != -1)
   {

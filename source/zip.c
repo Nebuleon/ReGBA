@@ -97,11 +97,11 @@ ssize_t load_file_zip(char *filename)
     // EDIT: Check if this is a zip file without worrying about endian
     // It checks for the following: 0x50 0x4B 0x03 0x04 (PK..)
     // Used to be: if(data.Sig != 0x04034b50) break;
-	if( data.Sig[0] != 0x50 || data.Sig[1] != 0x4B ||
+	/* if( data.Sig[0] != 0x50 || data.Sig[1] != 0x4B ||
 		data.Sig[2] != 0x03 || data.Sig[3] != 0x04 )
 	{
 		goto outcode;
-	}
+	} */ // Zip header check now done in memory.c
 
     FILE_READ(fd, tmp, data.FilenameLength);
     tmp[data.FilenameLength] = 0; // end string
