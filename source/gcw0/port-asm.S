@@ -42,45 +42,49 @@ ReGBA_MakeCodeVisible:
   nop                     # cannot delay usefully here
 #else
   # Issue the cacheflush kernel call. Preserve registers first.
-  addiu $sp, $sp, -60
-  sw    $3, 0($sp)
-  sw    $7, 4($sp)
-  sw    $8, 8($sp)
-  sw    $9, 12($sp)
-  sw    $10, 16($sp)
-  sw    $11, 20($sp)
-  sw    $12, 24($sp)
-  sw    $13, 28($sp)
-  sw    $14, 32($sp)
-  sw    $15, 36($sp)
-  sw    $24, 40($sp)
-  sw    $25, 44($sp)
-  sw    $18, 48($sp)
-  sw    $28, 52($sp)
-  sw    $30, 56($sp)
+  addiu $sp, $sp, -68
+  sw    $ra, 0($sp)
+  sw    $3, 4($sp)
+  sw    $6, 8($sp)                # preserve the GBA PC register
+  sw    $7, 12($sp)
+  sw    $8, 16($sp)
+  sw    $9, 20($sp)
+  sw    $10, 24($sp)
+  sw    $11, 28($sp)
+  sw    $12, 32($sp)
+  sw    $13, 36($sp)
+  sw    $14, 40($sp)
+  sw    $15, 44($sp)
+  sw    $24, 48($sp)
+  sw    $25, 52($sp)
+  sw    $18, 56($sp)
+  sw    $28, 60($sp)
+  sw    $30, 64($sp)
 
   # Pass $4 and $5 through to the call.
   jal   cacheflush
   ori   $6, $0, 3                 # parameter #3: BCACHE (1|2) (branch delay)
 
-  lw    $3, 0($sp)
-  lw    $7, 4($sp)
-  lw    $8, 8($sp)
-  lw    $9, 12($sp)
-  lw    $10, 16($sp)
-  lw    $11, 20($sp)
-  lw    $12, 24($sp)
-  lw    $13, 28($sp)
-  lw    $14, 32($sp)
-  lw    $15, 36($sp)
-  lw    $24, 40($sp)
-  lw    $25, 44($sp)
-  lw    $18, 48($sp)
-  lw    $28, 52($sp)
-  lw    $30, 56($sp)
+  lw    $ra, 0($sp)               # restore the return address first, because
+  lw    $3, 4($sp)                # restoring it last woule cause an interlock
+  lw    $6, 8($sp)                # $6 = GBA PC, also restore this early
+  lw    $7, 12($sp)
+  lw    $8, 16($sp)
+  lw    $9, 20($sp)
+  lw    $10, 24($sp)
+  lw    $11, 28($sp)
+  lw    $12, 32($sp)
+  lw    $13, 36($sp)
+  lw    $14, 40($sp)
+  lw    $15, 44($sp)
+  lw    $24, 48($sp)
+  lw    $25, 52($sp)
+  lw    $18, 56($sp)
+  lw    $28, 60($sp)
+  lw    $30, 64($sp)
 
   jr    $ra                       # return to the caller
-  addiu $sp, $sp, 60              # adjust the stack back (branch delay)
+  addiu $sp, $sp, 68              # adjust the stack back (branch delay)
 #endif
 
 .end ReGBA_MakeCodeVisible
