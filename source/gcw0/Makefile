@@ -18,7 +18,12 @@ HEADERS     := cheats.h ../common.h ../cpu_common.h ../cpu.h draw.h main.h    \
                ../stats.h ../video.h ../zip.h port.h gcwsound.h ../sha1.h
 
 INCLUDE     := -I. -I.. -I../mips
-DEFS        := -DMIPS_XBURST -DMIPS_32R2
+DEFS        := -DMIPS_XBURST
+HAS_MIPS32R2 := $(shell echo | $(CC) -dM -E - |grep _MIPS_ARCH_MIPS32R2)
+ifneq ($(HAS_MIPS32R2),)
+	DEFS += -DMIPS_32R2
+endif
+
 CFLAGS       = $(SDL_CFLAGS) -mno-abicalls -Wall -Wno-unused-variable \
                -O2 -fomit-frame-pointer $(DEFS) $(INCLUDE)
 ASFLAGS      = $(CFLAGS) -D__ASSEMBLY__
