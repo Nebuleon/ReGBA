@@ -103,6 +103,11 @@ static void UpdateGCWZeroButtons()
 				break;
 		}
 	}
+
+	// Before a menu gets implemented, X+Y held together are equivalent to an
+	// exit command.
+	if ((LastButtons & (GCW_ZERO_BUTTON_X | GCW_ZERO_BUTTON_Y)) == (GCW_ZERO_BUTTON_X | GCW_ZERO_BUTTON_Y))
+		quit();
 }
 
 enum ReGBA_Buttons ReGBA_GetPressedButtons()
