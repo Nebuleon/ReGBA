@@ -88,7 +88,7 @@ release: all
 	zip -r $(NAME).zip $(PLUGIN_DIR) $(OUTPUT_DIR)
 	zip -j -r $(NAME).zip ../../doc ../../README.md
 
-$(OUTPUT_DIR)/$(NAME).plg: $(TARGET)
+$(OUTPUT_DIR)/$(NAME).plg: $(NAME).dat
 	$(DS2SDKPATH)/tools/makeplug $< $@
 
 # $< is the source (OUTPUT.elf); $@ is the target (OUTPUT.dat)
