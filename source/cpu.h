@@ -194,9 +194,6 @@ extern u32 in_interrupt;
 #define ROM_BRANCH_HASH_SIZE 65536 /* Must be a power of 2, 2 <= n <= 65536 */
 #define WRITABLE_HASH_SIZE 65536 /* Must be a power of 2, 2 <= n <= 65536 */
 
-extern u32 *rom_branch_hash[ROM_BRANCH_HASH_SIZE];
-extern void* writable_checksum_hash[WRITABLE_HASH_SIZE];
-
 void partial_clear_metadata(u32 address);
 void flush_translation_cache(TRANSLATION_REGION_TYPE translation_region,
   CACHE_FLUSH_REASON_TYPE flush_reason);

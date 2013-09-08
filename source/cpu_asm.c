@@ -71,6 +71,12 @@ u32 output_field = 0;
 
 u32 last_instruction = 0;
 
+struct ReuseHeader {
+	struct ReuseHeader* Next;
+	uint32_t PC;
+	uint32_t GBACodeSize;
+};
+
 /* These represent code caches. */
 __attribute__((aligned(CODE_ALIGN_SIZE)))
   u8 readonly_code_cache[READONLY_CODE_CACHE_SIZE];
@@ -82,7 +88,7 @@ u8* writable_next_code = writable_code_cache;
 
 /* These represent Metadata Areas. */
 u32 *rom_branch_hash[ROM_BRANCH_HASH_SIZE];
-void* writable_checksum_hash[WRITABLE_HASH_SIZE];
+struct ReuseHeader* writable_checksum_hash[WRITABLE_HASH_SIZE];
 
 u8 *iwram_block_ptrs[MAX_TAG_IWRAM + 1];
 u32 iwram_block_tag_top = MIN_TAG;
@@ -132,12 +138,6 @@ typedef struct
   u32 branch_target;
   u8 *branch_source;
 } block_exit_type;
-
-struct ReuseHeader {
-	u32 PC;
-	struct ReuseHeader* Next;
-	u32 GBACodeSize;
-};
 
 #define arm_decode_data_proc_reg()                                            \
   u32 rn = (opcode >> 16) & 0x0F;                                             \
@@ -2939,71 +2939,11 @@ opcode_data_type opcodes;
 
 #define unconditional_branch_write_thumb_no()                                 \
 
-/*
- * Inserts Value into a sorted Array of unique values (or doesn't), of
- * size Size.
- * If Value was already present, then the old size is returned, and no
- * insertions are made. Otherwise, Value is inserted into Array at the
- * proper position to maintain its total order, and Size + 1 is returned.
- */
-static u32 InsertUniqueSorted(u32* Array, u32 Value, u32 Size)
-{
-	// Gather the insertion index with a binary search.
-	s32 Min = 0, Max = Size - 1;
-	while (Min < Max) {
-		s32 Mid = Min + (Max - Min) / 2;
-		if (Array[Mid] < Value)
-			Min = Mid + 1;
-		else
-			Max = Mid;
-	}
-
-	// Insert at Min.
-	// Min == Size means we just insert at the end...
-	if (Min == Size) {
-		Array[Size] = Value;
-		return Size + 1;
-	}
-	// ... otherwise it's either already in the array...
-	else if (Array[Min] == Value) {
-		return Size;
-	}
-	// ... or we need to move things.
-	else {
-		memmove(&Array[Min + 1], &Array[Min], Size - Min);
-		Array[Min] = Value;
-		return Size + 1;
-	}
-}
-
-/*
- * Searches for the given Value in the given sorted Array of size Size.
- * If found, the index in the Array of the first element having the given
- * Value is returned.
- * Otherwise, -1 is returned.
- */
-static s32 BinarySearch(u32* Array, u32 Value, u32 Size)
-{
-	s32 Min = 0, Max = Size - 1;
-	while (Min < Max) {
-		s32 Mid = Min + (Max - Min) / 2;
-		if (Array[Mid] < Value)
-			Min = Mid + 1;
-		else
-			Max = Mid;
-	}
-
-	if (Min == Max && Array[Min] == Value)
-		return Min;
-	else
-		return -1;
-}
-
 #define scan_block(type, smc_write_op)                                        \
 {                                                                             \
   u8 continue_block = 1;                                                      \
-  u32 branch_targets_sorted[MAX_EXITS];                                       \
-  u32 sorted_branch_count = 0;                                                \
+  u8 branch_target_bitmap[MAX_BLOCK_SIZE];                                    \
+  memset(branch_target_bitmap, 0, sizeof(branch_target_bitmap));              \
   /* Find the end of the block */                                             \
 /*printf("str: %08x\n", block_start_pc);*/\
   do                                                                          \
@@ -3022,11 +2962,15 @@ static s32 BinarySearch(u32* Array, u32 Value, u32 Size)
         __label__ no_direct_branch;                                           \
         type##_branch_target();                                               \
         block_exits[block_exit_position].branch_target = branch_target;       \
-        if (translation_region == TRANSLATION_REGION_READONLY)                \
-          /* If we're in RAM, exit at the first unconditional branch, no      \
-           * questions asked */                                               \
-          sorted_branch_count = InsertUniqueSorted(branch_targets_sorted,     \
-            branch_target, sorted_branch_count);                              \
+        if (branch_target >= block_start_pc &&                                \
+            branch_target <  block_start_pc +                                 \
+             MAX_BLOCK_SIZE * type##_instruction_width)                       \
+        {                                                                     \
+          branch_target_bitmap[(branch_target - block_start_pc) /             \
+           type##_instruction_width] = 1;                                     \
+          block_data.type[(branch_target - block_start_pc) /                  \
+           type##_instruction_width].update_cycles = 1;                       \
+        }                                                                     \
         block_exit_position++;                                                \
                                                                               \
         /* Give the branch target macro somewhere to bail if it turns out to  \
@@ -3039,11 +2983,6 @@ static s32 BinarySearch(u32* Array, u32 Value, u32 Size)
       if(type##_opcode_swi)                                                   \
       {                                                                       \
         block_exits[block_exit_position].branch_target = 0x00000008;          \
-        if (translation_region == TRANSLATION_REGION_READONLY)                \
-          /* If we're in RAM, exit at the first unconditional branch, no      \
-           * questions asked */                                               \
-          sorted_branch_count = InsertUniqueSorted(branch_targets_sorted,     \
-            0x00000008, sorted_branch_count); /* could already be in */       \
         block_exit_position++;                                                \
       }                                                                       \
                                                                               \
@@ -3053,15 +2992,13 @@ static s32 BinarySearch(u32* Array, u32 Value, u32 Size)
       if(type##_opcode_unconditional_branch)                                  \
       {                                                                       \
         /* Check to see if any prior block exits branch after here,           \
-         * if so don't end the block. For efficiency, but to also keep the    \
-         * correct order of the scanned branches for code emission, this is   \
-         * using a separate sorted array with unique branch_targets.          \
+         * if so don't end the block.                                         \
          * If we're in RAM, exit at the first unconditional branch, no        \
          * questions asked. We can do that, since unconditional branches that \
          * go outside the current block are made indirect. */                 \
         if (translation_region == TRANSLATION_REGION_WRITABLE                 \
-         || BinarySearch(branch_targets_sorted, block_end_pc,                 \
-          sorted_branch_count) == -1)                                         \
+         || branch_target_bitmap[(block_end_pc - block_start_pc) /            \
+           type##_instruction_width] == 0)                                    \
         {                                                                     \
           continue_block = 0;                                                 \
           unconditional_branch_write_##type##_##smc_write_op();               \
@@ -3078,7 +3015,8 @@ static s32 BinarySearch(u32* Array, u32 Value, u32 Size)
     {                                                                         \
       type##_set_condition(condition);                                        \
     }                                                                         \
-    block_data.type[block_data_position].update_cycles = 0;                   \
+    if (branch_target_bitmap[block_data_position] == 0)                       \
+      block_data.type[block_data_position].update_cycles = 0;                 \
     block_data_position++;                                                    \
                                                                               \
     if((block_data_position == MAX_BLOCK_SIZE) ||                             \
@@ -3235,7 +3173,7 @@ u8* translate_block_##type(u32 pc)                                            \
     u16 checksum = block_checksum_##type(block_data_position);                \
                                                                               \
     /* Where can we modify the address of the current header for linking? */  \
-    struct ReuseHeader** HeaderAddr = (struct ReuseHeader **)                 \
+    struct ReuseHeader** HeaderAddr =                                         \
      &writable_checksum_hash[checksum & (WRITABLE_HASH_SIZE - 1)];            \
     /* Where is the current header? */                                        \
     struct ReuseHeader* Header = *HeaderAddr;                                 \
@@ -3319,18 +3257,6 @@ u8* translate_block_##type(u32 pc)                                            \
   }                                                                           \
                                                                               \
   generate_block_prologue();                                                  \
-                                                                              \
-  for(i = 0; i < block_exit_position; i++)                                    \
-  {                                                                           \
-    branch_target = block_exits[i].branch_target;                             \
-                                                                              \
-    if((branch_target > block_start_pc) &&                                    \
-     (branch_target < block_end_pc))                                          \
-    {                                                                         \
-      block_data.type[(branch_target - block_start_pc) /                      \
-       type##_instruction_width].update_cycles = 1;                           \
-    }                                                                         \
-  }                                                                           \
                                                                               \
   /* Dead flag elimination is a sort of second pass. It works on the          \
    * instructions in reverse, skipping processing to calculate the status of  \
