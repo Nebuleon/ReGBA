@@ -2766,18 +2766,28 @@ dma_region_type dma_region_map[16] =
   DMA_REGION_EXT            // 0x0F - gamepak SRAM/flash ROM
 };
 
-#define dma_adjust_ptr_inc(ptr, size)                                         \
-  ptr += (size / 8)                                                           \
+static void dma_adjust_ptr_inc(uint32_t* GBAAddress, uint_fast8_t TransferBytes)
+{
+	*GBAAddress += TransferBytes;
+}
 
-#define dma_adjust_ptr_dec(ptr, size)                                         \
-  ptr -= (size / 8)                                                           \
+static void dma_adjust_ptr_dec(uint32_t* GBAAddress, uint_fast8_t TransferBytes)
+{
+	*GBAAddress -= TransferBytes;
+}
 
-#define dma_adjust_ptr_fix(ptr, size)                                         \
+static void dma_adjust_ptr_fix(uint32_t* GBAAddress, uint_fast8_t TransferBytes)
+{
+}
 
-#define dma_adjust_ptr_writeback()                                            \
-  dma->dest_address = dest_ptr                                                \
+static void dma_adjust_reg_writeback(DMA_TRANSFER_TYPE* DMA, uint32_t GBAAddress)
+{
+	DMA->dest_address = GBAAddress;
+}
 
-#define dma_adjust_ptr_reload()                                               \
+static void dma_adjust_reg_reload(DMA_TRANSFER_TYPE* DMA, uint32_t GBAAddress)
+{
+}
 
 #define dma_smc_vars_src()                                                    \
 
@@ -2815,7 +2825,7 @@ dma_region_type dma_region_map[16] =
   if(type##_address_block == NULL)                                            \
   {                                                                           \
     if((type##_ptr & 0x1FFFFFF) >= gamepak_size)                              \
-      break;                                                                  \
+      return return_value;                                                    \
     type##_address_block = load_gamepak_page(type##_current_region & 0x3FF);  \
   }                                                                           \
 
@@ -2961,10 +2971,29 @@ dma_region_type dma_region_map[16] =
 
 #define print_line()                                                          \
   dma_print(src_op, dest_op, transfer_size, wb)                               \
-
+  
 #define dma_transfer_loop_region(src_region_type, dest_region_type, src_op,   \
  dest_op, transfer_size, wb)                                                  \
+dma_transfer_##src_region_type##_##dest_region_type##_##transfer_size(        \
+  dma, src_ptr, dest_ptr, length, src_op, dest_op, wb);                       \
+break;                                                                        \
+
+#define dma_transfer_loop_region_builder(src_region_type, dest_region_type,   \
+ transfer_size)                                                               \
+static CPU_ALERT_TYPE dma_transfer_##src_region_type##_##dest_region_type##_##transfer_size \
+(                                                                             \
+  DMA_TRANSFER_TYPE* dma,                                                     \
+  uint32_t src_ptr,                                                           \
+  uint32_t dest_ptr,                                                          \
+  uint32_t length,                                                            \
+  void (*src_op) (uint32_t*, uint_fast8_t),                                   \
+  void (*dest_op) (uint32_t*, uint_fast8_t),                                  \
+  void (*writeback_op) (DMA_TRANSFER_TYPE*, uint32_t)                         \
+)                                                                             \
 {                                                                             \
+  uint_fast##transfer_size##_t read_value;                                    \
+  uint32_t i;                                                                 \
+  CPU_ALERT_TYPE return_value = CPU_ALERT_NONE;                               \
   dma_vars_##src_region_type(src);                                            \
   dma_vars_##dest_region_type(dest);                                          \
                                                                               \
@@ -2972,14 +3001,154 @@ dma_region_type dma_region_map[16] =
   {                                                                           \
     dma_read_##src_region_type(src, transfer_size);                           \
     dma_write_##dest_region_type(dest, transfer_size);                        \
-    dma_adjust_ptr_##src_op(src_ptr, transfer_size);                          \
-    dma_adjust_ptr_##dest_op(dest_ptr, transfer_size);                        \
+    src_op(&src_ptr, transfer_size / 8);                                      \
+    dest_op(&dest_ptr, transfer_size / 8);                                    \
   }                                                                           \
   dma->source_address = src_ptr;                                              \
-  dma_adjust_ptr_##wb();                                                      \
+  writeback_op(dma, dest_ptr);                                                \
   dma_epilogue_##dest_region_type();                                          \
+  return return_value;                                                        \
 }                                                                             \
-break;                                                                        \
+
+// To IWRAM
+dma_transfer_loop_region_builder(bios, iwram, 16);
+dma_transfer_loop_region_builder(bios, iwram, 32);
+dma_transfer_loop_region_builder(iwram, iwram, 16);
+dma_transfer_loop_region_builder(iwram, iwram, 32);
+dma_transfer_loop_region_builder(ewram, iwram, 16);
+dma_transfer_loop_region_builder(ewram, iwram, 32);
+dma_transfer_loop_region_builder(vram, iwram, 16);
+dma_transfer_loop_region_builder(vram, iwram, 32);
+dma_transfer_loop_region_builder(palette_ram, iwram, 16);
+dma_transfer_loop_region_builder(palette_ram, iwram, 32);
+dma_transfer_loop_region_builder(oam_ram, iwram, 16);
+dma_transfer_loop_region_builder(oam_ram, iwram, 32);
+dma_transfer_loop_region_builder(io, iwram, 16);
+dma_transfer_loop_region_builder(io, iwram, 32);
+dma_transfer_loop_region_builder(gamepak, iwram, 16);
+dma_transfer_loop_region_builder(gamepak, iwram, 32);
+dma_transfer_loop_region_builder(ext, iwram, 16);
+dma_transfer_loop_region_builder(ext, iwram, 32);
+
+// To EWRAM
+dma_transfer_loop_region_builder(bios, ewram, 16);
+dma_transfer_loop_region_builder(bios, ewram, 32);
+dma_transfer_loop_region_builder(iwram, ewram, 16);
+dma_transfer_loop_region_builder(iwram, ewram, 32);
+dma_transfer_loop_region_builder(ewram, ewram, 16);
+dma_transfer_loop_region_builder(ewram, ewram, 32);
+dma_transfer_loop_region_builder(vram, ewram, 16);
+dma_transfer_loop_region_builder(vram, ewram, 32);
+dma_transfer_loop_region_builder(palette_ram, ewram, 16);
+dma_transfer_loop_region_builder(palette_ram, ewram, 32);
+dma_transfer_loop_region_builder(oam_ram, ewram, 16);
+dma_transfer_loop_region_builder(oam_ram, ewram, 32);
+dma_transfer_loop_region_builder(io, ewram, 16);
+dma_transfer_loop_region_builder(io, ewram, 32);
+dma_transfer_loop_region_builder(gamepak, ewram, 16);
+dma_transfer_loop_region_builder(gamepak, ewram, 32);
+dma_transfer_loop_region_builder(ext, ewram, 16);
+dma_transfer_loop_region_builder(ext, ewram, 32);
+
+// To VRAM
+dma_transfer_loop_region_builder(bios, vram, 16);
+dma_transfer_loop_region_builder(bios, vram, 32);
+dma_transfer_loop_region_builder(iwram, vram, 16);
+dma_transfer_loop_region_builder(iwram, vram, 32);
+dma_transfer_loop_region_builder(ewram, vram, 16);
+dma_transfer_loop_region_builder(ewram, vram, 32);
+dma_transfer_loop_region_builder(vram, vram, 16);
+dma_transfer_loop_region_builder(vram, vram, 32);
+dma_transfer_loop_region_builder(palette_ram, vram, 16);
+dma_transfer_loop_region_builder(palette_ram, vram, 32);
+dma_transfer_loop_region_builder(oam_ram, vram, 16);
+dma_transfer_loop_region_builder(oam_ram, vram, 32);
+dma_transfer_loop_region_builder(io, vram, 16);
+dma_transfer_loop_region_builder(io, vram, 32);
+dma_transfer_loop_region_builder(gamepak, vram, 16);
+dma_transfer_loop_region_builder(gamepak, vram, 32);
+dma_transfer_loop_region_builder(ext, vram, 16);
+dma_transfer_loop_region_builder(ext, vram, 32);
+
+// To Palette RAM
+dma_transfer_loop_region_builder(bios, palette_ram, 16);
+dma_transfer_loop_region_builder(bios, palette_ram, 32);
+dma_transfer_loop_region_builder(iwram, palette_ram, 16);
+dma_transfer_loop_region_builder(iwram, palette_ram, 32);
+dma_transfer_loop_region_builder(ewram, palette_ram, 16);
+dma_transfer_loop_region_builder(ewram, palette_ram, 32);
+dma_transfer_loop_region_builder(vram, palette_ram, 16);
+dma_transfer_loop_region_builder(vram, palette_ram, 32);
+dma_transfer_loop_region_builder(palette_ram, palette_ram, 16);
+dma_transfer_loop_region_builder(palette_ram, palette_ram, 32);
+dma_transfer_loop_region_builder(oam_ram, palette_ram, 16);
+dma_transfer_loop_region_builder(oam_ram, palette_ram, 32);
+dma_transfer_loop_region_builder(io, palette_ram, 16);
+dma_transfer_loop_region_builder(io, palette_ram, 32);
+dma_transfer_loop_region_builder(gamepak, palette_ram, 16);
+dma_transfer_loop_region_builder(gamepak, palette_ram, 32);
+dma_transfer_loop_region_builder(ext, palette_ram, 16);
+dma_transfer_loop_region_builder(ext, palette_ram, 32);
+
+// To OAM RAM
+dma_transfer_loop_region_builder(bios, oam_ram, 16);
+dma_transfer_loop_region_builder(bios, oam_ram, 32);
+dma_transfer_loop_region_builder(iwram, oam_ram, 16);
+dma_transfer_loop_region_builder(iwram, oam_ram, 32);
+dma_transfer_loop_region_builder(ewram, oam_ram, 16);
+dma_transfer_loop_region_builder(ewram, oam_ram, 32);
+dma_transfer_loop_region_builder(vram, oam_ram, 16);
+dma_transfer_loop_region_builder(vram, oam_ram, 32);
+dma_transfer_loop_region_builder(palette_ram, oam_ram, 16);
+dma_transfer_loop_region_builder(palette_ram, oam_ram, 32);
+dma_transfer_loop_region_builder(oam_ram, oam_ram, 16);
+dma_transfer_loop_region_builder(oam_ram, oam_ram, 32);
+dma_transfer_loop_region_builder(io, oam_ram, 16);
+dma_transfer_loop_region_builder(io, oam_ram, 32);
+dma_transfer_loop_region_builder(gamepak, oam_ram, 16);
+dma_transfer_loop_region_builder(gamepak, oam_ram, 32);
+dma_transfer_loop_region_builder(ext, oam_ram, 16);
+dma_transfer_loop_region_builder(ext, oam_ram, 32);
+
+// To I/O RAM
+dma_transfer_loop_region_builder(bios, io, 16);
+dma_transfer_loop_region_builder(bios, io, 32);
+dma_transfer_loop_region_builder(iwram, io, 16);
+dma_transfer_loop_region_builder(iwram, io, 32);
+dma_transfer_loop_region_builder(ewram, io, 16);
+dma_transfer_loop_region_builder(ewram, io, 32);
+dma_transfer_loop_region_builder(vram, io, 16);
+dma_transfer_loop_region_builder(vram, io, 32);
+dma_transfer_loop_region_builder(palette_ram, io, 16);
+dma_transfer_loop_region_builder(palette_ram, io, 32);
+dma_transfer_loop_region_builder(oam_ram, io, 16);
+dma_transfer_loop_region_builder(oam_ram, io, 32);
+dma_transfer_loop_region_builder(io, io, 16);
+dma_transfer_loop_region_builder(io, io, 32);
+dma_transfer_loop_region_builder(gamepak, io, 16);
+dma_transfer_loop_region_builder(gamepak, io, 32);
+dma_transfer_loop_region_builder(ext, io, 16);
+dma_transfer_loop_region_builder(ext, io, 32);
+
+// To extended RAM
+dma_transfer_loop_region_builder(bios, ext, 16);
+dma_transfer_loop_region_builder(bios, ext, 32);
+dma_transfer_loop_region_builder(iwram, ext, 16);
+dma_transfer_loop_region_builder(iwram, ext, 32);
+dma_transfer_loop_region_builder(ewram, ext, 16);
+dma_transfer_loop_region_builder(ewram, ext, 32);
+dma_transfer_loop_region_builder(vram, ext, 16);
+dma_transfer_loop_region_builder(vram, ext, 32);
+dma_transfer_loop_region_builder(palette_ram, ext, 16);
+dma_transfer_loop_region_builder(palette_ram, ext, 32);
+dma_transfer_loop_region_builder(oam_ram, ext, 16);
+dma_transfer_loop_region_builder(oam_ram, ext, 32);
+dma_transfer_loop_region_builder(io, ext, 16);
+dma_transfer_loop_region_builder(io, ext, 32);
+dma_transfer_loop_region_builder(gamepak, ext, 16);
+dma_transfer_loop_region_builder(gamepak, ext, 32);
+dma_transfer_loop_region_builder(ext, ext, 16);
+dma_transfer_loop_region_builder(ext, ext, 32);
 
 #define dma_transfer_loop(src_op, dest_op, transfer_size, wb)                 \
 {                                                                             \
@@ -3243,59 +3412,49 @@ break;                                                                        \
        transfer_size, wb);                                                    \
   }                                                                           \
 }                                                                             \
-break;                                                                        \
 
 
 #define dma_transfer_expand(transfer_size)                                    \
-  switch((dma->dest_direction << 2) | dma->source_direction)                  \
+  if (dma->source_direction != 3)                                             \
   {                                                                           \
-    case 0x00:                                                                \
-      dma_transfer_loop(inc, inc, transfer_size, writeback);                  \
+    void (*src_op) (uint32_t*, uint_fast8_t);                                 \
+    void (*dest_op) (uint32_t*, uint_fast8_t);                                \
+    void (*writeback_op) (DMA_TRANSFER_TYPE*, uint32_t);                      \
+    switch (dma->dest_direction)                                              \
+    {                                                                         \
+      case 0:                                                                 \
+        dest_op = dma_adjust_ptr_inc;                                         \
+        writeback_op = dma_adjust_reg_writeback;                              \
+        break;                                                                \
                                                                               \
-    case 0x01:                                                                \
-      dma_transfer_loop(dec, inc, transfer_size, writeback);                  \
+      case 1:                                                                 \
+        dest_op = dma_adjust_ptr_dec;                                         \
+        writeback_op = dma_adjust_reg_writeback;                              \
+        break;                                                                \
                                                                               \
-    case 0x02:                                                                \
-      dma_transfer_loop(fix, inc, transfer_size, writeback);                  \
+      case 2:                                                                 \
+        dest_op = dma_adjust_ptr_fix;                                         \
+        writeback_op = dma_adjust_reg_writeback;                              \
+        break;                                                                \
                                                                               \
-    case 0x03:                                                                \
-      break;                                                                  \
+      case 3:                                                                 \
+        dest_op = dma_adjust_ptr_inc;                                         \
+        writeback_op = dma_adjust_reg_reload;                                 \
+        break;                                                                \
                                                                               \
-    case 0x04:                                                                \
-      dma_transfer_loop(inc, dec, transfer_size, writeback);                  \
-                                                                              \
-    case 0x05:                                                                \
-      dma_transfer_loop(dec, dec, transfer_size, writeback);                  \
-                                                                              \
-    case 0x06:                                                                \
-      dma_transfer_loop(fix, dec, transfer_size, writeback);                  \
-                                                                              \
-    case 0x07:                                                                \
-      break;                                                                  \
-                                                                              \
-    case 0x08:                                                                \
-      dma_transfer_loop(inc, fix, transfer_size, writeback);                  \
-                                                                              \
-    case 0x09:                                                                \
-      dma_transfer_loop(dec, fix, transfer_size, writeback);                  \
-                                                                              \
-    case 0x0A:                                                                \
-      dma_transfer_loop(fix, fix, transfer_size, writeback);                  \
-                                                                              \
-    case 0x0B:                                                                \
-      break;                                                                  \
-                                                                              \
-    case 0x0C:                                                                \
-      dma_transfer_loop(inc, inc, transfer_size, reload);                     \
-                                                                              \
-    case 0x0D:                                                                \
-      dma_transfer_loop(dec, inc, transfer_size, reload);                     \
-                                                                              \
-    case 0x0E:                                                                \
-      dma_transfer_loop(fix, inc, transfer_size, reload);                     \
-                                                                              \
-    case 0x0F:                                                                \
-      break;                                                                  \
+      default: /* To satisfy the compiler */                                  \
+        dest_op = NULL;                                                       \
+        writeback_op = NULL;                                                  \
+        break;                                                                \
+    }                                                                         \
+    switch (dma->source_direction)                                            \
+    {                                                                         \
+      case 0:  src_op = dma_adjust_ptr_inc;  break;                           \
+      case 1:  src_op = dma_adjust_ptr_dec;  break;                           \
+      case 2:  src_op = dma_adjust_ptr_fix;  break;                           \
+      default: src_op = NULL; /* compiler */ break;                           \
+    }                                                                         \
+    dma_transfer_loop(src_op, dest_op, transfer_size, writeback_op);          \
   }                                                                           \
 
 CPU_ALERT_TYPE dma_transfer(DMA_TRANSFER_TYPE *dma)
