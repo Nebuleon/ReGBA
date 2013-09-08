@@ -1,6 +1,8 @@
 #ifndef __SHA1_H__
 #define __SHA1_H__
 
+#include <stdint.h>
+
 #define SHA1_HASH_LENGTH 20
 #define SHA1_BLOCK_LENGTH 64
 
@@ -35,11 +37,16 @@ void sha1_write(sha1nfo *s, const uint8_t *data, size_t len);
 /**
  */
 uint8_t* sha1_result(sha1nfo *s);
+
+#ifdef SHA1_USE_HMAC
+
 /**
  */
 void sha1_initHmac(sha1nfo *s, const uint8_t* key, int keyLength);
 /**
  */
 uint8_t* sha1_resultHmac(sha1nfo *s);
+
+#endif
 
 #endif // !defined __SHA1_H__

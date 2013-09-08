@@ -3,7 +3,6 @@
  */
 // gcc -Wall -DSHA1TEST -o sha1test sha1.c && ./sha1test
 
-#include <stdint.h>
 #include <string.h>
 #include "sha1.h"
 
@@ -123,6 +122,12 @@ uint8_t* sha1_result(sha1nfo *s) {
   return s->state.b;
 }
 
+#if defined SHA1TEST && !defined SHA1_USE_HMAC
+#  define SHA1_USE_HMAC
+#endif
+
+#ifdef SHA1_USE_HMAC
+
 #define HMAC_IPAD 0x36
 #define HMAC_OPAD 0x5c
 
@@ -156,9 +161,11 @@ uint8_t* sha1_resultHmac(sha1nfo *s) {
   return sha1_result(s);
 }
 
+#endif
+
 /* self-test */
 
-#if SHA1TEST
+#ifdef SHA1TEST
 #include <stdio.h>
 
 uint8_t hmacKey1[]={
