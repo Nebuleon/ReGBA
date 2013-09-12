@@ -30,7 +30,7 @@ volatile uint_fast8_t VideoFastForwarded;
 SDL_Surface *GBAScreenSurface = NULL;
 SDL_Surface *OutputSurface = NULL;
 
-const u32 video_scale = 1;
+video_scale_type ScaleMode = fullscreen;
 
 void init_video()
 {
@@ -293,6 +293,17 @@ void ReGBA_RenderScreen(void)
 	else
 		FastForwardValue = 0;
 
+	int16_t Y = GetVerticalAxisValue();
+
+	if (Y < -32700)
+		ScaleMode = fullscreen;
+	else if (Y > 32700)
+	{
+		ScaleMode = unscaled;
+		// Clear the output surface to remove border artifacts.
+		memset(OutputSurface->pixels, 0, GCW0_SCREEN_WIDTH * GCW0_SCREEN_HEIGHT * sizeof(uint16_t));
+	}
+
 	FastForwardControl += FastForwardValue;
 	if (FastForwardControl >= 60)
 	{
@@ -301,17 +312,21 @@ void ReGBA_RenderScreen(void)
 	}
 	else
 	{
-		/* Unscaled
-		SDL_Rect rect = {
-			(GCW0_SCREEN_WIDTH - GBA_SCREEN_WIDTH) / 2,
-			(GCW0_SCREEN_HEIGHT - GBA_SCREEN_HEIGHT) / 2,
-			GBA_SCREEN_WIDTH,
-			GBA_SCREEN_HEIGHT
-		};
-		SDL_BlitSurface(GBAScreenSurface, NULL, OutputSurface, &rect);
-		*/
-		uint32_t *src = (uint32_t *) GBAScreen;
-		gba_upscale((uint32_t*) OutputSurface->pixels, src, GBA_SCREEN_WIDTH, GBA_SCREEN_HEIGHT);
+		if (ScaleMode == unscaled)
+		{
+			SDL_Rect rect = {
+				(GCW0_SCREEN_WIDTH - GBA_SCREEN_WIDTH) / 2,
+				(GCW0_SCREEN_HEIGHT - GBA_SCREEN_HEIGHT) / 2,
+				GBA_SCREEN_WIDTH,
+				GBA_SCREEN_HEIGHT
+			};
+			SDL_BlitSurface(GBAScreenSurface, NULL, OutputSurface, &rect);
+		}
+		else
+		{
+			uint32_t *src = (uint32_t *) GBAScreen;
+			gba_upscale((uint32_t*) OutputSurface->pixels, src, GBA_SCREEN_WIDTH, GBA_SCREEN_HEIGHT);
+		}
 
 		SDL_Flip(OutputSurface);
 

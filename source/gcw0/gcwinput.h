@@ -49,4 +49,11 @@ extern volatile uint_fast8_t AudioFastForwarded;
  */
 extern int16_t GetHorizontalAxisValue();
 
+/*
+ * Gets the current value of the analog vertical axis.
+ * Returns:
+ *   A value between -32768 (up) and 32767 (down).
+ */
+extern int16_t GetVerticalAxisValue();
+
 #endif // !defined __GCW_INPUT_H__

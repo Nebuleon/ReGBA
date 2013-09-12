@@ -134,7 +134,7 @@ enum ReGBA_Buttons ReGBA_GetPressedButtons()
 	return Result;
 }
 
-int16_t GetHorizontalAxisValue()
+static void EnsureJoystick()
 {
 	if (!JoystickInitialised)
 	{
@@ -145,8 +145,22 @@ int16_t GetHorizontalAxisValue()
 			ReGBA_Trace("I: Joystick #0 could not be opened");
 		}
 	}
+}
+
+int16_t GetHorizontalAxisValue()
+{
+	EnsureJoystick();
 	if (Joystick != NULL)
 		return SDL_JoystickGetAxis(Joystick, 0);
+	else
+		return 0;
+}
+
+int16_t GetVerticalAxisValue()
+{
+	EnsureJoystick();
+	if (Joystick != NULL)
+		return SDL_JoystickGetAxis(Joystick, 1);
 	else
 		return 0;
 }
