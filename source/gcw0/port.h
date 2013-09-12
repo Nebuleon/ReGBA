@@ -62,5 +62,6 @@ typedef FILE* FILE_TAG_TYPE;
 #include "draw.h"
 #include "main.h"
 #include "gcwsound.h"
+#include "gcwinput.h"
 
 #endif

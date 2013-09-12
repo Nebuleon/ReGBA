@@ -19,6 +19,14 @@
 
 #include "common.h"
 
+uint_fast8_t FastForwardValue = 0;
+
+uint_fast8_t FastForwardControl = 0;
+
+static SDL_Joystick* Joystick;
+
+static bool JoystickInitialised = false;
+
 // Mandatory remapping for GCW Zero keys. Each GCW Zero key maps to a key on
 // the keyboard, but not all keys on the keyboard map to these.
 // They are not in GBA bitfield order in this array.
@@ -124,4 +132,21 @@ enum ReGBA_Buttons ReGBA_GetPressedButtons()
 		}
 	}
 	return Result;
+}
+
+int16_t GetHorizontalAxisValue()
+{
+	if (!JoystickInitialised)
+	{
+		JoystickInitialised = true;
+		Joystick = SDL_JoystickOpen(0);
+		if (Joystick == NULL)
+		{
+			ReGBA_Trace("I: Joystick #0 could not be opened");
+		}
+	}
+	if (Joystick != NULL)
+		return SDL_JoystickGetAxis(Joystick, 0);
+	else
+		return 0;
 }

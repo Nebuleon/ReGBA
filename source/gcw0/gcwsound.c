@@ -3,6 +3,8 @@
 #include "common.h"
 #include "../sound.h"
 
+volatile uint_fast8_t AudioFastForwarded;
+
 void feed_buffer(void *udata, Uint8 *buffer, int len)
 {
 	s16* stream = (s16*) buffer;
@@ -32,6 +34,19 @@ void feed_buffer(void *udata, Uint8 *buffer, int len)
 
 		stream[i * 2    ] = Left  << 3;
 		stream[i * 2 + 1] = Right << 3;
+	}
+	Samples -= Requested;
+	
+	uint_fast8_t VideoFastForwardedCopy = VideoFastForwarded;
+	if (VideoFastForwardedCopy != AudioFastForwarded)
+	{
+		uint32_t SamplesToSkip = (VideoFastForwardedCopy - AudioFastForwarded) * ((int) (SOUND_FREQUENCY / 59.73));
+		s16 Dummy;
+		while (Samples-- > Requested * 2)
+		{
+			ReGBA_LoadNextAudioSample(&Dummy, &Dummy);
+		}
+		AudioFastForwarded = VideoFastForwardedCopy;
 	}
 }
 
