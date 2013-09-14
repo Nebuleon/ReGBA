@@ -554,6 +554,8 @@ void update_gbc_sound(u32 cpu_ticks)
 #ifdef TRACE_SOUND
 			ReGBA_Trace("I: Direct Sound channel %u write offset %u -> %u", i, direct_sound_channel[i].buffer_index, gbc_sound_buffer_index);
 #endif
+			// Clear the future sound so the present sound won't add to it.
+			memset(&sound_buffer[gbc_sound_buffer_index], 0, (direct_sound_channel[i].buffer_index - gbc_sound_buffer_index) * sizeof(s16));
 			direct_sound_channel[i].buffer_index = gbc_sound_buffer_index;
 		}
 	}

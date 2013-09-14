@@ -95,7 +95,7 @@ void init_sdlaudio()
 {
 	SDL_AudioSpec spec;
 
-	spec.freq = 88200;
+	spec.freq = (int) SOUND_FREQUENCY;
 	spec.format = AUDIO_S16SYS;
 	spec.channels = 2;
 	spec.samples = AUDIO_OUTPUT_BUFFER_SIZE;
@@ -103,7 +103,7 @@ void init_sdlaudio()
 	spec.userdata = NULL;
 
 	if (SDL_OpenAudio(&spec, NULL) < 0) {
-		printf("debug:: failed to open audio: %s\n", SDL_GetError());
+		ReGBA_Trace("E: Failed to open audio: %s", SDL_GetError());
 		return;
 	}
 
