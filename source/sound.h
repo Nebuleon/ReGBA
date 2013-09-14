@@ -315,6 +315,7 @@ extern u32 sound_on;
 extern u32 gbc_sound_wave_volume[4];
 
 extern u32 gbc_sound_buffer_index;
+extern u32 gbc_sound_partial_ticks;
 
 void sound_timer_queue32(u8 channel);
 void sound_timer(FIXED16_16 frequency_step, u32 channel);

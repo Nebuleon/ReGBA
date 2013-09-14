@@ -113,6 +113,8 @@ typedef uint32_t FIXED16_16;  // Q16.16 fixed-point
 
 #define FP16_16_FRACTIONAL_PART(value)                                      \
   ((value) & 0xFFFF)                                                        \
+  
+#define FP16_16_MAX_FRACTIONAL_PART 0xFFFF
 
 #define FIXED_DIV(numerator, denominator, bits)                             \
   ((((numerator) * (1 << (bits))) + ((denominator) / 2)) / (denominator))   \

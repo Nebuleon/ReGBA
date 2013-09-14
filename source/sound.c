@@ -55,7 +55,7 @@
   sound_buffer[sound_write_offset + 1] += dest_sample                         \
 
 #define RENDER_SAMPLES(type)                                                  \
-  while(fifo_fractional <= 0xFFFF)                                            \
+  while(fifo_fractional <= FP16_16_MAX_FRACTIONAL_PART)                       \
   {                                                                           \
     RENDER_SAMPLE_##type();                                                   \
     fifo_fractional += frequency_step;                                        \
@@ -461,10 +461,10 @@ void update_gbc_sound(u32 cpu_ticks)
     gbc_sound_partial_ticks += FP16_16_FRACTIONAL_PART(buffer_ticks);
     buffer_ticks = FP16_16_TO_U32(buffer_ticks);
 
-    if (gbc_sound_partial_ticks > 0xFFFF)
+    if (gbc_sound_partial_ticks > FP16_16_MAX_FRACTIONAL_PART)
     {
-      buffer_ticks += 1;
-      gbc_sound_partial_ticks &= 0xFFFF;
+      buffer_ticks += FP16_16_TO_U32(gbc_sound_partial_ticks);
+      gbc_sound_partial_ticks &= FP16_16_MAX_FRACTIONAL_PART;
     }
 
     if (sound_on == 1)
@@ -539,6 +539,24 @@ void update_gbc_sound(u32 cpu_ticks)
     gbc_sound_buffer_index =(gbc_sound_buffer_index + (buffer_ticks << 1)) & BUFFER_SIZE_MASK;
 
     ReGBA_AudioUpdate();
+
+	/* Work around a synchronisation issue between the Direct Sound channels
+	 * and the Game Boy-style beeper channels. The Game Boy-style beepers
+	 * shall have the reference buffer offsets, as they are always correct.
+	 */
+	for (i = 0; i < 2; i++)
+	{
+		if (direct_sound_channel[i].buffer_index > gbc_sound_buffer_index
+		    /* but don't consider it too late if the ring buffer goes back to the start */
+		 && direct_sound_channel[i].buffer_index - gbc_sound_buffer_index < BUFFER_SIZE / 2
+		)
+		{
+#ifdef TRACE_SOUND
+			ReGBA_Trace("I: Direct Sound channel %u write offset %u -> %u", i, direct_sound_channel[i].buffer_index, gbc_sound_buffer_index);
+#endif
+			direct_sound_channel[i].buffer_index = gbc_sound_buffer_index;
+		}
+	}
   }
 
 void init_sound()
