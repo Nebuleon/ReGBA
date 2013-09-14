@@ -284,6 +284,24 @@ static inline void gba_upscale(uint32_t *to, uint32_t *from,
 	}
 }
 
+static inline void gba_render(uint32_t* Dest, uint32_t* Src, uint32_t Width, uint32_t Height)
+{
+	Dest = (uint32_t *) ((uint16_t *) Dest
+		+ (Height - GBA_SCREEN_HEIGHT) / 2 * Width
+		+ (Width - GBA_SCREEN_WIDTH) / 2);
+	uint32_t LineSkip = (Width - GBA_SCREEN_WIDTH) * sizeof(uint16_t) / sizeof(uint32_t);
+
+	uint32_t X, Y;
+	for (Y = 0; Y < GBA_SCREEN_HEIGHT; Y++)
+	{
+		for (X = 0; X < GBA_SCREEN_WIDTH * sizeof(uint16_t) / sizeof(uint32_t); X++)
+		{
+			*Dest++ = bgr555_to_rgb565(*Src++);
+		}
+		Dest += LineSkip;
+	}
+}
+
 void ReGBA_RenderScreen(void)
 {
 	int16_t X = GetHorizontalAxisValue();
@@ -314,13 +332,7 @@ void ReGBA_RenderScreen(void)
 	{
 		if (ScaleMode == unscaled)
 		{
-			SDL_Rect rect = {
-				(GCW0_SCREEN_WIDTH - GBA_SCREEN_WIDTH) / 2,
-				(GCW0_SCREEN_HEIGHT - GBA_SCREEN_HEIGHT) / 2,
-				GBA_SCREEN_WIDTH,
-				GBA_SCREEN_HEIGHT
-			};
-			SDL_BlitSurface(GBAScreenSurface, NULL, OutputSurface, &rect);
+			gba_render((uint32_t *) OutputSurface->pixels, (uint32_t *) GBAScreenSurface->pixels, GCW0_SCREEN_WIDTH, GCW0_SCREEN_HEIGHT);
 		}
 		else
 		{
