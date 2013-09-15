@@ -1,4 +1,4 @@
-TempGBA version 1.44, 2013-07-11
+TempGBA version 1.45, 2013-09-14
 
 A Game Boy Advance emulator for the Supercard DSTWO.
 
@@ -10,19 +10,20 @@ Based on:
 
 # Installing
 
-(If you got the source code and want to compile it, see the `Compiling` section
- at the end of the file.)
+(If you got the source code and want to compile it, see `modifying_en.txt`,
+ included on GitHub as `doc/dstwo/modifying_en.txt`.)
 
-To install the plugin to your storage card, copy `tempgba.plg`, `tempgba.ini`
-and `tempgba.bmp` from the release archive to the card's `_dstwoplug`
-directory. Then, copy the `TEMPGBA` subdirectory to the root of the card.
+To install the plugin to your storage card, copy `_dstwoplug` and `TEMPGBA`
+from the release archive to the root of your storage card.
 
 ## The GBA BIOS
 
-To function properly, TempGBA needs a dump of the GBA's BIOS. It is **not**
-distributed in the release archive because of legal issues. Do not ask the
-author where to find this file; any questions regarding the BIOS will be
-quickly ignored. You, the user, are responsible for your use of the BIOS.
+As of TempGBA version 1.45, an open-source BIOS replacement based on VBA-M's
+high-level BIOS emulation is bundled in the release archive. This BIOS is
+provided by Normmatt.
+
+For better compatibility with certain games, you may instead use the real
+GBA BIOS, if you have it.
 
 The file you dump or find should be 16 KiB (16384 bytes) and have the following
 checksums:
@@ -30,7 +31,7 @@ checksums:
 * MD5: `a860e8c0b6d573d191e4ec7db1b1e4f6`;
 * SHA-1: `300c20df6731a33952ded8c436f7f186d25d3492`.
 
-Once dumped or found, name the file `gba_bios.bin`, and place it in the
+Once dumped or found, name the file `gba_bios.bin`, and replace it in the
 `TEMPGBA` directory of your storage card. So the path should look like this:
 `/media/Your-Card/TEMPGBA/gba_bios.bin` on Linux; `E:\TempGBA\gba_bios.bin`
 on Windows.

@@ -1,7 +1,7 @@
 # The font
 
 The font used by TempGBA is similar to the Pictochat font. To modify it,
-see `source/nds/font/README.txt`.
+see `source/dstwo/font/README.txt`.
 
 # Translations
 
@@ -9,7 +9,7 @@ Translations for TempGBA may be submitted to the author(s) under many forms,
 one of which is the Github pull request. To complete a translation, you will
 need to do the following:
 
-* Open `source/nds/TEMPGBA/system/language.msg`.
+* Open `source/dstwo/TEMPGBA/system/language.msg`.
 * Copy what's between `STARTENGLISH` and `ENDENGLISH` and paste it at the end
   of the file.
 * Change the tags. For example, if you want to translate to Japanese, the tags
@@ -25,27 +25,27 @@ names and values to your liking with spaces.
 If you wish to also hook your language into the user interface, you will need
 to do the following:
 
-* Edit `source/nds/message.h`. Find `enum LANGUAGE` and add the name of your
+* Edit `source/dstwo/message.h`. Find `enum LANGUAGE` and add the name of your
   language there. For the example of Japanese, you would add this at the end of
   the list:
   ```
 	,
 	JAPANESE
   ```
-* Still in `source/nds/message.h`, just below `enum LANGUAGE`, you will find
+* Still in `source/dstwo/message.h`, just below `enum LANGUAGE`, you will find
   `extern char* lang[` *some number* `]`. Add 1 to that number.
-* Edit `source/nds/gui.c`. Find `char *lang[` *some number* `] =`.
+* Edit `source/dstwo/gui.c`. Find `char *lang[` *some number* `] =`.
   Add the name of your language, in the language itself. For the example of
   Japanese, you would add this at the end of the list:
   ```
 	,
 	"日本語"
   ```
-* Still in `source/nds/gui.c`, find `char* language_options[]`, which is below
+* Still in `source/dstwo/gui.c`, find `char* language_options[]`, which is below
   the language names. Add an entry similar to the others, with the last number
   plus 1. For example, if the last entry is `, (char *) &lang[7]`, yours would
   be `, (char *) &lang[8]`.
-* Still in `source/nds/gui.c`, find `case CHINESE_SIMPLIFIED`. Copy the lines
+* Still in `source/dstwo/gui.c`, find `case CHINESE_SIMPLIFIED`. Copy the lines
   starting at the `case` and ending with `break`, inclusively. Paste them
   before the `}`. Change the language name and tags. For the example of
   Japanese, you would use:
@@ -79,7 +79,7 @@ Additionally, you will need to add the updated `zlib`, DMA
 and recompile `libds2a.a`. To do this:
 
 > sudo rm -r /opt/ds2sdk/libsrc/{console,core,fs,key,zlib,Makefile} /opt/ds2sdk/include
-> sudo cp -r source/nds/sdk-modifications/{libsrc,include} /opt/ds2sdk
+> sudo cp -r source/dstwo/sdk-modifications/{libsrc,include} /opt/ds2sdk
 > sudo chmod -R 600 /opt/ds2sdk/{libsrc,include}
 > sudo chmod -R a+rX /opt/ds2sdk/{libsrc,include}
 > cd /opt/ds2sdk/libsrc
@@ -95,7 +95,7 @@ it.
 ## Making the plugin
 To make the plugin, `tempgba.plg`, use the `cd` command to change to the
 directory containing your copy of the TempGBA source, then type
-`cd source/nds; make`. `tempgba.plg` should appear in the same directory.
+`cd source/dstwo; make`. `tempgba.plg` should appear in the same directory.
 
 ## Making a release
 To make a zip archive containing a release of TempGBA, use `make release`

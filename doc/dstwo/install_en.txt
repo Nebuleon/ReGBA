@@ -1,9 +1,12 @@
 To install:
 
-Extract the _dstwoplug and TEMPGBA directories from the archive into your storage card's root directory, which is the directory that appears immediately after opening the storage card in a file browser.
+Extract the _dstwoplug and TEMPGBA directories from the archive into your storage card's root directory, which is the directory that appears immediately after opening the storage card in a file browser. That's it.
 
-To function properly, TempGBA also needs a dump of the GBA's BIOS. It is not
-distributed in the release archive because of legal issues.
+---
+
+Bundled in this release is Normmatt's open-source GBA BIOS replacement based on VBA-M's BIOS emulation code.
+
+You may also use the real GBA BIOS to help the compatibility of certain games.
 
 The file you dump or find should be 16 KiB (16384 bytes) and have the following
 checksums:
@@ -11,5 +14,4 @@ checksums:
 * MD5: a860e8c0b6d573d191e4ec7db1b1e4f6;
 * SHA-1: 300c20df6731a33952ded8c436f7f186d25d3492.
 
-Once dumped or found, name the file gba_bios.bin, and place it in the
-TEMPGBA folder extracted above.
+Once dumped or found, name the file gba_bios.bin, and place it in the TEMPGBA folder extracted above.
