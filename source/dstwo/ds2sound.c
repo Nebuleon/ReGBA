@@ -161,13 +161,13 @@ signed int ReGBA_AudioUpdate()
 		for (j = 0; j < OUTPUT_FREQUENCY_DIVISOR; j++) {
 			ReGBA_LoadNextAudioSample(&LeftPart, &RightPart);
 
-			if      (LeftPart >  4095) LeftPart =  4095;
-			else if (LeftPart < -4096) LeftPart = -4096;
-			Left += (LeftPart << 3) / OUTPUT_FREQUENCY_DIVISOR;
+			if      (LeftPart >  2047) LeftPart =  2047;
+			else if (LeftPart < -2048) LeftPart = -2048;
+			Left += (LeftPart << 4) / OUTPUT_FREQUENCY_DIVISOR;
 
-			if      (RightPart >  4095) RightPart =  4095;
-			else if (RightPart < -4096) RightPart = -4096;
-			Right += (RightPart << 3) / OUTPUT_FREQUENCY_DIVISOR;
+			if      (RightPart >  2047) RightPart =  2047;
+			else if (RightPart < -2048) RightPart = -2048;
+			Right += (RightPart << 4) / OUTPUT_FREQUENCY_DIVISOR;
 		}
 		*dst_ptr++ = Left;
 		*dst_ptr1++ = Right;

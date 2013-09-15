@@ -35,14 +35,14 @@ void feed_buffer(void *udata, Uint8 *buffer, int len)
 		s16 Left, Right;
 		ReGBA_LoadNextAudioSample(&Left, &Right);
 		/* The GBA outputs in 12-bit sound. Make it louder. */
-		if      (Left >  4095) Left =  4095;
-		else if (Left < -4096) Left = -4096;
+		if      (Left >  2047) Left =  2047;
+		else if (Left < -2048) Left = -2048;
 
-		if      (Right >  4095) Right =  4095;
-		else if (Right < -4096) Right = -4096;
+		if      (Right >  2047) Right =  2047;
+		else if (Right < -2048) Right = -2048;
 
-		*Next++ = Left  << 3;
-		*Next++ = Right << 3;
+		*Next++ = Left  << 4;
+		*Next++ = Right << 4;
 	}
 	Samples -= Requested / 2;
 	
@@ -67,14 +67,14 @@ void feed_buffer(void *udata, Uint8 *buffer, int len)
 		s16 Left, Right;
 		ReGBA_LoadNextAudioSample(&Left, &Right);
 		/* The GBA outputs in 12-bit sound. Make it louder. */
-		if      (Left >  4095) Left =  4095;
-		else if (Left < -4096) Left = -4096;
+		if      (Left >  2047) Left =  2047;
+		else if (Left < -2048) Left = -2048;
 
-		if      (Right >  4095) Right =  4095;
-		else if (Right < -4096) Right = -4096;
+		if      (Right >  2047) Right =  2047;
+		else if (Right < -2048) Right = -2048;
 
-		*Next++ = Left  << 3;
-		*Next++ = Right << 3;
+		*Next++ = Left  << 4;
+		*Next++ = Right << 4;
 	}
 	Samples -= Requested - Requested / 2;
 
