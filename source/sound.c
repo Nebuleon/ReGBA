@@ -189,12 +189,12 @@
 
 #define GET_NOISE_SAMPLE_FULL()                                               \
   current_sample =                                                            \
-   ((s32)(noise_table15[FP16_16_TO_U32(sample_index) >> 5] <<                 \
+   ((noise_table15[FP16_16_TO_U32(sample_index) >> 5] <<                      \
    (FP16_16_TO_U32(sample_index) & 0x1F)) >> 31) & 0x0F                       \
 
 #define GET_NOISE_SAMPLE_HALF()                                               \
   current_sample =                                                            \
-   ((s32)(noise_table7[FP16_16_TO_U32(sample_index) >> 5] <<                  \
+   ((noise_table7[FP16_16_TO_U32(sample_index) >> 5] <<                       \
    (FP16_16_TO_U32(sample_index) & 0x1F)) >> 31) & 0x0F                       \
 
 #define GBC_SOUND_RENDER_NOISE(type, noise_type, envelope_op, sweep_op)       \
@@ -287,7 +287,7 @@ static FIXED16_16 gbc_sound_tick_step;
 /******************************************************************************
  * 本地函数声明
  ******************************************************************************/
-static void init_noise_table(u32 *table, u32 period, u32 bit_length);
+static void init_noise_table(s32 *table, u32 period, u32 bit_length);
 
 /******************************************************************************
  * 全局函数定义
@@ -398,8 +398,8 @@ s8 square_pattern_duty[4][8] =
 
 s8 wave_samples[64];
 
-u32 noise_table15[1024];
-u32 noise_table7[4];
+s32 noise_table15[1024];
+s32 noise_table7[4];
 
 u32 gbc_sound_master_volume_table[4] = { 1, 2, 4, 0 };
 
@@ -630,10 +630,9 @@ u32 ReGBA_LoadNextAudioSample(s16* Left, s16* Right)
 
 	*Left  = sound_buffer[sound_read_offset];
 	sound_buffer[sound_read_offset] = 0;
-	sound_read_offset = (sound_read_offset + 1) & BUFFER_SIZE_MASK;
-	*Right = sound_buffer[sound_read_offset];
-	sound_buffer[sound_read_offset] = 0;
-	sound_read_offset = (sound_read_offset + 1) & BUFFER_SIZE_MASK;
+	*Right = sound_buffer[sound_read_offset + 1];
+	sound_buffer[sound_read_offset + 1] = 0;
+	sound_read_offset = (sound_read_offset + 2) & BUFFER_SIZE_MASK;
 	return 1;
 }
 
@@ -662,12 +661,12 @@ u32 ReGBA_DiscardAudioSamples(u32 Count)
   // angeneraldiscussion&Number=2069&page=0&view=expanded&mode=threaded&sb=4
   // Hope you don't mind me borrowing it ^_-
 
-void init_noise_table(u32 *table, u32 period, u32 bit_length)
+void init_noise_table(s32 *table, u32 period, u32 bit_length)
   {
     u32 shift_register = 0xFF;
-    u32 mask = ~(1 << bit_length);
+    s32 mask = ~(1 << bit_length);
     s32 table_pos, bit_pos;
-    u32 current_entry;
+    s32 current_entry;
     u32 table_period = (period + 31) / 32;
 
     // Bits are stored in reverse  order so they can be more easily moved to
