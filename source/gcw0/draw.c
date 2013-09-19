@@ -304,6 +304,24 @@ static inline void gba_render(uint32_t* Dest, uint32_t* Src, uint32_t Width, uin
 
 void ReGBA_RenderScreen(void)
 {
+	if (ReGBA_IsRenderingNextFrame())
+	{
+		if (ScaleMode == unscaled)
+		{
+			gba_render((uint32_t *) OutputSurface->pixels, (uint32_t *) GBAScreenSurface->pixels, GCW0_SCREEN_WIDTH, GCW0_SCREEN_HEIGHT);
+		}
+		else
+		{
+			uint32_t *src = (uint32_t *) GBAScreen;
+			gba_upscale((uint32_t*) OutputSurface->pixels, src, GBA_SCREEN_WIDTH, GBA_SCREEN_HEIGHT);
+		}
+
+		SDL_Flip(OutputSurface);
+
+		while (ReGBA_GetAudioSamplesAvailable() > AUDIO_OUTPUT_BUFFER_SIZE * 3 * OUTPUT_FREQUENCY_DIVISOR + (VideoFastForwarded - AudioFastForwarded) * ((int) (SOUND_FREQUENCY / 59.73)))
+			usleep(1000);
+	}
+
 	int16_t X = GetHorizontalAxisValue();
 
 	if (X > 0)
@@ -322,29 +340,12 @@ void ReGBA_RenderScreen(void)
 		memset(OutputSurface->pixels, 0, GCW0_SCREEN_WIDTH * GCW0_SCREEN_HEIGHT * sizeof(uint16_t));
 	}
 
-	FastForwardControl += FastForwardValue;
 	if (FastForwardControl >= 60)
 	{
 		FastForwardControl -= 60;
 		VideoFastForwarded++;
 	}
-	else
-	{
-		if (ScaleMode == unscaled)
-		{
-			gba_render((uint32_t *) OutputSurface->pixels, (uint32_t *) GBAScreenSurface->pixels, GCW0_SCREEN_WIDTH, GCW0_SCREEN_HEIGHT);
-		}
-		else
-		{
-			uint32_t *src = (uint32_t *) GBAScreen;
-			gba_upscale((uint32_t*) OutputSurface->pixels, src, GBA_SCREEN_WIDTH, GBA_SCREEN_HEIGHT);
-		}
-
-		SDL_Flip(OutputSurface);
-
-		while (ReGBA_GetAudioSamplesAvailable() > AUDIO_OUTPUT_BUFFER_SIZE * 3 + (VideoFastForwarded - AudioFastForwarded) * ((int) (SOUND_FREQUENCY / 59.73)))
-			usleep(1000);
-	}
+	FastForwardControl += FastForwardValue;
 }
 
 #if 0

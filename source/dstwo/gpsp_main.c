@@ -327,10 +327,7 @@ u32 update_gba()
         if((dispstat & 0x01) == 0)
         { // 非 V BLANK
           // 无跳帧时
-          if(!skip_next_frame_flag)
-         {
-              update_scanline();
-          }
+          update_scanline();
 
           // If in visible area also fire HDMA
           if(dma[0].start_type == DMA_START_HBLANK)
@@ -450,17 +447,7 @@ u32 update_gba()
 
             Stats.EmulatedFrames++;
             Stats.TotalEmulatedFrames++;
-            if(!skip_next_frame_flag)
-            {
-                Stats.RenderedFrames++;
-                ReGBA_DisplayFPS();
-                ReGBA_RenderScreen();
-                to_skip= 0;
-            }
-            else
-              to_skip ++;
-
-		skip_next_frame_flag = to_skip < SKIP_RATE;
+            ReGBA_RenderScreen();
 
 //printf("SKIP_RATE %d %d\n", SKIP_RATE, to_skip);
         } //(vcount == 228)

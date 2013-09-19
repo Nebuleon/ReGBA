@@ -127,10 +127,7 @@ signed int ReGBA_AudioUpdate()
 			// This needs to be high to avoid audible crackling/bubbling,
 			// but not so high as to require all of the sound to be emitted.
 			// gpSP synchronises on the sound, after all. -Neb, 2013-03-23
-			s16 DummySample;
-			while (ReGBA_GetAudioSamplesAvailable() > AUDIO_LEN * 2) {
-				ReGBA_LoadNextAudioSample(&DummySample, &DummySample);
-			}
+			ReGBA_DiscardAudioSamples(ReGBA_GetAudioSamplesAvailable() - AUDIO_LEN);
 			return 0;
 		}
 	}
@@ -163,14 +160,14 @@ signed int ReGBA_AudioUpdate()
 
 			if      (LeftPart >  2047) LeftPart =  2047;
 			else if (LeftPart < -2048) LeftPart = -2048;
-			Left += (LeftPart << 4) / OUTPUT_FREQUENCY_DIVISOR;
+			Left += LeftPart / OUTPUT_FREQUENCY_DIVISOR;
 
 			if      (RightPart >  2047) RightPart =  2047;
 			else if (RightPart < -2048) RightPart = -2048;
-			Right += (RightPart << 4) / OUTPUT_FREQUENCY_DIVISOR;
+			Right += RightPart / OUTPUT_FREQUENCY_DIVISOR;
 		}
-		*dst_ptr++ = Left;
-		*dst_ptr1++ = Right;
+		*dst_ptr++ = Left << 4;
+		*dst_ptr1++ = Right << 4;
 	}
 
 	if (game_fast_forward || temporary_fast_forward)

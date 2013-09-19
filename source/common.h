@@ -259,7 +259,7 @@ void ReGBA_RenderScreen(void);
  * b) Returning non-zero if the previous frame was rendered early according to
  *    the system's high-resolution timers.
  */
-u32 ReGBA_IsRenderingNextFrame(void);
+bool ReGBA_IsRenderingNextFrame(void);
 
 /*
  * Displays current frames per second, as calculated using the Stats struct,

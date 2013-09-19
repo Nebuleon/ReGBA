@@ -358,4 +358,15 @@ u32 ReGBA_GetAudioSamplesAvailable(void);
  */
 u32 ReGBA_LoadNextAudioSample(s16* Left, s16* Right);
 
+/*
+ * Discards the requested number of samples from the core's audio buffer.
+ * The sample rate is SOUND_FREQUENCY Hz.
+ * Input:
+ *   Count: The number of samples to be discarded by the core.
+ * Returns:
+ *   The number of samples that were actually discarded, which may be Count
+ *   or fewer.
+ */
+u32 ReGBA_DiscardAudioSamples(u32 Count);
+
 #endif /* SOUND_H */

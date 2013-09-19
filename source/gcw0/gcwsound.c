@@ -14,7 +14,7 @@ FILE* WaveFile;
 void feed_buffer(void *udata, Uint8 *buffer, int len)
 {
 	s16* stream = (s16*) buffer;
-	u32 Samples = ReGBA_GetAudioSamplesAvailable();
+	u32 Samples = ReGBA_GetAudioSamplesAvailable() / OUTPUT_FREQUENCY_DIVISOR;
 	u32 Requested = len / (2 * sizeof(s16));
 
 	/* There must be AUDIO_OUTPUT_BUFFER_SIZE * 2 samples generated in order
@@ -29,34 +29,36 @@ void feed_buffer(void *udata, Uint8 *buffer, int len)
 	s16* Next = stream;
 
 	// Take the first half of the sound.
-	uint32_t i;
+	uint32_t i, j;
 	for (i = 0; i < Requested / 2; i++)
 	{
-		s16 Left, Right;
-		ReGBA_LoadNextAudioSample(&Left, &Right);
-		/* The GBA outputs in 12-bit sound. Make it louder. */
-		if      (Left >  2047) Left =  2047;
-		else if (Left < -2048) Left = -2048;
+		s16 Left = 0, Right = 0, LeftPart, RightPart;
+		for (j = 0; j < OUTPUT_FREQUENCY_DIVISOR; j++) {
+			ReGBA_LoadNextAudioSample(&LeftPart, &RightPart);
 
-		if      (Right >  2047) Right =  2047;
-		else if (Right < -2048) Right = -2048;
+			/* The GBA outputs in 12-bit sound. Make it louder. */
+			if      (LeftPart >  2047) LeftPart =  2047;
+			else if (LeftPart < -2048) LeftPart = -2048;
+			Left += LeftPart / OUTPUT_FREQUENCY_DIVISOR;
+
+			if      (RightPart >  2047) RightPart =  2047;
+			else if (RightPart < -2048) RightPart = -2048;
+			Right += RightPart / OUTPUT_FREQUENCY_DIVISOR;
+		}
 
 		*Next++ = Left  << 4;
 		*Next++ = Right << 4;
 	}
 	Samples -= Requested / 2;
 	
-	// Skip sound until half the requested length is left, if fast-forwarding.
+	// Discard sound until half the requested length is left, if fast-forwarding.
 	bool Skipped = false;
 	uint_fast8_t VideoFastForwardedCopy = VideoFastForwarded;
 	if (VideoFastForwardedCopy != AudioFastForwarded)
 	{
-		uint32_t SamplesToSkip = (VideoFastForwardedCopy - AudioFastForwarded) * ((int) (SOUND_FREQUENCY / 59.73));
-		s16 Dummy;
-		while (Samples-- > Requested * 2 + Requested - Requested / 2)
-		{
-			ReGBA_LoadNextAudioSample(&Dummy, &Dummy);
-		}
+		uint32_t SamplesToSkip = Samples - (Requested * 3 - Requested / 2);
+		ReGBA_DiscardAudioSamples(SamplesToSkip * OUTPUT_FREQUENCY_DIVISOR);
+		Samples -= SamplesToSkip;
 		AudioFastForwarded = VideoFastForwardedCopy;
 		Skipped = true;
 	}
@@ -64,14 +66,19 @@ void feed_buffer(void *udata, Uint8 *buffer, int len)
 	// Take the second half of the sound now.
 	for (i = 0; i < Requested - Requested / 2; i++)
 	{
-		s16 Left, Right;
-		ReGBA_LoadNextAudioSample(&Left, &Right);
-		/* The GBA outputs in 12-bit sound. Make it louder. */
-		if      (Left >  2047) Left =  2047;
-		else if (Left < -2048) Left = -2048;
+		s16 Left = 0, Right = 0, LeftPart, RightPart;
+		for (j = 0; j < OUTPUT_FREQUENCY_DIVISOR; j++) {
+			ReGBA_LoadNextAudioSample(&LeftPart, &RightPart);
 
-		if      (Right >  2047) Right =  2047;
-		else if (Right < -2048) Right = -2048;
+			/* The GBA outputs in 12-bit sound. Make it louder. */
+			if      (LeftPart >  2047) LeftPart =  2047;
+			else if (LeftPart < -2048) LeftPart = -2048;
+			Left += LeftPart / OUTPUT_FREQUENCY_DIVISOR;
+
+			if      (RightPart >  2047) RightPart =  2047;
+			else if (RightPart < -2048) RightPart = -2048;
+			Right += RightPart / OUTPUT_FREQUENCY_DIVISOR;
+		}
 
 		*Next++ = Left  << 4;
 		*Next++ = Right << 4;
@@ -128,14 +135,14 @@ static uint8_t WaveHeader[] = {
 	16, 0, 0, 0,                // Subchunk 1 rest-of-chunk size
 	1, 0,                       // PCM
 	2, 0,                       // Channel count
-	((uint32_t) SOUND_FREQUENCY) & 0xFF,
-	(((uint32_t) SOUND_FREQUENCY) >> 8) & 0xFF,
-	(((uint32_t) SOUND_FREQUENCY) >> 16) & 0xFF,
-	(((uint32_t) SOUND_FREQUENCY) >> 24) & 0xFF,  // Sample rate
-	((uint32_t) SOUND_FREQUENCY * 2 * sizeof(s16)) & 0xFF,
-	(((uint32_t) SOUND_FREQUENCY * 2 * sizeof(s16)) >> 8) & 0xFF,
-	(((uint32_t) SOUND_FREQUENCY * 2 * sizeof(s16)) >> 16) & 0xFF,
-	(((uint32_t) SOUND_FREQUENCY * 2 * sizeof(s16)) >> 24) & 0xFF,  // Byte rate
+	((uint32_t) OUTPUT_SOUND_FREQUENCY) & 0xFF,
+	(((uint32_t) OUTPUT_SOUND_FREQUENCY) >> 8) & 0xFF,
+	(((uint32_t) OUTPUT_SOUND_FREQUENCY) >> 16) & 0xFF,
+	(((uint32_t) OUTPUT_SOUND_FREQUENCY) >> 24) & 0xFF,  // Sample rate
+	((uint32_t) OUTPUT_SOUND_FREQUENCY * 2 * sizeof(s16)) & 0xFF,
+	(((uint32_t) OUTPUT_SOUND_FREQUENCY * 2 * sizeof(s16)) >> 8) & 0xFF,
+	(((uint32_t) OUTPUT_SOUND_FREQUENCY * 2 * sizeof(s16)) >> 16) & 0xFF,
+	(((uint32_t) OUTPUT_SOUND_FREQUENCY * 2 * sizeof(s16)) >> 24) & 0xFF,  // Byte rate
 	2 * sizeof(s16), 0,         // Bytes per sample for all channels
 	8 * sizeof(s16), 0,             // Bits per sample
 	'd', 'a', 't', 'a',         // Subchunk 2 identification
@@ -147,7 +154,7 @@ void init_sdlaudio()
 {
 	SDL_AudioSpec spec;
 
-	spec.freq = (int) SOUND_FREQUENCY;
+	spec.freq = OUTPUT_SOUND_FREQUENCY;
 	spec.format = AUDIO_S16SYS;
 	spec.channels = 2;
 	spec.samples = AUDIO_OUTPUT_BUFFER_SIZE;

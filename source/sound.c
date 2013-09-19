@@ -637,6 +637,25 @@ u32 ReGBA_LoadNextAudioSample(s16* Left, s16* Right)
 	return 1;
 }
 
+u32 ReGBA_DiscardAudioSamples(u32 Count)
+{
+	u32 Available = ReGBA_GetAudioSamplesAvailable();
+	if (Count > Available)
+		Count = Available;
+	if (sound_read_offset + Count * 2 > BUFFER_SIZE)
+	{
+		// Requested samples wrap around. Split the clearing.
+		memset(&sound_buffer[sound_read_offset], 0, (BUFFER_SIZE - sound_read_offset) * sizeof(s16));
+		memset(sound_buffer, 0, ((sound_read_offset + Count * 2) & BUFFER_SIZE_MASK) * sizeof(s16));
+	}
+	else
+	{
+		memset(&sound_buffer[sound_read_offset], 0, Count * 2 * sizeof(s16));
+	}
+	sound_read_offset = (sound_read_offset + Count * 2) & BUFFER_SIZE_MASK;
+	return Count;
+}
+
   // Special thanks to blarrg for the LSFR frequency used in Meridian, as posted
   // on the forum at http://meridian.overclocked.org:
   // http://meridian.overclocked.org/cgi-bin/wwwthreads/showpost.pl?Board=merid

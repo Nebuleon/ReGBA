@@ -3090,6 +3090,8 @@ const u8 active_layers[6] = { 0x1F, 0x17, 0x1C, 0x14, 0x14, 0x14 };
 // 渲染一行图像
 void update_scanline()
 {
+  if (!ReGBA_IsRenderingNextFrame())
+    return;
   u32  dispcnt = io_registers[REG_DISPCNT];
   u32  vcount = io_registers[REG_VCOUNT];              // (0~277)
   u32  video_mode = dispcnt & 0x07;                    // (0~5)

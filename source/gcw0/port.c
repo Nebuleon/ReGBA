@@ -105,6 +105,11 @@ void ReGBA_LoadRTCTime(struct ReGBA_RTC* RTCData)
 	RTCData->seconds = Time->tm_sec;
 }
 
+bool ReGBA_IsRenderingNextFrame()
+{
+	return FastForwardControl < 60;
+}
+
 const char* GetFileName(const char* Path)
 {
 	const char* Result = strrchr(Path, '/');

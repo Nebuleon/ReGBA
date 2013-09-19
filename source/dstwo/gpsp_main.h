@@ -44,6 +44,7 @@ typedef enum
  * グローバル変数の宣言
  ******************************************************************************/
 extern u32 execute_cycles;
+extern u32 to_skip;
 extern u32 global_cycles_per_instruction;
 extern u32 synchronize_flag;
 extern u32 skip_next_frame_flag;

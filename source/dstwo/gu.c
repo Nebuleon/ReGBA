@@ -32,9 +32,10 @@ void init_video()
 {
 	u8* ptr = (u8*) up_screen_addr;
 	memset(ptr, 0, 256 * 192 * sizeof(u16));
-	GBAScreen = (u16*) ptr + (16 * 256 + 8);
 
-	ReGBA_RenderScreen();
+	ds2_flipScreen(UP_SCREEN, UP_SCREEN_UPDATE_METHOD);
+
+	GBAScreen = (u16*) *gba_screen_addr_ptr + (16 * 256 + 8);
 }
 
 void flip_screen(void)
@@ -44,10 +45,20 @@ void flip_screen(void)
 
 void ReGBA_RenderScreen(void)
 {
-	ds2_flipScreen(gba_screen_num, UP_SCREEN_UPDATE_METHOD);
-	
-	// Update screen address each flip otherwise flickering occurs
-	GBAScreen = (u16*) *gba_screen_addr_ptr + (16 * 256 + 8);
+	if (ReGBA_IsRenderingNextFrame())
+	{
+		Stats.RenderedFrames++;
+		ReGBA_DisplayFPS();
+		ds2_flipScreen(gba_screen_num, UP_SCREEN_UPDATE_METHOD);
+
+		// Update screen address each flip otherwise flickering occurs
+		GBAScreen = (u16*) *gba_screen_addr_ptr + (16 * 256 + 8);
+		to_skip = 0;
+	}
+	else
+		to_skip++;
+
+	skip_next_frame_flag = to_skip < SKIP_RATE;
 }
 
 void clear_screen(u16 color)
@@ -58,7 +69,10 @@ void clear_screen(u16 color)
 void clear_gba_screen(u16 color)
 {
 	ds2_clearScreen(gba_screen_num, color);
-	ReGBA_RenderScreen();
+	ds2_flipScreen(gba_screen_num, UP_SCREEN_UPDATE_METHOD);
+
+	// Update screen address each flip otherwise flickering occurs
+	GBAScreen = (u16*) *gba_screen_addr_ptr + (16 * 256 + 8);
 }
 
 void copy_screen(u16 *buffer)
