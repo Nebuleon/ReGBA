@@ -100,55 +100,7 @@ void feed_buffer(void *udata, Uint8 *buffer, int len)
 			}
 		}
 	}
-
-#ifdef SOUND_TO_FILE
-	if (WaveFile != NULL)
-	{
-		size_t Size = (size_t) Requested * 2 * sizeof(s16);
-		if (fwrite(stream, 1, Size, WaveFile) < Size && errno != 0)
-		{
-			ReGBA_Trace("W: Could not write to the trace wave file: %s", strerror(errno));
-
-			// Go update the rest-of-chunk size field in the trace wave file.
-			uint32_t Size = ftell(WaveFile);
-			Size -= 8;
-			fseek(WaveFile, 4, SEEK_SET);
-			fwrite(&Size, 1, sizeof(uint32_t), WaveFile);
-			// Also update subchunk 2, 'data'.
-			Size -= 36;
-			fseek(WaveFile, 40, SEEK_SET);
-			fwrite(&Size, 1, sizeof(uint32_t), WaveFile);
-
-			fclose(WaveFile);
-			WaveFile = NULL;
-		}
-	}
-#endif
 }
-
-#ifdef SOUND_TO_FILE
-static uint8_t WaveHeader[] = {
-	'R', 'I', 'F', 'F',
-	0, 0, 0, 0,                 // Rest-of-chunk size, unknown as of yet
-	'W', 'A', 'V', 'E',
-	'f', 'm', 't', ' ',         // Subchunk 1 identification
-	16, 0, 0, 0,                // Subchunk 1 rest-of-chunk size
-	1, 0,                       // PCM
-	2, 0,                       // Channel count
-	((uint32_t) OUTPUT_SOUND_FREQUENCY) & 0xFF,
-	(((uint32_t) OUTPUT_SOUND_FREQUENCY) >> 8) & 0xFF,
-	(((uint32_t) OUTPUT_SOUND_FREQUENCY) >> 16) & 0xFF,
-	(((uint32_t) OUTPUT_SOUND_FREQUENCY) >> 24) & 0xFF,  // Sample rate
-	((uint32_t) OUTPUT_SOUND_FREQUENCY * 2 * sizeof(s16)) & 0xFF,
-	(((uint32_t) OUTPUT_SOUND_FREQUENCY * 2 * sizeof(s16)) >> 8) & 0xFF,
-	(((uint32_t) OUTPUT_SOUND_FREQUENCY * 2 * sizeof(s16)) >> 16) & 0xFF,
-	(((uint32_t) OUTPUT_SOUND_FREQUENCY * 2 * sizeof(s16)) >> 24) & 0xFF,  // Byte rate
-	2 * sizeof(s16), 0,         // Bytes per sample for all channels
-	8 * sizeof(s16), 0,             // Bits per sample
-	'd', 'a', 't', 'a',         // Subchunk 2 identification
-	0, 0, 0, 0,                 // Subchunk 2 rest-of-chunk size, unknown as of yet
-};
-#endif
 
 void init_sdlaudio()
 {
@@ -165,25 +117,6 @@ void init_sdlaudio()
 		ReGBA_Trace("E: Failed to open audio: %s", SDL_GetError());
 		return;
 	}
-
-#ifdef SOUND_TO_FILE
-	char WaveFileName[MAX_PATH];
-	sprintf(WaveFileName, "%s/%s", main_path, "trace.wav");
-	WaveFile = fopen(WaveFileName, "wb");
-	if (WaveFile == NULL)
-	{
-		ReGBA_Trace("W: Could not open the trace wave file: %s", strerror(errno));
-	}
-	else
-	{
-		if (fwrite(WaveHeader, 1, sizeof(WaveHeader), WaveFile) < sizeof(WaveHeader) && errno != 0)
-		{
-			ReGBA_Trace("W: Could not write to the trace wave file: %s", strerror(errno));
-			fclose(WaveFile);
-			WaveFile = NULL;
-		}
-	}
-#endif
 
 	SDL_PauseAudio(0);
 }

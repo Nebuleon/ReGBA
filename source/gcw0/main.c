@@ -528,19 +528,6 @@ void quit()
   if(IsGameLoaded)
     update_backup_force();
 
-#ifdef SOUND_TO_FILE
-	// Go update the rest-of-chunk size field in the trace wave file.
-	uint32_t Size = ftell(WaveFile);
-	Size -= 8;
-	fseek(WaveFile, 4, SEEK_SET);
-	fwrite(&Size, 1, sizeof(uint32_t), WaveFile);
-	// Also update subchunk 2, 'data'.
-	Size -= 36;
-	fseek(WaveFile, 40, SEEK_SET);
-	fwrite(&Size, 1, sizeof(uint32_t), WaveFile);
-	fclose(WaveFile);
-#endif
-
 #if 0
   sound_exit();
 #endif
