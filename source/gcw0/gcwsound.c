@@ -11,6 +11,24 @@ volatile uint_fast8_t AudioFastForwarded;
 FILE* WaveFile;
 #endif
 
+static inline void RenderSample(int16_t* Left, int16_t* Right)
+{
+	int16_t LeftPart, RightPart;
+	uint32_t j;
+	for (j = 0; j < OUTPUT_FREQUENCY_DIVISOR; j++) {
+		ReGBA_LoadNextAudioSample(&LeftPart, &RightPart);
+
+		/* The GBA outputs in 12-bit sound. Make it louder. */
+		if      (LeftPart >  2047) LeftPart =  2047;
+		else if (LeftPart < -2048) LeftPart = -2048;
+		*Left += LeftPart / OUTPUT_FREQUENCY_DIVISOR;
+
+		if      (RightPart >  2047) RightPart =  2047;
+		else if (RightPart < -2048) RightPart = -2048;
+		*Right += RightPart / OUTPUT_FREQUENCY_DIVISOR;
+	}
+}
+
 void feed_buffer(void *udata, Uint8 *buffer, int len)
 {
 	s16* stream = (s16*) buffer;
@@ -29,22 +47,11 @@ void feed_buffer(void *udata, Uint8 *buffer, int len)
 	s16* Next = stream;
 
 	// Take the first half of the sound.
-	uint32_t i, j;
+	uint32_t i;
 	for (i = 0; i < Requested / 2; i++)
 	{
-		s16 Left = 0, Right = 0, LeftPart, RightPart;
-		for (j = 0; j < OUTPUT_FREQUENCY_DIVISOR; j++) {
-			ReGBA_LoadNextAudioSample(&LeftPart, &RightPart);
-
-			/* The GBA outputs in 12-bit sound. Make it louder. */
-			if      (LeftPart >  2047) LeftPart =  2047;
-			else if (LeftPart < -2048) LeftPart = -2048;
-			Left += LeftPart / OUTPUT_FREQUENCY_DIVISOR;
-
-			if      (RightPart >  2047) RightPart =  2047;
-			else if (RightPart < -2048) RightPart = -2048;
-			Right += RightPart / OUTPUT_FREQUENCY_DIVISOR;
-		}
+		s16 Left = 0, Right = 0;
+		RenderSample(&Left, &Right);
 
 		*Next++ = Left  << 4;
 		*Next++ = Right << 4;
@@ -66,19 +73,8 @@ void feed_buffer(void *udata, Uint8 *buffer, int len)
 	// Take the second half of the sound now.
 	for (i = 0; i < Requested - Requested / 2; i++)
 	{
-		s16 Left = 0, Right = 0, LeftPart, RightPart;
-		for (j = 0; j < OUTPUT_FREQUENCY_DIVISOR; j++) {
-			ReGBA_LoadNextAudioSample(&LeftPart, &RightPart);
-
-			/* The GBA outputs in 12-bit sound. Make it louder. */
-			if      (LeftPart >  2047) LeftPart =  2047;
-			else if (LeftPart < -2048) LeftPart = -2048;
-			Left += LeftPart / OUTPUT_FREQUENCY_DIVISOR;
-
-			if      (RightPart >  2047) RightPart =  2047;
-			else if (RightPart < -2048) RightPart = -2048;
-			Right += RightPart / OUTPUT_FREQUENCY_DIVISOR;
-		}
+		s16 Left = 0, Right = 0;
+		RenderSample(&Left, &Right);
 
 		*Next++ = Left  << 4;
 		*Next++ = Right << 4;
