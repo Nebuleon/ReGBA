@@ -3,7 +3,11 @@
 
 #include "port.h"
 
+#define GCW0_SCREEN_WIDTH  320
+#define GCW0_SCREEN_HEIGHT 240
+
 extern SDL_Surface* GBAScreenSurface;
+extern SDL_Surface* OutputSurface;
 
 typedef enum
 {
@@ -13,5 +17,7 @@ typedef enum
 } video_scale_type;
 
 void init_video();
+
+extern void ApplyScaleMode(video_scale_type NewMode);
 
 #endif /* __DRAW_H__ */

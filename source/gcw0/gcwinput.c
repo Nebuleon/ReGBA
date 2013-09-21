@@ -111,11 +111,16 @@ static void UpdateGCWZeroButtons()
 				break;
 		}
 	}
+}
 
+void ProcessSpecialKeys()
+{
 	// Before a menu gets implemented, X+Y held together are equivalent to an
 	// exit command.
 	if ((LastButtons & (GCW_ZERO_BUTTON_X | GCW_ZERO_BUTTON_Y)) == (GCW_ZERO_BUTTON_X | GCW_ZERO_BUTTON_Y))
 		quit();
+	else if ((LastButtons & (GCW_ZERO_BUTTON_START | GCW_ZERO_BUTTON_SELECT)) == (GCW_ZERO_BUTTON_START | GCW_ZERO_BUTTON_SELECT))
+		ReGBA_Menu(REGBA_MENU_ENTRY_REASON_MENU_KEY);
 }
 
 enum ReGBA_Buttons ReGBA_GetPressedButtons()
@@ -124,6 +129,7 @@ enum ReGBA_Buttons ReGBA_GetPressedButtons()
 	enum ReGBA_Buttons Result = 0;
 
 	UpdateGCWZeroButtons();
+	ProcessSpecialKeys();
 	for (i = 0; i < 13; i++)
 	{
 		if (LastButtons & KeypadRemapping[i])

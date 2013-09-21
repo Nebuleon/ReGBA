@@ -19,9 +19,6 @@
 
 #include "common.h"
 
-#define GCW0_SCREEN_WIDTH  320
-#define GCW0_SCREEN_HEIGHT 240
-
 uint16_t* GBAScreen;
 uint32_t  GBAScreenPitch = GBA_SCREEN_WIDTH;
 
@@ -52,91 +49,6 @@ void init_video()
 
 	SDL_ShowCursor(0);
 }
-
-#if 0
-void video_resolution_large()
-{
-  if(current_scale != unscaled)
-  {
-    resolution_width = 320;
-    resolution_height = 240;
-  }
-}
-
-void video_resolution_small()
-{
-  if(current_scale != screen_scale)
-  {
-    resolution_width = small_resolution_width;
-    resolution_height = small_resolution_height;
-  }
-}
-
-void set_gba_resolution(video_scale_type scale)
-{
-  if(screen_scale != scale)
-  {
-    screen_scale = scale;
-    switch(scale)
-    {
-      case unscaled:
-      case scaled_aspect:
-      case fullscreen:
-        small_resolution_width = 240 * video_scale;
-        small_resolution_height = 160 * video_scale;
-        break;
-    }
-  }
-}
-
-void clear_screen(u16 color)
-{
-  u16 *dest_ptr = get_screen_pixels();
-  u32 line_skip = get_screen_pitch() - screen->w;
-  u32 x, y;
-
-  for(y = 0; y < screen->h; y++)
-  {
-    for(x = 0; x < screen->w; x++, dest_ptr++)
-    {
-      *dest_ptr = color;
-    }
-    dest_ptr += line_skip;
-  }
-}
-#endif
-
-#define integer_scale_copy_2()                                                \
-  current_scanline_ptr[x2] = current_pixel;                                   \
-  current_scanline_ptr[x2 - 1] = current_pixel;                               \
-  x2 -= 2                                                                     \
-
-#define integer_scale_copy_3()                                                \
-  current_scanline_ptr[x2] = current_pixel;                                   \
-  current_scanline_ptr[x2 - 1] = current_pixel;                               \
-  current_scanline_ptr[x2 - 2] = current_pixel;                               \
-  x2 -= 3                                                                     \
-
-#define integer_scale_copy_4()                                                \
-  current_scanline_ptr[x2] = current_pixel;                                   \
-  current_scanline_ptr[x2 - 1] = current_pixel;                               \
-  current_scanline_ptr[x2 - 2] = current_pixel;                               \
-  current_scanline_ptr[x2 - 3] = current_pixel;                               \
-  x2 -= 4                                                                     \
-
-#define integer_scale_horizontal(scale_factor)                                \
-  for(y = 0; y < 160; y++)                                                    \
-  {                                                                           \
-    for(x = 239, x2 = (240 * video_scale) - 1; x >= 0; x--)                   \
-    {                                                                         \
-      current_pixel = current_scanline_ptr[x];                                \
-      integer_scale_copy_##scale_factor();                                    \
-      current_scanline_ptr[x2] = current_scanline_ptr[x];                     \
-      current_scanline_ptr[x2 - 1] = current_scanline_ptr[x];                 \
-      current_scanline_ptr[x2 - 2] = current_scanline_ptr[x];                 \
-    }                                                                         \
-    current_scanline_ptr += pitch;                                            \
-  }                                                                           \
 
 /***************************************************************************
  *   Scaler copyright (C) 2013 by Paul Cercueil                            *
@@ -302,8 +214,56 @@ static inline void gba_render(uint32_t* Dest, uint32_t* Src, uint32_t Width, uin
 	}
 }
 
+void ApplyScaleMode(video_scale_type NewMode)
+{
+	switch (NewMode)
+	{
+		case unscaled:
+		{
+			// Clear the border to prevent image remanence there.
+			uint_fast16_t X, Y;
+			for (Y = 0; Y < GCW0_SCREEN_HEIGHT; Y++)
+			{
+				uint16_t* Line = (uint16_t *) OutputSurface->pixels + Y * GCW0_SCREEN_WIDTH;
+				// Clear left
+				memset(Line, 0, (GCW0_SCREEN_WIDTH - GBA_SCREEN_WIDTH) / 2 * sizeof(uint16_t));
+				// Clear right
+				memset(Line + ((GCW0_SCREEN_WIDTH + GBA_SCREEN_WIDTH) / 2), 0, (GCW0_SCREEN_WIDTH - GBA_SCREEN_WIDTH) / 2 * sizeof(uint16_t));
+			}
+			// Clear top
+			for (Y = 0; Y < (GCW0_SCREEN_HEIGHT - GBA_SCREEN_HEIGHT) / 2; Y++)
+			{
+				uint16_t* Line = (uint16_t *) OutputSurface->pixels + Y * GCW0_SCREEN_WIDTH;
+				memset(Line + ((GCW0_SCREEN_WIDTH - GBA_SCREEN_WIDTH) / 2), 0, GBA_SCREEN_WIDTH * sizeof(uint16_t));
+			}
+			// Clear bottom
+			for (Y = (GCW0_SCREEN_HEIGHT + GBA_SCREEN_HEIGHT) / 2; Y < GCW0_SCREEN_HEIGHT; Y++)
+			{
+				uint16_t* Line = (uint16_t *) OutputSurface->pixels + Y * GCW0_SCREEN_WIDTH;
+				memset(Line + ((GCW0_SCREEN_WIDTH - GBA_SCREEN_WIDTH) / 2), 0, GBA_SCREEN_WIDTH * sizeof(uint16_t));
+			}
+			break;
+		}
+
+		case scaled_aspect:
+			// Unimplemented
+			break;
+
+		case fullscreen:
+			break;
+	}
+	ScaleMode = NewMode;
+}
+
 void ReGBA_RenderScreen(void)
 {
+	int16_t Y = GetVerticalAxisValue();
+
+	if (Y < -32700)
+		ApplyScaleMode(fullscreen);
+	else if (Y > 32700)
+		ApplyScaleMode(unscaled);
+
 	if (ReGBA_IsRenderingNextFrame())
 	{
 		if (ScaleMode == unscaled)
@@ -329,17 +289,6 @@ void ReGBA_RenderScreen(void)
 	else
 		FastForwardValue = 0;
 
-	int16_t Y = GetVerticalAxisValue();
-
-	if (Y < -32700)
-		ScaleMode = fullscreen;
-	else if (Y > 32700)
-	{
-		ScaleMode = unscaled;
-		// Clear the output surface to remove border artifacts.
-		memset(OutputSurface->pixels, 0, GCW0_SCREEN_WIDTH * GCW0_SCREEN_HEIGHT * sizeof(uint16_t));
-	}
-
 	if (FastForwardControl >= 60)
 	{
 		FastForwardControl -= 60;
@@ -347,84 +296,6 @@ void ReGBA_RenderScreen(void)
 	}
 	FastForwardControl += FastForwardValue;
 }
-
-#if 0
-void update_display(void)
-{
-	if (!screen_scale)
-		SDL_BlitSurface(screen,NULL,display,NULL);
-	else
-	{
-		uint32_t *src = (uint32_t *)screen->pixels + 20 + 80 * (320 - 240);
-		gba_upscale((uint32_t*)display->pixels, src, 240, 160, 320 - 240);
-	}
-
-	SDL_Flip(display);
-}
-
-void flip_screen()
-{
-  if (!screen)
-	  return;
-	
-  if((video_scale != 1) && (current_scale != unscaled))
-  {
-    s32 x, y;
-    s32 x2, y2;
-    u16 *screen_ptr = get_screen_pixels();
-    u16 *current_scanline_ptr = screen_ptr;
-    u32 pitch = get_screen_pitch();
-    u16 current_pixel;
-    u32 i;
-
-    switch(video_scale)
-    {
-      case 2:
-        integer_scale_horizontal(2);
-        break;
-
-      case 3:
-        integer_scale_horizontal(3);
-        break;
-
-      default:
-      case 4:
-        integer_scale_horizontal(4);
-        break;
-
-    }
-
-    for(y = 159, y2 = (160 * video_scale) - 1; y >= 0; y--)
-    {
-      for(i = 0; i < video_scale; i++)
-      {
-        memcpy(screen_ptr + (y2 * pitch),
-         screen_ptr + (y * pitch), 480 * video_scale);
-        y2--;
-      }
-    }
-  }
-  update_normal();
-}
-#endif
-
-u32 frame_to_render;
-
-#if 0
-void update_screen()
-{
-  if (!GBAScreenSurface)
-		return;
-  if(!skip_next_frame)
-	  update_display();
-}
-#endif
-
-video_scale_type screen_scale = fullscreen;
-video_scale_type current_scale = fullscreen;
-#if 0
-video_filter_type screen_filter = filter_bilinear;
-#endif
 
 u16 *copy_screen()
 {
