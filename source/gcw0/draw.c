@@ -26,6 +26,7 @@ volatile uint_fast8_t VideoFastForwarded;
 
 SDL_Surface *GBAScreenSurface = NULL;
 SDL_Surface *OutputSurface = NULL;
+SDL_Surface *BorderSurface = NULL;
 
 video_scale_type ScaleMode = fullscreen;
 
@@ -48,6 +49,33 @@ void init_video()
 	GBAScreen = (uint16_t*) GBAScreenSurface->pixels;
 
 	SDL_ShowCursor(0);
+}
+
+bool ApplyBorder(const char* Filename)
+{
+	SDL_Surface* JustLoaded = loadPNG(Filename, GCW0_SCREEN_WIDTH, GCW0_SCREEN_HEIGHT);
+	bool Result = false;
+	if (JustLoaded != NULL)
+	{
+		if (JustLoaded->w == GCW0_SCREEN_WIDTH && JustLoaded->h == GCW0_SCREEN_HEIGHT)
+		{
+			if (BorderSurface != NULL)
+			{
+				SDL_FreeSurface(BorderSurface);
+				BorderSurface = NULL;
+			}
+			BorderSurface = SDL_CreateRGBSurface(SDL_SWSURFACE, GCW0_SCREEN_WIDTH, GCW0_SCREEN_HEIGHT, 16,
+			  OutputSurface->format->Rmask,
+			  OutputSurface->format->Gmask,
+			  OutputSurface->format->Bmask,
+			  OutputSurface->format->Amask);
+			SDL_BlitSurface(JustLoaded, NULL, BorderSurface, NULL);
+			Result = true;
+		}
+		SDL_FreeSurface(JustLoaded);
+		JustLoaded = NULL;
+	}
+	return Result;
 }
 
 /***************************************************************************
@@ -219,31 +247,17 @@ void ApplyScaleMode(video_scale_type NewMode)
 	switch (NewMode)
 	{
 		case unscaled:
-		{
-			// Clear the border to prevent image remanence there.
-			uint_fast16_t X, Y;
-			for (Y = 0; Y < GCW0_SCREEN_HEIGHT; Y++)
+			// Either show the border
+			if (BorderSurface != NULL)
 			{
-				uint16_t* Line = (uint16_t *) OutputSurface->pixels + Y * GCW0_SCREEN_WIDTH;
-				// Clear left
-				memset(Line, 0, (GCW0_SCREEN_WIDTH - GBA_SCREEN_WIDTH) / 2 * sizeof(uint16_t));
-				// Clear right
-				memset(Line + ((GCW0_SCREEN_WIDTH + GBA_SCREEN_WIDTH) / 2), 0, (GCW0_SCREEN_WIDTH - GBA_SCREEN_WIDTH) / 2 * sizeof(uint16_t));
+				SDL_BlitSurface(BorderSurface, NULL, OutputSurface, NULL);
 			}
-			// Clear top
-			for (Y = 0; Y < (GCW0_SCREEN_HEIGHT - GBA_SCREEN_HEIGHT) / 2; Y++)
+			// or clear the rest of the screen to prevent image remanence.
+			else
 			{
-				uint16_t* Line = (uint16_t *) OutputSurface->pixels + Y * GCW0_SCREEN_WIDTH;
-				memset(Line + ((GCW0_SCREEN_WIDTH - GBA_SCREEN_WIDTH) / 2), 0, GBA_SCREEN_WIDTH * sizeof(uint16_t));
-			}
-			// Clear bottom
-			for (Y = (GCW0_SCREEN_HEIGHT + GBA_SCREEN_HEIGHT) / 2; Y < GCW0_SCREEN_HEIGHT; Y++)
-			{
-				uint16_t* Line = (uint16_t *) OutputSurface->pixels + Y * GCW0_SCREEN_WIDTH;
-				memset(Line + ((GCW0_SCREEN_WIDTH - GBA_SCREEN_WIDTH) / 2), 0, GBA_SCREEN_WIDTH * sizeof(uint16_t));
+				memset(OutputSurface->pixels, 0, GCW0_SCREEN_WIDTH * GCW0_SCREEN_HEIGHT * sizeof(u16));
 			}
 			break;
-		}
 
 		case scaled_aspect:
 			// Unimplemented
@@ -266,6 +280,7 @@ void ReGBA_RenderScreen(void)
 
 	if (ReGBA_IsRenderingNextFrame())
 	{
+		ApplyScaleMode(ScaleMode);
 		if (ScaleMode == unscaled)
 		{
 			gba_render((uint32_t *) OutputSurface->pixels, (uint32_t *) GBAScreenSurface->pixels, GCW0_SCREEN_WIDTH, GCW0_SCREEN_HEIGHT);

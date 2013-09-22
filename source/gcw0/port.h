@@ -63,5 +63,6 @@ typedef FILE* FILE_TAG_TYPE;
 #include "main.h"
 #include "gcwsound.h"
 #include "gcwinput.h"
+#include "imageio.h"
 
 #endif

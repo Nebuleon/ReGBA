@@ -17,6 +17,7 @@ typedef enum
 } video_scale_type;
 
 void init_video();
+extern bool ApplyBorder(const char* Filename);
 
 extern void ApplyScaleMode(video_scale_type NewMode);
 

@@ -144,7 +144,7 @@ int main(int argc, char *argv[])
   u32 ticks;
   u32 dispstat;
   char load_filename[512];
-  char bios_file[512];
+  char file[MAX_PATH + 1];
 
 	// Copy the path of the executable into executable_path
 	if (realpath(argv[0], executable_path) == 0)
@@ -173,11 +173,11 @@ int main(int argc, char *argv[])
 
 	// Try loading the user's .gpsp directory's GBA BIOS first.
 	// Fall back on the bundled one.
-	sprintf(bios_file, "%s/gba_bios.bin", main_path);
-	if(load_bios(bios_file) == -1)
+	sprintf(file, "%s/gba_bios.bin", main_path);
+	if(load_bios(file) == -1)
 	{
-		sprintf(bios_file, "%s/gba_bios.bin", executable_path);
-		if (load_bios(bios_file) == -1)
+		sprintf(file, "%s/gba_bios.bin", executable_path);
+		if (load_bios(file) == -1)
 		{
 			printf("The GBA BIOS was not found in any location.\n");
 			printf("You can load one in your home directory's\n");
@@ -189,7 +189,23 @@ int main(int argc, char *argv[])
 		}
 	}
 
-  init_main();
+	init_main();
+	init_video();
+	init_sdlaudio();
+	init_sound();
+
+	// Try loading a border from the user's .gpsp directory first.
+	// Fall back on the bundled one.
+	sprintf(file, "%s/border.png", main_path);
+	if (!ApplyBorder(file))
+	{
+		sprintf(file, "%s/regba-sp-border-silver.png", executable_path);
+		if (!ApplyBorder(file))
+		{
+			fprintf(stderr, "Failed to load a GBA border. None will be shown in unscaled modes.");
+		}
+	}
+
 
 #if 0
   video_resolution_large();
@@ -203,9 +219,6 @@ int main(int argc, char *argv[])
       quit();
     }
 
-	init_video();
-	init_sdlaudio();
-	init_sound();
 #if 0
 	init_input();
 
