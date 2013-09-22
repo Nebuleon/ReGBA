@@ -18,7 +18,7 @@ struct GPSP_STATS {
 	 * updated and read by StatsDisplayFPS. */
 	u32	RenderedFrames;
 	u32	EmulatedFrames;
-	u32	LastFPSCalculationTime;
+	timespec	LastFPSCalculationTime;
 	s32	RenderedFPS;
 	s32	EmulatedFPS;
 

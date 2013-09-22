@@ -381,6 +381,8 @@ u32 update_gba()
           synchronize();
 #endif
 
+		Stats.EmulatedFrames++;
+		Stats.TotalEmulatedFrames++;
 		ReGBA_RenderScreen();
 
           update_backup();

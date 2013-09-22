@@ -15,6 +15,9 @@ typedef FILE* FILE_TAG_TYPE;
 #define MAX_FILE PATH_MAX
 
 #include <SDL/SDL.h>
+#include <time.h>
+
+typedef struct timespec timespec;
 
 /* Tuning parameters for the GCW Zero version of gpSP */
 /* Its processor is an Ingenic JZ4770 at 1000 MHz with 256..512 MiB of RAM */

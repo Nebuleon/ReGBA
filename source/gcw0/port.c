@@ -60,18 +60,45 @@ void ReGBA_MaxBlockSizeReached(u32 BlockStartPC, u32 BlockEndPC, u32 BlockSize)
 	ReGBA_Trace("%u instructions in the block of GBA code from %08X to %08X", BlockSize, BlockStartPC, BlockEndPC);
 }
 
+static timespec TimeDifference(timespec Past, timespec Present)
+{
+	timespec Result;
+	Result.tv_sec = Present.tv_sec - Past.tv_sec;
+
+	if (Present.tv_nsec >= Past.tv_nsec)
+		Result.tv_nsec = Present.tv_nsec - Past.tv_nsec;
+	else
+	{
+		Result.tv_nsec = 1000000000 - (Past.tv_nsec - Present.tv_nsec);
+		Result.tv_sec--;
+	}
+	return Result;
+}
+
 void ReGBA_DisplayFPS(void)
 {
 #if 0
 	u32 Visible = gpsp_persistent_config.DisplayFPS;
+#else
+	u32 Visible = 1;
+#endif
 	if (Visible)
 	{
-		unsigned int Now = getSysTime(), Duration = Now - Stats.LastFPSCalculationTime;
-		if (Duration >= 23437 /* 1 second */)
+		timespec Now;
+		clock_gettime(CLOCK_MONOTONIC, &Now);
+		timespec Duration = TimeDifference(Stats.LastFPSCalculationTime, Now);
+		if (Duration.tv_sec >= 2)
 		{
-			Stats.RenderedFPS = Stats.RenderedFrames * 23437 / Duration;
+			Visible = 0;
+			StatsStopFPS();
+			Stats.LastFPSCalculationTime = Now;
+		}
+		else if (Duration.tv_sec >= 1)
+		{
+			uint32_t Nanoseconds = (uint32_t) Duration.tv_sec * 1000000000 + Duration.tv_nsec;
+			Stats.RenderedFPS = (uint64_t) Stats.RenderedFrames * 1000000000 / Nanoseconds;
 			Stats.RenderedFrames = 0;
-			Stats.EmulatedFPS = Stats.EmulatedFrames * 23437 / Duration;
+			Stats.EmulatedFPS = (uint64_t) Stats.EmulatedFrames * 1000000000 / Nanoseconds;
 			Stats.EmulatedFrames = 0;
 			Stats.LastFPSCalculationTime = Now;
 		}
@@ -79,15 +106,19 @@ void ReGBA_DisplayFPS(void)
 			Visible = Stats.RenderedFPS != -1 && Stats.EmulatedFPS != -1;
 	}
 
-	// Blacken the bottom bar
-	memset((u16*) *gba_screen_addr_ptr + 177 * 256, 0, 15 * 256 * sizeof(u16));
 	if (Visible)
 	{
 		char line[512];
-		sprintf(line, msg[FMT_STATUS_FRAMES_PER_SECOND], Stats.RenderedFPS, Stats.EmulatedFPS);
-		PRINT_STRING_BG_UTF8(*gba_screen_addr_ptr, line, 0x7FFF, 0x0000, 1, 177);
+		sprintf(line, "%2u/%3u", Stats.RenderedFPS, Stats.EmulatedFPS);
+		// Black outline
+		int32_t x, y;
+		for (x = -1; x <= 1; x++)
+			for (y = -1; y <= 1; y++)
+				if (!(x == 0 && y == 0))
+					print_string(line, 0x0000, 7 + x, GCW0_SCREEN_HEIGHT - 19 + y);
+		// White text
+		print_string(line, 0xFFFF, 7, GCW0_SCREEN_HEIGHT - 19);
 	}
-#endif
 }
 
 void ReGBA_LoadRTCTime(struct ReGBA_RTC* RTCData)
@@ -173,6 +204,10 @@ bool ReGBA_GetBundledGameConfig(char* Result)
 u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason)
 {
 	// TODO Fill this function in
+	StatsStopFPS();
+	timespec Now;
+	clock_gettime(CLOCK_MONOTONIC, &Now);
+	Stats.LastFPSCalculationTime = Now;
 	return 0;
 }
 

@@ -280,6 +280,7 @@ void ReGBA_RenderScreen(void)
 
 	if (ReGBA_IsRenderingNextFrame())
 	{
+		Stats.RenderedFrames++;
 		ApplyScaleMode(ScaleMode);
 		if (ScaleMode == unscaled)
 		{
@@ -290,6 +291,7 @@ void ReGBA_RenderScreen(void)
 			uint32_t *src = (uint32_t *) GBAScreen;
 			gba_upscale((uint32_t*) OutputSurface->pixels, src, GBA_SCREEN_WIDTH, GBA_SCREEN_HEIGHT);
 		}
+		ReGBA_DisplayFPS();
 
 		SDL_Flip(OutputSurface);
 

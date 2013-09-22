@@ -34,6 +34,8 @@
 
 typedef FILE* FILE_TAG_TYPE;
 
+typedef u32 timespec;
+
 #include "fs_api.h"
 #include "ds2_unistd.h"
 
