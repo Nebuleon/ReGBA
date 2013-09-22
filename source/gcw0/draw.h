@@ -24,4 +24,13 @@ extern void ApplyScaleMode(video_scale_type NewMode);
 extern void print_string(const char *str, u16 fg_color,
  u32 x, u32 y);
 
+extern void print_string_outline(const char *str, u16 fg_color, u16 border_color,
+ u32 x, u32 y);
+
+#define RGB888_TO_RGB565(r, g, b) ( \
+  (((r) & 0xF8) << 8) | \
+  (((g) & 0xFC) << 3) | \
+  (((b) & 0xF8) >> 3) \
+  )
+
 #endif /* __DRAW_H__ */

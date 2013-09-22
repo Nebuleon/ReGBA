@@ -401,3 +401,14 @@ void print_string(const char *str, u16 fg_color,
 {
   print_string_ext(str, fg_color, x, y, OutputSurface->pixels, GCW0_SCREEN_WIDTH);
 }
+
+void print_string_outline(const char *str, u16 fg_color, u16 border_color,
+ u32 x, u32 y)
+{
+	int32_t sx, sy;
+	for (sx = -1; sx <= 1; sx++)
+		for (sy = -1; sy <= 1; sy++)
+			if (!(sx == 0 && sy == 0))
+				print_string(str, border_color, x + sx, y + sy);
+	print_string(str, fg_color, x, y);
+}

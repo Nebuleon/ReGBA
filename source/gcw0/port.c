@@ -110,14 +110,8 @@ void ReGBA_DisplayFPS(void)
 	{
 		char line[512];
 		sprintf(line, "%2u/%3u", Stats.RenderedFPS, Stats.EmulatedFPS);
-		// Black outline
-		int32_t x, y;
-		for (x = -1; x <= 1; x++)
-			for (y = -1; y <= 1; y++)
-				if (!(x == 0 && y == 0))
-					print_string(line, 0x0000, 7 + x, GCW0_SCREEN_HEIGHT - 19 + y);
-		// White text
-		print_string(line, 0xFFFF, 7, GCW0_SCREEN_HEIGHT - 19);
+		// White text, black outline
+		print_string_outline(line, RGB888_TO_RGB565(255, 255, 255), RGB888_TO_RGB565(0, 0, 0), 7, GCW0_SCREEN_HEIGHT - 19);
 	}
 }
 
