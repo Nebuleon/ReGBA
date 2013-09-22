@@ -21,4 +21,7 @@ extern bool ApplyBorder(const char* Filename);
 
 extern void ApplyScaleMode(video_scale_type NewMode);
 
+extern void print_string(const char *str, u16 fg_color,
+ u32 x, u32 y);
+
 #endif /* __DRAW_H__ */

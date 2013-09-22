@@ -351,79 +351,51 @@ void blit_to_screen(u16 *src, u32 w, u32 h, u32 dest_x, u32 dest_y)
   }
 }
 
-#if 0
-void print_string_ext(const char *str, u16 fg_color, u16 bg_color,
- u32 x, u32 y, void *_dest_ptr, u32 pitch, u32 pad)
+void print_string_ext(const char *str, u16 fg_color,
+ u32 x, u32 y, void *_dest_ptr, u32 pitch)
 {
-  u16 *dest_ptr = (u16 *)_dest_ptr + (y * pitch) + x;
-  u8 current_char = str[0];
-  u32 current_row;
-  u32 glyph_offset;
-  u32 i = 0, i2, i3;
-  u32 str_index = 1;
+  u16 *dest_ptr;
+  uint_fast8_t current_char;
+  u32 current_halfword;
+  u32 glyph_offset, glyph_width;
+  u32 glyph_row, glyph_column;
+  u32 i = 0;
+  u32 str_index = 0;
   u32 current_x = x;
 
-  while(current_char)
+  while((current_char = str[str_index++]) != '\0')
   {
+    dest_ptr = (u16 *)_dest_ptr + (y * pitch) + current_x;
     if(current_char == '\n')
     {
-      y += FONT_HEIGHT;
+      y += _font_height;
       current_x = x;
-      dest_ptr = get_screen_pixels() + (y * pitch) + x;
     }
     else
     {
-      glyph_offset = _font_offset[current_char];
-      current_x += FONT_WIDTH;
-      for(i2 = 0; i2 < FONT_HEIGHT; i2++, glyph_offset++)
+      glyph_offset = current_char * _font_height;
+	  glyph_width = _font_width[current_char];
+      current_x += glyph_width;
+      for(glyph_row = 0; glyph_row < _font_height; glyph_row++, glyph_offset++)
       {
-        current_row = _font_bits[glyph_offset];
-        for(i3 = 0; i3 < FONT_WIDTH; i3++)
-        {
-          if((current_row >> (15 - i3)) & 0x01)
-            *dest_ptr = fg_color;
-          else
-            *dest_ptr = bg_color;
-          dest_ptr++;
-        }
-        dest_ptr += (pitch - FONT_WIDTH);
-      }
-      dest_ptr = dest_ptr - (pitch * FONT_HEIGHT) + FONT_WIDTH;
-    }
+		current_halfword = _font_bits[glyph_offset];
+		for (glyph_column = 0; glyph_column < glyph_width; glyph_column++)
+		{
+			if ((current_halfword >> (15 - glyph_column)) & 0x01)
+				*dest_ptr = fg_color;
+			dest_ptr++;
+		}
+		  dest_ptr += pitch - glyph_width;
+	  }
+	}
 
-    i++;
-
-    current_char = str[str_index];
-
-    if((i < pad) && (current_char == 0))
-    {
-      current_char = ' ';
-    }
-    else
-    {
-      str_index++;
-    }
-
-#ifdef ZAURUS
-    if(current_x >= 320)
-#else
-    if(current_x >= 480)
-#endif
+    if(current_x >= GCW0_SCREEN_WIDTH)
       break;
   }
 }
 
-void print_string(const char *str, u16 fg_color, u16 bg_color,
+void print_string(const char *str, u16 fg_color,
  u32 x, u32 y)
 {
-  print_string_ext(str, fg_color, bg_color, x, y, get_screen_pixels(),
-   get_screen_pitch(), 0);
+  print_string_ext(str, fg_color, x, y, OutputSurface->pixels, GCW0_SCREEN_WIDTH);
 }
-
-void print_string_pad(const char *str, u16 fg_color, u16 bg_color,
- u32 x, u32 y, u32 pad)
-{
-  print_string_ext(str, fg_color, bg_color, x, y, get_screen_pixels(),
-   get_screen_pitch(), pad);
-}
-#endif

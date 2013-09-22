@@ -64,5 +64,6 @@ typedef FILE* FILE_TAG_TYPE;
 #include "gcwsound.h"
 #include "gcwinput.h"
 #include "imageio.h"
+#include "unifont.h"
 
 #endif
