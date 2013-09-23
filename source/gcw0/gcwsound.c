@@ -35,6 +35,11 @@ void feed_buffer(void *udata, Uint8 *buffer, int len)
 	u32 Samples = ReGBA_GetAudioSamplesAvailable() / OUTPUT_FREQUENCY_DIVISOR;
 	u32 Requested = len / (2 * sizeof(s16));
 
+	u8 WasInUnderrun = Stats.InSoundBufferUnderrun;
+	Stats.InSoundBufferUnderrun = Samples < Requested * 2;
+	if (Stats.InSoundBufferUnderrun && !WasInUnderrun)
+		Stats.SoundBufferUnderrunCount++;
+
 	/* There must be AUDIO_OUTPUT_BUFFER_SIZE * 2 samples generated in order
 	 * for the first AUDIO_OUTPUT_BUFFER_SIZE to be valid. Some sound is
 	 * generated in the past from the future, and if the first
@@ -43,6 +48,8 @@ void feed_buffer(void *udata, Uint8 *buffer, int len)
 	 * still be silence, causing crackling. */
 	if (Samples < Requested * 2)
 		return; // Generate more sound first, please!
+	else
+		Stats.InSoundBufferUnderrun = 0;
 		
 	s16* Next = stream;
 
