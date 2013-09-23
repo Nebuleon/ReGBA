@@ -23,6 +23,8 @@ uint16_t* GBAScreen;
 uint32_t  GBAScreenPitch = GBA_SCREEN_WIDTH;
 
 volatile uint_fast8_t VideoFastForwarded;
+uint_fast8_t AudioFrameskip = 0;
+uint_fast8_t AudioFrameskipControl = 0;
 
 SDL_Surface *GBAScreenSurface = NULL;
 SDL_Surface *OutputSurface = NULL;
@@ -296,7 +298,17 @@ void ReGBA_RenderScreen(void)
 		SDL_Flip(OutputSurface);
 
 		while (ReGBA_GetAudioSamplesAvailable() > AUDIO_OUTPUT_BUFFER_SIZE * 3 * OUTPUT_FREQUENCY_DIVISOR + (VideoFastForwarded - AudioFastForwarded) * ((int) (SOUND_FREQUENCY / 59.73)))
+		{
+			if (AudioFrameskip > 0)
+				AudioFrameskip--;
 			usleep(1000);
+		}
+	}
+
+	if (ReGBA_GetAudioSamplesAvailable() < AUDIO_OUTPUT_BUFFER_SIZE * 2 * OUTPUT_FREQUENCY_DIVISOR)
+	{
+		if (AudioFrameskip < MAX_AUTO_FRAMESKIP)
+			AudioFrameskip++;
 	}
 
 	int16_t X = GetHorizontalAxisValue();
@@ -312,6 +324,11 @@ void ReGBA_RenderScreen(void)
 		VideoFastForwarded++;
 	}
 	FastForwardControl += FastForwardValue;
+
+	if (AudioFrameskipControl > 0)
+		AudioFrameskipControl--;
+	else if (AudioFrameskipControl == 0)
+		AudioFrameskipControl = AudioFrameskip;
 }
 
 u16 *copy_screen()

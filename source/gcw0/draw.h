@@ -9,6 +9,9 @@
 extern SDL_Surface* GBAScreenSurface;
 extern SDL_Surface* OutputSurface;
 
+extern uint_fast8_t AudioFrameskip;
+extern uint_fast8_t AudioFrameskipControl;
+
 typedef enum
 {
   unscaled,

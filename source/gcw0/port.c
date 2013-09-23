@@ -132,7 +132,7 @@ void ReGBA_LoadRTCTime(struct ReGBA_RTC* RTCData)
 
 bool ReGBA_IsRenderingNextFrame()
 {
-	return FastForwardControl < 60;
+	return FastForwardControl < 60 && AudioFrameskipControl == 0;
 }
 
 const char* GetFileName(const char* Path)
