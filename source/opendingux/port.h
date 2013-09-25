@@ -66,8 +66,8 @@ typedef struct timespec timespec;
 
 #include "draw.h"
 #include "main.h"
-#include "gcwsound.h"
-#include "gcwinput.h"
+#include "od-sound.h"
+#include "od-input.h"
 #include "imageio.h"
 #include "unifont.h"
 

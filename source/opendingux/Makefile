@@ -10,13 +10,13 @@ SDL_LIBS    := $(shell $(SYSROOT)/usr/bin/sdl-config --libs)
 
 OBJS        := main.o draw.o port.o port-asm.o gcwinput.o ../video.o          \
               ../input.o ../bios.o ../zip.o ../sound.o ../mips/stub.o         \
-              ../stats.o ../memory.o ../cpu_common.o ../cpu_asm.o gcwsound.o  \
+              ../stats.o ../memory.o ../cpu_common.o ../cpu_asm.o od-sound.o  \
               ../sha1.o imageio.o ../unifont.o
               
 HEADERS     := cheats.h ../common.h ../cpu_common.h ../cpu.h draw.h main.h    \
                ../input.h ../memory.h message.h ../mips/emit.h ../sound.h     \
-               ../stats.h ../video.h ../zip.h port.h gcwsound.h ../sha1.h     \
-               imageio.h ../unifont.h
+               ../stats.h ../video.h ../zip.h port.h od-sound.h ../sha1.h     \
+               imageio.h ../unifont.h od-input.h
 
 INCLUDE     := -I. -I.. -I../mips
 DEFS        := -DMIPS_XBURST
