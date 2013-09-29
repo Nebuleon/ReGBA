@@ -1,6 +1,7 @@
-/* gameplaySP
+/* ReGBA - In-application menu
  *
- * Copyright (C) 2006 Exophase <exophase@gmail.com>
+ * Copyright (C) 2013 Dingoonity user Nebuleon
+ * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public Licens e as
  * published by the Free Software Foundation; either version 2 of
