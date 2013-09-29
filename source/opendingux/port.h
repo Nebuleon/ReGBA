@@ -71,4 +71,9 @@ typedef struct timespec timespec;
 #include "imageio.h"
 #include "unifont.h"
 
+extern uint32_t BootFromBIOS;
+extern uint32_t ShowFPS;
+
+extern struct timespec TimeDifference(struct timespec Past, struct timespec Present);
+
 #endif

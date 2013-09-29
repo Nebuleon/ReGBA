@@ -3368,10 +3368,10 @@ u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason)
 	/* 00 */ SUBMENU_OPTION(&tools_debug_menu, &EXECUTION_STATISTICS, NULL, 0),
 
 	/* 01 */ NUMERIC_SELECTION_HIDE_OPTION(NULL, NULL, &SOUND_BUFFER_UNDERRUNS,
-        &Stats.SoundBufferUnderrunCount, 2, NULL, 1),
+        (int32_t*) &Stats.SoundBufferUnderrunCount, 2, NULL, 1),
 
 	/* 02 */ NUMERIC_SELECTION_HIDE_OPTION(NULL, NULL, &FRAMES_EMULATED,
-        &Stats.TotalEmulatedFrames, 2, NULL, 2),
+        (int32_t*) &Stats.TotalEmulatedFrames, 2, NULL, 2),
 
 #ifdef PERFORMANCE_IMPACTING_STATISTICS
 	/* 03 */ NUMERIC_SELECTION_HIDE_OPTION(NULL, NULL, &ARM_OPCODES_DECODED,

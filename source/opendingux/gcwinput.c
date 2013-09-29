@@ -64,7 +64,7 @@ enum GCWZero_Buttons {
 
 // These must be GCW Zero buttons at the bit suitable for the ReGBA_Buttons
 // enumeration.
-uint32_t KeypadRemapping[13] = {
+enum GCWZero_Buttons KeypadRemapping[13] = {
 	GCW_ZERO_BUTTON_A,       // GBA A
 	GCW_ZERO_BUTTON_B,       // GBA B
 	GCW_ZERO_BUTTON_SELECT,  // GBA Select
@@ -75,9 +75,32 @@ uint32_t KeypadRemapping[13] = {
 	GCW_ZERO_BUTTON_DOWN,    // GBA D-pad Down
 	GCW_ZERO_BUTTON_R,       // GBA R trigger
 	GCW_ZERO_BUTTON_L,       // GBA L trigger
-	GCW_ZERO_BUTTON_Y,       // ReGBA rapid-fire A
-	GCW_ZERO_BUTTON_X,       // ReGBA rapid-fire B
-	0                        // ReGBA Menu
+	0,                       // ReGBA rapid-fire A
+	0,                       // ReGBA rapid-fire B
+	GCW_ZERO_BUTTON_Y,       // ReGBA Menu
+};
+
+// The menu keys, in decreasing order of priority when two or more are
+// pressed. For example, when the user keeps a direction pressed but also
+// presses A, start ignoring the direction.
+enum GCWZero_Buttons MenuKeys[6] = {
+	GCW_ZERO_BUTTON_A,       // Select/Enter button
+	GCW_ZERO_BUTTON_B,       // Cancel/Leave button
+	GCW_ZERO_BUTTON_DOWN,    // Menu navigation
+	GCW_ZERO_BUTTON_UP,
+	GCW_ZERO_BUTTON_RIGHT,
+	GCW_ZERO_BUTTON_LEFT,
+};
+
+// In the same order as MenuKeys above. Maps the GCW Zero buttons to their
+// corresponding GUI action.
+enum GUI_Action MenuKeysToGUI[6] = {
+	GUI_ACTION_ENTER,
+	GUI_ACTION_LEAVE,
+	GUI_ACTION_DOWN,
+	GUI_ACTION_UP,
+	GUI_ACTION_LEFT,
+	GUI_ACTION_RIGHT,
 };
 
 static enum GCWZero_Buttons LastButtons = 0;
@@ -115,12 +138,7 @@ static void UpdateGCWZeroButtons()
 
 void ProcessSpecialKeys()
 {
-	// Before a menu gets implemented, X+Y held together are equivalent to an
-	// exit command.
-	if ((LastButtons & (GCW_ZERO_BUTTON_X | GCW_ZERO_BUTTON_Y)) == (GCW_ZERO_BUTTON_X | GCW_ZERO_BUTTON_Y))
-		quit();
-	else if ((LastButtons & (GCW_ZERO_BUTTON_START | GCW_ZERO_BUTTON_SELECT)) == (GCW_ZERO_BUTTON_START | GCW_ZERO_BUTTON_SELECT))
-		ReGBA_Menu(REGBA_MENU_ENTRY_REASON_MENU_KEY);
+	// none for now
 }
 
 enum ReGBA_Buttons ReGBA_GetPressedButtons()
@@ -169,4 +187,74 @@ int16_t GetVerticalAxisValue()
 		return SDL_JoystickGetAxis(Joystick, 1);
 	else
 		return 0;
+}
+
+enum GUI_ActionRepeatState
+{
+  BUTTON_NOT_HELD,
+  BUTTON_HELD_INITIAL,
+  BUTTON_HELD_REPEAT
+};
+
+// Nanoseconds to wait before repeating GUI actions the first time.
+static const uint64_t BUTTON_REPEAT_START    = 500000000;
+// Nanoseconds to wait before repeating GUI actions subsequent times.
+static const uint64_t BUTTON_REPEAT_CONTINUE = 100000000;
+
+static enum GUI_ActionRepeatState ActionRepeatState = BUTTON_NOT_HELD;
+static struct timespec LastActionRepeat;
+static enum GUI_Action LastAction = GUI_ACTION_NONE;
+
+enum GUI_Action GetGUIAction()
+{
+	uint_fast8_t i;
+	enum GUI_Action Result = GUI_ACTION_NONE;
+
+	UpdateGCWZeroButtons();
+	enum GCWZero_Buttons EffectiveButtons = LastButtons;
+	// Incorporate analog nub input.
+	int16_t X = GetHorizontalAxisValue(), Y = GetVerticalAxisValue();
+	     if (X < -32700) EffectiveButtons |= GCW_ZERO_BUTTON_LEFT;
+	else if (X >  32700) EffectiveButtons |= GCW_ZERO_BUTTON_RIGHT;
+	     if (Y < -32700) EffectiveButtons |= GCW_ZERO_BUTTON_UP;
+	else if (Y >  32700) EffectiveButtons |= GCW_ZERO_BUTTON_DOWN;
+	// Now get the currently-held button with the highest priority in MenuKeys.
+	for (i = 0; i < 6; i++)
+	{
+		if ((EffectiveButtons & MenuKeys[i]) != 0)
+		{
+			Result = MenuKeysToGUI[i];
+			break;
+		}
+	}
+
+	struct timespec Now;
+	clock_gettime(CLOCK_MONOTONIC, &Now);
+	if (Result == GUI_ACTION_NONE || LastAction != Result || ActionRepeatState == BUTTON_NOT_HELD)
+	{
+		LastAction = Result;
+		LastActionRepeat = Now;
+		if (Result != GUI_ACTION_NONE)
+			ActionRepeatState = BUTTON_HELD_INITIAL;
+		else
+			ActionRepeatState = BUTTON_NOT_HELD;
+		return Result;
+	}
+
+	// We are certain of the following here:
+	// Result != GUI_ACTION_NONE && LastAction == Result
+	// We need to check how much time has passed since the last repeat.
+	struct timespec Difference = TimeDifference(LastActionRepeat, Now);
+	uint64_t DiffNanos = (uint64_t) Difference.tv_sec * 1000000000 + Difference.tv_nsec;
+	uint64_t RequiredNanos = (ActionRepeatState == BUTTON_HELD_INITIAL)
+		? BUTTON_REPEAT_START
+		: BUTTON_REPEAT_CONTINUE;
+
+	if (DiffNanos < RequiredNanos)
+		return GUI_ACTION_NONE;
+
+	// Here we repeat the action.
+	LastActionRepeat = Now;
+	ActionRepeatState = BUTTON_HELD_REPEAT;
+	return Result;
 }

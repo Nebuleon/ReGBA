@@ -273,13 +273,6 @@ void ApplyScaleMode(video_scale_type NewMode)
 
 void ReGBA_RenderScreen(void)
 {
-	int16_t Y = GetVerticalAxisValue();
-
-	if (Y < -32700)
-		ApplyScaleMode(fullscreen);
-	else if (Y > 32700)
-		ApplyScaleMode(unscaled);
-
 	if (ReGBA_IsRenderingNextFrame())
 	{
 		Stats.RenderedFrames++;
@@ -411,6 +404,25 @@ void print_string_ext(const char *str, u16 fg_color,
     if(current_x >= GCW0_SCREEN_WIDTH)
       break;
   }
+}
+
+uint32_t GetRenderedWidth(const char* str)
+{
+	uint_fast8_t current_char;
+	u32 str_index = 0;
+	uint32_t Result = 0;
+
+	while((current_char = str[str_index++]) != '\0')
+	{
+		Result += _font_width[current_char];
+	}
+
+	return Result;
+}
+
+uint32_t GetRenderedHeight(const char* str)
+{
+	return _font_height;
 }
 
 void print_string(const char *str, u16 fg_color,

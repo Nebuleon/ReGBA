@@ -226,7 +226,7 @@ int main(int argc, char *argv[])
     video_resolution_small();
 #endif
 
-    init_cpu(1 /* boot from BIOS: yes */);
+    init_cpu(BootFromBIOS /* in port.c */);
     init_memory();
   }
   else
@@ -254,7 +254,7 @@ int main(int argc, char *argv[])
       video_resolution_small();
       clear_screen(0);
       flip_screen();
-      init_cpu(1 /* boot from BIOS: yes */);
+      init_cpu(BootFromBIOS /* in port.c */);
       init_memory();
     }
 #endif
@@ -555,7 +555,7 @@ void reset_gba()
 {
   init_main();
   init_memory();
-  init_cpu(1 /* boot from BIOS: yes */);
+  init_cpu(BootFromBIOS /* in port.c */);
   reset_sound();
 }
 

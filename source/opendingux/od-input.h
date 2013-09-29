@@ -20,6 +20,16 @@
 #ifndef __GCW_INPUT_H__
 #define __GCW_INPUT_H__
 
+enum GUI_Action {
+	GUI_ACTION_NONE,
+	GUI_ACTION_UP,
+	GUI_ACTION_DOWN,
+	GUI_ACTION_LEFT,
+	GUI_ACTION_RIGHT,
+	GUI_ACTION_ENTER,
+	GUI_ACTION_LEAVE,
+};
+
 // 0 if not fast-forwarding.
 // Otherwise, the amount of frames to skip per second.
 // 30 amounts to targetting 200% real-time;
@@ -55,5 +65,23 @@ extern int16_t GetHorizontalAxisValue();
  *   A value between -32768 (up) and 32767 (down).
  */
 extern int16_t GetVerticalAxisValue();
+
+/*
+ * Reads the buttons pressed at the time of the function call on the input
+ * mechanism most appropriate for the port being compiled, and returns a GUI
+ * action according to a priority order and the buttons being pressed.
+ * Returns:
+ *   A single GUI action according to the priority order, or GUI_ACTION_NONE
+ *   if either the user is pressing no buttons or a repeat interval has not
+ *   yet passed since the last automatic repeat of the same button.
+ * Output assertions:
+ *   a) The return value is a valid member of 'enum GUI_Action'.
+ *   b) The priority order is Enter (sub-menu), Leave, Down, Up, Right, Left.
+ *      For example, if the user had pressed Down, and now presses Enter+Down,
+ *      Down's repeating is stopped while Enter is held.
+ *      If the user had pressed Enter, and now presses Enter+Down, Down is
+ *      ignored until Enter is released.
+ */
+extern enum GUI_Action GetGUIAction();
 
 #endif // !defined __GCW_INPUT_H__

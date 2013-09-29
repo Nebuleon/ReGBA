@@ -1,4 +1,4 @@
-/* Statistics gathered during emulation in gpSP
+/* Statistics gathered during emulation in ReGBA
  *
  * Copyright (C) 2013 GBATemp user Nebuleon
  *
@@ -19,7 +19,7 @@
 #include "common.h"
 #include "stats.h"
 
-struct GPSP_STATS Stats;
+struct ReGBA_Stats Stats;
 
 void StatsStopFPS(void)
 {

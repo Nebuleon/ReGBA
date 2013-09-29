@@ -14,10 +14,12 @@ extern uint_fast8_t AudioFrameskipControl;
 
 typedef enum
 {
-  unscaled,
   fullscreen,
+  unscaled,
   scaled_aspect,
 } video_scale_type;
+
+extern video_scale_type ScaleMode;
 
 void init_video();
 extern bool ApplyBorder(const char* Filename);
@@ -29,6 +31,10 @@ extern void print_string(const char *str, u16 fg_color,
 
 extern void print_string_outline(const char *str, u16 fg_color, u16 border_color,
  u32 x, u32 y);
+
+extern uint32_t GetRenderedWidth(const char* str);
+
+extern uint32_t GetRenderedHeight(const char* str);
 
 #define RGB888_TO_RGB565(r, g, b) ( \
   (((r) & 0xF8) << 8) | \

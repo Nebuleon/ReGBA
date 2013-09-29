@@ -32,6 +32,7 @@
  * 
  ******************************************************************************/
 #include <stdint.h>
+#include <inttypes.h>
 typedef uint32_t FIXED16_16;  // Q16.16 fixed-point
 #include <stdbool.h>
 

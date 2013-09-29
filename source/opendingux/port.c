@@ -20,6 +20,9 @@
 #include "common.h"
 #include <stdarg.h>
 
+uint32_t BootFromBIOS;
+uint32_t ShowFPS;
+
 void ReGBA_Trace(const char* Format, ...)
 {
 	char* line = malloc(82);
@@ -60,7 +63,7 @@ void ReGBA_MaxBlockSizeReached(u32 BlockStartPC, u32 BlockEndPC, u32 BlockSize)
 	ReGBA_Trace("%u instructions in the block of GBA code from %08X to %08X", BlockSize, BlockStartPC, BlockEndPC);
 }
 
-static timespec TimeDifference(timespec Past, timespec Present)
+timespec TimeDifference(timespec Past, timespec Present)
 {
 	timespec Result;
 	Result.tv_sec = Present.tv_sec - Past.tv_sec;
@@ -77,11 +80,7 @@ static timespec TimeDifference(timespec Past, timespec Present)
 
 void ReGBA_DisplayFPS(void)
 {
-#if 0
-	u32 Visible = gpsp_persistent_config.DisplayFPS;
-#else
-	u32 Visible = 1;
-#endif
+	u32 Visible = ShowFPS;
 	if (Visible)
 	{
 		timespec Now;
@@ -193,16 +192,6 @@ bool ReGBA_GetBundledGameConfig(char* Result)
 
 	sprintf(Result, "%s/%s", executable_path, CONFIG_FILENAME);
 	return true;
-}
-
-u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason)
-{
-	// TODO Fill this function in
-	StatsStopFPS();
-	timespec Now;
-	clock_gettime(CLOCK_MONOTONIC, &Now);
-	Stats.LastFPSCalculationTime = Now;
-	return 0;
 }
 
 void ReGBA_OnGameLoaded(const char* GamePath)
