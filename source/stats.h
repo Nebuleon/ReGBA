@@ -21,8 +21,8 @@ struct ReGBA_Stats {
 	/* For FPS display. The first 3 variables are updated by the
 	 * emulation and read by StatsDisplayFPS. The last 2 variables are
 	 * updated and read by StatsDisplayFPS. */
-	uint_fast8_t    RenderedFrames;
-	uint_fast8_t    EmulatedFrames;
+	uint32_t        RenderedFrames;
+	uint32_t        EmulatedFrames;
 	timespec        LastFPSCalculationTime;
 	int32_t         RenderedFPS;
 	int32_t         EmulatedFPS;
