@@ -127,7 +127,6 @@ struct MenuEntry {
 	MenuEntryDisplayFunction DisplayNameFunction;
 	MenuEntryDisplayFunction DisplayValueFunction;
 	void* UserData;
-	/*char* DisplayChoices[];  // Number of elements == ChoiceCount.*/
 	struct {
 		char* Pretty;
 		char* Persistent;
@@ -570,7 +569,7 @@ static struct Menu DebugMenu = {
 static struct MenuEntry MainMenu_BootSource = {
 	.Kind = KIND_OPTION, .Position = 0, .Name = "Boot from", .PersistentName = "boot_from",
 	.Target = &BootFromBIOS,
-	.ChoiceCount = 2, .Choices = { { "Cartridge Rom", "cartridge" }, { "GBA BIOS", "gba_bios" } }
+	.ChoiceCount = 2, .Choices = { { "Cartridge ROM", "cartridge" }, { "GBA BIOS", "gba_bios" } }
 };
 
 // TODO Put this in a dedicated Display Settings menu
