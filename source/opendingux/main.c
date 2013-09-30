@@ -149,8 +149,8 @@ int main(int argc, char *argv[])
 	// Copy the path of the executable into executable_path
 	if (realpath(argv[0], executable_path) == 0)
 	{
-		fprintf(stderr, "Failed to get the path to the ReGBA executable: %s", strerror(errno));
-		fprintf(stderr, "Some bundled files will not be loaded correctly.");
+		fprintf(stderr, "Failed to get the path to the ReGBA executable: %s\n", strerror(errno));
+		fprintf(stderr, "Some bundled files will not be loaded correctly.\n");
 		executable_path[0] = '\0';
 	}
 	else
@@ -202,7 +202,7 @@ int main(int argc, char *argv[])
 		sprintf(file, "%s/regba-sp-border-silver.png", executable_path);
 		if (!ApplyBorder(file))
 		{
-			fprintf(stderr, "Failed to load a GBA border. None will be shown in unscaled modes.");
+			fprintf(stderr, "Failed to load a GBA border. None will be shown in unscaled modes.\n");
 		}
 	}
 
