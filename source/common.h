@@ -451,4 +451,20 @@ void ReGBA_OnGameLoaded(const char* GamePath);
  */
 size_t FILE_LENGTH(FILE_TAG_TYPE File);
 
+/*
+ * Saves the emulator settings.
+ * Input:
+ *   File: Extension-less file name of the settings. global_config/gamename
+ */
+bool ReGBA_SaveSettings(char *cfg_name);
+
+/*
+ * Load the emulator settings.
+ * Input:
+ *   File: Extension-less file name of the settings. global_config/gamename
+ * Returns
+ *   Bool: false for failures, true for successful loading.
+ */
+void ReGBA_LoadSettings(char *cfg_name);
+
 #endif /* COMMON_H */

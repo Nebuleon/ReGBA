@@ -167,6 +167,8 @@ int main(int argc, char *argv[])
   // Copy the user's .gpsp directory into main_path
   sprintf(main_path, "%s/.gpsp", getenv("HOME"));
   mkdir(main_path, 0755);
+
+  ReGBA_LoadSettings("global_config");
 #if 0
   load_config_file();
 #endif
@@ -548,6 +550,9 @@ void quit()
 #endif
 
   SDL_Quit();
+
+  ReGBA_SaveSettings("global_config");
+
   exit(0);
 }
 

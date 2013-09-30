@@ -24,6 +24,7 @@
 #include <ctype.h>
 #include <dirent.h>
 #include "common.h"
+#include "port.h"
 
 #define COLOR_BACKGROUND       RGB888_TO_RGB565(  0,  48,   0)
 #define COLOR_INACTIVE_TEXT    RGB888_TO_RGB565( 64, 160,  64)
@@ -109,6 +110,7 @@ typedef void (*MenuFunction) (struct Menu*);
 struct MenuEntry {
 	enum MenuEntryKind Kind;
 	char* Name;
+	char* PersistentName;
 	enum MenuDataType DisplayType;
 	uint32_t Position;      // 0-based line number with default functions.
 	                        // Custom display functions may give it a new
@@ -125,7 +127,11 @@ struct MenuEntry {
 	MenuEntryDisplayFunction DisplayNameFunction;
 	MenuEntryDisplayFunction DisplayValueFunction;
 	void* UserData;
-	char* DisplayChoices[];  // Number of elements == ChoiceCount.
+	/*char* DisplayChoices[];  // Number of elements == ChoiceCount.*/
+	struct {
+		char* Pretty;
+		char* Persistent;
+	} Choices[];
 };
 
 struct Menu {
@@ -256,7 +262,7 @@ static void DefaultDisplayValueFunction(struct MenuEntry* DrawnMenuEntry, struct
 		if (DrawnMenuEntry->Kind == KIND_OPTION)
 		{
 			if (*(uint32_t*) DrawnMenuEntry->Target < DrawnMenuEntry->ChoiceCount)
-				Value = DrawnMenuEntry->DisplayChoices[*(uint32_t*) DrawnMenuEntry->Target];
+				Value = DrawnMenuEntry->Choices[*(uint32_t*) DrawnMenuEntry->Target].Pretty;
 			else
 			{
 				Value = "Out of bounds";
@@ -562,23 +568,23 @@ static struct Menu DebugMenu = {
 
 // TODO Put this in a dedicated Display Settings menu
 static struct MenuEntry MainMenu_BootSource = {
-	.Kind = KIND_OPTION, .Position = 0, .Name = "Boot from",
+	.Kind = KIND_OPTION, .Position = 0, .Name = "Boot from", .PersistentName = "boot_from",
 	.Target = &BootFromBIOS,
-	.ChoiceCount = 2, .DisplayChoices = { "Cartridge ROM", "GBA BIOS" }
+	.ChoiceCount = 2, .Choices = { { "Cartridge Rom", "cartridge" }, { "GBA BIOS", "gba_bios" } }
 };
 
 // TODO Put this in a dedicated Display Settings menu
 static struct MenuEntry MainMenu_FPSCounter = {
-	.Kind = KIND_OPTION, .Position = 1, .Name = "FPS counter",
+	.Kind = KIND_OPTION, .Position = 1, .Name = "FPS counter", .PersistentName = "fps_counter",
 	.Target = &ShowFPS,
-	.ChoiceCount = 2, .DisplayChoices = { "Hide", "Show" }
+	.ChoiceCount = 2, .Choices = { { "Hide", "hide" }, { "Show", "show" } }
 };
 
 // TODO Put this in a dedicated Display Settings menu
 static struct MenuEntry MainMenu_ScaleMode = {
-	.Kind = KIND_OPTION, .Position = 2, .Name = "Image size",
+	.Kind = KIND_OPTION, .Position = 2, .Name = "Image size", .PersistentName = "image_size",
 	.Target = &ScaleMode,
-	.ChoiceCount = 2, .DisplayChoices = { "Full screen", "1:1 GBA pixels" }
+	.ChoiceCount = 2, .Choices = { { "Full screen", "fullscreen" }, { "1:1 GBA pixels", "original" } }
 };
 
 static struct MenuEntry MainMenu_Debug = {
@@ -721,4 +727,189 @@ u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason)
 	clock_gettime(CLOCK_MONOTONIC, &Now);
 	Stats.LastFPSCalculationTime = Now;
 	return 0;
+}
+
+static void Menu_SaveOption(FILE_TAG_TYPE fd, struct MenuEntry *entry)
+{
+	char buf[256];
+
+	snprintf(buf, 256, "%s = %s #%s\n", entry->PersistentName,
+			entry->Choices[*((uint32_t*)entry->Target)].Persistent, entry->Choices[*((uint32_t*)entry->Target)].Pretty);
+
+	FILE_WRITE(fd, &buf, strlen(buf) * sizeof(buf[0]));
+}
+
+static void Menu_SaveIterateRecurse(FILE_TAG_TYPE fd, struct Menu *menu)
+{
+	struct MenuEntry *cur;
+	int i=0;
+
+	while ((cur = menu->Entries[i++])) {
+		switch (cur->Kind) {
+		case KIND_SUBMENU:
+			Menu_SaveIterateRecurse(fd, cur->Target);
+			break;
+		case KIND_OPTION:
+			Menu_SaveOption(fd, cur);
+			break;
+		default:
+			break;
+		}
+	}
+}
+
+static struct MenuEntry *Menu_FindByPersistentName(struct Menu *menu, char *name)
+{
+	struct MenuEntry *retcode = NULL;
+
+	struct MenuEntry *cur;
+	int i=0;
+
+	while ((cur = menu->Entries[i++])) {
+		switch (cur->Kind) {
+		case KIND_SUBMENU:
+			if ((retcode = Menu_FindByPersistentName(cur->Target, name)))
+				return retcode;
+			break;
+		case KIND_OPTION:
+			if (!strcmp(cur->PersistentName, name))
+				return cur;
+			break;
+		default:
+			break;
+		}
+	}
+
+	return retcode;
+}
+
+bool ReGBA_SaveSettings(char *cfg_name)
+{
+	char fname[MAX_PATH + 1];
+	if (strlen(main_path) + strlen(cfg_name) + 5 /* / .cfg */ > MAX_PATH)
+	{
+		ReGBA_Trace("E: Somehow you hit the filename size limit :o\n");
+		return false;
+	}
+	sprintf(fname, "%s/%s.cfg", main_path, cfg_name);
+	FILE_TAG_TYPE fd;
+
+	FILE_OPEN(fd, fname, WRITE);
+	if(FILE_CHECK_VALID(fd)) {
+		Menu_SaveIterateRecurse(fd, &MainMenu);
+	}
+	else
+	{
+		ReGBA_Trace("E: Couldn't open file %s for writing.\n", fname);
+		return false;
+	}
+
+	FILE_CLOSE(fd);
+	return true;
+}
+
+void ReGBA_LoadSettings(char *cfg_name)
+{
+	char fname[MAX_PATH + 1];
+	if (strlen(main_path) + strlen(cfg_name) + 5 /* / .cfg */ > MAX_PATH)
+	{
+		ReGBA_Trace("E: Somehow you hit the filename size limit :o\n");
+		return;
+	}
+	sprintf(fname, "%s/%s.cfg", main_path, cfg_name);
+
+	FILE_TAG_TYPE fd;
+
+	FILE_OPEN(fd, fname, READ);
+
+	if(FILE_CHECK_VALID(fd)) {
+		char line[257];
+
+		while(fgets(line, 256, fd))
+		{
+			int gotEqual=0;
+			line[256] = '\0';
+
+			char opt[256];
+			char arg[256];
+
+			memset(opt, '\0', 256);
+			memset(arg, '\0', 256);
+
+			char *head, *ptr;
+
+			if (line[0] == '#')
+				continue;
+
+			for (head = &line[0], ptr = &opt[0]; *head != '\0'; head++)
+			{
+				if ((*head == ' ') || (*head == '=') || (*head == '\n'))
+				{
+					if (*head == '=')
+						gotEqual = 1;
+
+					break;
+				}
+
+				*ptr++ = tolower(*head);
+			}
+
+			if (strlen(opt) < 1) //opt's len must be > 0
+				continue;
+
+			struct MenuEntry *entry = Menu_FindByPersistentName(&MainMenu, opt);
+			if (!entry)
+			{
+				ReGBA_Trace("W: Option '%s' is invalid", opt);
+			}
+
+			for (; *head != '\0'; head++)
+			{
+				if (*head == '=') {
+					gotEqual = 1;
+					continue;
+				}
+				if (*head != ' ')
+				{
+					break;
+				}
+			}
+
+			for (ptr = &arg[0]; *head != '\0'; head++)
+			{
+				if ((*head == ' ') || (*head == '=') || (*head == '\n') || (*head == '#'))
+				{
+					if (*head == '=')
+						gotEqual = 1;
+
+					break;
+				}
+
+				*ptr++ = tolower(*head);
+			}
+
+			if (strlen(arg) < 1) { //opt's len must be > 0
+				ReGBA_Trace("W: Malformed line '%s'.\n", line);
+				continue;
+			}
+
+			if (!gotEqual) {
+				ReGBA_Trace("W: Malformed line '%s'.\n", line);
+				continue;
+			}
+
+			int i;
+			for (i=0; i<entry->ChoiceCount; i++)
+			{
+				if (!strcmp(entry->Choices[i].Persistent, arg))
+				{
+					*(uint32_t*)entry->Target = i;
+				}
+			}
+		}
+	}
+	else
+	{
+		ReGBA_Trace("E: Couldn't open file %s for loading.\n", fname);
+	}
 }
