@@ -25,6 +25,7 @@ uint32_t  GBAScreenPitch = GBA_SCREEN_WIDTH;
 volatile uint_fast8_t VideoFastForwarded;
 uint_fast8_t AudioFrameskip = 0;
 uint_fast8_t AudioFrameskipControl = 0;
+uint_fast8_t UserFrameskipControl = 0;
 
 SDL_Surface *GBAScreenSurface = NULL;
 SDL_Surface *OutputSurface = NULL;
@@ -322,6 +323,16 @@ void ReGBA_RenderScreen(void)
 		AudioFrameskipControl--;
 	else if (AudioFrameskipControl == 0)
 		AudioFrameskipControl = AudioFrameskip;
+
+	if (UserFrameskip != 0)
+	{
+		if (UserFrameskipControl == 0)
+			UserFrameskipControl = UserFrameskip - 1;
+		else
+			UserFrameskipControl--;
+		if (FastForwardControl < 60 && FastForwardValue + FastForwardControl >= 60)
+			UserFrameskipControl = 0; // allow fast-forwarding even at FS 0
+	}
 }
 
 u16 *copy_screen()

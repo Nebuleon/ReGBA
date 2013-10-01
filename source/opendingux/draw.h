@@ -11,6 +11,7 @@ extern SDL_Surface* OutputSurface;
 
 extern uint_fast8_t AudioFrameskip;
 extern uint_fast8_t AudioFrameskipControl;
+extern uint_fast8_t UserFrameskipControl;
 
 typedef enum
 {

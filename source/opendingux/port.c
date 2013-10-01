@@ -22,6 +22,7 @@
 
 uint32_t BootFromBIOS;
 uint32_t ShowFPS;
+uint32_t UserFrameskip;
 
 void ReGBA_Trace(const char* Format, ...)
 {
@@ -131,7 +132,10 @@ void ReGBA_LoadRTCTime(struct ReGBA_RTC* RTCData)
 
 bool ReGBA_IsRenderingNextFrame()
 {
-	return FastForwardControl < 60 && AudioFrameskipControl == 0;
+	if (UserFrameskip == 0) /* automatic */
+		return FastForwardControl < 60 && AudioFrameskipControl == 0;
+
+	return FastForwardControl < 60 && UserFrameskipControl == 0; /* manual, draw this frame */
 }
 
 const char* GetFileName(const char* Path)

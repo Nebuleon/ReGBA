@@ -73,6 +73,7 @@ typedef struct timespec timespec;
 
 extern uint32_t BootFromBIOS;
 extern uint32_t ShowFPS;
+extern uint32_t UserFrameskip;
 
 extern struct timespec TimeDifference(struct timespec Past, struct timespec Present);
 

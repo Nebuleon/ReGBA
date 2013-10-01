@@ -587,6 +587,13 @@ static struct MenuEntry MainMenu_ScaleMode = {
 	.ChoiceCount = 2, .Choices = { { "Full screen", "fullscreen" }, { "1:1 GBA pixels", "original" } }
 };
 
+// TODO Put this in a dedicated Display Settings menu
+static struct MenuEntry MainMenu_Frameskip = {
+	.Kind = KIND_OPTION, .Position = 3, .Name = "Frame skipping", .PersistentName = "frameskip",
+	.Target = &UserFrameskip,
+	.ChoiceCount = 5, .Choices = { { "Automatic", "auto" }, { "0 (~60 FPS)", "0" }, { "1 (~30 FPS)", "1" }, { "2 (~20 FPS)", "2" }, { "3 (~15 FPS)", "3" } }
+};
+
 static struct MenuEntry MainMenu_Debug = {
 	.Kind = KIND_SUBMENU, .Position = 7, .Name = "Performance and debugging...",
 	.Target = &DebugMenu
@@ -609,7 +616,7 @@ static struct MenuEntry MainMenu_Exit = {
 
 static struct Menu MainMenu = {
 	.Parent = NULL, .Title = "ReGBA Main Menu",
-	.Entries = { &MainMenu_BootSource, &MainMenu_FPSCounter, &MainMenu_ScaleMode, &MainMenu_Debug, &MainMenu_Reset, &MainMenu_Return, &MainMenu_Exit, NULL }
+	.Entries = { &MainMenu_BootSource, &MainMenu_FPSCounter, &MainMenu_ScaleMode, &MainMenu_Frameskip, &MainMenu_Debug, &MainMenu_Reset, &MainMenu_Return, &MainMenu_Exit, NULL }
 };
 
 u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason)
