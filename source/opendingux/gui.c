@@ -313,9 +313,10 @@ static void DefaultDisplayValueFunction(struct MenuEntry* DrawnMenuEntry, struct
 static void DefaultDisplayBackgroundFunction(struct Menu* ActiveMenu)
 {
 	uint32_t i;
-	uint16_t* Dest = (uint16_t*) OutputSurface->pixels;
-	for (i = 0; i < GCW0_SCREEN_WIDTH * GCW0_SCREEN_HEIGHT; i++)
-		*Dest++ = COLOR_BACKGROUND;
+	uint32_t pixels = COLOR_BACKGROUND | (COLOR_BACKGROUND << 16);
+	uint32_t* Dest = (uint32_t*) OutputSurface->pixels;
+	for (i = 0; i < GCW0_SCREEN_WIDTH * GCW0_SCREEN_HEIGHT * sizeof(uint16_t) / sizeof(uint32_t); i++)
+		*Dest++ = pixels;
 }
 
 static void DefaultDisplayDataFunction(struct Menu* ActiveMenu, struct MenuEntry* ActiveMenuEntry)
