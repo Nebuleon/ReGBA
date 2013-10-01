@@ -99,8 +99,8 @@ enum GUI_Action MenuKeysToGUI[6] = {
 	GUI_ACTION_LEAVE,
 	GUI_ACTION_DOWN,
 	GUI_ACTION_UP,
-	GUI_ACTION_LEFT,
 	GUI_ACTION_RIGHT,
+	GUI_ACTION_LEFT,
 };
 
 static enum GCWZero_Buttons LastButtons = 0;
