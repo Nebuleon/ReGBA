@@ -36,6 +36,10 @@
 #define COLOR_ERROR_TEXT       RGB888_TO_RGB565(255,  64,  64)
 #define COLOR_ERROR_OUTLINE    RGB888_TO_RGB565( 80,   0,   0)
 
+static SDL_Rect ScreenRectangle = {
+	0, 0, GCW0_SCREEN_WIDTH, GCW0_SCREEN_HEIGHT
+};
+
 enum MenuEntryKind {
 	KIND_OPTION,
 	KIND_SUBMENU,
@@ -312,11 +316,7 @@ static void DefaultDisplayValueFunction(struct MenuEntry* DrawnMenuEntry, struct
 
 static void DefaultDisplayBackgroundFunction(struct Menu* ActiveMenu)
 {
-	uint32_t i;
-	uint32_t pixels = COLOR_BACKGROUND | (COLOR_BACKGROUND << 16);
-	uint32_t* Dest = (uint32_t*) OutputSurface->pixels;
-	for (i = 0; i < GCW0_SCREEN_WIDTH * GCW0_SCREEN_HEIGHT * sizeof(uint16_t) / sizeof(uint32_t); i++)
-		*Dest++ = pixels;
+	SDL_FillRect(OutputSurface, &ScreenRectangle, COLOR_BACKGROUND);
 }
 
 static void DefaultDisplayDataFunction(struct Menu* ActiveMenu, struct MenuEntry* ActiveMenuEntry)
