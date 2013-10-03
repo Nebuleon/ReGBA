@@ -432,7 +432,7 @@ u64 last_screen_timestamp = 0;
 u32 frame_speed = 15000;
 
 u32 ticks_needed_total = 0;
-float us_needed = 0.0;
+float us_needed = 0.0f;
 u32 frames = 0;
 u32 skipped_num_frame = 60;
 const u32 frame_interval = 60;
@@ -462,7 +462,7 @@ void synchronize()
   {
     if(status_display) {
       us_needed = (float)ticks_needed_total / frame_interval;
-      fpsw = (u32)(1000000.0 / us_needed);
+      fpsw = (u32)(1000000.0f / us_needed);
       ticks_needed_total = 0;
       if(current_frameskip_type == manual_frameskip) {
         sprintf(char_buffer, "%s%3dfps %s:%d slot:%d ", synchronize_flag?"  ":">>", fpsw,

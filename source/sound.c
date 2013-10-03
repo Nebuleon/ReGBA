@@ -97,7 +97,7 @@
         break;                                                                \
       }                                                                       \
                                                                               \
-      frequency_step = FLOAT_TO_FP16_16((1048576.0 / SOUND_FREQUENCY) / (2048 - rate)); \
+      frequency_step = FLOAT_TO_FP16_16((1048576.0f / SOUND_FREQUENCY) / (2048 - rate)); \
                                                                               \
       gs->frequency_step = frequency_step;                                    \
       gs->rate = rate;                                                        \
@@ -563,7 +563,7 @@ void update_gbc_sound(u32 cpu_ticks)
 
 void init_sound()
   {
-    gbc_sound_tick_step = FLOAT_TO_FP16_16(256.0 / SOUND_FREQUENCY);
+    gbc_sound_tick_step = FLOAT_TO_FP16_16(256.0f / SOUND_FREQUENCY);
 
     init_noise_table(noise_table15, 32767, 14);
     init_noise_table(noise_table7, 127, 6);

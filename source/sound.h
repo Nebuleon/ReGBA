@@ -104,7 +104,7 @@ typedef struct
 // The value should technically be 32768, but at least the GBA Video ROMs and
 // Golden Sun - The Lost Age require this to be 2 times that, and
 // the Pokémon GBA games require it to be a multiple or divisor of 22050 Hz.
-#define SOUND_FREQUENCY (88200.0)
+#define SOUND_FREQUENCY (88200.0f)
 
 #define GBC_SOUND_TONE_CONTROL_LOW(channel, address)                          \
 {                                                                             \
@@ -128,12 +128,12 @@ typedef struct
 {                                                                             \
   u32 rate = value & 0x7FF;                                                   \
   gbc_sound_channel[channel].rate = rate;                                     \
-  gbc_sound_channel[channel].frequency_step = FLOAT_TO_FP16_16((1048576.0 / SOUND_FREQUENCY) / (2048 - rate));  \
+  gbc_sound_channel[channel].frequency_step = FLOAT_TO_FP16_16((1048576.0f / SOUND_FREQUENCY) / (2048 - rate));  \
   gbc_sound_channel[channel].length_status = (value >> 14) & 0x01;            \
   if(value & 0x8000)                                                          \
   {                                                                           \
     gbc_sound_channel[channel].active_flag = 1;                               \
-    gbc_sound_channel[channel].sample_index -= FLOAT_TO_FP16_16(1.0 / 12.0);  \
+    gbc_sound_channel[channel].sample_index -= FLOAT_TO_FP16_16(1.0f / 12.0f);  \
     gbc_sound_channel[channel].envelope_ticks =                               \
      gbc_sound_channel[channel].envelope_initial_ticks;                       \
     gbc_sound_channel[channel].envelope_volume =                              \
@@ -195,7 +195,7 @@ typedef struct
 {                                                                             \
   u32 rate = value & 0x7FF;                                                   \
   gbc_sound_channel[2].rate = rate;                                           \
-  gbc_sound_channel[2].frequency_step = FLOAT_TO_FP16_16((2097152.0 / SOUND_FREQUENCY) / (2048 - rate));         \
+  gbc_sound_channel[2].frequency_step = FLOAT_TO_FP16_16((2097152.0f / SOUND_FREQUENCY) / (2048 - rate));         \
   gbc_sound_channel[2].length_status = (value >> 14) & 0x01;                  \
   if(value & 0x8000)                                                          \
   {                                                                           \
@@ -213,13 +213,13 @@ typedef struct
   if(dividing_ratio == 0)                                                     \
   {                                                                           \
     gbc_sound_channel[3].frequency_step =                                     \
-     FLOAT_TO_FP16_16((1048576.0 / SOUND_FREQUENCY) /                         \
+     FLOAT_TO_FP16_16((1048576.0f / SOUND_FREQUENCY) /                         \
        (2 << frequency_shift));                                               \
   }                                                                           \
   else                                                                        \
   {                                                                           \
     gbc_sound_channel[3].frequency_step =                                     \
-     FLOAT_TO_FP16_16((524288.0 / SOUND_FREQUENCY) / (dividing_ratio *        \
+     FLOAT_TO_FP16_16((524288.0f / SOUND_FREQUENCY) / (dividing_ratio *        \
      (2 << frequency_shift)));                                                \
   }                                                                           \
   gbc_sound_channel[3].noise_type = (value >> 3) & 0x01;                      \
