@@ -293,7 +293,7 @@ static inline void gba_upscale_aspect(uint16_t *to, uint16_t *from,
 			// after discarding them.
 
 			// RRRRR GGGGGG BBBBB       RRRRR GGGGGG BBBBB
-			// 00001 000001 00001 [+ X] 00010 000010 00010s
+			// 00001 000001 00001 [+ X] 00010 000010 00010
 
 			// -- Row 1 --
 			// Generate ab_a from b_a.
