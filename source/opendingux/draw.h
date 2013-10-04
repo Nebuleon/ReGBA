@@ -9,15 +9,17 @@
 extern SDL_Surface* GBAScreenSurface;
 extern SDL_Surface* OutputSurface;
 
+extern SDL_Rect ScreenRectangle;
+
 extern uint_fast8_t AudioFrameskip;
 extern uint_fast8_t AudioFrameskipControl;
 extern uint_fast8_t UserFrameskipControl;
 
 typedef enum
 {
+  scaled_aspect,
   fullscreen,
   unscaled,
-  scaled_aspect,
 } video_scale_type;
 
 extern video_scale_type ScaleMode;

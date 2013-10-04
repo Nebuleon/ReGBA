@@ -31,7 +31,11 @@ SDL_Surface *GBAScreenSurface = NULL;
 SDL_Surface *OutputSurface = NULL;
 SDL_Surface *BorderSurface = NULL;
 
-video_scale_type ScaleMode = fullscreen;
+SDL_Rect ScreenRectangle = {
+	0, 0, GCW0_SCREEN_WIDTH, GCW0_SCREEN_HEIGHT
+};
+
+video_scale_type ScaleMode = scaled_aspect;
 
 void init_video()
 {
@@ -43,13 +47,15 @@ void init_video()
 	}
 
 	OutputSurface = SDL_SetVideoMode(GCW0_SCREEN_WIDTH, GCW0_SCREEN_HEIGHT, 16, SDL_HWSURFACE | SDL_DOUBLEBUF);
-	GBAScreenSurface = SDL_CreateRGBSurface(SDL_SWSURFACE, GBA_SCREEN_WIDTH, GBA_SCREEN_HEIGHT, 16,
+	GBAScreenSurface = SDL_CreateRGBSurface(SDL_SWSURFACE, GBA_SCREEN_WIDTH, GBA_SCREEN_HEIGHT + 2 /* required to support scaling from 3 rows to 4 maintaining the aspect ratio */, 16,
 	  GBA_RED_MASK,
 	  GBA_GREEN_MASK,
 	  GBA_BLUE_MASK,
 	  0 /* alpha: none */);
 
-	GBAScreen = (uint16_t*) GBAScreenSurface->pixels;
+	// Start drawing on the second line, to have a black line on the top and
+	// bottom for the aspect-preserving scaler
+	GBAScreen = (uint16_t*) ((uint8_t*) GBAScreenSurface->pixels + GBAScreenSurface->pitch);
 
 	SDL_ShowCursor(0);
 }
@@ -227,6 +233,236 @@ static inline void gba_upscale(uint32_t *to, uint32_t *from,
 	}
 }
 
+/* Upscales an image by 33% in with and in height; also does color conversion
+ * using the function above.
+ * Input:
+ *   from: A pointer to the pixels member of a src_x by src_y surface to be
+ *     read by this function. The pixel format of this surface is XBGR 1555.
+ *   src_x: The width of the source.
+ *   src_y: The height of the source.
+ * Output:
+ *   to: A pointer to the pixels member of a (src_x * 4/3) by (src_y * 3/2)
+ *     surface to be filled with the upscaled GBA image. The pixel format of
+ *     this surface is RGB 565.
+ */
+static inline void gba_upscale_aspect(uint16_t *to, uint16_t *from,
+	  uint32_t src_x, uint32_t src_y)
+{
+	/* Before:
+	 *    a b c d e f
+	 *    g h i j k l
+	 *    m n o p q r
+	 *
+	 * After (multiple letters = average):
+	 *    a    ab   bc   c    d    de   ef   f
+	 *    ag   abgh bchi ci   dj   dejk efkl fl
+	 *    gm   ghmn hino io   jp   jkpq klqr lr
+	 *    m    mn   no   o    p    pq   qr   r
+	 */
+
+	const uint32_t dst_x = src_x * 4/3;
+
+	size_t x, y;
+
+
+	for (y=0; y<src_y/3; y++) {
+		for (x=0; x<src_x/6; x++) {
+			// Read RGB565 elements in the source grid.
+			// The notation is high_low (little-endian).
+			uint32_t b_a = bgr555_to_rgb565(*(uint32_t*) (from                )),
+			         d_c = bgr555_to_rgb565(*(uint32_t*) (from             + 2)),
+			         f_e = bgr555_to_rgb565(*(uint32_t*) (from             + 4)),
+			         h_g = bgr555_to_rgb565(*(uint32_t*) (from + src_x        )),
+			         j_i = bgr555_to_rgb565(*(uint32_t*) (from + src_x     + 2)),
+			         l_k = bgr555_to_rgb565(*(uint32_t*) (from + src_x     + 4)),
+			         n_m = bgr555_to_rgb565(*(uint32_t*) (from + src_x * 2    )),
+			         p_o = bgr555_to_rgb565(*(uint32_t*) (from + src_x * 2 + 2)),
+			         r_q = bgr555_to_rgb565(*(uint32_t*) (from + src_x * 2 + 4));
+
+			from += 6;
+
+			// Explaining the magic constants:
+			// F7DEh is the mask to remove the lower bit of all color
+			// components before dividing them by 2. Otherwise, the lower bit
+			// would bleed into the high bit of the next component.
+
+			// RRRRR GGGGGG BBBBB        RRRRR GGGGGG BBBBB
+			// 11110 111110 11110 [>> 1] 01111 011111 01111
+
+			// 0821h is the mask to gather the low bits again for averaging
+			// after discarding them.
+
+			// RRRRR GGGGGG BBBBB       RRRRR GGGGGG BBBBB
+			// 00001 000001 00001 [+ X] 00010 000010 00010s
+
+			// -- Row 1 --
+			// Generate ab_a from b_a.
+			uint32_t ab_a = ((b_a >> 16) == (b_a & 0xFFFF))
+				? b_a
+				: (b_a & 0xFFFF) /* 'a' verbatim to low pixel */ |
+				  ((((b_a & 0xF7DE) >> 1) + ((b_a & 0xF7DE0000) >> 17) +
+				  ((((b_a & 0x0821) + ((b_a & 0x08210000) >> 16)) & 0xF7DE) >> 1)) << 16) /* ba to high pixel */;
+			*(uint32_t*) (to) = ab_a;
+
+			// Generate c_bc from b_a and d_c.
+			uint32_t c_bc = ((b_a >> 16) == (d_c & 0xFFFF))
+				? (d_c & 0xFFFF) | ((d_c & 0xFFFF) << 16)
+				: (d_c << 16) /* 'c' verbatim to high pixel */ |
+				  (((d_c & 0xF7DE) >> 1) + ((b_a & 0xF7DE0000) >> 17) +
+				  ((((d_c & 0x0821) + ((b_a & 0x08210000) >> 16)) & 0xF7DE) >> 1)) /* bc to low pixel */;
+			*(uint32_t*) (to + 2) = c_bc;
+
+			// Generate de_d from d_c and f_e.
+			uint32_t de_d = ((d_c >> 16) == (f_e & 0xFFFF))
+				? (f_e & 0xFFFF) | ((f_e & 0xFFFF) << 16)
+				: (d_c >> 16) /* 'd' verbatim to low pixel */ |
+				  ((((f_e & 0xF7DE) >> 1) + ((d_c & 0xF7DE0000) >> 17) +
+				  ((((f_e & 0x0821) + ((d_c & 0x08210000) >> 16)) & 0xF7DE) >> 1)) << 16) /* de to high pixel */;
+			*(uint32_t*) (to + 4) = de_d;
+
+			// Generate f_ef from f_e.
+			uint32_t f_ef = ((f_e >> 16) == (f_e & 0xFFFF))
+				? f_e
+				: (f_e & 0xFFFF0000) /* 'f' verbatim to high pixel */ |
+				  (((f_e & 0xF7DE) >> 1) + ((f_e & 0xF7DE0000) >> 17) +
+				  ((((f_e & 0x0821) + ((f_e & 0x08210000) >> 16)) & 0xF7DE) >> 1)) /* ef to low pixel */;
+			*(uint32_t*) (to + 6) = f_ef;
+
+			// -- Row 2 --
+			// Generate abgh_ag from b_a and h_g.
+			uint32_t bh_ag =
+				((b_a & 0xF7DEF7DE) >> 1) + ((h_g & 0xF7DEF7DE) >> 1) +
+				((((b_a & 0x08210821) + (h_g & 0x08210821)) & 0xF7DE) >> 1);
+			uint32_t abgh_ag = ((bh_ag >> 16) == (bh_ag & 0xFFFF))
+				? bh_ag
+				: (bh_ag & 0xFFFF) /* ag verbatim to low pixel */ |
+				  ((((bh_ag & 0xF7DE) >> 1) + ((bh_ag & 0xF7DE0000) >> 17) +
+				  ((((bh_ag & 0x0821) + ((bh_ag & 0x08210000) >> 16)) & 0xF7DE) >> 1)) << 16) /* abgh to high pixel */;
+			*(uint32_t*) (to + dst_x) = abgh_ag;
+
+			// Generate ci_bchi from b_a, d_c, h_g and j_i.
+			uint32_t ci_bh =
+				(bh_ag >> 16) /* bh verbatim to low pixel */ |
+				((((d_c & 0xF7DE) >> 1) + ((j_i & 0xF7DE) >> 1) +
+				((((d_c & 0x0821) + (j_i & 0x0821)) & 0xF7DE) >> 1)) << 16) /* ci to high pixel */;
+			uint32_t ci_bchi = ((ci_bh >> 16) == (ci_bh & 0xFFFF))
+				? ci_bh
+				: (ci_bh & 0xFFFF0000) /* ci verbatim to high pixel */ |
+				  (((ci_bh & 0xF7DE) >> 1) + ((ci_bh & 0xF7DE0000) >> 17) +
+				  ((((ci_bh & 0x0821) + ((ci_bh & 0x08210000) >> 16)) & 0xF7DE) >> 1)) /* bchi to low pixel */;
+			*(uint32_t*) (to + dst_x + 2) = ci_bchi;
+
+			// Generate fl_efkl from f_e and l_k.
+			uint32_t fl_ek =
+				((f_e & 0xF7DEF7DE) >> 1) + ((l_k & 0xF7DEF7DE) >> 1) +
+				((((f_e & 0x08210821) + (l_k & 0x08210821)) & 0xF7DE) >> 1);
+			uint32_t fl_efkl = ((fl_ek >> 16) == (fl_ek & 0xFFFF))
+				? fl_ek
+				: (fl_ek & 0xFFFF0000) /* fl verbatim to high pixel */ |
+				  (((fl_ek & 0xF7DE) >> 1) + ((fl_ek & 0xF7DE0000) >> 17) +
+				  ((((fl_ek & 0x0821) + ((fl_ek & 0x08210000) >> 16)) & 0xF7DE) >> 1)) /* efkl to low pixel */;
+			*(uint32_t*) (to + dst_x + 6) = fl_efkl;
+
+			// Generate dejk_dj from d_c, f_e, j_i and l_k.
+			uint32_t ek_dj =
+				(fl_ek << 16) /* ek verbatim to high pixel */ |
+				(((d_c & 0xF7DE0000) >> 17) + ((j_i & 0xF7DE0000) >> 17) +
+				(((((d_c & 0x08210000) >> 16) + ((j_i & 0x08210000) >> 16)) & 0xF7DE) >> 1)) /* dj to low pixel */;
+			uint32_t dejk_dj = ((ek_dj >> 16) == (ek_dj & 0xFFFF))
+				? ek_dj
+				: (ek_dj & 0xFFFF) /* dj verbatim to low pixel */ |
+				  ((((ek_dj & 0xF7DE) >> 1) + ((ek_dj & 0xF7DE0000) >> 17) +
+				  ((((ek_dj & 0x0821) + ((ek_dj & 0x08210000) >> 16)) & 0xF7DE) >> 1)) << 16) /* dejk to high pixel */;
+			*(uint32_t*) (to + dst_x + 4) = dejk_dj;
+
+			// -- Row 3 --
+			// Generate ghmn_gm from h_g and n_m.
+			uint32_t hn_gm =
+				((h_g & 0xF7DEF7DE) >> 1) + ((n_m & 0xF7DEF7DE) >> 1) +
+				((((h_g & 0x08210821) + (n_m & 0x08210821)) & 0xF7DE) >> 1);
+			uint32_t ghmn_gm = ((hn_gm >> 16) == (hn_gm & 0xFFFF))
+				? hn_gm
+				: (hn_gm & 0xFFFF) /* gm verbatim to low pixel */ |
+				  ((((hn_gm & 0xF7DE) >> 1) + ((hn_gm & 0xF7DE0000) >> 17) +
+				  ((((hn_gm & 0x0821) + ((hn_gm & 0x08210000) >> 16)) & 0xF7DE) >> 1)) << 16) /* ghmn to high pixel */;
+			*(uint32_t*) (to + dst_x * 2) = ghmn_gm;
+
+			// Generate io_hino from h_g, j_i, n_m and p_o.
+			uint32_t io_hn =
+				(hn_gm >> 16) /* hn verbatim to low pixel */ |
+				((((j_i & 0xF7DE) >> 1) + ((p_o & 0xF7DE) >> 1) +
+				((((j_i & 0x0821) + (p_o & 0x0821)) & 0xF7DE) >> 1)) << 16) /* io to high pixel */;
+			uint32_t io_hino = ((io_hn >> 16) == (io_hn & 0xFFFF))
+				? io_hn
+				: (io_hn & 0xFFFF0000) /* ci verbatim to high pixel */ |
+				  (((io_hn & 0xF7DE) >> 1) + ((io_hn & 0xF7DE0000) >> 17) +
+				  ((((io_hn & 0x0821) + ((io_hn & 0x08210000) >> 16)) & 0xF7DE) >> 1)) /* hino to low pixel */;
+			*(uint32_t*) (to + dst_x * 2 + 2) = io_hino;
+
+			// Generate lr_klqr from l_k and r_q.
+			uint32_t lr_kq =
+				((l_k & 0xF7DEF7DE) >> 1) + ((r_q & 0xF7DEF7DE) >> 1) +
+				((((l_k & 0x08210821) + (r_q & 0x08210821)) & 0xF7DE) >> 1);
+			uint32_t lr_klqr = ((lr_kq >> 16) == (lr_kq & 0xFFFF))
+				? lr_kq
+				: (lr_kq & 0xFFFF0000) /* lr verbatim to high pixel */ |
+				  (((lr_kq & 0xF7DE) >> 1) + ((lr_kq & 0xF7DE0000) >> 17) +
+				  ((((lr_kq & 0x0821) + ((lr_kq & 0x08210000) >> 16)) & 0xF7DE) >> 1)) /* klqr to low pixel */;
+			*(uint32_t*) (to + dst_x * 2 + 6) = lr_klqr;
+
+			// Generate jkpq_jp from j_i, l_k, p_o and r_q.
+			uint32_t kq_jp =
+				(lr_kq << 16) /* kq verbatim to high pixel */ |
+				(((j_i & 0xF7DE0000) >> 17) + ((p_o & 0xF7DE0000) >> 17) +
+				(((((j_i & 0x08210000) >> 16) + ((p_o & 0x08210000) >> 16)) & 0xF7DE) >> 1)) /* jp to low pixel */;
+			uint32_t jkpq_jp = ((kq_jp >> 16) == (kq_jp & 0xFFFF))
+				? kq_jp
+				: (kq_jp & 0xFFFF) /* dj verbatim to low pixel */ |
+				  ((((kq_jp & 0xF7DE) >> 1) + ((kq_jp & 0xF7DE0000) >> 17) +
+				  ((((kq_jp & 0x0821) + ((kq_jp & 0x08210000) >> 16)) & 0xF7DE) >> 1)) << 16) /* jkpq to high pixel */;
+			*(uint32_t*) (to + dst_x * 2 + 4) = jkpq_jp;
+
+			// -- Row 4 --
+			// Generate mn_m from n_m.
+			uint32_t mn_m = ((n_m >> 16) == (n_m & 0xFFFF))
+				? n_m
+				: (n_m & 0xFFFF) /* 'm' verbatim to low pixel */ |
+				  ((((n_m & 0xF7DE) >> 1) + ((n_m & 0xF7DE0000) >> 17) +
+				  ((((n_m & 0x0821) + ((n_m & 0x08210000) >> 16)) & 0xF7DE) >> 1)) << 16) /* mn to high pixel */;
+			*(uint32_t*) (to + dst_x * 3) = mn_m;
+
+			// Generate o_no from n_m and p_o.
+			uint32_t o_no = ((n_m >> 16) == (p_o & 0xFFFF))
+				? (p_o & 0xFFFF) | ((p_o & 0xFFFF) << 16)
+				: (p_o << 16) /* 'o' verbatim to high pixel */ |
+				  (((p_o & 0xF7DE) >> 1) + ((p_o & 0xF7DE0000) >> 17) +
+				  ((((p_o & 0x0821) + ((p_o & 0x08210000) >> 16)) & 0xF7DE) >> 1)) /* no to low pixel */;
+			*(uint32_t*) (to + dst_x * 3 + 2) = o_no;
+
+			// Generate pq_p from p_o and r_q.
+			uint32_t pq_p = ((p_o >> 16) == (r_q & 0xFFFF))
+				? (r_q & 0xFFFF) | ((r_q & 0xFFFF) << 16)
+				: (p_o >> 16) /* 'p' verbatim to low pixel */ |
+				  ((((r_q & 0xF7DE) >> 1) + ((p_o & 0xF7DE0000) >> 17) +
+				  ((((r_q & 0x0821) + ((p_o & 0x08210000) >> 16)) & 0xF7DE) >> 1)) << 16) /* pq to high pixel */;
+			*(uint32_t*) (to + dst_x * 3 + 4) = pq_p;
+
+			// Generate r_qr from r_q.
+			uint32_t r_qr = ((r_q >> 16) == (r_q & 0xFFFF))
+				? r_q
+				: (r_q & 0xFFFF0000) /* 'r' verbatim to high pixel */ |
+				  (((r_q & 0xF7DE) >> 1) + ((r_q & 0xF7DE0000) >> 17) +
+				  ((((r_q & 0x0821) + ((r_q & 0x08210000) >> 16)) & 0xF7DE) >> 1)) /* qr to low pixel */;
+			*(uint32_t*) (to + dst_x * 3 + 6) = r_qr;
+
+			to += 8;
+		}
+
+		to += 3*dst_x;
+		from += 2*src_x;
+	}
+}
+
 static inline void gba_render(uint32_t* Dest, uint32_t* Src, uint32_t Width, uint32_t Height)
 {
 	Dest = (uint32_t *) ((uint16_t *) Dest
@@ -252,18 +488,14 @@ void ApplyScaleMode(video_scale_type NewMode)
 		case unscaled:
 			// Either show the border
 			if (BorderSurface != NULL)
-			{
 				SDL_BlitSurface(BorderSurface, NULL, OutputSurface, NULL);
-			}
 			// or clear the rest of the screen to prevent image remanence.
 			else
-			{
-				memset(OutputSurface->pixels, 0, GCW0_SCREEN_WIDTH * GCW0_SCREEN_HEIGHT * sizeof(u16));
-			}
+				memset(OutputSurface->pixels, 0, OutputSurface->pitch * GCW0_SCREEN_HEIGHT);
 			break;
 
 		case scaled_aspect:
-			// Unimplemented
+			memset(OutputSurface->pixels, 0, OutputSurface->pitch * GCW0_SCREEN_HEIGHT);
 			break;
 
 		case fullscreen:
@@ -278,14 +510,23 @@ void ReGBA_RenderScreen(void)
 	{
 		Stats.RenderedFrames++;
 		ApplyScaleMode(ScaleMode);
-		if (ScaleMode == unscaled)
+		uint8_t *src = (uint8_t *) GBAScreen;
+		switch (ScaleMode)
 		{
-			gba_render((uint32_t *) OutputSurface->pixels, (uint32_t *) GBAScreenSurface->pixels, GCW0_SCREEN_WIDTH, GCW0_SCREEN_HEIGHT);
-		}
-		else
-		{
-			uint32_t *src = (uint32_t *) GBAScreen;
-			gba_upscale((uint32_t*) OutputSurface->pixels, src, GBA_SCREEN_WIDTH, GBA_SCREEN_HEIGHT);
+			case unscaled:
+				gba_render((uint32_t *) OutputSurface->pixels, (uint32_t*) (src + GBAScreenSurface->pitch), GCW0_SCREEN_WIDTH, GCW0_SCREEN_HEIGHT);
+				break;
+
+			case fullscreen:
+				gba_upscale((uint32_t*) OutputSurface->pixels, (uint32_t*) (src + GBAScreenSurface->pitch), GBA_SCREEN_WIDTH, GBA_SCREEN_HEIGHT);
+				break;
+
+			case scaled_aspect:
+				gba_upscale_aspect((uint16_t*) ((uint8_t*)
+					OutputSurface->pixels +
+					(((GCW0_SCREEN_HEIGHT - GBA_SCREEN_HEIGHT * 4 / 3) / 2) * OutputSurface->pitch)) /* center vertically */,
+					(uint16_t*) src, GBA_SCREEN_WIDTH, GBA_SCREEN_HEIGHT);
+				break;
 		}
 		ReGBA_DisplayFPS();
 

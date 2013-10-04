@@ -36,10 +36,6 @@
 #define COLOR_ERROR_TEXT       RGB888_TO_RGB565(255,  64,  64)
 #define COLOR_ERROR_OUTLINE    RGB888_TO_RGB565( 80,   0,   0)
 
-static SDL_Rect ScreenRectangle = {
-	0, 0, GCW0_SCREEN_WIDTH, GCW0_SCREEN_HEIGHT
-};
-
 enum MenuEntryKind {
 	KIND_OPTION,
 	KIND_SUBMENU,
@@ -584,7 +580,7 @@ static struct MenuEntry MainMenu_FPSCounter = {
 static struct MenuEntry MainMenu_ScaleMode = {
 	.Kind = KIND_OPTION, .Position = 2, .Name = "Image size", .PersistentName = "image_size",
 	.Target = &ScaleMode,
-	.ChoiceCount = 2, .Choices = { { "Full screen", "fullscreen" }, { "1:1 GBA pixels", "original" } }
+	.ChoiceCount = 3, .Choices = { { "Full screen proportional", "aspect" }, { "Full screen", "fullscreen" }, { "Original with border", "original" } }
 };
 
 // TODO Put this in a dedicated Display Settings menu
