@@ -241,7 +241,7 @@ static inline void gba_upscale(uint32_t *to, uint32_t *from,
  *   src_x: The width of the source.
  *   src_y: The height of the source.
  * Output:
- *   to: A pointer to the pixels member of a (src_x * 4/3) by (src_y * 3/2)
+ *   to: A pointer to the pixels member of a (src_x * 4/3) by (src_y * 4/3)
  *     surface to be filled with the upscaled GBA image. The pixel format of
  *     this surface is RGB 565.
  */
