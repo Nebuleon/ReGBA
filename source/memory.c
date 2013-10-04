@@ -3891,10 +3891,10 @@ u32 load_state(uint32_t SlotNumber)
 		{
 			unsigned int n;
 			for (n = 0; n < 4; n++) {
-				gbc_sound_channel[n].frequency_step = FLOAT_TO_FP16_16(FP16_16_TO_FLOAT(gbc_sound_channel[n].frequency_step) * 65536.0 / SOUND_FREQUENCY);
+				gbc_sound_channel[n].frequency_step = FLOAT_TO_FP16_16(FP16_16_TO_FLOAT(gbc_sound_channel[n].frequency_step) * 65536.0f / SOUND_FREQUENCY);
 			}
 			for (n = 0; n < 2; n++) {
-				timer[n].frequency_step = FLOAT_TO_FP16_16(FP16_16_TO_FLOAT(timer[n].frequency_step) * 65536.0 / SOUND_FREQUENCY);
+				timer[n].frequency_step = FLOAT_TO_FP16_16(FP16_16_TO_FLOAT(timer[n].frequency_step) * 65536.0f / SOUND_FREQUENCY);
 			}
 		}
 

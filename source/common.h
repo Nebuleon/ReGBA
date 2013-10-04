@@ -101,10 +101,10 @@ typedef uint32_t FIXED16_16;  // Q16.16 fixed-point
   FILE_WRITE_MEM(ptr, array, sizeof(array))                                 \
 
 #define FLOAT_TO_FP16_16(value)                                             \
-  (FIXED16_16)((value) * 65536.0)                                           \
+  (FIXED16_16)((value) * 65536.0f)                                           \
 
 #define FP16_16_TO_FLOAT(value)                                             \
-  (float)((value) / 65536.0)                                                \
+  (float)((value) / 65536.0f)                                                \
 
 #define U32_TO_FP16_16(value)                                               \
   ((value) << 16)                                                           \
