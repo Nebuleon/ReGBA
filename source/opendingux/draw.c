@@ -520,18 +520,19 @@ void ReGBA_RenderScreen(void)
 		switch (ScaleMode)
 		{
 			case unscaled:
-				gba_render((uint32_t *) OutputSurface->pixels, (uint32_t*) (src + GBAScreenSurface->pitch), GCW0_SCREEN_WIDTH, GCW0_SCREEN_HEIGHT);
+				gba_render((uint32_t *) OutputSurface->pixels, (uint32_t*) src, GCW0_SCREEN_WIDTH, GCW0_SCREEN_HEIGHT);
 				break;
 
 			case fullscreen:
-				gba_upscale((uint32_t*) OutputSurface->pixels, (uint32_t*) (src + GBAScreenSurface->pitch), GBA_SCREEN_WIDTH, GBA_SCREEN_HEIGHT);
+				gba_upscale((uint32_t*) OutputSurface->pixels, (uint32_t*) src, GBA_SCREEN_WIDTH, GBA_SCREEN_HEIGHT);
 				break;
 
 			case scaled_aspect:
+				src = GBAScreenSurface->pixels;
 				gba_upscale_aspect((uint16_t*) ((uint8_t*)
 					OutputSurface->pixels +
-					(((GCW0_SCREEN_HEIGHT - GBA_SCREEN_HEIGHT * 4 / 3) / 2) * OutputSurface->pitch)) /* center vertically */,
-					(uint16_t*) src, GBA_SCREEN_WIDTH, GBA_SCREEN_HEIGHT);
+					(((GCW0_SCREEN_HEIGHT - (GBA_SCREEN_HEIGHT + 2) * 4 / 3) / 2) * OutputSurface->pitch)) /* center vertically */,
+					(uint16_t*) src, GBA_SCREEN_WIDTH, GBA_SCREEN_HEIGHT + 2);
 				break;
 		}
 		ReGBA_DisplayFPS();
