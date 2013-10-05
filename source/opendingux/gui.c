@@ -578,9 +578,9 @@ static struct MenuEntry MainMenu_FPSCounter = {
 
 // TODO Put this in a dedicated Display Settings menu
 static struct MenuEntry MainMenu_ScaleMode = {
-	.Kind = KIND_OPTION, .Position = 2, .Name = "Image size", .PersistentName = "image_size",
+	.Kind = KIND_OPTION, .Position = 2, .Name = "Image scaling", .PersistentName = "image_size",
 	.Target = &ScaleMode,
-	.ChoiceCount = 3, .Choices = { { "Full screen proportional", "aspect" }, { "Full screen", "fullscreen" }, { "Original with border", "original" } }
+	.ChoiceCount = 3, .Choices = { { "Aspect", "aspect" }, { "Full", "fullscreen" }, { "None", "original" } }
 };
 
 // TODO Put this in a dedicated Display Settings menu
