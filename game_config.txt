@@ -390,9 +390,15 @@ vender_code = 01
 idle_loop_eliminate_target = 080008b6
 flash_rom_type = 128KB
 
-# Pokemon: Red Rescue Team (E/U)
+# Pokemon: Red Rescue Team (U)
 game_name = POKE DUNGEON
 game_code = B24E
+vender_code = 01
+flash_rom_type = 128KB
+
+# Pokemon: Red Rescue Team (E)
+game_name = POKE DUNGEON
+game_code = B24P
 vender_code = 01
 flash_rom_type = 128KB
 
