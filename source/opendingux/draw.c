@@ -118,7 +118,7 @@ static inline uint32_t bgr555_to_rgb565(uint32_t px)
 /* Calculates the average of two pairs of RGB565 pixels. The result is, in
  * the lower bits, the average of both lower pixels, and in the upper bits,
  * the average of both upper pixels. */
-#define Average32(A, B) (((A) & 0xF7DEF7DE) >> 1) + (((B) & 0xF7DEF7DE) >> 1) + ((A) & (B) & 0x08210821)
+#define Average32(A, B) ((((A) & 0xF7DEF7DE) >> 1) + (((B) & 0xF7DEF7DE) >> 1) + ((A) & (B) & 0x08210821))
 
 /* Raises a pixel from the lower half to the upper half of a pair. */
 #define Raise(N) ((N) << 16)
