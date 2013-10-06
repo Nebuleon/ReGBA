@@ -138,10 +138,7 @@ static void UpdateGCWZeroButtons()
 
 void ProcessSpecialKeys()
 {
-	if ((LastButtons & (GCW_ZERO_BUTTON_R | GCW_ZERO_BUTTON_SELECT)) == (GCW_ZERO_BUTTON_R | GCW_ZERO_BUTTON_SELECT))
-		ApplyScaleMode(fullscreen);
-	else if ((LastButtons & (GCW_ZERO_BUTTON_L | GCW_ZERO_BUTTON_SELECT)) == (GCW_ZERO_BUTTON_L | GCW_ZERO_BUTTON_SELECT))
-		ApplyScaleMode(unscaled);
+	// none for now
 }
 
 enum ReGBA_Buttons ReGBA_GetPressedButtons()
