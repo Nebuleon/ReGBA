@@ -307,18 +307,6 @@ game_code = BM5E
 vender_code = 01
 idle_loop_eliminate_target = 08033eec
 
-# Pokemon: Sapphire (U)
-game_name = POKEMON SAPP
-game_code = AXPE
-vender_code = 01
-flash_rom_type = 128KB
-
-# Pokemon: Sapphire (G)
-game_name = POKEMON SAPP
-game_code = AXPD
-vender_code = 01
-flash_rom_type = 128KB
-
 # Pokemon: Fire Red (E/U)
 game_name = POKEMON FIRE
 game_code = BPRE
@@ -349,7 +337,7 @@ flash_rom_type = 128KB
 
 # Pokemon: Fire Red (F)
 game_name = POKEMON FIRE
-game_code = BPRE
+game_code = BPRF
 vender_code = 01
 idle_loop_eliminate_target = 080008c6
 flash_rom_type = 128KB
