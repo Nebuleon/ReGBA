@@ -2612,14 +2612,12 @@ ssize_t load_gamepak(char *file_path)
 		if ((magicbit[0] == 0x50) && (magicbit[1] == 0x4B) && (magicbit[2] == 0x03) && (magicbit[3] == 0x04))
 		{
 			file_size = load_file_zip(file_path);
-#ifndef GAMEPAK_FITS_IN_RAM
 			if(file_size == -2)
 			{
 				char extracted_file[MAX_FILE];
 				sprintf(extracted_file, "%s/%s", main_path, ZIP_TMP);
 				file_size = load_gamepak_raw(extracted_file);
 			}
-#endif
 		}
 		else if (magicbit[3] == 0xEA)
 		{
