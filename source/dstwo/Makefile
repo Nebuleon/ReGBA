@@ -36,7 +36,7 @@ OBJDUMP      = $(CROSS)objdump
 C_SRC        = gpsp_main.c ../cpu_common.c ../cpu_asm.c ../video.c ../sha1.c  \
                gu.c ../memory.c ../sound.c ../input.c gui.c cheats.c ../bios.c\
                draw.c bdf_font.c ../zip.c bitmap.c ds2_main.c charsets.c      \
-               ../stats.c guru_meditation.c port.c ds2sound.c
+               ../stats.c guru_meditation.c port.c ds2sound.c ds2memory.c
 CPP_SRC      = 
 ASM_SRC      = ../mips/stub.S port-asm.S
 SRC          = $(C_SRC) $(CPP_SRC) $(ASM_SRC)

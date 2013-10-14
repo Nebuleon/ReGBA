@@ -235,9 +235,6 @@ int gpsp_main(int argc, char *argv[])
 	init_main();
 	init_sound();
 
-	// 分配仿真ROM
-	init_gamepak_buffer();
-
 	// BIOS的读入
 	char bios_filename[MAX_FILE];
 	sprintf(bios_filename, "%s/%s", main_path, "gba_bios.bin");

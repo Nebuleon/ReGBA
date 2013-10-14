@@ -22,6 +22,7 @@
 #include "common.h"
 
 #define ZIP_BUFFER_SIZE (64 * 1024) // 64KB
+#define FILE_BUFFER_SIZE (32 * 1024) // 32 KiB, one ReGBA page's worth
 //unsigned char zip_buff[ZIP_BUFFER_SIZE];
 
 struct SZIPFileDataDescriptor
@@ -62,178 +63,192 @@ void zip_free_func(void* opaque, void* address)
 // TODO Support big-endian systems.
 // The ZIP file header contains little-endian fields, and byte swapping is
 // needed on big-endian systems.
-ssize_t load_file_zip(char *filename)
+ssize_t load_file_zip(char *filename, uint8_t** ROMBuffer)
 {
-  struct SZIPFileHeader data;
-  char tmp[MAX_PATH];
-  ssize_t retval = -1;
-  u8 *buffer = NULL;
-  u8 *cbuffer;
-  char *ext;
-  FILE_TAG_TYPE fd;
-  FILE_TAG_TYPE tmp_fd= FILE_TAG_INVALID;
-  u32 zip_buffer_size;
-  u32 write_tmp_flag = NO;
+	struct SZIPFileHeader data;
+	char tmp[MAX_PATH];
+	ssize_t retval = -1;
+	uint8_t *cbuffer;
+	char *ext;
+	FILE_TAG_TYPE fd;
+	FILE_TAG_TYPE tmp_fd = FILE_TAG_INVALID;
+	bool WriteExternalFile = false;
+	uint8_t* Buffer = NULL;
 
-  zip_buffer_size = ZIP_BUFFER_SIZE;
-//  cbuffer = zip_buff;
-  cbuffer = (unsigned char*)malloc(ZIP_BUFFER_SIZE);
-  if(cbuffer == NULL)
-	return -1;
+	cbuffer = (uint8_t*) malloc(ZIP_BUFFER_SIZE);
+	if(cbuffer == NULL)
+		return -1;
 
-  FILE_OPEN(fd, filename, READ);
+	FILE_OPEN(fd, filename, READ);
 
-  if(!FILE_CHECK_VALID(fd))
-  {
-	free(cbuffer);
-    return -1;
-  }
-
-  {
-    FILE_READ(fd, &data, sizeof(struct SZIPFileHeader));
-
-    // EDIT: Check if this is a zip file without worrying about endian
-    // It checks for the following: 0x50 0x4B 0x03 0x04 (PK..)
-    // Used to be: if(data.Sig != 0x04034b50) break;
-	/* if( data.Sig[0] != 0x50 || data.Sig[1] != 0x4B ||
-		data.Sig[2] != 0x03 || data.Sig[3] != 0x04 )
+	if (!FILE_CHECK_VALID(fd))
 	{
-		goto outcode;
-	} */ // Zip header check now done in memory.c
+		free(cbuffer);
+		return -1;
+	}
 
-    FILE_READ(fd, tmp, data.FilenameLength);
-    tmp[data.FilenameLength] = 0; // end string
+	{
+		FILE_READ(fd, &data, sizeof(struct SZIPFileHeader));
 
-    if(data.ExtraFieldLength)
-      FILE_SEEK(fd, data.ExtraFieldLength, SEEK_CUR);
+		FILE_READ(fd, tmp, data.FilenameLength);
+		tmp[data.FilenameLength] = 0; // end string
 
-    if(data.GeneralBitFlag & 0x0008)
-    {
-      FILE_READ(fd, &data.DataDescriptor,
-       sizeof(struct SZIPFileDataDescriptor));
-    }
+		if (data.ExtraFieldLength)
+			FILE_SEEK(fd, data.ExtraFieldLength, SEEK_CUR);
 
-    ext = strrchr(tmp, '.') + 1;
+		if (data.GeneralBitFlag & 0x0008)
+		{
+			FILE_READ(fd, &data.DataDescriptor, sizeof(struct SZIPFileDataDescriptor));
+		}
 
-    // file is too big
-    if(data.DataDescriptor.UncompressedSize > gamepak_ram_buffer_size)
-      {
-        write_tmp_flag = YES; // テンポラリを使用するフラグをONに
-        sprintf(tmp, "%s/%s", main_path, ZIP_TMP);
-        FILE_OPEN(tmp_fd, tmp, WRITE);
-      }
-    else
-      write_tmp_flag = NO;
+		ext = strrchr(tmp, '.');
 
-    if(ext && (!strcasecmp(ext, "bin") || !strcasecmp(ext, "gba")))
-    {
-      buffer = gamepak_rom;
+		Buffer = ReGBA_AllocateROM(data.DataDescriptor.UncompressedSize);
+		// Is the decompressed file too big to fit in a buffer, according to
+		// the port?
+		if (Buffer == NULL)
+		{
+			WriteExternalFile = true;
+			sprintf(tmp, "%s/%s", main_path, ZIP_TMP);
+			FILE_OPEN(tmp_fd, tmp, WRITE);
+			// Allocate a small buffer to write the external file with.
+			Buffer = (uint8_t*) malloc(FILE_BUFFER_SIZE);
+			if (Buffer == NULL)
+			{
+				retval = -1;
+				goto outcode;
+			}
+		}
+		else
+		{
+			*ROMBuffer = Buffer;
+		}
 
-      // ok, found
-      switch(data.CompressionMethod)
-      {
-        case 0: //No compress
-          retval = data.DataDescriptor.UncompressedSize;
-          if (write_tmp_flag == NO)
-          {
-            FILE_READ(fd, buffer, retval);
-          }
-          else
-          {
-            while (retval > 0)
-            {
-              int bytes_to_read = zip_buffer_size;
-              if (retval < bytes_to_read) bytes_to_read = retval;
-              FILE_READ(fd, cbuffer, zip_buffer_size);
-              FILE_WRITE(tmp_fd, cbuffer, zip_buffer_size);
-              retval -= bytes_to_read;
-            }
-            retval = -2;
-          }
+		ReGBA_ProgressInitialise(WriteExternalFile
+			? FILE_ACTION_DECOMPRESS_ROM_TO_FILE
+			: FILE_ACTION_DECOMPRESS_ROM_TO_RAM
+			);
 
-          goto outcode;
+		if(ext && (strcasecmp(ext, ".bin") == 0 || strcasecmp(ext, ".gba") == 0))
+		{
+			switch (data.CompressionMethod)
+			{
+				case 0: // No compression
+					retval = data.DataDescriptor.UncompressedSize;
+					if (!WriteExternalFile)
+					{
+						FILE_READ(fd, Buffer, retval);
+						ReGBA_ProgressUpdate(data.DataDescriptor.UncompressedSize, data.DataDescriptor.UncompressedSize);
+					}
+					else
+					{
+						while (retval > 0)
+						{
+							int bytes_to_read = ZIP_BUFFER_SIZE;
+							if (retval < bytes_to_read) bytes_to_read = retval;
+							FILE_READ(fd, cbuffer, ZIP_BUFFER_SIZE);
+							FILE_WRITE(tmp_fd, cbuffer, ZIP_BUFFER_SIZE);
+							retval -= bytes_to_read;
+							ReGBA_ProgressUpdate(data.DataDescriptor.UncompressedSize - retval, data.DataDescriptor.UncompressedSize);
+						}
+						retval = -2;
+					}
 
-        case 8: //Compressed
-        {
-          z_stream stream = {0};
-          s32 err;
+					goto outcode;
 
-          /*
-           *   z.next_in = Input pointer
-           *   z.avail_in = Rest input data
-           *   z.next_out = Output pointer
-           *   z.avail_out = Rest output data
-           */
+				case 8: // Deflate compression
+				{
+					z_stream stream = {0};
+					s32 err;
 
-          stream.next_in = (Bytef*)cbuffer;
-          stream.avail_in = (u32)zip_buffer_size;
+					/*
+					 * z.next_in   = Input pointer
+					 * z.avail_in  = Remaining bytes of buffered input data
+					 * z.next_out  = Output pointer
+					 * z.avail_out = Remaining bytes of bufferable output data
+					 */
 
-          stream.next_out = (Bytef*)buffer;
+					stream.next_in = (Bytef*) cbuffer;
+					stream.avail_in = (u32) ZIP_BUFFER_SIZE;
+					stream.next_out = (Bytef*) Buffer;
 
-          if(write_tmp_flag == NO)
-            {
-              stream.avail_out = data.DataDescriptor.UncompressedSize;
-              retval = (u32)data.DataDescriptor.UncompressedSize;
-            }
-          else
-            {
-              stream.avail_out = gamepak_ram_buffer_size;
-              retval = -2;
-            }
+					if (!WriteExternalFile)
+					{
+						stream.avail_out = data.DataDescriptor.UncompressedSize;
+						retval = (u32)data.DataDescriptor.UncompressedSize;
+					}
+					else
+					{
+						stream.avail_out = FILE_BUFFER_SIZE;
+						retval = -2;
+					}
 
-//          stream.zalloc = (alloc_func)0;
-//          stream.zfree = (free_func)0;
-          stream.opaque = (voidpf)0;
+					stream.opaque = (voidpf) 0;
 
-        stream.zalloc = (alloc_func)zip_malloc_func;
-        stream.zfree = (free_func)zip_free_func;
+					stream.zalloc = (alloc_func) zip_malloc_func;
+					stream.zfree = (free_func) zip_free_func;
 
-          err = inflateInit2(&stream, -MAX_WBITS);
+					err = inflateInit2(&stream, -MAX_WBITS);
 
-          FILE_READ(fd, cbuffer, zip_buffer_size);
+					size_t Done = 0;
 
-          if(err == Z_OK)
-          {
-            while(err != Z_STREAM_END)
-            {
-              err = inflate(&stream, Z_SYNC_FLUSH);
-              if(err == Z_BUF_ERROR)
-              {
-                stream.avail_in = (u32)zip_buffer_size;
-                stream.next_in = (Bytef*)cbuffer;
-                FILE_READ(fd, cbuffer, zip_buffer_size);
-              }
+					FILE_READ(fd, cbuffer, ZIP_BUFFER_SIZE);
 
-              if((write_tmp_flag == YES) && (stream.avail_out == 0)) /* 出力バッファが尽きれば */
-                {
-                  /* まとめて書き出す */
-                  FILE_WRITE(tmp_fd, buffer, gamepak_ram_buffer_size);
-                  stream.next_out = buffer; /* 出力ポインタを元に戻す */
-                  stream.avail_out = gamepak_ram_buffer_size; /* 出力バッファ残量を元に戻す */
-                }
-            }
+					if (err == Z_OK)
+					{
+						while (err != Z_STREAM_END)
+						{
+							err = inflate(&stream, Z_SYNC_FLUSH);
+							if (err == Z_BUF_ERROR)
+							{
+								stream.avail_in = (u32) ZIP_BUFFER_SIZE;
+								stream.next_in = (Bytef*) cbuffer;
+								FILE_READ(fd, cbuffer, ZIP_BUFFER_SIZE);
+							}
+							else if (err < 0)
+							{
+								retval = -1;
+								goto outcode;
+							}
 
-            /* 残りを吐き出す */
-            if((write_tmp_flag == YES) && ((gamepak_ram_buffer_size - stream.avail_out) != 0))
-                FILE_WRITE(tmp_fd, buffer, gamepak_ram_buffer_size - stream.avail_out);
+							if (WriteExternalFile && stream.avail_out == 0)
+							{
+								FILE_WRITE(tmp_fd, Buffer, FILE_BUFFER_SIZE);
+								Done += FILE_BUFFER_SIZE;
+								ReGBA_ProgressUpdate(Done, data.DataDescriptor.UncompressedSize);
+								stream.next_out = Buffer;
+								stream.avail_out = FILE_BUFFER_SIZE;
+							}
+							else if (!WriteExternalFile)
+							{
+								ReGBA_ProgressUpdate(data.DataDescriptor.UncompressedSize - stream.avail_out, data.DataDescriptor.UncompressedSize);
+							}
+						}
 
-            err = Z_OK;
-            inflateEnd(&stream);
-          }
-          goto outcode;
-        }
-      }
-    }
-  }
+						if (WriteExternalFile && FILE_BUFFER_SIZE - stream.avail_out != 0)
+							FILE_WRITE(tmp_fd, Buffer, FILE_BUFFER_SIZE - stream.avail_out);
+						ReGBA_ProgressUpdate(data.DataDescriptor.UncompressedSize, data.DataDescriptor.UncompressedSize);
+
+						err = Z_OK;
+						inflateEnd(&stream);
+					}
+					goto outcode;
+				}
+			}
+		}
+	}
    
 outcode:
-  FILE_CLOSE(fd);
+	FILE_CLOSE(fd);
 
-  if(write_tmp_flag == YES)
-    FILE_CLOSE(tmp_fd);
-
-//printf("Load ZIP over\n");
+	if(WriteExternalFile)
+	{
+		FILE_CLOSE(tmp_fd);
+		free(Buffer);
+	}
 
 	free(cbuffer);
-  return retval;
+	ReGBA_ProgressFinalise();
+
+	return retval;
 }

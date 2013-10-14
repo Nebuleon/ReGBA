@@ -37,6 +37,19 @@ SDL_Rect ScreenRectangle = {
 
 video_scale_type ScaleMode = scaled_aspect;
 
+#define COLOR_PROGRESS_BACKGROUND RGB888_TO_RGB565(  0,   0,   0)
+#define COLOR_PROGRESS_TEXT       RGB888_TO_RGB565(255, 255, 255)
+#define COLOR_PROGRESS_BORDER     RGB888_TO_RGB565(  0,   0,   0)
+#define COLOR_PROGRESS_CONTENT    RGB888_TO_RGB565(255, 255, 255)
+
+#define PROGRESS_WIDTH 240
+#define PROGRESS_HEIGHT 13
+#define PROGRESS_SPACING 4
+
+static bool InFileAction = false;
+static enum ReGBA_FileAction CurrentFileAction;
+static struct timespec LastProgressUpdate;
+
 void init_video()
 {
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK) < 0)
@@ -693,4 +706,101 @@ void print_string_outline(const char *str, u16 fg_color, u16 border_color,
 			if (!(sx == 0 && sy == 0))
 				print_string(str, border_color, x + sx, y + sy);
 	print_string(str, fg_color, x, y);
+}
+
+static void ProgressUpdateInternal(uint32_t Current, uint32_t Total)
+{
+	char* Line;
+	switch (CurrentFileAction)
+	{
+		case FILE_ACTION_LOAD_BIOS:
+			Line = "Reading the GBA BIOS";
+			break;
+		case FILE_ACTION_LOAD_BATTERY:
+			Line = "Reading saved data";
+			break;
+		case FILE_ACTION_SAVE_BATTERY:
+			Line = "Writing saved data";
+			break;
+		case FILE_ACTION_LOAD_STATE:
+			Line = "Reading saved state";
+			break;
+		case FILE_ACTION_SAVE_STATE:
+			Line = "Writing saved state";
+			break;
+		case FILE_ACTION_DECOMPRESS_ROM_TO_RAM:
+			Line = "Decompressing ROM";
+			break;
+		case FILE_ACTION_DECOMPRESS_ROM_TO_FILE:
+			Line = "Decompressing ROM into a file";
+			break;
+		case FILE_ACTION_APPLY_GAME_COMPATIBILITY:
+			Line = "Applying compatibility fixes";
+			break;
+		case FILE_ACTION_LOAD_GLOBAL_SETTINGS:
+			Line = "Reading global settings";
+			break;
+		case FILE_ACTION_SAVE_GLOBAL_SETTINGS:
+			Line = "Writing global settings";
+			break;
+		case FILE_ACTION_LOAD_GAME_SETTINGS:
+			Line = "Loading per-game settings";
+			break;
+		case FILE_ACTION_SAVE_GAME_SETTINGS:
+			Line = "Writing per-game settings";
+			break;
+		default:
+			Line = "File action ongoing";
+			break;
+	}
+	SDL_FillRect(OutputSurface, &ScreenRectangle, COLOR_PROGRESS_BACKGROUND);
+	uint32_t Width = GetRenderedWidth(Line);
+	uint32_t Height = GetRenderedHeight(Line);
+	uint32_t Y = (GCW0_SCREEN_HEIGHT - (Height + PROGRESS_SPACING + PROGRESS_HEIGHT)) / 2;
+
+	print_string_outline(Line, COLOR_PROGRESS_TEXT, COLOR_PROGRESS_BORDER, (GCW0_SCREEN_WIDTH - Width) / 2, Y);
+	Y += Height + PROGRESS_SPACING;
+
+	SDL_Rect TopLine = { (GCW0_SCREEN_WIDTH - PROGRESS_WIDTH) / 2, Y, PROGRESS_WIDTH, 1 };
+	SDL_FillRect(OutputSurface, &TopLine, COLOR_PROGRESS_CONTENT);
+
+	SDL_Rect BottomLine = { (GCW0_SCREEN_WIDTH - PROGRESS_WIDTH) / 2, Y + PROGRESS_HEIGHT - 1, PROGRESS_WIDTH, 1 };
+	SDL_FillRect(OutputSurface, &BottomLine, COLOR_PROGRESS_CONTENT);
+
+	SDL_Rect LeftLine = { (GCW0_SCREEN_WIDTH - PROGRESS_WIDTH) / 2, Y, 1, PROGRESS_HEIGHT };
+	SDL_FillRect(OutputSurface, &LeftLine, COLOR_PROGRESS_CONTENT);
+
+	SDL_Rect RightLine = { (GCW0_SCREEN_WIDTH + PROGRESS_WIDTH) / 2 - 1, Y, 1, PROGRESS_HEIGHT };
+	SDL_FillRect(OutputSurface, &RightLine, COLOR_PROGRESS_CONTENT);
+
+	SDL_Rect Content = { (GCW0_SCREEN_WIDTH - PROGRESS_WIDTH) / 2 + 1, Y + 1, (uint32_t) ((uint64_t) Current * (PROGRESS_WIDTH - 2) / Total), PROGRESS_HEIGHT - 2 };
+	SDL_FillRect(OutputSurface, &Content, COLOR_PROGRESS_CONTENT);
+	SDL_Flip(OutputSurface);
+}
+
+void ReGBA_ProgressInitialise(enum ReGBA_FileAction Action)
+{
+	clock_gettime(CLOCK_MONOTONIC, &LastProgressUpdate);
+	CurrentFileAction = Action;
+	InFileAction = true;
+	ProgressUpdateInternal(0, 1);
+}
+
+void ReGBA_ProgressUpdate(uint32_t Current, uint32_t Total)
+{
+	struct timespec Now, Difference;
+	clock_gettime(CLOCK_MONOTONIC, &Now);
+	Difference = TimeDifference(LastProgressUpdate, Now);
+	if (InFileAction &&
+	    (Difference.tv_sec > 0 || Difference.tv_nsec > 50000000 || Current == Total)
+	   )
+	{
+		ProgressUpdateInternal(Current, Total);
+		LastProgressUpdate = Now;
+	}
+}
+
+void ReGBA_ProgressFinalise()
+{
+	InFileAction = false;
 }

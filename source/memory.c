@@ -189,7 +189,7 @@ u32 flash_bank_offset = 0;
 u32 bios_read_protect;
 
 // Keeps us knowing how much we have left.
-u8 *gamepak_rom;
+u8 *gamepak_rom = NULL;
 u32 gamepak_size;
 
 /******************************************************************************
@@ -206,11 +206,7 @@ DMA_TRANSFER_TYPE dma[4];
 u8 *memory_regions[16];
 u32 memory_limits[16];
 
-typedef struct
-{
-  u32 page_timestamp;
-  u32 physical_index;
-} gamepak_swap_entry_type;
+u32 gamepak_next_swap;
 
 u32 gamepak_ram_buffer_size;
 u32 gamepak_ram_pages;
@@ -220,20 +216,19 @@ char gamepak_code[5];
 char gamepak_maker[3];
 char CurrentGamePath[MAX_PATH];
 bool IsGameLoaded = false;
-u32 gamepak_crc32;
+bool IsZippedROM = false; // true if the current ROM came directly from a
+                          // zip file (false if it was extracted to temp)
 
 u32 mem_save_flag;
 
 // Enough to map the gamepak RAM space.
-gamepak_swap_entry_type *gamepak_memory_map;
+u16 gamepak_memory_map[1024];
 
 // This is global so that it can be kept open for large ROMs to swap
 // pages from, so there's no slowdown with opening and closing the file
 // a lot.
 
 FILE_TAG_TYPE gamepak_file_large = FILE_TAG_INVALID;
-
-u32 direct_map_vram = 0;
 
 char main_path[MAX_PATH + 1];
 
@@ -2253,6 +2248,8 @@ u32 load_backup()
 		ReGBA_Trace("W: Failed to get the name of the saved data file for '%s'", CurrentGamePath);
 		return 0;
 	}
+	ReGBA_ProgressInitialise(FILE_ACTION_LOAD_BATTERY);
+
   FILE_TAG_TYPE backup_file;
 
   FILE_OPEN(backup_file, BackupFilename, READ);
@@ -2263,6 +2260,8 @@ u32 load_backup()
 
     FILE_READ(backup_file, gamepak_backup, backup_size);
     FILE_CLOSE(backup_file);
+	ReGBA_ProgressUpdate(1, 1);
+	ReGBA_ProgressFinalise();
 
     // The size might give away what kind of backup it is.
     switch(backup_size)
@@ -2297,6 +2296,7 @@ u32 load_backup()
   }
   else
   {
+	ReGBA_ProgressFinalise();
     backup_type = BACKUP_NONE;
     memset(gamepak_backup, 0xFF, 1024 * 128);
   }
@@ -2317,6 +2317,7 @@ u32 save_backup()
 
   if(backup_type != BACKUP_NONE)
   {
+	ReGBA_ProgressInitialise(FILE_ACTION_SAVE_BATTERY);
     FILE_OPEN(backup_file, BackupFilename, WRITE);
 
     if(FILE_CHECK_VALID(backup_file))
@@ -2352,6 +2353,8 @@ u32 save_backup()
 
       FILE_WRITE(backup_file, gamepak_backup, backup_size);
       FILE_CLOSE(backup_file);
+	  ReGBA_ProgressUpdate(1, 1);
+	  ReGBA_ProgressFinalise();
       return 1;
     }
   }
@@ -2437,6 +2440,8 @@ s32 load_game_config(char *gamepak_title, char *gamepak_code, char *gamepak_make
 	flash_device_id = FLASH_DEVICE_MACRONIX_64KB;
 	backup_type = BACKUP_NONE;
 
+	ReGBA_ProgressInitialise(FILE_ACTION_APPLY_GAME_COMPATIBILITY);
+
 	sprintf(config_path, "%s/%s", main_path, CONFIG_FILENAME);
 
 	FILE_OPEN(config_file, config_path, READ);
@@ -2444,7 +2449,13 @@ s32 load_game_config(char *gamepak_title, char *gamepak_code, char *gamepak_make
 	if(FILE_CHECK_VALID(config_file))
 	{
 		if (lookup_game_config(gamepak_title, gamepak_code, gamepak_maker, config_file))
+		{
+			ReGBA_ProgressUpdate(2, 2);
+			ReGBA_ProgressFinalise();
 			return 0;
+		}
+		else
+			ReGBA_ProgressUpdate(1, 2);
 	}
 
 	if (ReGBA_GetBundledGameConfig(config_path))
@@ -2454,9 +2465,16 @@ s32 load_game_config(char *gamepak_title, char *gamepak_code, char *gamepak_make
 		if(FILE_CHECK_VALID(config_file))
 		{
 			if (lookup_game_config(gamepak_title, gamepak_code, gamepak_maker, config_file))
+			{
+				ReGBA_ProgressUpdate(2, 2);
+				ReGBA_ProgressFinalise();
 				return 0;
+			}
 		}
 	}
+
+	ReGBA_ProgressUpdate(2, 2);
+	ReGBA_ProgressFinalise();
 
 	return -1;
 }
@@ -2553,34 +2571,33 @@ static bool lookup_game_config(char *gamepak_title, char *gamepak_code, char *ga
 
 static ssize_t load_gamepak_raw(char *name_path)
 {
-  FILE_TAG_TYPE gamepak_file;
+	FILE_TAG_TYPE gamepak_file;
 
-  FILE_OPEN(gamepak_file, name_path, READ);
+	FILE_OPEN(gamepak_file, name_path, READ);
 
-  if(FILE_CHECK_VALID(gamepak_file))
-  {
-    u32 gamepak_size = FILE_LENGTH(gamepak_file);
+	if(FILE_CHECK_VALID(gamepak_file))
+	{
+		size_t gamepak_size = FILE_LENGTH(gamepak_file);
+		uint8_t* EntireROM = ReGBA_MapEntireROM(gamepak_file, gamepak_size);
+		if (EntireROM == NULL)
+		{
+			// Read in just enough for the header
+			gamepak_file_large = gamepak_file;
+			gamepak_ram_buffer_size = ReGBA_AllocateOnDemandBuffer((void**) &gamepak_rom);
+			FILE_READ(gamepak_file, gamepak_rom, 0x100);
+		}
+		else
+		{
+			gamepak_ram_buffer_size = gamepak_size;
+			gamepak_rom = EntireROM;
+			// Do not close the file, because it is required by the mapping.
+			// However, do not preserve it as gamepak_file_large either.
+		}
 
-    // If it's a big file size keep it don't close it, we'll
-    // probably want to load it later
-    if(gamepak_size <= gamepak_ram_buffer_size)
-    {
-      FILE_READ(gamepak_file, gamepak_rom, gamepak_size);
-      FILE_CLOSE(gamepak_file);
+		return gamepak_size;
+	}
 
-      gamepak_file_large = FILE_TAG_INVALID;
-    }
-    else
-    {
-      // Read in just enough for the header
-      FILE_READ(gamepak_file, gamepak_rom, 0x100);
-      gamepak_file_large = gamepak_file;
-    }
-
-    return gamepak_size;
-  }
-
-  return -1;
+	return -1;
 }
 
 /*
@@ -2597,11 +2614,24 @@ ssize_t load_gamepak(char *file_path)
 		{
 			FILE_CLOSE(gamepak_file_large);
 			gamepak_file_large = FILE_TAG_INVALID;
+			ReGBA_DeallocateROM(gamepak_rom);
+		}
+		else if (IsZippedROM)
+		{
+			ReGBA_DeallocateROM(gamepak_rom);
+		}
+		else
+		{
+			ReGBA_UnmapEntireROM(gamepak_rom);
 		}
 		IsGameLoaded = false;
+		IsZippedROM = false;
+		gamepak_size = 0;
+		gamepak_rom = NULL;
+		gamepak_ram_buffer_size = gamepak_ram_pages = 0;
 	}
 
-  ssize_t file_size;
+	ssize_t file_size;
 
 	FILE_OPEN(fd, file_path, READ);
 	if (fd)
@@ -2611,12 +2641,19 @@ ssize_t load_gamepak(char *file_path)
 
 		if ((magicbit[0] == 0x50) && (magicbit[1] == 0x4B) && (magicbit[2] == 0x03) && (magicbit[3] == 0x04))
 		{
-			file_size = load_file_zip(file_path);
+			uint8_t* ROMBuffer = NULL;
+			file_size = load_file_zip(file_path, &ROMBuffer);
 			if(file_size == -2)
 			{
 				char extracted_file[MAX_FILE];
 				sprintf(extracted_file, "%s/%s", main_path, ZIP_TMP);
 				file_size = load_gamepak_raw(extracted_file);
+			}
+			else
+			{
+				gamepak_rom = ROMBuffer;
+				gamepak_ram_buffer_size = file_size;
+				IsZippedROM = true;
 			}
 		}
 		else if (magicbit[3] == 0xEA)
@@ -2635,57 +2672,39 @@ ssize_t load_gamepak(char *file_path)
 		return -1;
 	}
 
-  if(file_size != -1)
-  {
-	  strcpy(CurrentGamePath, file_path);
-	  IsGameLoaded = true;
+	if(file_size != -1)
+	{
+		gamepak_ram_pages = gamepak_ram_buffer_size / (32 * 1024);
+		strcpy(CurrentGamePath, file_path);
+		IsGameLoaded = true;
 
-    frame_ticks = 0;
-    init_rewind(); // Initialise rewinds for this game
+		frame_ticks = 0;
+		init_rewind(); // Initialise rewinds for this game
 
-    gamepak_size = (file_size + 0x7FFF) & ~0x7FFF;
+		gamepak_size = (file_size + 0x7FFF) & ~0x7FFF;
 
-	load_backup();
+		load_backup();
 
-    memcpy(gamepak_title, gamepak_rom + 0xA0, 12);
-    memcpy(gamepak_code, gamepak_rom + 0xAC, 4);
-    memcpy(gamepak_maker, gamepak_rom + 0xB0, 2);
-    gamepak_title[12] = '\0';
-    gamepak_code[4] = '\0';
-    gamepak_maker[2] = '\0';
+		memcpy(gamepak_title, gamepak_rom + 0xA0, 12);
+		memcpy(gamepak_code, gamepak_rom + 0xAC, 4);
+		memcpy(gamepak_maker, gamepak_rom + 0xB0, 2);
+		gamepak_title[12] = '\0';
+		gamepak_code[4] = '\0';
+		gamepak_maker[2] = '\0';
 
-    //Validate the GBA title
-/* // Doesn't work for some reason [Neb]
-    char *pt= gamepak_rom + 0xA0;
-    int i;
-    for(i= 0; i < 18; i++)
-    {
-        if((pt[i] < '0' && pt[i] > 0) || (pt[i] > '9' && pt[i] < 'A') || pt[i] > 'Z')
-            return -1;
-    */
+		mem_save_flag = 0;
 
-    // crc32を取得
-#if 0
-	if (gamepak_file_large == LOAD_ON_MEMORY)
-      gamepak_crc32 = crc32(gamepak_crc32, gamepak_rom, file_size);
-    else
-      gamepak_crc32 = 0;
-#endif
-    gamepak_crc32 = 0;
+		load_game_config(gamepak_title, gamepak_code, gamepak_maker);
 
-    mem_save_flag = 0;
+		reset_gba();
+		reg[CHANGED_PC_STATUS] = 1;
 
-    load_game_config(gamepak_title, gamepak_code, gamepak_maker);
+		ReGBA_OnGameLoaded(file_path);
 
-      reset_gba();
-      reg[CHANGED_PC_STATUS] = 1;
-	  
-	ReGBA_OnGameLoaded(file_path);
+		return 0;
+	}
 
-    return 0;
-  }
-
-  return -1;
+	return -1;
 }
 
 uint8_t nintendo_bios_sha1[] = {
@@ -3546,80 +3565,78 @@ CPU_ALERT_TYPE dma_transfer(DMA_TRANSFER_TYPE *dma)
     memory_map_##type[map_offset + 3] = vram + (0x8000 * 2);                  \
   }                                                                           \
 
-// Picks a page to evict
-u32 page_time = 0;
-
 u32 evict_gamepak_page()
 {
-  // Find the one with the smallest frame timestamp
-  u32 page_index = 0;
-  u32 physical_index;
-  u32 smallest = gamepak_memory_map[0].page_timestamp;
-  u32 i;
+	// We will evict the page with index gamepak_next_swap, a bit like a ring
+	// buffer.
+	u32 page_index = gamepak_next_swap;
+	gamepak_next_swap++;
+	if (gamepak_next_swap >= gamepak_ram_pages)
+		gamepak_next_swap = 0;
+	u16 physical_index = gamepak_memory_map[page_index];
 
-  for(i = 1; i < gamepak_ram_pages; i++)
-  {
-    if(gamepak_memory_map[i].page_timestamp <= smallest)
-    {
-      smallest = gamepak_memory_map[i].page_timestamp;
-      page_index = i;
-    }
-  }
+	memory_map_read[(0x8000000 / (32 * 1024)) + physical_index] = NULL;
+	memory_map_read[(0xA000000 / (32 * 1024)) + physical_index] = NULL;
+	memory_map_read[(0xC000000 / (32 * 1024)) + physical_index] = NULL;
 
-  physical_index = gamepak_memory_map[page_index].physical_index;
-
-  memory_map_read[(0x8000000 / (32 * 1024)) + physical_index] = NULL;
-  memory_map_read[(0xA000000 / (32 * 1024)) + physical_index] = NULL;
-  memory_map_read[(0xC000000 / (32 * 1024)) + physical_index] = NULL;
-
-  return page_index;
+#if TRACE_MEMORY
+	ReGBA_Trace("T: Evicting virtual page %u", page_index);
+#endif
+	
+	return page_index;
 }
 
-u8 *load_gamepak_page(u32 physical_index)
+u8 *load_gamepak_page(u16 physical_index)
 {
-  if(physical_index >= (gamepak_size >> 15))
-    return gamepak_rom;
+	if (memory_map_read[(0x08000000 / (32 * 1024)) + (uint32_t) physical_index] != NULL)
+	{
+#if TRACE_MEMORY
+		ReGBA_Trace("T: Not reloading already loaded Game Pak page %u (%08X..%08X)", (uint32_t) physical_index, 0x08000000 + physical_index * (32 * 1024), 0x08000000 + (uint32_t) physical_index * (32 * 1024) + 0x7FFF);
+#endif
+		return memory_map_read[(0x08000000 / (32 * 1024)) + (uint32_t) physical_index];
+	}
+#if TRACE_MEMORY
+	ReGBA_Trace("T: Loading Game Pak page %u (%08X..%08X)", (uint32_t) physical_index, 0x08000000 + (uint32_t) physical_index * (32 * 1024), 0x08000000 + (uint32_t) physical_index * (32 * 1024) + 0x7FFF);
+#endif
+	if((uint32_t) physical_index >= (gamepak_size >> 15))
+		return gamepak_rom;
 
-  u32 page_index = evict_gamepak_page();
-  u32 page_offset = page_index * (32 * 1024);
-  u8 *swap_location = gamepak_rom + page_offset;
+	u16 page_index = evict_gamepak_page();
+	u32 page_offset = (uint32_t) page_index * (32 * 1024);
+	u8 *swap_location = gamepak_rom + page_offset;
 
-  gamepak_memory_map[page_index].page_timestamp = page_time;
-  gamepak_memory_map[page_index].physical_index = physical_index;
-  page_time++;
+	gamepak_memory_map[page_index] = physical_index;
 
-  FILE_SEEK(gamepak_file_large, physical_index * (32 * 1024), SEEK_SET);
-  FILE_READ(gamepak_file_large, swap_location, (32 * 1024));
+	FILE_SEEK(gamepak_file_large, (off_t) physical_index * (32 * 1024), SEEK_SET);
+	FILE_READ(gamepak_file_large, swap_location, (32 * 1024));
 
-  memory_map_read[(0x8000000 / (32 * 1024)) + physical_index] = swap_location;
-  memory_map_read[(0xA000000 / (32 * 1024)) + physical_index] = swap_location;
-  memory_map_read[(0xC000000 / (32 * 1024)) + physical_index] = swap_location;
+	memory_map_read[(0x8000000 / (32 * 1024)) + physical_index] =
+		memory_map_read[(0xA000000 / (32 * 1024)) + physical_index] =
+		memory_map_read[(0xC000000 / (32 * 1024)) + physical_index] = swap_location;
 
-  // If RTC is active page the RTC register bytes so they can be read
-  if((rtc_state != RTC_DISABLED) && (physical_index == 0))
-  {
-    memcpy(swap_location + 0xC4, rtc_registers, sizeof(rtc_registers));
-  }
+	// If RTC is active page the RTC register bytes so they can be read
+	if((rtc_state != RTC_DISABLED) && (physical_index == 0))
+	{
+		memcpy(swap_location + 0xC4, rtc_registers, sizeof(rtc_registers));
+	}
 
-  return swap_location;
+	return swap_location;
 }
 
 void init_memory_gamepak()
 {
   u32 map_offset = 0;
 
-  if(gamepak_size > gamepak_ram_buffer_size)
+  if (FILE_CHECK_VALID(gamepak_file_large))
   {
     // Large ROMs get special treatment because they
-    // can't fit into the 16MB ROM buffer.
-    u32 i;
-    for(i = 0; i < gamepak_ram_pages; i++)
-    {
-      gamepak_memory_map[i].page_timestamp = 0;
-      gamepak_memory_map[i].physical_index = 0;
-    }
+    // can't fit into the ROM buffer.
+    // The size of this buffer varies per platform, and may actually
+    // fit all of the ROM, in which case this is dead code.
+    memset(gamepak_memory_map, 0, sizeof(gamepak_memory_map));
+    gamepak_next_swap = 0;
 
-    map_null(read, 0x8000000, 0xD000000);
+    map_null(read, 0x8000000, 0xE000000);
   }
   else
   {
@@ -3630,38 +3647,6 @@ void init_memory_gamepak()
     map_region(read, 0xC000000, 0xC000000 + gamepak_size, 1024, gamepak_rom);
     map_null(read, 0xC000000 + gamepak_size, 0xE000000);
   }
-}
-
-void init_gamepak_buffer()
-{
-	/* At the end of this function, the ROM buffer will have been sized so
-	 * that at least 2 MiB are left for other operations.
-	 */
-	gamepak_rom = NULL;
-
-	/* Start with trying to get 34 MiB. Let go in 1 MiB increments. */
-	u32 next_attempt = 34 * 1024 * 1024;
-	gamepak_rom = malloc(next_attempt);
-	while (gamepak_rom == NULL)
-	{
-		next_attempt -= 1024 * 1024;
-		gamepak_rom = malloc(next_attempt);
-	}
-
-	/* Now free the allocation and allocate it again, minus 2 MiB.
-	 * The allocation of 34 MiB above is so that the full 32 MiB of the
-	 * largest allowable GBA ROM size can be allocated on supported
-	 * platforms. */
-	free(gamepak_rom);
-	gamepak_ram_buffer_size = next_attempt - 2 * 1024 * 1024;
-	gamepak_rom = malloc(gamepak_ram_buffer_size);
-
-	ReGBA_Trace("I: Allocated %u MiB for the ROM buffer",
-		gamepak_ram_buffer_size / (1024 * 1024));
-
-	gamepak_ram_pages = gamepak_ram_buffer_size / (32 * 1024);
-	gamepak_memory_map = malloc(sizeof(gamepak_swap_entry_type) *
-	gamepak_ram_pages);
 }
 
 void init_memory()
@@ -3846,7 +3831,7 @@ void loadstate_rewind(void)
 u32 load_state(uint32_t SlotNumber)
 {
 	FILE_TAG_TYPE savestate_file;
-    size_t i;
+	size_t i;
 
 	char SavedStateFilename[MAX_PATH + 1];
 	if (!ReGBA_GetSavedStateFilename(SavedStateFilename, CurrentGamePath, SlotNumber))
@@ -3855,13 +3840,17 @@ u32 load_state(uint32_t SlotNumber)
 		return 0;
 	}
 
+	ReGBA_ProgressInitialise(FILE_ACTION_LOAD_STATE);
+
 	FILE_OPEN(savestate_file, SavedStateFilename, READ);
 	if(FILE_CHECK_VALID(savestate_file))
     {
 		u8 header[SVS_HEADER_SIZE];
 		i = FILE_READ(savestate_file, header, SVS_HEADER_SIZE);
+		ReGBA_ProgressUpdate(SVS_HEADER_SIZE, SAVESTATE_SIZE);
 		if (i < SVS_HEADER_SIZE) {
 			FILE_CLOSE(savestate_file);
+			ReGBA_ProgressFinalise();
 			return 1; // Failed to fully read the file
 		}
 		if (!(
@@ -3869,10 +3858,13 @@ u32 load_state(uint32_t SlotNumber)
 		||	memcmp(header, SVS_HEADER_F, SVS_HEADER_SIZE) == 0
 		)) {
 			FILE_CLOSE(savestate_file);
+			ReGBA_ProgressFinalise();
 			return 2; // Bad saved state format
 		}
 
 		i = FILE_READ(savestate_file, savestate_write_buffer, SAVESTATE_SIZE);
+		ReGBA_ProgressUpdate(SAVESTATE_SIZE, SAVESTATE_SIZE);
+		ReGBA_ProgressFinalise();
 		FILE_CLOSE(savestate_file);
 		if (i < SAVESTATE_SIZE)
 			return 1; // Failed to fully read the file
@@ -3914,8 +3906,12 @@ u32 load_state(uint32_t SlotNumber)
 		reg[CHANGED_PC_STATUS] = 1;
 
 		return 0;
-    }
-    else return 1;
+	}
+	else
+	{
+		ReGBA_ProgressFinalise();
+		return 1;
+	}
 }
 
 
@@ -3942,6 +3938,8 @@ u32 save_state(uint32_t SlotNumber, u16 *screen_capture)
 		ReGBA_Trace("W: Failed to get the name of saved state #%d for '%s'", SlotNumber, CurrentGamePath);
 		return 0;
 	}
+	
+	ReGBA_ProgressInitialise(FILE_ACTION_SAVE_STATE);
 
   g_state_buffer_ptr = savestate_write_buffer;
 
@@ -3959,13 +3957,16 @@ u32 save_state(uint32_t SlotNumber, u16 *screen_capture)
   if(FILE_CHECK_VALID(savestate_file))
   {
     FILE_WRITE(savestate_file, SVS_HEADER_F, SVS_HEADER_SIZE);
+	ReGBA_ProgressUpdate(SVS_HEADER_SIZE, SAVESTATE_SIZE);
     FILE_WRITE(savestate_file, savestate_write_buffer, sizeof(savestate_write_buffer));
+	ReGBA_ProgressUpdate(SAVESTATE_SIZE, SAVESTATE_SIZE);
     FILE_CLOSE(savestate_file);
   }
   else
   {
     ret = 0;
   }
+  ReGBA_ProgressFinalise();
 
   mem_save_flag = 1;
 

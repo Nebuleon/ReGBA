@@ -163,6 +163,22 @@ struct ReGBA_RTC {
 	unsigned char seconds;     // Range: 0..59
 };
 
+enum ReGBA_FileAction {
+	FILE_ACTION_UNKNOWN,
+	FILE_ACTION_LOAD_BIOS,
+	FILE_ACTION_LOAD_BATTERY,
+	FILE_ACTION_SAVE_BATTERY,
+	FILE_ACTION_LOAD_STATE,
+	FILE_ACTION_SAVE_STATE,
+	FILE_ACTION_DECOMPRESS_ROM_TO_RAM,
+	FILE_ACTION_DECOMPRESS_ROM_TO_FILE,
+	FILE_ACTION_APPLY_GAME_COMPATIBILITY,
+	FILE_ACTION_LOAD_GLOBAL_SETTINGS,
+	FILE_ACTION_SAVE_GLOBAL_SETTINGS,
+	FILE_ACTION_LOAD_GAME_SETTINGS,
+	FILE_ACTION_SAVE_GAME_SETTINGS
+};
+
 // - - - CROSS-PLATFORM VARIABLE DEFINITIONS - - -
 extern u16*     GBAScreen;
 extern uint32_t GBAScreenPitch;
@@ -434,6 +450,83 @@ bool ReGBA_GetSavedStateFilename(char* Result, const char* GamePath, uint32_t Sl
 bool ReGBA_GetBundledGameConfig(char* Result);
 
 /*
+ * The intent of this function is for the port to be able to return a memory
+ * mapping that is filled on demand by the operating system it runs on. If
+ * such a mapping can be achieved, this function can return a new mapping for
+ * the uncompressed ROM file. The return value, if non-NULL, must point to
+ * memory that is readable and privately writable (i.e. not written back to
+ * the file). The real-time clock registers require being able to write to
+ * the mapping, because they are mapped at ROM + C4h.
+ * Input:
+ *   File: The file to create a mapping for.
+ *   Size: The size of the file.
+ * Returns:
+ *   If creating a mapping, the function returns non-NULL.
+ *   If not creating a mapping, the function returns NULL.
+ * Output assertions:
+ *   File is kept open if the return value is non-NULL, and the port is
+ *   responsible for keeping track of the mapping so that it can be unmapped
+ *   in ReGBA_UnmapEntireROM.
+ *   If the return value is NULL, ReGBA will use its own on-demand page
+ *   loading mechanism after calling ReGBA_AllocateOnDemandBuffer.
+ */
+uint8_t* ReGBA_MapEntireROM(FILE_TAG_TYPE File, size_t Size);
+
+/*
+ * Unmaps an entire uncompressed ROM mapped by ReGBA_MapEntireROM, closing
+ * its file as well.
+ * Input:
+ *   Mapping: Pointer to the first byte of the mapping.
+ */
+void ReGBA_UnmapEntireROM(void* Mapping);
+
+/*
+ * Allocates a buffer to hold the entire decompressed version of a compressed
+ * ROM. The return value, if non-NULL, must point to memory that is readable and
+ * writable.
+ * Input:
+ *   Size: The size of the buffer to be allocated.
+ * Returns:
+ *   If Size bytes of memory are available, the function returns non-NULL
+ *   and preserves the allocation for use in ReGBA_DeallocateROM.
+ *   Otherwise, the function returns NULL.
+ * Output assertions:
+ *   If the return value is NULL, ReGBA will decompress the ROM into a
+ *   temporary file, then call ReGBA_MapEntireROM on the temporary file.
+ */
+uint8_t* ReGBA_AllocateROM(size_t Size);
+
+/*
+ * Allocates a buffer to hold pages of the current GBA ROM, loaded from its
+ * backing file on demand by ReGBA. This function is called when no mapping
+ * can be created for on-demand loading by the operating system for an
+ * uncompressed ROM or the temporary-file version of a compressed ROM.
+ * ReGBA keeps the file open and tracks it in this case. At the end of the
+ * function, Buffer must point to memory that is readable and writable.
+ * Output:
+ *   Buffer: A pointer to void*, which must be updated to point to the buffer
+ *   allocated by the function. That buffer is the largest buffer that the
+ *   port being compiled can afford to give ReGBA for its on-demand loading
+ *   of GBA ROM pages.
+ * Returns:
+ *   The size of the buffer allocated for updating Buffer with.
+ * Output assertions:
+ *   Buffer points to a variable that points to non-NULL. If it doesn't, then
+ *   this is a fatal error.
+ *   The return value is a multiple of 32768.
+ */
+size_t ReGBA_AllocateOnDemandBuffer(void** Buffer);
+
+/*
+ * Frees the last allocation of memory made without a backing file by the port
+ * being compiled. This allocation was made by either ReGBA_AllocateROM or
+ * ReGBA_AllocateOnDemandBuffer.
+ * Input:
+ *   Buffer: Pointer to the first byte of the buffer.
+ */
+void ReGBA_DeallocateROM(void* Buffer);
+
+/*
  * Performs actions appropriate for the port being compiled after loading a
  * GBA game.
  * Input:
@@ -450,6 +543,29 @@ void ReGBA_OnGameLoaded(const char* GamePath);
  *   The length of the file whose handle was passed in, in bytes.
  */
 size_t FILE_LENGTH(FILE_TAG_TYPE File);
+
+/*
+ * Starts displaying a progress indication in the manner most appropriate for
+ * the port being compiled.
+ * Input:
+ *   Action: The action being started.
+ */
+void ReGBA_ProgressInitialise(enum ReGBA_FileAction Action);
+
+/*
+ * Update the progress indication for the action started by the last call to
+ * ReGBA_ProgressInitialise which has not been ended by ReGBA_ProgressFinalise
+ * in the manner most appropriate for the port being compiled.
+ * Input:
+ *   Current: The units of progress carried out so far for the action.
+ *   Total: The units of progress required to carry out the full action.
+ */
+void ReGBA_ProgressUpdate(uint32_t Current, uint32_t Total);
+
+/*
+ * Finishes displaying a progress indication.
+ */
+void ReGBA_ProgressFinalise();
 
 /*
  * Saves the emulator settings.

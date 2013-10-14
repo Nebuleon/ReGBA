@@ -797,13 +797,18 @@ bool ReGBA_SaveSettings(char *cfg_name)
 	sprintf(fname, "%s/%s.cfg", main_path, cfg_name);
 	FILE_TAG_TYPE fd;
 
+	ReGBA_ProgressInitialise(FILE_ACTION_SAVE_GLOBAL_SETTINGS);
+
 	FILE_OPEN(fd, fname, WRITE);
 	if(FILE_CHECK_VALID(fd)) {
 		Menu_SaveIterateRecurse(fd, &MainMenu);
+		ReGBA_ProgressUpdate(1, 1);
+		ReGBA_ProgressFinalise();
 	}
 	else
 	{
 		ReGBA_Trace("E: Couldn't open file %s for writing.\n", fname);
+		ReGBA_ProgressFinalise();
 		return false;
 	}
 
@@ -822,6 +827,8 @@ void ReGBA_LoadSettings(char *cfg_name)
 	sprintf(fname, "%s/%s.cfg", main_path, cfg_name);
 
 	FILE_TAG_TYPE fd;
+
+	ReGBA_ProgressInitialise(FILE_ACTION_LOAD_GLOBAL_SETTINGS);
 
 	FILE_OPEN(fd, fname, READ);
 
@@ -910,9 +917,11 @@ void ReGBA_LoadSettings(char *cfg_name)
 				}
 			}
 		}
+		ReGBA_ProgressUpdate(1, 1);
 	}
 	else
 	{
-		ReGBA_Trace("E: Couldn't open file %s for loading.\n", fname);
+		ReGBA_Trace("W: Couldn't open file %s for loading.\n", fname);
 	}
+	ReGBA_ProgressFinalise();
 }

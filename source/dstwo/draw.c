@@ -1258,3 +1258,15 @@ void err_msg(enum SCREEN_ID screen, char *msg)
 	ConsoleInit(RGB15(31, 31, 31), RGB15(0, 0, 0), UP_SCREEN, 2);
 	printf(msg);
 }
+
+void ReGBA_ProgressInitialise(enum ReGBA_FileAction Action)
+{
+}
+
+void ReGBA_ProgressUpdate(uint32_t Current, uint32_t Total)
+{
+}
+
+void ReGBA_ProgressFinalise()
+{
+}

@@ -162,7 +162,7 @@ int main(int argc, char *argv[])
 		}
 	}
 
-  init_gamepak_buffer();
+	init_video();
 
   // Copy the user's .gpsp directory into main_path
   sprintf(main_path, "%s/.gpsp", getenv("HOME"));
@@ -175,9 +175,11 @@ int main(int argc, char *argv[])
 
 	// Try loading the user's .gpsp directory's GBA BIOS first.
 	// Fall back on the bundled one.
+	ReGBA_ProgressInitialise(FILE_ACTION_LOAD_BIOS);
 	sprintf(file, "%s/gba_bios.bin", main_path);
 	if(load_bios(file) == -1)
 	{
+		ReGBA_ProgressUpdate(1, 2);
 		sprintf(file, "%s/gba_bios.bin", executable_path);
 		if (load_bios(file) == -1)
 		{
@@ -189,10 +191,14 @@ int main(int argc, char *argv[])
 
 			quit();
 		}
+		else
+			ReGBA_ProgressUpdate(2, 2);
 	}
+	else
+		ReGBA_ProgressUpdate(2, 2);
+	ReGBA_ProgressFinalise();
 
 	init_main();
-	init_video();
 	init_sdlaudio();
 	init_sound();
 
@@ -229,7 +235,6 @@ int main(int argc, char *argv[])
 #endif
 
     init_cpu(BootFromBIOS /* in port.c */);
-    init_memory();
   }
   else
   {
@@ -257,7 +262,6 @@ int main(int argc, char *argv[])
       clear_screen(0);
       flip_screen();
       init_cpu(BootFromBIOS /* in port.c */);
-      init_memory();
     }
 #endif
   }
@@ -549,9 +553,9 @@ void quit()
   sound_exit();
 #endif
 
-  SDL_Quit();
-
   ReGBA_SaveSettings("global_config");
+
+  SDL_Quit();
 
   exit(0);
 }
