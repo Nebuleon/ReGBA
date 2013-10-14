@@ -728,6 +728,9 @@ static void ProgressUpdateInternal(uint32_t Current, uint32_t Total)
 		case FILE_ACTION_SAVE_STATE:
 			Line = "Writing saved state";
 			break;
+		case FILE_ACTION_LOAD_ROM_FROM_FILE:
+			Line = "Reading ROM from a file";
+			break;
 		case FILE_ACTION_DECOMPRESS_ROM_TO_RAM:
 			Line = "Decompressing ROM";
 			break;

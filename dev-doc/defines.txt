@@ -49,6 +49,22 @@ The following options are also available on the DSTwo port:
   The DSTwo port uses the value of this variable to show the Git commit hash
   of the version being compiled.
 
+The following options are also available on the OpenDingux ports:
+
+* USE_MMAP, memory-mapping of files.
+* LOAD_ALL_ROM, disabling on-demand loading of files.
+  These two mutually-exclusive options control how ROMs are to be loaded.
+  If compiled with USE_MMAP, ReGBA will ask the operating system to map pages
+  on demand from a memory-mapped file.
+  If compiled with LOAD_ALL_ROM, ReGBA will load the entire file into memory
+  in a private allocation.
+  If compiled with neither option, ReGBA will use its own on-demand loading
+  code with an allocation possibly smaller than the file.
+* TRACE_MEMORY, low-volume tracing option.
+  If compiled with this option, ReGBA will emit trace information when memory
+  is being mapped, unmapped, loaded on demand, or allocated or deallocated for
+  a compressed ROM.
+
 The following trace options are available on all platforms:
 
 * TRACE_FLUSHING, medium-volume tracing option in some games.

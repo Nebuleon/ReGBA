@@ -20,11 +20,14 @@
 #include "common.h"
 #include <sys/mman.h>
 
+#if defined USE_MMAP
 static FILE_TAG_TYPE MappedFile = FILE_TAG_INVALID;
 static size_t MappedFileSize;
+#endif
 
 uint8_t* ReGBA_MapEntireROM(FILE_TAG_TYPE File, size_t Size)
 {
+#if defined USE_MMAP
 	uint8_t* Result = mmap(NULL /* kernel chooses address */,
 		Size,
 		PROT_READ | PROT_WRITE,
@@ -34,22 +37,55 @@ uint8_t* ReGBA_MapEntireROM(FILE_TAG_TYPE File, size_t Size)
 	if (Result != NULL)
 	{
 		MappedFile = File;
-#if TRACE_MEMORY
+#  if TRACE_MEMORY
 		ReGBA_Trace("I: Mapped a ROM to memory via the operating system");
-#endif
+#  endif
 	}
 	return Result;
+#elif defined LOAD_ALL_ROM
+	// The file is kept open for us. But we close it.
+	uint8_t* Result = malloc(Size);
+	if (Result != NULL)
+	{
+		ReGBA_ProgressInitialise(FILE_ACTION_LOAD_ROM_FROM_FILE);
+		uint8_t* Ptr = Result;
+		size_t Read, Next, Done = 0;
+		Next = Size - Done < 65536 ? Size - Done : 65536;
+		while ((Read = FILE_READ(File, Ptr, Next)) > 0)
+		{
+			Ptr += Read;
+			Done += Read;
+			ReGBA_ProgressUpdate(Done, Size);
+			Next = Size - Done < 65536 ? Size - Done : 65536;
+		}
+		ReGBA_ProgressFinalise();
+#  if TRACE_MEMORY
+		ReGBA_Trace("I: Loaded an entire ROM from file");
+#  endif
+	}
+	FILE_CLOSE(File);
+	return Result;
+#else
+	return NULL;
+#endif
 }
 
 void ReGBA_UnmapEntireROM(void* Mapping)
 {
+#if defined USE_MMAP
 	munmap(Mapping, MappedFileSize);
 	FILE_CLOSE(MappedFile);
-#if TRACE_MEMORY
+#  if TRACE_MEMORY
 	ReGBA_Trace("I: Unmapped the previous ROM from memory");
-#endif
+#  endif
 	MappedFile = NULL;
 	MappedFileSize = 0;
+#elif defined LOAD_ALL_ROM
+	free(Mapping);
+#  if TRACE_MEMORY
+	ReGBA_Trace("I: Unloaded the previous ROM from memory");
+#  endif
+#endif
 }
 
 uint8_t* ReGBA_AllocateROM(size_t Size)

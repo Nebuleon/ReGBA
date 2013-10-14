@@ -19,7 +19,7 @@ HEADERS     := cheats.h ../common.h ../cpu_common.h ../cpu.h draw.h main.h    \
                imageio.h ../unifont.h od-sound.h od-input.h
 
 INCLUDE     := -I. -I.. -I../mips
-DEFS        := -DMIPS_XBURST
+DEFS        := -DMIPS_XBURST -DUSE_MMAP
 HAS_MIPS32R2 := $(shell echo | $(CC) -dM -E - |grep _MIPS_ARCH_MIPS32R2)
 ifneq ($(HAS_MIPS32R2),)
 	DEFS += -DMIPS_32R2

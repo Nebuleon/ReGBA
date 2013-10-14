@@ -172,6 +172,7 @@ enum ReGBA_FileAction {
 	FILE_ACTION_SAVE_STATE,
 	FILE_ACTION_DECOMPRESS_ROM_TO_RAM,
 	FILE_ACTION_DECOMPRESS_ROM_TO_FILE,
+	FILE_ACTION_LOAD_ROM_FROM_FILE,        // uncompressed or temporary file
 	FILE_ACTION_APPLY_GAME_COMPATIBILITY,
 	FILE_ACTION_LOAD_GLOBAL_SETTINGS,
 	FILE_ACTION_SAVE_GLOBAL_SETTINGS,
@@ -457,6 +458,10 @@ bool ReGBA_GetBundledGameConfig(char* Result);
  * memory that is readable and privately writable (i.e. not written back to
  * the file). The real-time clock registers require being able to write to
  * the mapping, because they are mapped at ROM + C4h.
+ * 
+ * The port may decide to use this function to load an entire ROM into memory
+ * instead, if it deems the on-demand access to be too slow and it can load
+ * the entire ROM into memory.
  * Input:
  *   File: The file to create a mapping for.
  *   Size: The size of the file.
