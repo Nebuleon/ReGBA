@@ -783,6 +783,8 @@ static void ProgressUpdateInternal(uint32_t Current, uint32_t Total)
 
 void ReGBA_ProgressInitialise(enum ReGBA_FileAction Action)
 {
+	if (Action == FILE_ACTION_SAVE_BATTERY)
+		return; // Ignore this completely, because it flashes in-game
 	clock_gettime(CLOCK_MONOTONIC, &LastProgressUpdate);
 	CurrentFileAction = Action;
 	InFileAction = true;
