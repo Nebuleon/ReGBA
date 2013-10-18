@@ -107,6 +107,16 @@ typedef void (*MenuEntryFunction) (struct Menu*, struct MenuEntry*);
  */
 typedef void (*MenuFunction) (struct Menu*);
 
+/*
+ * MenuPersistenceFunction is the type of a function that runs to load or save
+ * the value of a persistent setting in a file.
+ * Input:
+ *   1: The menu entry whose setting's value is being loaded or saved.
+ *   2: The text value read from the configuration file, or a buffer with 256
+ *   entries to write the configuration name and value to (setting = value).
+ */
+typedef void (*MenuPersistenceFunction) (struct MenuEntry*, char*);
+
 struct MenuEntry {
 	enum MenuEntryKind Kind;
 	char* Name;
@@ -126,6 +136,8 @@ struct MenuEntry {
 	MenuEntryFunction ButtonRightFunction;
 	MenuEntryDisplayFunction DisplayNameFunction;
 	MenuEntryDisplayFunction DisplayValueFunction;
+	MenuPersistenceFunction LoadFunction;
+	MenuPersistenceFunction SaveFunction;
 	void* UserData;
 	struct {
 		char* Pretty;
@@ -342,6 +354,146 @@ static void DefaultDisplayTitleFunction(struct Menu* ActiveMenu)
 		ReGBA_Trace("W: Hid title '%s' from the menu due to it being too long", ActiveMenu->Title);
 }
 
+static void DefaultLoadFunction(struct MenuEntry* ActiveMenuEntry, char* Value)
+{
+	uint32_t i;
+	for (i = 0; i < ActiveMenuEntry->ChoiceCount; i++)
+	{
+		if (strcasecmp(ActiveMenuEntry->Choices[i].Persistent, Value) == 0)
+		{
+			*(uint32_t*) ActiveMenuEntry->Target = i;
+			return;
+		}
+	}
+	ReGBA_Trace("W: Value '%s' for option '%s' not valid; ignored", Value, ActiveMenuEntry->PersistentName);
+}
+
+static void DefaultSaveFunction(struct MenuEntry* ActiveMenuEntry, char* Value)
+{
+	snprintf(Value, 256, "%s = %s #%s\n", ActiveMenuEntry->PersistentName,
+		ActiveMenuEntry->Choices[*((uint32_t*) ActiveMenuEntry->Target)].Persistent,
+		ActiveMenuEntry->Choices[*((uint32_t*) ActiveMenuEntry->Target)].Pretty);
+}
+
+// -- Custom display --
+
+static char* OpenDinguxButtonText[12] = {
+	"L",
+	"R",
+	"D-pad Down",
+	"D-pad Up",
+	"D-pad Left",
+	"D-pad Right",
+	"Start",
+	"Select",
+	"B",
+	"A",
+	LEFT_FACE_BUTTON_NAME,
+	TOP_FACE_BUTTON_NAME,
+};
+
+/*
+ * Retrieves the button text for a single OpenDingux button.
+ * Input:
+ *   Button: The single button to describe. If this value is 0, the value is
+ *   considered valid and "None" is the description text.
+ * Output:
+ *   Valid: A pointer to a Boolean variable which is updated with true if
+ *     Button was a single button or none, or false otherwise.
+ * Returns:
+ *   A pointer to a null-terminated string describing Button. This string must
+ *   never be freed, as it is statically allocated.
+ */
+static char* GetButtonText(enum OpenDingux_Buttons Button, bool* Valid)
+{
+	uint_fast8_t i;
+	if (Button == 0)
+	{
+		*Valid = true;
+		return "None";
+	}
+	else
+	{
+		for (i = 0; i < 12; i++)
+		{
+			if (Button == 1 << i)
+			{
+				*Valid = true;
+				return OpenDinguxButtonText[i];
+			}
+		}
+		*Valid = false;
+		return "Invalid";
+	}
+}
+
+static void DisplayButtonMappingValue(struct MenuEntry* DrawnMenuEntry, struct MenuEntry* ActiveMenuEntry)
+{
+	bool Valid;
+	char* Value = GetButtonText(*(uint32_t*) DrawnMenuEntry->Target, &Valid);
+
+	uint32_t TextWidth = GetRenderedWidth(Value);
+	if (TextWidth <= GCW0_SCREEN_WIDTH - 2)
+	{
+		bool IsActive = (DrawnMenuEntry == ActiveMenuEntry);
+		uint16_t TextColor = Valid ? (IsActive ? COLOR_ACTIVE_TEXT : COLOR_INACTIVE_TEXT) : COLOR_ERROR_TEXT;
+		uint16_t OutlineColor = Valid ? (IsActive ? COLOR_ACTIVE_OUTLINE : COLOR_INACTIVE_OUTLINE) : COLOR_ERROR_OUTLINE;
+		print_string_outline(Value, TextColor, OutlineColor, GCW0_SCREEN_WIDTH - TextWidth - 1, GetRenderedHeight(" ") * (DrawnMenuEntry->Position + 2) + 1);
+	}
+	else
+		ReGBA_Trace("W: Hid value '%s' from the menu due to it being too long", Value);
+}
+
+// -- Custom saving --
+
+static char OpenDinguxButtonSave[12] = {
+	'L',
+	'R',
+	'v',
+	'^',
+	'<',
+	'>',
+	'S',
+	's',
+	'B',
+	'A',
+	'Y', // Using the SNES/DS/A320 mapping, this is the left face button.
+	'X', // Using the SNES/DS/A320 mapping, this is the upper face button.
+};
+
+static void LoadMappingFunction(struct MenuEntry* ActiveMenuEntry, char* Value)
+{
+	uint32_t Mapping = 0;
+	if (Value[0] != 'x')
+	{
+		uint_fast8_t i;
+		for (i = 0; i < 12; i++)
+			if (Value[0] == OpenDinguxButtonSave[i])
+			{
+				Mapping = 1 << i;
+				break;
+			}
+	}
+	*(uint32_t*) ActiveMenuEntry->Target = Mapping;
+}
+
+static void SaveMappingFunction(struct MenuEntry* ActiveMenuEntry, char* Value)
+{
+	char Temp[32];
+	Temp[0] = '\0';
+	uint_fast8_t i;
+	for (i = 0; i < 12; i++)
+		if (*(uint32_t*) ActiveMenuEntry->Target == 1 << i)
+		{
+			Temp[0] = OpenDinguxButtonSave[i];
+			sprintf(&Temp[1], " #%s", OpenDinguxButtonText[i]);
+			break;
+		}
+	if (Temp[0] == '\0')
+		strcpy(Temp, "x #None");
+	snprintf(Value, 256, "%s = %s\n", ActiveMenuEntry->PersistentName, Temp);
+}
+
 // -- Custom actions --
 
 static void ActionExit(struct Menu** ActiveMenu, uint32_t* ActiveMenuEntryIndex)
@@ -360,6 +512,93 @@ static void ActionReset(struct Menu** ActiveMenu, uint32_t* ActiveMenuEntryIndex
 	reset_gba();
 	reg[CHANGED_PC_STATUS] = 1;
 	*ActiveMenu = NULL;
+}
+
+static void NullLeftFunction(struct Menu* ActiveMenu, struct MenuEntry* ActiveMenuEntry)
+{
+}
+
+static void NullRightFunction(struct Menu* ActiveMenu, struct MenuEntry* ActiveMenuEntry)
+{
+}
+
+static enum OpenDingux_Buttons GrabButton(struct Menu* ActiveMenu, char* Lines[4])
+{
+	enum OpenDingux_Buttons Buttons;
+	// Wait for the buttons that triggered the action to be released.
+	while (GetPressedOpenDinguxButtons() != 0)
+	{
+		DefaultDisplayBackgroundFunction(ActiveMenu);
+		SDL_Flip(OutputSurface);
+		usleep(5000); // for platforms that don't sync their flips
+	}
+	// Wait until a button is pressed.
+	while (GetPressedOpenDinguxButtons() == 0)
+	{
+		DefaultDisplayBackgroundFunction(ActiveMenu);
+		uint32_t Line;
+		for (Line = 0; Line < 4; Line++)
+		{
+			uint32_t TextWidth = GetRenderedWidth(Lines[Line]);
+			if (TextWidth <= GCW0_SCREEN_WIDTH - 2)
+				print_string_outline(Lines[Line], COLOR_ACTIVE_TEXT, COLOR_ACTIVE_OUTLINE, (GCW0_SCREEN_WIDTH - TextWidth) / 2, (GCW0_SCREEN_HEIGHT - GetRenderedHeight(" ") * 4) / 2 + GetRenderedHeight(" ") * Line);
+			else
+				ReGBA_Trace("E: '%s' doesn't fit the screen! Fix this, Nebuleon!", Lines[Line]);
+		}
+		SDL_Flip(OutputSurface);
+		usleep(5000); // for platforms that don't sync their flips
+	}
+	// Accumulate buttons until they're all released.
+	enum OpenDingux_Buttons ButtonTotal = 0;
+	while ((Buttons = GetPressedOpenDinguxButtons()) != 0)
+	{
+		ButtonTotal |= Buttons;
+		DefaultDisplayBackgroundFunction(ActiveMenu);
+		SDL_Flip(OutputSurface);
+		usleep(5000); // for platforms that don't sync their flips
+	}
+	return ButtonTotal;
+}
+
+static void ActionSetMapping(struct Menu** ActiveMenu, uint32_t* ActiveMenuEntryIndex)
+{
+	char Text[256];
+	char* Lines[] = { &Text[0], &Text[64], &Text[128], &Text[192] };
+	bool Valid;
+	sprintf(Lines[0], "Setting mapping for %s", (*ActiveMenu)->Entries[*ActiveMenuEntryIndex]->Name);
+	sprintf(Lines[1], "Currently %s", GetButtonText(*(uint32_t*) (*ActiveMenu)->Entries[*ActiveMenuEntryIndex]->Target, &Valid));
+	strcpy(Lines[2], "Press the new button or");
+	strcpy(Lines[3], "two at once to leave alone");
+
+	enum OpenDingux_Buttons ButtonTotal = GrabButton(*ActiveMenu, Lines);
+	// If there's more than one button, change nothing.
+	uint_fast8_t BitCount = 0, i;
+	for (i = 0; i < 12; i++)
+		if ((ButtonTotal & (1 << i)) != 0)
+			BitCount++;
+	if (BitCount == 1)
+		*(uint32_t*) (*ActiveMenu)->Entries[*ActiveMenuEntryIndex]->Target = ButtonTotal;
+}
+
+static void ActionSetOrClearMapping(struct Menu** ActiveMenu, uint32_t* ActiveMenuEntryIndex)
+{
+	char Text[256];
+	char* Lines[] = { &Text[0], &Text[64], &Text[128], &Text[192] };
+	bool Valid;
+	sprintf(Lines[0], "Setting mapping for %s", (*ActiveMenu)->Entries[*ActiveMenuEntryIndex]->Name);
+	sprintf(Lines[1], "Currently %s", GetButtonText(*(uint32_t*) (*ActiveMenu)->Entries[*ActiveMenuEntryIndex]->Target, &Valid));
+	strcpy(Lines[2], "Press the new button or");
+	strcpy(Lines[3], "two at once to clear");
+
+	enum OpenDingux_Buttons ButtonTotal = GrabButton(*ActiveMenu, Lines);
+	// If there's more than one button, clear the mapping.
+	uint_fast8_t BitCount = 0, i;
+	for (i = 0; i < 12; i++)
+		if ((ButtonTotal & (1 << i)) != 0)
+			BitCount++;
+	*(uint32_t*) (*ActiveMenu)->Entries[*ActiveMenuEntryIndex]->Target = (BitCount == 1)
+		? ButtonTotal
+		: 0;
 }
 
 // -- Forward declarations --
@@ -560,34 +799,125 @@ static struct Menu DebugMenu = {
 		, NULL }
 };
 
-// -- Main Menu --
+// -- Display Settings --
 
-// TODO Put this in a dedicated Display Settings menu
-static struct MenuEntry MainMenu_BootSource = {
+static struct MenuEntry DisplayMenu_BootSource = {
 	.Kind = KIND_OPTION, .Position = 0, .Name = "Boot from", .PersistentName = "boot_from",
 	.Target = &BootFromBIOS,
 	.ChoiceCount = 2, .Choices = { { "Cartridge ROM", "cartridge" }, { "GBA BIOS", "gba_bios" } }
 };
 
-// TODO Put this in a dedicated Display Settings menu
-static struct MenuEntry MainMenu_FPSCounter = {
+static struct MenuEntry DisplayMenu_FPSCounter = {
 	.Kind = KIND_OPTION, .Position = 1, .Name = "FPS counter", .PersistentName = "fps_counter",
 	.Target = &ShowFPS,
 	.ChoiceCount = 2, .Choices = { { "Hide", "hide" }, { "Show", "show" } }
 };
 
-// TODO Put this in a dedicated Display Settings menu
-static struct MenuEntry MainMenu_ScaleMode = {
+static struct MenuEntry DisplayMenu_ScaleMode = {
 	.Kind = KIND_OPTION, .Position = 2, .Name = "Image scaling", .PersistentName = "image_size",
 	.Target = &ScaleMode,
 	.ChoiceCount = 3, .Choices = { { "Aspect", "aspect" }, { "Full", "fullscreen" }, { "None", "original" } }
 };
 
-// TODO Put this in a dedicated Display Settings menu
-static struct MenuEntry MainMenu_Frameskip = {
+static struct MenuEntry DisplayMenu_Frameskip = {
 	.Kind = KIND_OPTION, .Position = 3, .Name = "Frame skipping", .PersistentName = "frameskip",
 	.Target = &UserFrameskip,
 	.ChoiceCount = 5, .Choices = { { "Automatic", "auto" }, { "0 (~60 FPS)", "0" }, { "1 (~30 FPS)", "1" }, { "2 (~20 FPS)", "2" }, { "3 (~15 FPS)", "3" } }
+};
+
+static struct Menu DisplayMenu = {
+	.Parent = &MainMenu, .Title = "Display settings",
+	.Entries = { &DisplayMenu_BootSource, &DisplayMenu_FPSCounter, &DisplayMenu_ScaleMode, &DisplayMenu_Frameskip }
+};
+
+// -- Button remapping --
+static struct MenuEntry ButtonMappingMenu_A = {
+	.Kind = KIND_OPTION, .Position = 0, .Name = "GBA A", .PersistentName = "gba_a",
+	.Target = &KeypadRemapping[0],
+	.ChoiceCount = 0,
+	.ButtonLeftFunction = NullLeftFunction, .ButtonRightFunction = NullRightFunction,
+	.ButtonEnterFunction = ActionSetMapping, .DisplayValueFunction = DisplayButtonMappingValue,
+	.LoadFunction = LoadMappingFunction, .SaveFunction = SaveMappingFunction
+};
+
+static struct MenuEntry ButtonMappingMenu_B = {
+	.Kind = KIND_OPTION, .Position = 1, .Name = "GBA B", .PersistentName = "gba_b",
+	.Target = &KeypadRemapping[1],
+	.ChoiceCount = 0,
+	.ButtonLeftFunction = NullLeftFunction, .ButtonRightFunction = NullRightFunction,
+	.ButtonEnterFunction = ActionSetMapping, .DisplayValueFunction = DisplayButtonMappingValue,
+	.LoadFunction = LoadMappingFunction, .SaveFunction = SaveMappingFunction
+};
+
+static struct MenuEntry ButtonMappingMenu_Start = {
+	.Kind = KIND_OPTION, .Position = 2, .Name = "GBA Start", .PersistentName = "gba_start",
+	.Target = &KeypadRemapping[3],
+	.ChoiceCount = 0,
+	.ButtonLeftFunction = NullLeftFunction, .ButtonRightFunction = NullRightFunction,
+	.ButtonEnterFunction = ActionSetMapping, .DisplayValueFunction = DisplayButtonMappingValue,
+	.LoadFunction = LoadMappingFunction, .SaveFunction = SaveMappingFunction
+};
+
+static struct MenuEntry ButtonMappingMenu_Select = {
+	.Kind = KIND_OPTION, .Position = 3, .Name = "GBA Select", .PersistentName = "gba_select",
+	.Target = &KeypadRemapping[2],
+	.ChoiceCount = 0,
+	.ButtonLeftFunction = NullLeftFunction, .ButtonRightFunction = NullRightFunction,
+	.ButtonEnterFunction = ActionSetMapping, .DisplayValueFunction = DisplayButtonMappingValue,
+	.LoadFunction = LoadMappingFunction, .SaveFunction = SaveMappingFunction
+};
+
+static struct MenuEntry ButtonMappingMenu_L = {
+	.Kind = KIND_OPTION, .Position = 4, .Name = "GBA L", .PersistentName = "gba_l",
+	.Target = &KeypadRemapping[9],
+	.ChoiceCount = 0,
+	.ButtonLeftFunction = NullLeftFunction, .ButtonRightFunction = NullRightFunction,
+	.ButtonEnterFunction = ActionSetMapping, .DisplayValueFunction = DisplayButtonMappingValue,
+	.LoadFunction = LoadMappingFunction, .SaveFunction = SaveMappingFunction
+};
+
+static struct MenuEntry ButtonMappingMenu_R = {
+	.Kind = KIND_OPTION, .Position = 5, .Name = "GBA R", .PersistentName = "gba_r",
+	.Target = &KeypadRemapping[8],
+	.ChoiceCount = 0,
+	.ButtonLeftFunction = NullLeftFunction, .ButtonRightFunction = NullRightFunction,
+	.ButtonEnterFunction = ActionSetMapping, .DisplayValueFunction = DisplayButtonMappingValue,
+	.LoadFunction = LoadMappingFunction, .SaveFunction = SaveMappingFunction
+};
+
+static struct MenuEntry ButtonMappingMenu_RapidA = {
+	.Kind = KIND_OPTION, .Position = 6, .Name = "Rapid-fire A", .PersistentName = "rapid_a",
+	.Target = &KeypadRemapping[10],
+	.ChoiceCount = 0,
+	.ButtonLeftFunction = NullLeftFunction, .ButtonRightFunction = NullRightFunction,
+	.ButtonEnterFunction = ActionSetOrClearMapping, .DisplayValueFunction = DisplayButtonMappingValue,
+	.LoadFunction = LoadMappingFunction, .SaveFunction = SaveMappingFunction
+};
+
+static struct MenuEntry ButtonMappingMenu_RapidB = {
+	.Kind = KIND_OPTION, .Position = 7, .Name = "Rapid-fire B", .PersistentName = "rapid_b",
+	.Target = &KeypadRemapping[11],
+	.ChoiceCount = 0,
+	.ButtonLeftFunction = NullLeftFunction, .ButtonRightFunction = NullRightFunction,
+	.ButtonEnterFunction = ActionSetOrClearMapping, .DisplayValueFunction = DisplayButtonMappingValue,
+	.LoadFunction = LoadMappingFunction, .SaveFunction = SaveMappingFunction
+};
+
+static struct Menu ButtonMappingMenu = {
+	.Parent = &MainMenu, .Title = "Button remapping",
+	.Entries = { &ButtonMappingMenu_A, &ButtonMappingMenu_B, &ButtonMappingMenu_Start, &ButtonMappingMenu_Select, &ButtonMappingMenu_L, &ButtonMappingMenu_R, &ButtonMappingMenu_RapidA, &ButtonMappingMenu_RapidB, NULL }
+};
+
+// -- Main Menu --
+
+static struct MenuEntry MainMenu_Display = {
+	.Kind = KIND_SUBMENU, .Position = 0, .Name = "Display settings...",
+	.Target = &DisplayMenu
+};
+
+static struct MenuEntry MainMenu_ButtonMapping = {
+	.Kind = KIND_SUBMENU, .Position = 1, .Name = "Button remapping...",
+	.Target = &ButtonMappingMenu
 };
 
 static struct MenuEntry MainMenu_Debug = {
@@ -612,7 +942,7 @@ static struct MenuEntry MainMenu_Exit = {
 
 static struct Menu MainMenu = {
 	.Parent = NULL, .Title = "ReGBA Main Menu",
-	.Entries = { &MainMenu_BootSource, &MainMenu_FPSCounter, &MainMenu_ScaleMode, &MainMenu_Frameskip, &MainMenu_Debug, &MainMenu_Reset, &MainMenu_Return, &MainMenu_Exit, NULL }
+	.Entries = { &MainMenu_Display, &MainMenu_ButtonMapping, &MainMenu_Debug, &MainMenu_Reset, &MainMenu_Return, &MainMenu_Exit, NULL }
 };
 
 u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason)
@@ -734,10 +1064,11 @@ u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason)
 
 static void Menu_SaveOption(FILE_TAG_TYPE fd, struct MenuEntry *entry)
 {
-	char buf[256];
-
-	snprintf(buf, 256, "%s = %s #%s\n", entry->PersistentName,
-			entry->Choices[*((uint32_t*)entry->Target)].Persistent, entry->Choices[*((uint32_t*)entry->Target)].Pretty);
+	char buf[257];
+	MenuPersistenceFunction SaveFunction = entry->SaveFunction;
+	if (SaveFunction == NULL) SaveFunction = &DefaultSaveFunction;
+	(*SaveFunction)(entry, buf);
+	buf[256] = '\0';
 
 	FILE_WRITE(fd, &buf, strlen(buf) * sizeof(buf[0]));
 }
@@ -775,7 +1106,7 @@ static struct MenuEntry *Menu_FindByPersistentName(struct Menu *menu, char *name
 				return retcode;
 			break;
 		case KIND_OPTION:
-			if (!strcmp(cur->PersistentName, name))
+			if (strcasecmp(cur->PersistentName, name) == 0)
 				return cur;
 			break;
 		default:
@@ -837,85 +1168,71 @@ void ReGBA_LoadSettings(char *cfg_name)
 
 		while(fgets(line, 256, fd))
 		{
-			int gotEqual=0;
 			line[256] = '\0';
 
-			char opt[256];
-			char arg[256];
+			char* opt = NULL;
+			char* arg = NULL;
 
-			memset(opt, '\0', 256);
-			memset(arg, '\0', 256);
+			char* cur = line;
 
-			char *head, *ptr;
-
-			if (line[0] == '#')
-				continue;
-
-			for (head = &line[0], ptr = &opt[0]; *head != '\0'; head++)
+			// Find the start of the option name.
+			while (*cur == ' ' || *cur == '\t')
+				cur++;
+			// Now find where it ends.
+			while (*cur && !(*cur == ' ' || *cur == '\t' || *cur == '='))
 			{
-				if ((*head == ' ') || (*head == '=') || (*head == '\n'))
-				{
-					if (*head == '=')
-						gotEqual = 1;
-
-					break;
-				}
-
-				*ptr++ = tolower(*head);
-			}
-
-			if (strlen(opt) < 1) //opt's len must be > 0
-				continue;
-
-			struct MenuEntry *entry = Menu_FindByPersistentName(&MainMenu, opt);
-			if (!entry)
-			{
-				ReGBA_Trace("W: Option '%s' is invalid", opt);
-			}
-
-			for (; *head != '\0'; head++)
-			{
-				if (*head == '=') {
-					gotEqual = 1;
+				if (*cur == '#')
 					continue;
-				}
-				if (*head != ' ')
+				else if (opt == NULL)
+					opt = cur;
+				cur++;
+			}
+			if (opt == NULL)
+				continue;
+			bool WasEquals = *cur == '=';
+			*cur++ = '\0';
+			if (!WasEquals)
+			{
+				// Skip all whitespace before =.
+				while (*cur == ' ' || *cur == '\t')
+					cur++;
+				if (*cur != '=')
+					continue;
+				cur++;
+			}
+			// Find the start of the option argument.
+			while (*cur == ' ' || *cur == '\t')
+				cur++;
+			// Now find where it ends.
+			while (*cur)
+			{
+				if (*cur == '#')
 				{
+					*cur = '\0';
 					break;
 				}
+				else if (arg == NULL)
+					arg = cur;
+				cur++;
 			}
-
-			for (ptr = &arg[0]; *head != '\0'; head++)
-			{
-				if ((*head == ' ') || (*head == '=') || (*head == '\n') || (*head == '#'))
-				{
-					if (*head == '=')
-						gotEqual = 1;
-
-					break;
-				}
-
-				*ptr++ = tolower(*head);
-			}
-
-			if (strlen(arg) < 1) { //opt's len must be > 0
-				ReGBA_Trace("W: Malformed line '%s'.\n", line);
+			if (arg == NULL)
 				continue;
-			}
-
-			if (!gotEqual) {
-				ReGBA_Trace("W: Malformed line '%s'.\n", line);
-				continue;
-			}
-
-			int i;
-			for (i=0; i<entry->ChoiceCount; i++)
+			cur--;
+			while (*cur == ' ' || *cur == '\t' || *cur == '\n' || *cur == '\r')
 			{
-				if (!strcmp(entry->Choices[i].Persistent, arg))
-				{
-					*(uint32_t*)entry->Target = i;
-				}
+				*cur = '\0';
+				cur--;
 			}
+
+			struct MenuEntry* entry = Menu_FindByPersistentName(&MainMenu, opt);
+			if (entry == NULL)
+			{
+				ReGBA_Trace("W: Option '%s' not found; ignored", opt);
+			}
+
+			MenuPersistenceFunction LoadFunction = entry->LoadFunction;
+			if (LoadFunction == NULL) LoadFunction = &DefaultLoadFunction;
+			(*LoadFunction)(entry, arg);
 		}
 		ReGBA_ProgressUpdate(1, 1);
 	}

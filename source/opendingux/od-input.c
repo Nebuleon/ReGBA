@@ -1,6 +1,6 @@
-/* Per-platform code - gpSP on GCW Zero
+/* Per-platform code - ReGBA on OpenDingux
  *
- * Copyright (C) 2013 Paul Cercueil
+ * Copyright (C) 2013 Paul Cercueil and Dingoonity user Nebuleon
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public Licens e as
@@ -27,10 +27,10 @@ static SDL_Joystick* Joystick;
 
 static bool JoystickInitialised = false;
 
-// Mandatory remapping for GCW Zero keys. Each GCW Zero key maps to a key on
-// the keyboard, but not all keys on the keyboard map to these.
+// Mandatory remapping for OpenmDingux keys. Each OpenmDingux key maps to a
+// key on the keyboard, but not all keys on the keyboard map to these.
 // They are not in GBA bitfield order in this array.
-uint32_t GCWZeroKeys[12] = {
+uint32_t OpenDinguxKeys[12] = {
 	SDLK_TAB,        // L
 	SDLK_BACKSPACE,  // R
 	SDLK_DOWN,       // Down
@@ -39,60 +39,43 @@ uint32_t GCWZeroKeys[12] = {
 	SDLK_RIGHT,      // Right
 	SDLK_RETURN,     // Start
 	SDLK_ESCAPE,     // Select
-	SDLK_LALT,       // B
-	SDLK_LCTRL,      // A
-	SDLK_LSHIFT,     // X
-	SDLK_SPACE,      // Y
+	SDLK_LALT,       // Lower face button (B)
+	SDLK_LCTRL,      // Right face button (A)
+	SDLK_LSHIFT,     // Left face button (GCW X, A320 Y)
+	SDLK_SPACE,      // Upper face button (GCW Y, A320 X)
 };
 
-// These must be in the order defined above for the GCW Zero keyboard-to-
-// button mappings.
-enum GCWZero_Buttons {
-	GCW_ZERO_BUTTON_L      = 0x0001,
-	GCW_ZERO_BUTTON_R      = 0x0002,
-	GCW_ZERO_BUTTON_DOWN   = 0x0004,
-	GCW_ZERO_BUTTON_UP     = 0x0008,
-	GCW_ZERO_BUTTON_LEFT   = 0x0010,
-	GCW_ZERO_BUTTON_RIGHT  = 0x0020,
-	GCW_ZERO_BUTTON_START  = 0x0040,
-	GCW_ZERO_BUTTON_SELECT = 0x0080,
-	GCW_ZERO_BUTTON_B      = 0x0100,
-	GCW_ZERO_BUTTON_A      = 0x0200,
-	GCW_ZERO_BUTTON_X      = 0x0400,
-	GCW_ZERO_BUTTON_Y      = 0x0800,
-};
-
-// These must be GCW Zero buttons at the bit suitable for the ReGBA_Buttons
+// These must be OpenDingux buttons at the bit suitable for the ReGBA_Buttons
 // enumeration.
-enum GCWZero_Buttons KeypadRemapping[13] = {
-	GCW_ZERO_BUTTON_A,       // GBA A
-	GCW_ZERO_BUTTON_B,       // GBA B
-	GCW_ZERO_BUTTON_SELECT,  // GBA Select
-	GCW_ZERO_BUTTON_START,   // GBA Start
-	GCW_ZERO_BUTTON_RIGHT,   // GBA D-pad Right
-	GCW_ZERO_BUTTON_LEFT,    // GBA D-pad Left
-	GCW_ZERO_BUTTON_UP,      // GBA D-pad Up
-	GCW_ZERO_BUTTON_DOWN,    // GBA D-pad Down
-	GCW_ZERO_BUTTON_R,       // GBA R trigger
-	GCW_ZERO_BUTTON_L,       // GBA L trigger
-	0,                       // ReGBA rapid-fire A
-	0,                       // ReGBA rapid-fire B
-	GCW_ZERO_BUTTON_Y,       // ReGBA Menu
+enum OpenDingux_Buttons KeypadRemapping[13] = {
+	OPENDINGUX_BUTTON_FACE_RIGHT, // GBA A
+	OPENDINGUX_BUTTON_FACE_DOWN,  // GBA B
+	OPENDINGUX_BUTTON_SELECT,     // GBA Select
+	OPENDINGUX_BUTTON_START,      // GBA Start
+	OPENDINGUX_BUTTON_RIGHT,      // GBA D-pad Right
+	OPENDINGUX_BUTTON_LEFT,       // GBA D-pad Left
+	OPENDINGUX_BUTTON_UP,         // GBA D-pad Up
+	OPENDINGUX_BUTTON_DOWN,       // GBA D-pad Down
+	OPENDINGUX_BUTTON_R,          // GBA R trigger
+	OPENDINGUX_BUTTON_L,          // GBA L trigger
+	0,                            // ReGBA rapid-fire A
+	0,                            // ReGBA rapid-fire B
+	OPENDINGUX_BUTTON_FACE_UP,    // ReGBA Menu
 };
 
 // The menu keys, in decreasing order of priority when two or more are
 // pressed. For example, when the user keeps a direction pressed but also
 // presses A, start ignoring the direction.
-enum GCWZero_Buttons MenuKeys[6] = {
-	GCW_ZERO_BUTTON_A,       // Select/Enter button
-	GCW_ZERO_BUTTON_B,       // Cancel/Leave button
-	GCW_ZERO_BUTTON_DOWN,    // Menu navigation
-	GCW_ZERO_BUTTON_UP,
-	GCW_ZERO_BUTTON_RIGHT,
-	GCW_ZERO_BUTTON_LEFT,
+enum OpenDingux_Buttons MenuKeys[6] = {
+	OPENDINGUX_BUTTON_FACE_RIGHT,  // Select/Enter button
+	OPENDINGUX_BUTTON_FACE_DOWN,   // Cancel/Leave button
+	OPENDINGUX_BUTTON_DOWN,        // Menu navigation
+	OPENDINGUX_BUTTON_UP,
+	OPENDINGUX_BUTTON_RIGHT,
+	OPENDINGUX_BUTTON_LEFT,
 };
 
-// In the same order as MenuKeys above. Maps the GCW Zero buttons to their
+// In the same order as MenuKeys above. Maps the OpenDingux buttons to their
 // corresponding GUI action.
 enum GUI_Action MenuKeysToGUI[6] = {
 	GUI_ACTION_ENTER,
@@ -103,9 +86,9 @@ enum GUI_Action MenuKeysToGUI[6] = {
 	GUI_ACTION_LEFT,
 };
 
-static enum GCWZero_Buttons LastButtons = 0;
+static enum OpenDingux_Buttons LastButtons = 0;
 
-static void UpdateGCWZeroButtons()
+static void UpdateOpenDinguxButtons()
 {
 	SDL_Event ev;
 
@@ -117,9 +100,9 @@ static void UpdateGCWZeroButtons()
 			case SDL_KEYUP:
 			{
 				uint_fast8_t i;
-				for (i = 0; i < sizeof(GCWZeroKeys) / sizeof(GCWZeroKeys[0]); i++)
+				for (i = 0; i < sizeof(OpenDinguxKeys) / sizeof(OpenDinguxKeys[0]); i++)
 				{
-					if (ev.key.keysym.sym == GCWZeroKeys[i])
+					if (ev.key.keysym.sym == OpenDinguxKeys[i])
 					{
 						if (ev.type == SDL_KEYDOWN)
 							LastButtons |= 1 << (uint_fast16_t) i;
@@ -146,7 +129,7 @@ enum ReGBA_Buttons ReGBA_GetPressedButtons()
 	uint_fast8_t i;
 	enum ReGBA_Buttons Result = 0;
 
-	UpdateGCWZeroButtons();
+	UpdateOpenDinguxButtons();
 	ProcessSpecialKeys();
 	for (i = 0; i < 13; i++)
 	{
@@ -156,6 +139,12 @@ enum ReGBA_Buttons ReGBA_GetPressedButtons()
 		}
 	}
 	return Result;
+}
+
+enum OpenDingux_Buttons GetPressedOpenDinguxButtons()
+{
+	UpdateOpenDinguxButtons();
+	return LastButtons;
 }
 
 static void EnsureJoystick()
@@ -210,11 +199,19 @@ enum GUI_Action GetGUIAction()
 	uint_fast8_t i;
 	enum GUI_Action Result = GUI_ACTION_NONE;
 
-	UpdateGCWZeroButtons();
+	UpdateOpenDinguxButtons();
+	enum OpenDingux_Buttons EffectiveButtons = LastButtons;
+	// Incorporate analog nub input. (GCW Zero, implemented as 0 on the
+	// Dingoo A320.)
+	int16_t X = GetHorizontalAxisValue(), Y = GetVerticalAxisValue();
+	     if (X < -32700) EffectiveButtons |= OPENDINGUX_BUTTON_LEFT;
+	else if (X >  32700) EffectiveButtons |= OPENDINGUX_BUTTON_RIGHT;
+	     if (Y < -32700) EffectiveButtons |= OPENDINGUX_BUTTON_UP;
+	else if (Y >  32700) EffectiveButtons |= OPENDINGUX_BUTTON_DOWN;
 	// Now get the currently-held button with the highest priority in MenuKeys.
 	for (i = 0; i < 6; i++)
 	{
-		if ((LastButtons & MenuKeys[i]) != 0)
+		if ((EffectiveButtons & MenuKeys[i]) != 0)
 		{
 			Result = MenuKeysToGUI[i];
 			break;

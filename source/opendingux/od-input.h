@@ -17,8 +17,24 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef __GCW_INPUT_H__
-#define __GCW_INPUT_H__
+#ifndef __OD_INPUT_H__
+#define __OD_INPUT_H__
+
+// These must be in the order defined in OpenDinguxKeys in od-input.c.
+enum OpenDingux_Buttons {
+	OPENDINGUX_BUTTON_L          = 0x0001,
+	OPENDINGUX_BUTTON_R          = 0x0002,
+	OPENDINGUX_BUTTON_DOWN       = 0x0004,
+	OPENDINGUX_BUTTON_UP         = 0x0008,
+	OPENDINGUX_BUTTON_LEFT       = 0x0010,
+	OPENDINGUX_BUTTON_RIGHT      = 0x0020,
+	OPENDINGUX_BUTTON_START      = 0x0040,
+	OPENDINGUX_BUTTON_SELECT     = 0x0080,
+	OPENDINGUX_BUTTON_FACE_DOWN  = 0x0100,
+	OPENDINGUX_BUTTON_FACE_RIGHT = 0x0200,
+	OPENDINGUX_BUTTON_FACE_LEFT  = 0x0400,
+	OPENDINGUX_BUTTON_FACE_UP    = 0x0800,
+};
 
 enum GUI_Action {
 	GUI_ACTION_NONE,
@@ -84,4 +100,33 @@ extern int16_t GetVerticalAxisValue();
  */
 extern enum GUI_Action GetGUIAction();
 
-#endif // !defined __GCW_INPUT_H__
+#if defined GCW_ZERO
+#  define LEFT_FACE_BUTTON_NAME "X"
+#  define TOP_FACE_BUTTON_NAME "Y"
+#elif defined DINGOO_A320
+#  define LEFT_FACE_BUTTON_NAME "Y"
+#  define TOP_FACE_BUTTON_NAME "X"
+#endif
+
+// The OpenDingux_Buttons corresponding to each GBA or ReGBA button.
+// [0] = GBA A
+// GBA B
+// GBA Select
+// GBA Start
+// GBA D-pad Right
+// GBA D-pad Left
+// GBA D-pad Up
+// GBA D-pad Down
+// GBA R trigger
+// GBA L trigger
+// ReGBA rapid-fire A
+// ReGBA rapid-fire B
+// [12] = ReGBA Menu
+extern enum OpenDingux_Buttons KeypadRemapping[13];
+
+/*
+ * Returns the OpenDingux buttons that are currently pressed.
+ */
+extern enum OpenDingux_Buttons GetPressedOpenDinguxButtons();
+
+#endif // !defined __OD_INPUT_H__

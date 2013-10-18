@@ -8,7 +8,7 @@ SYSROOT     := $(shell $(CC) --print-sysroot)
 SDL_CFLAGS  := $(shell $(SYSROOT)/usr/bin/sdl-config --cflags)
 SDL_LIBS    := $(shell $(SYSROOT)/usr/bin/sdl-config --libs)
 
-OBJS        := main.o draw.o port.o port-asm.o 320input.o ../video.o          \
+OBJS        := main.o draw.o port.o port-asm.o od-input.o ../video.o          \
               ../input.o ../bios.o ../zip.o ../sound.o ../mips/stub.o         \
               ../stats.o ../memory.o ../cpu_common.o ../cpu_asm.o od-sound.o  \
               ../sha1.o imageio.o ../unifont.o gui.o od-memory.o
@@ -19,7 +19,7 @@ HEADERS     := cheats.h ../common.h ../cpu_common.h ../cpu.h draw.h main.h    \
                imageio.h ../unifont.h od-sound.h od-input.h
 
 INCLUDE     := -I. -I.. -I../mips
-DEFS        := -DMIPS_XBURST -DUSE_MMAP
+DEFS        := -DDINGOO_A320 -DMIPS_XBURST -DUSE_MMAP
 HAS_MIPS32R2 := $(shell echo | $(CC) -dM -E - |grep _MIPS_ARCH_MIPS32R2)
 ifneq ($(HAS_MIPS32R2),)
 	DEFS += -DMIPS_32R2
