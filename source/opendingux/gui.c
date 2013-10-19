@@ -942,12 +942,13 @@ static struct MenuEntry MainMenu_Exit = {
 
 static struct Menu MainMenu = {
 	.Parent = NULL, .Title = "ReGBA Main Menu",
-	.Entries = { &MainMenu_Display, &MainMenu_ButtonMapping, &MainMenu_Debug, &MainMenu_Reset, &MainMenu_Return, &MainMenu_Exit, NULL }
+	.Entries = { &MainMenu_Display, &MainMenu_ButtonMapping, &MainMenu_Hotkey, &MainMenu_Debug, &MainMenu_Reset, &MainMenu_Return, &MainMenu_Exit, NULL }
 };
 
 u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason)
 {
 	SDL_PauseAudio(SDL_ENABLE);
+	ScaleModeUnapplied();
 	struct Menu* ActiveMenu = &MainMenu;
 	if (MainMenu.InitFunction != NULL)
 		(*(MainMenu.InitFunction))(&MainMenu);

@@ -27,6 +27,8 @@ uint_fast8_t AudioFrameskip = 0;
 uint_fast8_t AudioFrameskipControl = 0;
 uint_fast8_t UserFrameskipControl = 0;
 
+uint_fast8_t FramesBordered = 0;
+
 SDL_Surface *GBAScreenSurface = NULL;
 SDL_Surface *OutputSurface = NULL;
 SDL_Surface *BorderSurface = NULL;
@@ -519,12 +521,21 @@ void ApplyScaleMode(video_scale_type NewMode)
 	ScaleMode = NewMode;
 }
 
+void ScaleModeUnapplied()
+{
+	FramesBordered = 0;
+}
+
 void ReGBA_RenderScreen(void)
 {
 	if (ReGBA_IsRenderingNextFrame())
 	{
 		Stats.RenderedFrames++;
-		ApplyScaleMode(ScaleMode);
+		if (FramesBordered < 3)
+		{
+			ApplyScaleMode(ScaleMode);
+			FramesBordered++;
+		}
 		switch (ScaleMode)
 		{
 			case unscaled:
@@ -788,6 +799,7 @@ void ReGBA_ProgressInitialise(enum ReGBA_FileAction Action)
 	clock_gettime(CLOCK_MONOTONIC, &LastProgressUpdate);
 	CurrentFileAction = Action;
 	InFileAction = true;
+	ScaleModeUnapplied();
 	ProgressUpdateInternal(0, 1);
 }
 
