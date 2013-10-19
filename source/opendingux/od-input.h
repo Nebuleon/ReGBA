@@ -20,6 +20,8 @@
 #ifndef __OD_INPUT_H__
 #define __OD_INPUT_H__
 
+#define OPENDINGUX_BUTTON_COUNT 12
+
 // These must be in the order defined in OpenDinguxKeys in od-input.c.
 enum OpenDingux_Buttons {
 	OPENDINGUX_BUTTON_L          = 0x0001,
@@ -54,6 +56,10 @@ enum GUI_Action {
 // 48 amounts to targetting 500% real-time;
 // 50 amounts to targetting 600% real-time.
 extern uint_fast8_t FastForwardValue;
+
+// The number of times to target while fast-forwarding. (UI option)
+// 0 means 2x, 1 means 3x, ... 4 means 6x.
+extern uint32_t FastForwardTarget;
 
 // Incremented by FastForwardValue every frame. If it's over 60,
 // a frame is skipped, 60 is removed, then FastForwardValue is added again.
@@ -108,6 +114,8 @@ extern enum GUI_Action GetGUIAction();
 #  define TOP_FACE_BUTTON_NAME "X"
 #endif
 
+extern const enum OpenDingux_Buttons DefaultKeypadRemapping[13];
+
 // The OpenDingux_Buttons corresponding to each GBA or ReGBA button.
 // [0] = GBA A
 // GBA B
@@ -123,6 +131,10 @@ extern enum GUI_Action GetGUIAction();
 // ReGBA rapid-fire B
 // [12] = ReGBA Menu
 extern enum OpenDingux_Buttons KeypadRemapping[13];
+
+// The OpenDingux_Buttons (as bitfields) for hotkeys.
+// [0] = Fast-forward
+extern enum OpenDingux_Buttons Hotkeys[1];
 
 /*
  * Returns the OpenDingux buttons that are currently pressed.

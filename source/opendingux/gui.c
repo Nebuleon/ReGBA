@@ -377,7 +377,7 @@ static void DefaultSaveFunction(struct MenuEntry* ActiveMenuEntry, char* Value)
 
 // -- Custom display --
 
-static char* OpenDinguxButtonText[12] = {
+static char* OpenDinguxButtonText[OPENDINGUX_BUTTON_COUNT] = {
 	"L",
 	"R",
 	"D-pad Down",
@@ -414,7 +414,7 @@ static char* GetButtonText(enum OpenDingux_Buttons Button, bool* Valid)
 	}
 	else
 	{
-		for (i = 0; i < 12; i++)
+		for (i = 0; i < OPENDINGUX_BUTTON_COUNT; i++)
 		{
 			if (Button == 1 << i)
 			{
@@ -424,6 +424,40 @@ static char* GetButtonText(enum OpenDingux_Buttons Button, bool* Valid)
 		}
 		*Valid = false;
 		return "Invalid";
+	}
+}
+
+/*
+ * Retrieves the button text for an OpenDingux button combination.
+ * Input:
+ *   Button: The buttons to describe. If this value is 0, the description text
+ *   is "None". If there are multiple buttons in the bitfield, they are all
+ *   added, separated by a '+' character.
+ * Output:
+ *   Result: A pointer to a buffer which is updated with the description of
+ *   the button combination.
+ */
+static void GetButtonsText(enum OpenDingux_Buttons Buttons, char* Result)
+{
+	uint_fast8_t i;
+	if (Buttons == 0)
+	{
+		strcpy(Result, "None");
+	}
+	else
+	{
+		Result[0] = '\0';
+		bool AfterFirst = false;
+		for (i = 0; i < OPENDINGUX_BUTTON_COUNT; i++)
+		{
+			if ((Buttons & 1 << i) != 0)
+			{
+				if (AfterFirst)
+					strcat(Result, "+");
+				AfterFirst = true;
+				strcat(Result, OpenDinguxButtonText[i]);
+			}
+		}
 	}
 }
 
@@ -444,9 +478,26 @@ static void DisplayButtonMappingValue(struct MenuEntry* DrawnMenuEntry, struct M
 		ReGBA_Trace("W: Hid value '%s' from the menu due to it being too long", Value);
 }
 
+static void DisplayHotkeyValue(struct MenuEntry* DrawnMenuEntry, struct MenuEntry* ActiveMenuEntry)
+{
+	char Value[256];
+	GetButtonsText(*(uint32_t*) DrawnMenuEntry->Target, Value);
+
+	uint32_t TextWidth = GetRenderedWidth(Value);
+	if (TextWidth <= GCW0_SCREEN_WIDTH - 2)
+	{
+		bool IsActive = (DrawnMenuEntry == ActiveMenuEntry);
+		uint16_t TextColor = IsActive ? COLOR_ACTIVE_TEXT : COLOR_INACTIVE_TEXT;
+		uint16_t OutlineColor = IsActive ? COLOR_ACTIVE_OUTLINE : COLOR_INACTIVE_OUTLINE;
+		print_string_outline(Value, TextColor, OutlineColor, GCW0_SCREEN_WIDTH - TextWidth - 1, GetRenderedHeight(" ") * (DrawnMenuEntry->Position + 2) + 1);
+	}
+	else
+		ReGBA_Trace("W: Hid value '%s' from the menu due to it being too long", Value);
+}
+
 // -- Custom saving --
 
-static char OpenDinguxButtonSave[12] = {
+static char OpenDinguxButtonSave[OPENDINGUX_BUTTON_COUNT] = {
 	'L',
 	'R',
 	'v',
@@ -467,7 +518,7 @@ static void LoadMappingFunction(struct MenuEntry* ActiveMenuEntry, char* Value)
 	if (Value[0] != 'x')
 	{
 		uint_fast8_t i;
-		for (i = 0; i < 12; i++)
+		for (i = 0; i < OPENDINGUX_BUTTON_COUNT; i++)
 			if (Value[0] == OpenDinguxButtonSave[i])
 			{
 				Mapping = 1 << i;
@@ -482,7 +533,7 @@ static void SaveMappingFunction(struct MenuEntry* ActiveMenuEntry, char* Value)
 	char Temp[32];
 	Temp[0] = '\0';
 	uint_fast8_t i;
-	for (i = 0; i < 12; i++)
+	for (i = 0; i < OPENDINGUX_BUTTON_COUNT; i++)
 		if (*(uint32_t*) ActiveMenuEntry->Target == 1 << i)
 		{
 			Temp[0] = OpenDinguxButtonSave[i];
@@ -491,6 +542,48 @@ static void SaveMappingFunction(struct MenuEntry* ActiveMenuEntry, char* Value)
 		}
 	if (Temp[0] == '\0')
 		strcpy(Temp, "x #None");
+	snprintf(Value, 256, "%s = %s\n", ActiveMenuEntry->PersistentName, Temp);
+}
+
+static void LoadHotkeyFunction(struct MenuEntry* ActiveMenuEntry, char* Value)
+{
+	uint32_t Hotkey = 0;
+	if (Value[0] != 'x')
+	{
+		char* Ptr = Value;
+		while (*Ptr)
+		{
+			uint_fast8_t i;
+			for (i = 0; i < OPENDINGUX_BUTTON_COUNT; i++)
+				if (*Ptr == OpenDinguxButtonSave[i])
+				{
+					Hotkey |= 1 << i;
+					break;
+				}
+			Ptr++;
+		}
+	}
+	*(uint32_t*) ActiveMenuEntry->Target = Hotkey;
+}
+
+static void SaveHotkeyFunction(struct MenuEntry* ActiveMenuEntry, char* Value)
+{
+	char Temp[192];
+	char* Ptr = Temp;
+	uint_fast8_t i;
+	for (i = 0; i < OPENDINGUX_BUTTON_COUNT; i++)
+		if ((*(uint32_t*) ActiveMenuEntry->Target & (1 << i)) != 0)
+		{
+			*Ptr++ = OpenDinguxButtonSave[i];
+		}
+	if (Ptr == Temp)
+		strcpy(Temp, "x #None");
+	else
+	{
+		*Ptr++ = ' ';
+		*Ptr++ = '#';
+		GetButtonsText(*(uint32_t*) ActiveMenuEntry->Target, Ptr);
+	}
 	snprintf(Value, 256, "%s = %s\n", ActiveMenuEntry->PersistentName, Temp);
 }
 
@@ -533,7 +626,7 @@ static enum OpenDingux_Buttons GrabButton(struct Menu* ActiveMenu, char* Lines[4
 		usleep(5000); // for platforms that don't sync their flips
 	}
 	// Wait until a button is pressed.
-	while (GetPressedOpenDinguxButtons() == 0)
+	while ((Buttons = GetPressedOpenDinguxButtons()) == 0)
 	{
 		DefaultDisplayBackgroundFunction(ActiveMenu);
 		uint32_t Line;
@@ -549,10 +642,59 @@ static enum OpenDingux_Buttons GrabButton(struct Menu* ActiveMenu, char* Lines[4
 		usleep(5000); // for platforms that don't sync their flips
 	}
 	// Accumulate buttons until they're all released.
-	enum OpenDingux_Buttons ButtonTotal = 0;
+	enum OpenDingux_Buttons ButtonTotal = Buttons;
 	while ((Buttons = GetPressedOpenDinguxButtons()) != 0)
 	{
 		ButtonTotal |= Buttons;
+		DefaultDisplayBackgroundFunction(ActiveMenu);
+		SDL_Flip(OutputSurface);
+		usleep(5000); // for platforms that don't sync their flips
+	}
+	return ButtonTotal;
+}
+
+static enum OpenDingux_Buttons GrabButtons(struct Menu* ActiveMenu, char* Lines[4])
+{
+	enum OpenDingux_Buttons Buttons;
+	// Wait for the buttons that triggered the action to be released.
+	while (GetPressedOpenDinguxButtons() != 0)
+	{
+		DefaultDisplayBackgroundFunction(ActiveMenu);
+		SDL_Flip(OutputSurface);
+		usleep(5000); // for platforms that don't sync their flips
+	}
+	// Wait until a button is pressed.
+	while ((Buttons = GetPressedOpenDinguxButtons()) == 0)
+	{
+		DefaultDisplayBackgroundFunction(ActiveMenu);
+		uint32_t Line;
+		for (Line = 0; Line < 4; Line++)
+		{
+			uint32_t TextWidth = GetRenderedWidth(Lines[Line]);
+			if (TextWidth <= GCW0_SCREEN_WIDTH - 2)
+				print_string_outline(Lines[Line], COLOR_ACTIVE_TEXT, COLOR_ACTIVE_OUTLINE, (GCW0_SCREEN_WIDTH - TextWidth) / 2, (GCW0_SCREEN_HEIGHT - GetRenderedHeight(" ") * 4) / 2 + GetRenderedHeight(" ") * Line);
+			else
+				ReGBA_Trace("E: '%s' doesn't fit the screen! Fix this, Nebuleon!", Lines[Line]);
+		}
+		SDL_Flip(OutputSurface);
+		usleep(5000); // for platforms that don't sync their flips
+	}
+	// Accumulate buttons until they're all released.
+	enum OpenDingux_Buttons ButtonTotal = Buttons;
+	while ((Buttons = GetPressedOpenDinguxButtons()) != 0)
+	{
+		// a) If the old buttons are a strict subset of the new buttons,
+		//    add the new buttons.
+		if ((Buttons | ButtonTotal) == Buttons)
+			ButtonTotal |= Buttons;
+		// b) If the new buttons are a strict subset of the old buttons,
+		//    do nothing. (The user is releasing the buttons to return.)
+		else if ((Buttons | ButtonTotal) == ButtonTotal)
+			;
+		// c) If the new buttons are on another path, replace the buttons
+		//    completely, for example, R+X turning into R+Y.
+		else
+			ButtonTotal = Buttons;
 		DefaultDisplayBackgroundFunction(ActiveMenu);
 		SDL_Flip(OutputSurface);
 		usleep(5000); // for platforms that don't sync their flips
@@ -573,7 +715,7 @@ static void ActionSetMapping(struct Menu** ActiveMenu, uint32_t* ActiveMenuEntry
 	enum OpenDingux_Buttons ButtonTotal = GrabButton(*ActiveMenu, Lines);
 	// If there's more than one button, change nothing.
 	uint_fast8_t BitCount = 0, i;
-	for (i = 0; i < 12; i++)
+	for (i = 0; i < OPENDINGUX_BUTTON_COUNT; i++)
 		if ((ButtonTotal & (1 << i)) != 0)
 			BitCount++;
 	if (BitCount == 1)
@@ -593,12 +735,28 @@ static void ActionSetOrClearMapping(struct Menu** ActiveMenu, uint32_t* ActiveMe
 	enum OpenDingux_Buttons ButtonTotal = GrabButton(*ActiveMenu, Lines);
 	// If there's more than one button, clear the mapping.
 	uint_fast8_t BitCount = 0, i;
-	for (i = 0; i < 12; i++)
+	for (i = 0; i < OPENDINGUX_BUTTON_COUNT; i++)
 		if ((ButtonTotal & (1 << i)) != 0)
 			BitCount++;
 	*(uint32_t*) (*ActiveMenu)->Entries[*ActiveMenuEntryIndex]->Target = (BitCount == 1)
 		? ButtonTotal
 		: 0;
+}
+
+static void ActionSetOrClearHotkey(struct Menu** ActiveMenu, uint32_t* ActiveMenuEntryIndex)
+{
+	char Text[256];
+	char* Lines[] = { &Text[0], &Text[64], &Text[128], &Text[192] };
+	sprintf(Lines[0], "Setting hotkey for %s", (*ActiveMenu)->Entries[*ActiveMenuEntryIndex]->Name);
+	GetButtonsText(*(uint32_t*) (*ActiveMenu)->Entries[*ActiveMenuEntryIndex]->Target, Lines[2]);
+	sprintf(Lines[1], "Currently %s", Lines[2]);
+	strcpy(Lines[2], "Press the new buttons or");
+	strcpy(Lines[3], "B to clear");
+
+	enum OpenDingux_Buttons ButtonTotal = GrabButtons(*ActiveMenu, Lines);
+	*(uint32_t*) (*ActiveMenu)->Entries[*ActiveMenuEntryIndex]->Target = (ButtonTotal == OPENDINGUX_BUTTON_FACE_DOWN)
+		? 0
+		: ButtonTotal;
 }
 
 // -- Forward declarations --
@@ -825,9 +983,15 @@ static struct MenuEntry DisplayMenu_Frameskip = {
 	.ChoiceCount = 5, .Choices = { { "Automatic", "auto" }, { "0 (~60 FPS)", "0" }, { "1 (~30 FPS)", "1" }, { "2 (~20 FPS)", "2" }, { "3 (~15 FPS)", "3" } }
 };
 
+static struct MenuEntry DisplayMenu_FastForwardTarget = {
+	.Kind = KIND_OPTION, .Position = 4, .Name = "Fast-forward target", .PersistentName = "fast_forward_target",
+	.Target = &FastForwardTarget,
+	.ChoiceCount = 5, .Choices = { { "2x (~120 FPS)", "2" }, { "3x (~180 FPS)", "3" }, { "4x (~240 FPS)", "4" }, { "5x (~300 FPS)", "5" }, { "6x (~360 FPS)", "6" } }
+};
+
 static struct Menu DisplayMenu = {
 	.Parent = &MainMenu, .Title = "Display settings",
-	.Entries = { &DisplayMenu_BootSource, &DisplayMenu_FPSCounter, &DisplayMenu_ScaleMode, &DisplayMenu_Frameskip }
+	.Entries = { &DisplayMenu_BootSource, &DisplayMenu_FPSCounter, &DisplayMenu_ScaleMode, &DisplayMenu_Frameskip, &DisplayMenu_FastForwardTarget }
 };
 
 // -- Button remapping --
@@ -908,6 +1072,22 @@ static struct Menu ButtonMappingMenu = {
 	.Entries = { &ButtonMappingMenu_A, &ButtonMappingMenu_B, &ButtonMappingMenu_Start, &ButtonMappingMenu_Select, &ButtonMappingMenu_L, &ButtonMappingMenu_R, &ButtonMappingMenu_RapidA, &ButtonMappingMenu_RapidB, NULL }
 };
 
+// -- Hotkeys --
+
+static struct MenuEntry HotkeyMenu_FastForward = {
+	.Kind = KIND_OPTION, .Position = 0, .Name = "Fast-forward", .PersistentName = "hotkey_fast_forward",
+	.Target = &Hotkeys[0],
+	.ChoiceCount = 0,
+	.ButtonLeftFunction = NullLeftFunction, .ButtonRightFunction = NullRightFunction,
+	.ButtonEnterFunction = ActionSetOrClearHotkey, .DisplayValueFunction = DisplayHotkeyValue,
+	.LoadFunction = LoadHotkeyFunction, .SaveFunction = SaveHotkeyFunction
+};
+
+static struct Menu HotkeyMenu = {
+	.Parent = &MainMenu, .Title = "Hotkeys",
+	.Entries = { &HotkeyMenu_FastForward, NULL }
+};
+
 // -- Main Menu --
 
 static struct MenuEntry MainMenu_Display = {
@@ -918,6 +1098,11 @@ static struct MenuEntry MainMenu_Display = {
 static struct MenuEntry MainMenu_ButtonMapping = {
 	.Kind = KIND_SUBMENU, .Position = 1, .Name = "Button remapping...",
 	.Target = &ButtonMappingMenu
+};
+
+static struct MenuEntry MainMenu_Hotkey = {
+	.Kind = KIND_SUBMENU, .Position = 2, .Name = "Hotkeys...",
+	.Target = &HotkeyMenu
 };
 
 static struct MenuEntry MainMenu_Debug = {
@@ -1148,6 +1333,21 @@ bool ReGBA_SaveSettings(char *cfg_name)
 	return true;
 }
 
+/*
+ * Fixes up impossible settings after loading them from configuration.
+ */
+void FixUpSettings()
+{
+	if (KeypadRemapping[0] == 0 || KeypadRemapping[1] == 0 || KeypadRemapping[2] == 0
+	 || KeypadRemapping[3] == 0 || KeypadRemapping[4] == 0 || KeypadRemapping[5] == 0
+	 || KeypadRemapping[6] == 0 || KeypadRemapping[7] == 0 || KeypadRemapping[8] == 0
+	 || KeypadRemapping[9] == 0 || KeypadRemapping[12] == 0
+	)
+	{
+		memcpy(KeypadRemapping, DefaultKeypadRemapping, sizeof(DefaultKeypadRemapping));
+	}
+}
+
 void ReGBA_LoadSettings(char *cfg_name)
 {
 	char fname[MAX_PATH + 1];
@@ -1241,5 +1441,6 @@ void ReGBA_LoadSettings(char *cfg_name)
 	{
 		ReGBA_Trace("W: Couldn't open file %s for loading.\n", fname);
 	}
+	FixUpSettings();
 	ReGBA_ProgressFinalise();
 }

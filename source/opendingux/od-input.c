@@ -21,6 +21,8 @@
 
 uint_fast8_t FastForwardValue = 0;
 
+uint32_t FastForwardTarget = 4; // 6x by default
+
 uint_fast8_t FastForwardControl = 0;
 
 static SDL_Joystick* Joystick;
@@ -47,6 +49,24 @@ uint32_t OpenDinguxKeys[12] = {
 
 // These must be OpenDingux buttons at the bit suitable for the ReGBA_Buttons
 // enumeration.
+const enum OpenDingux_Buttons DefaultKeypadRemapping[13] = {
+	OPENDINGUX_BUTTON_FACE_RIGHT, // GBA A
+	OPENDINGUX_BUTTON_FACE_DOWN,  // GBA B
+	OPENDINGUX_BUTTON_SELECT,     // GBA Select
+	OPENDINGUX_BUTTON_START,      // GBA Start
+	OPENDINGUX_BUTTON_RIGHT,      // GBA D-pad Right
+	OPENDINGUX_BUTTON_LEFT,       // GBA D-pad Left
+	OPENDINGUX_BUTTON_UP,         // GBA D-pad Up
+	OPENDINGUX_BUTTON_DOWN,       // GBA D-pad Down
+	OPENDINGUX_BUTTON_R,          // GBA R trigger
+	OPENDINGUX_BUTTON_L,          // GBA L trigger
+	0,                            // ReGBA rapid-fire A
+	0,                            // ReGBA rapid-fire B
+	OPENDINGUX_BUTTON_FACE_UP,    // ReGBA Menu
+};
+
+// These must be OpenDingux buttons at the bit suitable for the ReGBA_Buttons
+// enumeration.
 enum OpenDingux_Buttons KeypadRemapping[13] = {
 	OPENDINGUX_BUTTON_FACE_RIGHT, // GBA A
 	OPENDINGUX_BUTTON_FACE_DOWN,  // GBA B
@@ -61,6 +81,10 @@ enum OpenDingux_Buttons KeypadRemapping[13] = {
 	0,                            // ReGBA rapid-fire A
 	0,                            // ReGBA rapid-fire B
 	OPENDINGUX_BUTTON_FACE_UP,    // ReGBA Menu
+};
+
+enum OpenDingux_Buttons Hotkeys[1] = {
+	0,                            // Fast-forward
 };
 
 // The menu keys, in decreasing order of priority when two or more are
@@ -121,7 +145,9 @@ static void UpdateOpenDinguxButtons()
 
 void ProcessSpecialKeys()
 {
-	// none for now
+	FastForwardValue = (Hotkeys[0] != 0 && (Hotkeys[0] & LastButtons) == Hotkeys[0])
+		? 60 - (60 / (2 + FastForwardTarget))
+		: 0;
 }
 
 enum ReGBA_Buttons ReGBA_GetPressedButtons()

@@ -571,13 +571,6 @@ void ReGBA_RenderScreen(void)
 			AudioFrameskip++;
 	}
 
-	int16_t X = GetHorizontalAxisValue();
-
-	if (X > 0)
-		FastForwardValue = (uint_fast8_t) (50 * (uint32_t) X / 32767);
-	else
-		FastForwardValue = 0;
-
 	if (FastForwardControl >= 60)
 	{
 		FastForwardControl -= 60;
