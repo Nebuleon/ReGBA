@@ -111,6 +111,7 @@ void ReGBA_DisplayFPS(void)
 		char line[512];
 		sprintf(line, "%2u/%3u", Stats.RenderedFPS, Stats.EmulatedFPS);
 		// White text, black outline
+		ScaleModeUnapplied();
 		print_string_outline(line, RGB888_TO_RGB565(255, 255, 255), RGB888_TO_RGB565(0, 0, 0), 7, GCW0_SCREEN_HEIGHT - 19);
 	}
 }
