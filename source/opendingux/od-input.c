@@ -169,13 +169,17 @@ enum ReGBA_Buttons ReGBA_GetPressedButtons()
 
 	UpdateOpenDinguxButtons();
 	ProcessSpecialKeys();
-	for (i = 0; i < 13; i++)
+	for (i = 0; i < 12; i++)
 	{
 		if (LastButtons & KeypadRemapping[i])
 		{
 			Result |= 1 << (uint_fast16_t) i;
 		}
 	}
+	// The ReGBA Menu key should be pressed if ONLY the button bound to it
+	// is pressed on the native device.
+	if (LastButtons == KeypadRemapping[12])
+		Result |= REGBA_BUTTON_MENU;
 	return Result;
 }
 
