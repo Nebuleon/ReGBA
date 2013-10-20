@@ -3,7 +3,10 @@
 
 void init_sdlaudio();
 
-extern int audio_discardflag;
+// Modified by the audio thread to match VideoFastForwarded after it finds
+// that the video thread has skipped a frame. The audio thread must deal
+// with the condition as soon as possible.
+extern volatile unsigned int AudioFastForwarded;
 
 #define AUDIO_OUTPUT_BUFFER_SIZE 1476
 

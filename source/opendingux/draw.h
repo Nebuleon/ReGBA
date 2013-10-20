@@ -15,6 +15,10 @@ extern uint_fast8_t AudioFrameskip;
 extern uint_fast8_t AudioFrameskipControl;
 extern uint_fast8_t UserFrameskipControl;
 
+// Incremented by the video thread when it decides to skip a frame due to
+// fast forwarding.
+extern volatile unsigned int VideoFastForwarded;
+
 // How many back buffers have had ApplyScaleMode called upon them?
 // At 3, even a triple-buffered surface has had ApplyScaleMode called on
 // all back buffers, so stopping remanence with ApplyScaleMode is wasteful.

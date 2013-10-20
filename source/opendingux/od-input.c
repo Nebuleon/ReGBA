@@ -19,11 +19,11 @@
 
 #include "common.h"
 
-uint_fast8_t FastForwardValue = 0;
+uint_fast8_t FastForwardFrameskip = 0;
 
 uint32_t FastForwardTarget = 4; // 6x by default
 
-uint_fast8_t FastForwardControl = 0;
+uint_fast8_t FastForwardFrameskipControl = 0;
 
 static SDL_Joystick* Joystick;
 
@@ -145,8 +145,8 @@ static void UpdateOpenDinguxButtons()
 
 void ProcessSpecialKeys()
 {
-	FastForwardValue = (Hotkeys[0] != 0 && (Hotkeys[0] & LastButtons) == Hotkeys[0])
-		? 60 - (60 / (2 + FastForwardTarget))
+	FastForwardFrameskip = (Hotkeys[0] != 0 && (Hotkeys[0] & LastButtons) == Hotkeys[0])
+		? FastForwardTarget + 1
 		: 0;
 }
 

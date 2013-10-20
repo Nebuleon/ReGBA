@@ -22,9 +22,10 @@
 uint16_t* GBAScreen;
 uint32_t  GBAScreenPitch = GBA_SCREEN_WIDTH;
 
-volatile uint_fast8_t VideoFastForwarded;
+volatile unsigned int VideoFastForwarded;
 uint_fast8_t AudioFrameskip = 0;
 uint_fast8_t AudioFrameskipControl = 0;
+uint_fast8_t SufficientAudioControl = 0;
 uint_fast8_t UserFrameskipControl = 0;
 
 uint_fast8_t FramesBordered = 0;
@@ -557,10 +558,15 @@ void ReGBA_RenderScreen(void)
 
 		SDL_Flip(OutputSurface);
 
-		while (ReGBA_GetAudioSamplesAvailable() > AUDIO_OUTPUT_BUFFER_SIZE * 3 * OUTPUT_FREQUENCY_DIVISOR + (VideoFastForwarded - AudioFastForwarded) * ((int) (SOUND_FREQUENCY / 59.73)))
+		while (true)
 		{
-			if (AudioFrameskip > 0)
-				AudioFrameskip--;
+			unsigned int AudioFastForwardedCopy = AudioFastForwarded;
+			unsigned int FramesAhead = (VideoFastForwarded >= AudioFastForwardedCopy)
+				? /* no overflow */ VideoFastForwarded - AudioFastForwardedCopy
+				: /* overflow */    0x100 - (AudioFastForwardedCopy - VideoFastForwarded);
+			uint32_t Quota = AUDIO_OUTPUT_BUFFER_SIZE * 3 * OUTPUT_FREQUENCY_DIVISOR + (uint32_t) (FramesAhead * (SOUND_FREQUENCY / 59.73f));
+			if (ReGBA_GetAudioSamplesAvailable() <= Quota)
+				break;
 			usleep(1000);
 		}
 	}
@@ -569,29 +575,40 @@ void ReGBA_RenderScreen(void)
 	{
 		if (AudioFrameskip < MAX_AUTO_FRAMESKIP)
 			AudioFrameskip++;
+		SufficientAudioControl = 0;
+	}
+	else
+	{
+		SufficientAudioControl++;
+		if (SufficientAudioControl >= 10)
+		{
+			SufficientAudioControl = 0;
+			if (AudioFrameskip > 0)
+				AudioFrameskip--;
+		}
 	}
 
-	if (FastForwardControl >= 60)
+	if (FastForwardFrameskip > 0 && FastForwardFrameskipControl > 0)
 	{
-		FastForwardControl -= 60;
-		VideoFastForwarded++;
+		FastForwardFrameskipControl--;
+		VideoFastForwarded = (VideoFastForwarded + 1) & 0xFF;
 	}
-	FastForwardControl += FastForwardValue;
+	else
+	{
+		FastForwardFrameskipControl = FastForwardFrameskip;
+		if (UserFrameskip != 0)
+		{
+			if (UserFrameskipControl == 0)
+				UserFrameskipControl = UserFrameskip - 1;
+			else
+				UserFrameskipControl--;
+		}
+	}
 
 	if (AudioFrameskipControl > 0)
 		AudioFrameskipControl--;
-	else if (AudioFrameskipControl == 0)
+	else
 		AudioFrameskipControl = AudioFrameskip;
-
-	if (UserFrameskip != 0)
-	{
-		if (UserFrameskipControl == 0)
-			UserFrameskipControl = UserFrameskip - 1;
-		else
-			UserFrameskipControl--;
-		if (FastForwardControl < 60 && FastForwardValue + FastForwardControl >= 60)
-			UserFrameskipControl = 0; // allow fast-forwarding even at FS 0
-	}
 }
 
 u16 *copy_screen()

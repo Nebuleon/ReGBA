@@ -49,30 +49,21 @@ enum GUI_Action {
 };
 
 // 0 if not fast-forwarding.
-// Otherwise, the amount of frames to skip per second.
-// 30 amounts to targetting 200% real-time;
-// 40 amounts to targetting 300% real-time;
-// 45 amounts to targetting 400% real-time;
-// 48 amounts to targetting 500% real-time;
-// 50 amounts to targetting 600% real-time.
-extern uint_fast8_t FastForwardValue;
+// Otherwise, the amount of frames to skip per rendered frame.
+// 1 amounts to targetting 200% real-time;
+// 2 amounts to targetting 300% real-time;
+// 3 amounts to targetting 400% real-time;
+// 4 amounts to targetting 500% real-time;
+// 5 amounts to targetting 600% real-time.
+extern uint_fast8_t FastForwardFrameskip;
 
-// The number of times to target while fast-forwarding. (UI option)
+// The number of times to target while fast-forwarding is enabled. (UI option)
 // 0 means 2x, 1 means 3x, ... 4 means 6x.
 extern uint32_t FastForwardTarget;
 
-// Incremented by FastForwardValue every frame. If it's over 60,
-// a frame is skipped, 60 is removed, then FastForwardValue is added again.
-extern uint_fast8_t FastForwardControl;
-
-// Incremented by the video thread when it decides to skip a frame due to
-// fast forwarding.
-extern volatile uint_fast8_t VideoFastForwarded;
-
-// Modified by the audio thread to match VideoFastForwarded after it finds
-// that the video thread has skipped a frame. The audio thread must deal
-// with the condition as soon as possible.
-extern volatile uint_fast8_t AudioFastForwarded;
+// If this is greater than 0, a frame and its audio are skipped.
+// The value then goes to FastForwardFrameskip and is decremented until 0.
+extern uint_fast8_t FastForwardFrameskipControl;
 
 /*
  * Gets the current value of the analog horizontal axis.

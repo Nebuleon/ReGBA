@@ -133,10 +133,20 @@ void ReGBA_LoadRTCTime(struct ReGBA_RTC* RTCData)
 
 bool ReGBA_IsRenderingNextFrame()
 {
-	if (UserFrameskip == 0) /* automatic */
-		return FastForwardControl < 60 && AudioFrameskipControl == 0;
-
-	return FastForwardControl < 60 && UserFrameskipControl == 0; /* manual, draw this frame */
+	if (FastForwardFrameskip != 0) /* fast-forwarding */
+	{
+		if (UserFrameskip != 0)  /* fast-forwarding on user frameskip */
+			return FastForwardFrameskipControl == 0 && UserFrameskipControl == 0;
+		else /* fast-forwarding on automatic frameskip */
+			return FastForwardFrameskipControl == 0 && AudioFrameskipControl == 0;
+	}
+	else
+	{
+		if (UserFrameskip != 0) /* user frameskip */
+			return UserFrameskipControl == 0;
+		else /* automatic frameskip */
+			return AudioFrameskipControl == 0;
+	}
 }
 
 const char* GetFileName(const char* Path)

@@ -3,7 +3,7 @@
 #include "common.h"
 #include "../sound.h"
 
-volatile uint_fast8_t AudioFastForwarded;
+volatile unsigned int AudioFastForwarded;
 
 #define DAMPEN_SAMPLE_COUNT (AUDIO_OUTPUT_BUFFER_SIZE / 32)
 
@@ -65,12 +65,17 @@ void feed_buffer(void *udata, Uint8 *buffer, int len)
 	}
 	Samples -= Requested / 2;
 	
-	// Discard sound until half the requested length is left, if fast-forwarding.
+	// Discard as many samples as are generated in 1 frame, if fast-forwarding.
 	bool Skipped = false;
-	uint_fast8_t VideoFastForwardedCopy = VideoFastForwarded;
+	unsigned int VideoFastForwardedCopy = VideoFastForwarded;
 	if (VideoFastForwardedCopy != AudioFastForwarded)
 	{
-		uint32_t SamplesToSkip = Samples - (Requested * 3 - Requested / 2);
+		unsigned int FramesToSkip = (VideoFastForwardedCopy > AudioFastForwarded)
+			? /* no overflow */ VideoFastForwardedCopy - AudioFastForwarded
+			: /* overflow */    0x100 - (AudioFastForwarded - VideoFastForwardedCopy);
+		uint32_t SamplesToSkip = (uint32_t) (FramesToSkip * (OUTPUT_SOUND_FREQUENCY / 59.73f));
+		if (SamplesToSkip > Samples - (Requested * 3 - Requested / 2))
+			SamplesToSkip = Samples - (Requested * 3 - Requested / 2);
 		ReGBA_DiscardAudioSamples(SamplesToSkip * OUTPUT_FREQUENCY_DIVISOR);
 		Samples -= SamplesToSkip;
 		AudioFastForwarded = VideoFastForwardedCopy;
