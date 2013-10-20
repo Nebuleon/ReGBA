@@ -6,7 +6,6 @@ else
 	SUM:=@echo
 endif
 
-.PHONY: $(TARGET)
 $(TARGET): $(OBJS)
 	$(SUM) "  LD      $@"
 	$(CMD)$(CC) $(CFLAGS) $^ $(LDFLAGS) -o $@

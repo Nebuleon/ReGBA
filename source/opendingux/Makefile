@@ -25,9 +25,9 @@ ifneq ($(HAS_MIPS32R2),)
 	DEFS += -DMIPS_32R2
 endif
 
-CFLAGS       = $(SDL_CFLAGS) -mno-abicalls -Wall -Wno-unused-variable \
+CFLAGS      := $(SDL_CFLAGS) -mno-abicalls -Wall -Wno-unused-variable \
                -O2 -fomit-frame-pointer $(DEFS) $(INCLUDE)
-ASFLAGS      = $(CFLAGS) -D__ASSEMBLY__
+ASFLAGS     := $(CFLAGS) -D__ASSEMBLY__
 LDFLAGS     := $(SDL_LIBS) -lpthread -lz -lm -lpng
 
 DATA_TO_CLEAN := .opk_data $(TARGET).opk
