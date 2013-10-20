@@ -32,7 +32,7 @@ static bool JoystickInitialised = false;
 // Mandatory remapping for OpenmDingux keys. Each OpenmDingux key maps to a
 // key on the keyboard, but not all keys on the keyboard map to these.
 // They are not in GBA bitfield order in this array.
-uint32_t OpenDinguxKeys[12] = {
+uint32_t OpenDinguxKeys[OPENDINGUX_BUTTON_COUNT] = {
 	SDLK_TAB,        // L
 	SDLK_BACKSPACE,  // R
 	SDLK_DOWN,       // Down
@@ -45,6 +45,10 @@ uint32_t OpenDinguxKeys[12] = {
 	SDLK_LCTRL,      // Right face button (A)
 	SDLK_LSHIFT,     // Left face button (GCW X, A320 Y)
 	SDLK_SPACE,      // Upper face button (GCW Y, A320 X)
+	0,
+	0,
+	0,
+	0,
 };
 
 // These must be OpenDingux buttons at the bit suitable for the ReGBA_Buttons
@@ -141,6 +145,14 @@ static void UpdateOpenDinguxButtons()
 				break;
 		}
 	}
+
+	LastButtons &= ~(OPENDINGUX_ANALOG_LEFT | OPENDINGUX_ANALOG_RIGHT
+	               | OPENDINGUX_ANALOG_UP | OPENDINGUX_ANALOG_DOWN);
+	int16_t X = GetHorizontalAxisValue(), Y = GetVerticalAxisValue();
+	if (X > 16000)       LastButtons |= OPENDINGUX_ANALOG_RIGHT;
+	else if (X < -16000) LastButtons |= OPENDINGUX_ANALOG_LEFT;
+	if (Y > 16000)       LastButtons |= OPENDINGUX_ANALOG_DOWN;
+	else if (Y < -16000) LastButtons |= OPENDINGUX_ANALOG_UP;
 }
 
 void ProcessSpecialKeys()

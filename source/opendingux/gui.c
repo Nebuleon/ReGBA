@@ -390,6 +390,10 @@ static char* OpenDinguxButtonText[OPENDINGUX_BUTTON_COUNT] = {
 	"A",
 	LEFT_FACE_BUTTON_NAME,
 	TOP_FACE_BUTTON_NAME,
+	"Analog Down",
+	"Analog Up",
+	"Analog Left",
+	"Analog Right",
 };
 
 /*
@@ -500,16 +504,20 @@ static void DisplayHotkeyValue(struct MenuEntry* DrawnMenuEntry, struct MenuEntr
 static char OpenDinguxButtonSave[OPENDINGUX_BUTTON_COUNT] = {
 	'L',
 	'R',
-	'v',
+	'v', // D-pad directions.
 	'^',
 	'<',
-	'>',
+	'>', // (end)
 	'S',
 	's',
 	'B',
 	'A',
 	'Y', // Using the SNES/DS/A320 mapping, this is the left face button.
 	'X', // Using the SNES/DS/A320 mapping, this is the upper face button.
+	'd', // Analog nub directions (GCW Zero).
+	'u',
+	'l',
+	'r', // (end)
 };
 
 static void LoadMappingFunction(struct MenuEntry* ActiveMenuEntry, char* Value)

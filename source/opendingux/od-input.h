@@ -20,7 +20,7 @@
 #ifndef __OD_INPUT_H__
 #define __OD_INPUT_H__
 
-#define OPENDINGUX_BUTTON_COUNT 12
+#define OPENDINGUX_BUTTON_COUNT 16
 
 // These must be in the order defined in OpenDinguxKeys in od-input.c.
 enum OpenDingux_Buttons {
@@ -36,6 +36,10 @@ enum OpenDingux_Buttons {
 	OPENDINGUX_BUTTON_FACE_RIGHT = 0x0200,
 	OPENDINGUX_BUTTON_FACE_LEFT  = 0x0400,
 	OPENDINGUX_BUTTON_FACE_UP    = 0x0800,
+	OPENDINGUX_ANALOG_DOWN       = 0x1000,
+	OPENDINGUX_ANALOG_UP         = 0x2000,
+	OPENDINGUX_ANALOG_LEFT       = 0x4000,
+	OPENDINGUX_ANALOG_RIGHT      = 0x8000,
 };
 
 enum GUI_Action {
