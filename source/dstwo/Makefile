@@ -61,7 +61,7 @@ CFLAGS      := -mips32 -mno-abicalls -fno-pic -fno-builtin -fno-exceptions    \
 
 ASFLAGS     := $(CFLAGS) -D__ASSEMBLY__
 
-LDFLAGS     := -nostdlib -static -T $(LINK_SPEC) -o $@ $(EXTLIBS) $(LIBS)
+LDFLAGS     := -nostdlib -static -T $(LINK_SPEC) $(EXTLIBS) $(LIBS)
 
 TARGET      := $(NAME).elf
 
