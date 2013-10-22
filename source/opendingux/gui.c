@@ -1075,9 +1075,21 @@ static struct MenuEntry ButtonMappingMenu_RapidB = {
 	.LoadFunction = LoadMappingFunction, .SaveFunction = SaveMappingFunction
 };
 
+#ifdef GCW_ZERO
+static struct MenuEntry ButtonMappingMenu_AnalogSensitivity = {
+	.Kind = KIND_OPTION, .Position = 9, .Name = "Analog sensitivity", .PersistentName = "analog_sensitivity",
+	.Target = &AnalogSensitivity,
+	.ChoiceCount = 5, .Choices = { { "Very low", "lowest" }, { "Low", "low" }, { "Medium", "medium" }, { "High", "high" }, { "Highest", "highest" } }
+};
+#endif
+
 static struct Menu ButtonMappingMenu = {
-	.Parent = &MainMenu, .Title = "Button remapping",
-	.Entries = { &ButtonMappingMenu_A, &ButtonMappingMenu_B, &ButtonMappingMenu_Start, &ButtonMappingMenu_Select, &ButtonMappingMenu_L, &ButtonMappingMenu_R, &ButtonMappingMenu_RapidA, &ButtonMappingMenu_RapidB, NULL }
+	.Parent = &MainMenu, .Title = "Input settings",
+	.Entries = { &ButtonMappingMenu_A, &ButtonMappingMenu_B, &ButtonMappingMenu_Start, &ButtonMappingMenu_Select, &ButtonMappingMenu_L, &ButtonMappingMenu_R, &ButtonMappingMenu_RapidA, &ButtonMappingMenu_RapidB
+#ifdef GCW_ZERO
+	, &ButtonMappingMenu_AnalogSensitivity
+#endif
+	, NULL }
 };
 
 // -- Hotkeys --
@@ -1104,7 +1116,7 @@ static struct MenuEntry MainMenu_Display = {
 };
 
 static struct MenuEntry MainMenu_ButtonMapping = {
-	.Kind = KIND_SUBMENU, .Position = 1, .Name = "Button remapping...",
+	.Kind = KIND_SUBMENU, .Position = 1, .Name = "Input settings...",
 	.Target = &ButtonMappingMenu
 };
 

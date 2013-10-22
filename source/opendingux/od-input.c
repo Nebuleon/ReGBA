@@ -23,6 +23,8 @@ uint_fast8_t FastForwardFrameskip = 0;
 
 uint32_t FastForwardTarget = 4; // 6x by default
 
+uint32_t AnalogSensitivity = 0; // require 32256/32767 of the axis by default
+
 uint_fast8_t FastForwardFrameskipControl = 0;
 
 static SDL_Joystick* Joystick;
@@ -95,12 +97,12 @@ enum OpenDingux_Buttons Hotkeys[1] = {
 // pressed. For example, when the user keeps a direction pressed but also
 // presses A, start ignoring the direction.
 enum OpenDingux_Buttons MenuKeys[6] = {
-	OPENDINGUX_BUTTON_FACE_RIGHT,  // Select/Enter button
-	OPENDINGUX_BUTTON_FACE_DOWN,   // Cancel/Leave button
-	OPENDINGUX_BUTTON_DOWN,        // Menu navigation
-	OPENDINGUX_BUTTON_UP,
-	OPENDINGUX_BUTTON_RIGHT,
-	OPENDINGUX_BUTTON_LEFT,
+	OPENDINGUX_BUTTON_FACE_RIGHT,                     // Select/Enter button
+	OPENDINGUX_BUTTON_FACE_DOWN,                      // Cancel/Leave button
+	OPENDINGUX_BUTTON_DOWN  | OPENDINGUX_ANALOG_DOWN, // Menu navigation
+	OPENDINGUX_BUTTON_UP    | OPENDINGUX_ANALOG_UP,
+	OPENDINGUX_BUTTON_RIGHT | OPENDINGUX_ANALOG_RIGHT,
+	OPENDINGUX_BUTTON_LEFT  | OPENDINGUX_ANALOG_LEFT,
 };
 
 // In the same order as MenuKeys above. Maps the OpenDingux buttons to their
@@ -148,11 +150,12 @@ static void UpdateOpenDinguxButtons()
 
 	LastButtons &= ~(OPENDINGUX_ANALOG_LEFT | OPENDINGUX_ANALOG_RIGHT
 	               | OPENDINGUX_ANALOG_UP | OPENDINGUX_ANALOG_DOWN);
-	int16_t X = GetHorizontalAxisValue(), Y = GetVerticalAxisValue();
-	if (X > 16000)       LastButtons |= OPENDINGUX_ANALOG_RIGHT;
-	else if (X < -16000) LastButtons |= OPENDINGUX_ANALOG_LEFT;
-	if (Y > 16000)       LastButtons |= OPENDINGUX_ANALOG_DOWN;
-	else if (Y < -16000) LastButtons |= OPENDINGUX_ANALOG_UP;
+	int16_t X = GetHorizontalAxisValue(), Y = GetVerticalAxisValue(),
+	        Threshold = (4 - AnalogSensitivity) * 7808 + 1024;
+	if (X > Threshold)       LastButtons |= OPENDINGUX_ANALOG_RIGHT;
+	else if (X < -Threshold) LastButtons |= OPENDINGUX_ANALOG_LEFT;
+	if (Y > Threshold)       LastButtons |= OPENDINGUX_ANALOG_DOWN;
+	else if (Y < -Threshold) LastButtons |= OPENDINGUX_ANALOG_UP;
 }
 
 void ProcessSpecialKeys()
@@ -243,13 +246,6 @@ enum GUI_Action GetGUIAction()
 
 	UpdateOpenDinguxButtons();
 	enum OpenDingux_Buttons EffectiveButtons = LastButtons;
-	// Incorporate analog nub input. (GCW Zero, implemented as 0 on the
-	// Dingoo A320.)
-	int16_t X = GetHorizontalAxisValue(), Y = GetVerticalAxisValue();
-	     if (X < -32700) EffectiveButtons |= OPENDINGUX_BUTTON_LEFT;
-	else if (X >  32700) EffectiveButtons |= OPENDINGUX_BUTTON_RIGHT;
-	     if (Y < -32700) EffectiveButtons |= OPENDINGUX_BUTTON_UP;
-	else if (Y >  32700) EffectiveButtons |= OPENDINGUX_BUTTON_DOWN;
 	// Now get the currently-held button with the highest priority in MenuKeys.
 	for (i = 0; i < 6; i++)
 	{

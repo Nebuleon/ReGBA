@@ -65,6 +65,12 @@ extern uint_fast8_t FastForwardFrameskip;
 // 0 means 2x, 1 means 3x, ... 4 means 6x.
 extern uint32_t FastForwardTarget;
 
+// A value indicating how sensitive the analog stick is to being moved in a
+// direction.
+// 0 is the least sensitive, requiring the axis to be fully engaged.
+// 4 is the most sensitive, requiring the axis to be lightly tapped.
+extern uint32_t AnalogSensitivity;
+
 // If this is greater than 0, a frame and its audio are skipped.
 // The value then goes to FastForwardFrameskip and is decremented until 0.
 extern uint_fast8_t FastForwardFrameskipControl;
