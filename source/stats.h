@@ -49,6 +49,9 @@ struct ReGBA_Stats {
 	/* How many frames have we emulated since the current game started
 	 * running? */
 	uint64_t        TotalEmulatedFrames;
+	/* How many frames have we rendered since the current game started
+	 * running? */
+	uint64_t        TotalRenderedFrames;
 
 #ifdef PERFORMANCE_IMPACTING_STATISTICS
 	/* Performance statistics collectors. This set impacts normal

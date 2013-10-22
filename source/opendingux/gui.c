@@ -863,26 +863,31 @@ static struct MenuEntry ExecutionMenu_FramesEmulated = {
 	.DisplayType = TYPE_UINT64, .Target = &Stats.TotalEmulatedFrames
 };
 
+static struct MenuEntry ExecutionMenu_FramesRendered = {
+	.Kind = KIND_DISPLAY, .Position = 2, .Name = "Frames rendered",
+	.DisplayType = TYPE_UINT64, .Target = &Stats.TotalRenderedFrames
+};
+
 #ifdef PERFORMANCE_IMPACTING_STATISTICS
 static struct MenuEntry ExecutionMenu_ARMOps = {
-	.Kind = KIND_DISPLAY, .Position = 2, .Name = "ARM opcodes decoded",
+	.Kind = KIND_DISPLAY, .Position = 3, .Name = "ARM opcodes decoded",
 	.DisplayType = TYPE_UINT64, .Target = &Stats.ARMOpcodesDecoded
 };
 
 static struct MenuEntry ExecutionMenu_ThumbOps = {
-	.Kind = KIND_DISPLAY, .Position = 3, .Name = "Thumb opcodes decoded",
+	.Kind = KIND_DISPLAY, .Position = 4, .Name = "Thumb opcodes decoded",
 	.DisplayType = TYPE_UINT64, .Target = &Stats.ThumbOpcodesDecoded
 };
 
 static struct MenuEntry ExecutionMenu_MemAccessors = {
-	.Kind = KIND_DISPLAY, .Position = 4, .Name = "Memory accessors patched",
+	.Kind = KIND_DISPLAY, .Position = 5, .Name = "Memory accessors patched",
 	.DisplayType = TYPE_UINT32, .Target = &Stats.WrongAddressLineCount
 };
 #endif
 
 static struct Menu ExecutionMenu = {
 	.Parent = &DebugMenu, .Title = "Execution statistics",
-	.Entries = { &ExecutionMenu_SoundUnderruns, &ExecutionMenu_FramesEmulated
+	.Entries = { &ExecutionMenu_SoundUnderruns, &ExecutionMenu_FramesEmulated, &ExecutionMenu_FramesRendered
 #ifdef PERFORMANCE_IMPACTING_STATISTICS
 		, &ExecutionMenu_ARMOps, &ExecutionMenu_ThumbOps, &ExecutionMenu_MemAccessors
 #endif

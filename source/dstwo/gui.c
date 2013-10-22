@@ -3356,6 +3356,7 @@ u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason)
 	char* EXECUTION_STATISTICS = "Execution statistics...";
 	char* SOUND_BUFFER_UNDERRUNS = "Sound buffer underruns     %u";
 	char* FRAMES_EMULATED        = "Frames emulated                 %u";
+	char* FRAMES_RENDERED        = "Frames rendered                %u";
 	char* ARM_OPCODES_DECODED    = "ARM opcodes decoded         %u";
 	char* THUMB_OPCODES_DECODED  = "Thumb opcodes decoded    %u";
 	char* WRONG_ADDRESS_LINES    = "Mem. accessors patched    %u";
@@ -3373,15 +3374,18 @@ u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason)
 	/* 02 */ NUMERIC_SELECTION_HIDE_OPTION(NULL, NULL, &FRAMES_EMULATED,
         (int32_t*) &Stats.TotalEmulatedFrames, 2, NULL, 2),
 
+	/* 03 */ NUMERIC_SELECTION_HIDE_OPTION(NULL, NULL, &FRAMES_RENDERED,
+        (int32_t*) &Stats.TotalRenderedFrames, 2, NULL, 3),
+
 #ifdef PERFORMANCE_IMPACTING_STATISTICS
-	/* 03 */ NUMERIC_SELECTION_HIDE_OPTION(NULL, NULL, &ARM_OPCODES_DECODED,
-        &Stats.ARMOpcodesDecoded, 2, NULL, 3),
+	/* 04 */ NUMERIC_SELECTION_HIDE_OPTION(NULL, NULL, &ARM_OPCODES_DECODED,
+        &Stats.ARMOpcodesDecoded, 2, NULL, 4),
 
-	/* 04 */ NUMERIC_SELECTION_HIDE_OPTION(NULL, NULL, &THUMB_OPCODES_DECODED,
-        &Stats.ThumbOpcodesDecoded, 2, NULL, 4),
+	/* 05 */ NUMERIC_SELECTION_HIDE_OPTION(NULL, NULL, &THUMB_OPCODES_DECODED,
+        &Stats.ThumbOpcodesDecoded, 2, NULL, 5),
 
-	/* 04 */ NUMERIC_SELECTION_HIDE_OPTION(NULL, NULL, &WRONG_ADDRESS_LINES,
-        &Stats.WrongAddressLineCount, 2, NULL, 5),
+	/* 06 */ NUMERIC_SELECTION_HIDE_OPTION(NULL, NULL, &WRONG_ADDRESS_LINES,
+        &Stats.WrongAddressLineCount, 2, NULL, 6),
 #endif
     };
     MAKE_MENU(tools_debug_statistics, NULL, NULL, NULL, NULL, 0, 0);

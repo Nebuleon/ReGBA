@@ -61,6 +61,7 @@ void StatsInitGame(void)
 	Stats.SoundBufferUnderrunCount = 0;
 	Stats.InSoundBufferUnderrun = 0;
 	Stats.TotalEmulatedFrames = 0;
+	Stats.TotalRenderedFrames = 0;
 #ifdef PERFORMANCE_IMPACTING_STATISTICS
 	Stats.ARMOpcodesDecoded = 0;
 	Stats.ThumbOpcodesDecoded = 0;

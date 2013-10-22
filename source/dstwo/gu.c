@@ -47,6 +47,7 @@ void ReGBA_RenderScreen(void)
 {
 	if (ReGBA_IsRenderingNextFrame())
 	{
+		Stats.TotalRenderedFrames++;
 		Stats.RenderedFrames++;
 		ReGBA_DisplayFPS();
 		ds2_flipScreen(gba_screen_num, UP_SCREEN_UPDATE_METHOD);

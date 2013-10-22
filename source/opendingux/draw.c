@@ -531,6 +531,7 @@ void ReGBA_RenderScreen(void)
 {
 	if (ReGBA_IsRenderingNextFrame())
 	{
+		Stats.TotalRenderedFrames++;
 		Stats.RenderedFrames++;
 		if (FramesBordered < 3)
 		{
