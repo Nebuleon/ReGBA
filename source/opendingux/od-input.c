@@ -25,6 +25,8 @@ uint32_t FastForwardTarget = 4; // 6x by default
 
 uint32_t AnalogSensitivity = 0; // require 32256/32767 of the axis by default
 
+uint32_t AnalogAction = 0;
+
 uint_fast8_t FastForwardFrameskipControl = 0;
 
 static SDL_Joystick* Joystick;
@@ -178,6 +180,13 @@ enum ReGBA_Buttons ReGBA_GetPressedButtons()
 		{
 			Result |= 1 << (uint_fast16_t) i;
 		}
+	}
+	if (AnalogAction == 1)
+	{
+		if (LastButtons & OPENDINGUX_ANALOG_LEFT)  Result |= REGBA_BUTTON_LEFT;
+		if (LastButtons & OPENDINGUX_ANALOG_RIGHT) Result |= REGBA_BUTTON_RIGHT;
+		if (LastButtons & OPENDINGUX_ANALOG_UP)    Result |= REGBA_BUTTON_UP;
+		if (LastButtons & OPENDINGUX_ANALOG_DOWN)  Result |= REGBA_BUTTON_DOWN;
 	}
 	// The ReGBA Menu key should be pressed if ONLY the button bound to it
 	// is pressed on the native device.

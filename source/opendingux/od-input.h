@@ -71,6 +71,11 @@ extern uint32_t FastForwardTarget;
 // 4 is the most sensitive, requiring the axis to be lightly tapped.
 extern uint32_t AnalogSensitivity;
 
+// A value indicating what the analog stick does in a game.
+// 0 means nothing special is done (but hotkeys may use the axes).
+// 1 means the analog stick is mapped to the GBA d-pad.
+extern uint32_t AnalogAction;
+
 // If this is greater than 0, a frame and its audio are skipped.
 // The value then goes to FastForwardFrameskip and is decremented until 0.
 extern uint_fast8_t FastForwardFrameskipControl;

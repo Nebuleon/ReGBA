@@ -1002,8 +1002,8 @@ static struct Menu DisplayMenu = {
 	.Entries = { &DisplayMenu_BootSource, &DisplayMenu_FPSCounter, &DisplayMenu_ScaleMode, &DisplayMenu_Frameskip, &DisplayMenu_FastForwardTarget }
 };
 
-// -- Button remapping --
-static struct MenuEntry ButtonMappingMenu_A = {
+// -- Input Settings --
+static struct MenuEntry InputMenu_A = {
 	.Kind = KIND_OPTION, .Position = 0, .Name = "GBA A", .PersistentName = "gba_a",
 	.Target = &KeypadRemapping[0],
 	.ChoiceCount = 0,
@@ -1012,7 +1012,7 @@ static struct MenuEntry ButtonMappingMenu_A = {
 	.LoadFunction = LoadMappingFunction, .SaveFunction = SaveMappingFunction
 };
 
-static struct MenuEntry ButtonMappingMenu_B = {
+static struct MenuEntry InputMenu_B = {
 	.Kind = KIND_OPTION, .Position = 1, .Name = "GBA B", .PersistentName = "gba_b",
 	.Target = &KeypadRemapping[1],
 	.ChoiceCount = 0,
@@ -1021,7 +1021,7 @@ static struct MenuEntry ButtonMappingMenu_B = {
 	.LoadFunction = LoadMappingFunction, .SaveFunction = SaveMappingFunction
 };
 
-static struct MenuEntry ButtonMappingMenu_Start = {
+static struct MenuEntry InputMenu_Start = {
 	.Kind = KIND_OPTION, .Position = 2, .Name = "GBA Start", .PersistentName = "gba_start",
 	.Target = &KeypadRemapping[3],
 	.ChoiceCount = 0,
@@ -1030,7 +1030,7 @@ static struct MenuEntry ButtonMappingMenu_Start = {
 	.LoadFunction = LoadMappingFunction, .SaveFunction = SaveMappingFunction
 };
 
-static struct MenuEntry ButtonMappingMenu_Select = {
+static struct MenuEntry InputMenu_Select = {
 	.Kind = KIND_OPTION, .Position = 3, .Name = "GBA Select", .PersistentName = "gba_select",
 	.Target = &KeypadRemapping[2],
 	.ChoiceCount = 0,
@@ -1039,7 +1039,7 @@ static struct MenuEntry ButtonMappingMenu_Select = {
 	.LoadFunction = LoadMappingFunction, .SaveFunction = SaveMappingFunction
 };
 
-static struct MenuEntry ButtonMappingMenu_L = {
+static struct MenuEntry InputMenu_L = {
 	.Kind = KIND_OPTION, .Position = 4, .Name = "GBA L", .PersistentName = "gba_l",
 	.Target = &KeypadRemapping[9],
 	.ChoiceCount = 0,
@@ -1048,7 +1048,7 @@ static struct MenuEntry ButtonMappingMenu_L = {
 	.LoadFunction = LoadMappingFunction, .SaveFunction = SaveMappingFunction
 };
 
-static struct MenuEntry ButtonMappingMenu_R = {
+static struct MenuEntry InputMenu_R = {
 	.Kind = KIND_OPTION, .Position = 5, .Name = "GBA R", .PersistentName = "gba_r",
 	.Target = &KeypadRemapping[8],
 	.ChoiceCount = 0,
@@ -1057,7 +1057,7 @@ static struct MenuEntry ButtonMappingMenu_R = {
 	.LoadFunction = LoadMappingFunction, .SaveFunction = SaveMappingFunction
 };
 
-static struct MenuEntry ButtonMappingMenu_RapidA = {
+static struct MenuEntry InputMenu_RapidA = {
 	.Kind = KIND_OPTION, .Position = 6, .Name = "Rapid-fire A", .PersistentName = "rapid_a",
 	.Target = &KeypadRemapping[10],
 	.ChoiceCount = 0,
@@ -1066,7 +1066,7 @@ static struct MenuEntry ButtonMappingMenu_RapidA = {
 	.LoadFunction = LoadMappingFunction, .SaveFunction = SaveMappingFunction
 };
 
-static struct MenuEntry ButtonMappingMenu_RapidB = {
+static struct MenuEntry InputMenu_RapidB = {
 	.Kind = KIND_OPTION, .Position = 7, .Name = "Rapid-fire B", .PersistentName = "rapid_b",
 	.Target = &KeypadRemapping[11],
 	.ChoiceCount = 0,
@@ -1076,18 +1076,24 @@ static struct MenuEntry ButtonMappingMenu_RapidB = {
 };
 
 #ifdef GCW_ZERO
-static struct MenuEntry ButtonMappingMenu_AnalogSensitivity = {
+static struct MenuEntry InputMenu_AnalogSensitivity = {
 	.Kind = KIND_OPTION, .Position = 9, .Name = "Analog sensitivity", .PersistentName = "analog_sensitivity",
 	.Target = &AnalogSensitivity,
-	.ChoiceCount = 5, .Choices = { { "Very low", "lowest" }, { "Low", "low" }, { "Medium", "medium" }, { "High", "high" }, { "Highest", "highest" } }
+	.ChoiceCount = 5, .Choices = { { "Very low", "lowest" }, { "Low", "low" }, { "Medium", "medium" }, { "High", "high" }, { "Very high", "highest" } }
+};
+
+static struct MenuEntry InputMenu_AnalogAction = {
+	.Kind = KIND_OPTION, .Position = 10, .Name = "Analog in-game binding", .PersistentName = "analog_action",
+	.Target = &AnalogAction,
+	.ChoiceCount = 2, .Choices = { { "None", "none" }, { "GBA D-pad", "dpad" } }
 };
 #endif
 
-static struct Menu ButtonMappingMenu = {
+static struct Menu InputMenu = {
 	.Parent = &MainMenu, .Title = "Input settings",
-	.Entries = { &ButtonMappingMenu_A, &ButtonMappingMenu_B, &ButtonMappingMenu_Start, &ButtonMappingMenu_Select, &ButtonMappingMenu_L, &ButtonMappingMenu_R, &ButtonMappingMenu_RapidA, &ButtonMappingMenu_RapidB
+	.Entries = { &InputMenu_A, &InputMenu_B, &InputMenu_Start, &InputMenu_Select, &InputMenu_L, &InputMenu_R, &InputMenu_RapidA, &InputMenu_RapidB
 #ifdef GCW_ZERO
-	, &ButtonMappingMenu_AnalogSensitivity
+	, &InputMenu_AnalogSensitivity, &InputMenu_AnalogAction
 #endif
 	, NULL }
 };
@@ -1115,9 +1121,9 @@ static struct MenuEntry MainMenu_Display = {
 	.Target = &DisplayMenu
 };
 
-static struct MenuEntry MainMenu_ButtonMapping = {
+static struct MenuEntry MainMenu_Input = {
 	.Kind = KIND_SUBMENU, .Position = 1, .Name = "Input settings...",
-	.Target = &ButtonMappingMenu
+	.Target = &InputMenu
 };
 
 static struct MenuEntry MainMenu_Hotkey = {
@@ -1147,7 +1153,7 @@ static struct MenuEntry MainMenu_Exit = {
 
 static struct Menu MainMenu = {
 	.Parent = NULL, .Title = "ReGBA Main Menu",
-	.Entries = { &MainMenu_Display, &MainMenu_ButtonMapping, &MainMenu_Hotkey, &MainMenu_Debug, &MainMenu_Reset, &MainMenu_Return, &MainMenu_Exit, NULL }
+	.Entries = { &MainMenu_Display, &MainMenu_Input, &MainMenu_Hotkey, &MainMenu_Debug, &MainMenu_Reset, &MainMenu_Return, &MainMenu_Exit, NULL }
 };
 
 u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason)
