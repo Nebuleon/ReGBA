@@ -120,7 +120,7 @@ extern enum GUI_Action GetGUIAction();
 #  define TOP_FACE_BUTTON_NAME "X"
 #endif
 
-extern const enum OpenDingux_Buttons DefaultKeypadRemapping[13];
+extern const enum OpenDingux_Buttons DefaultKeypadRemapping[12];
 
 // The OpenDingux_Buttons corresponding to each GBA or ReGBA button.
 // [0] = GBA A
@@ -134,13 +134,28 @@ extern const enum OpenDingux_Buttons DefaultKeypadRemapping[13];
 // GBA R trigger
 // GBA L trigger
 // ReGBA rapid-fire A
-// ReGBA rapid-fire B
-// [12] = ReGBA Menu
-extern enum OpenDingux_Buttons KeypadRemapping[13];
+// [11] = ReGBA rapid-fire B
+extern enum OpenDingux_Buttons KeypadRemapping[12];
 
 // The OpenDingux_Buttons (as bitfields) for hotkeys.
 // [0] = Fast-forward
-extern enum OpenDingux_Buttons Hotkeys[1];
+// [1] = Menu
+extern enum OpenDingux_Buttons Hotkeys[2];
+
+/*
+ * Returns true if the given hotkey is completely impossible to input on the
+ * port being compiled.
+ * Input:
+ *   Hotkey: Bitfield of OPENDINGUX_* buttons to test.
+ * Returns:
+ *   true if, and only if, any of the following conditions is true:
+ *   a) D-pad Up and Down are both in the bitfield;
+ *   b) D-pad Left and Right are both in the bitfield;
+ *   c) Analog Up and Down are both in the bitfield;
+ *   d) Analog Left and Right are both in the bitfield;
+ *   e) on the Dingoo A320, any analog direction is in the bitfield.
+ */
+extern bool IsImpossibleHotkey(enum OpenDingux_Buttons Hotkey);
 
 /*
  * Returns the OpenDingux buttons that are currently pressed.

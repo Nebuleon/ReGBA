@@ -751,6 +751,21 @@ static void ActionSetOrClearMapping(struct Menu** ActiveMenu, uint32_t* ActiveMe
 		: 0;
 }
 
+static void ActionSetHotkey(struct Menu** ActiveMenu, uint32_t* ActiveMenuEntryIndex)
+{
+	char Text[256];
+	char* Lines[] = { &Text[0], &Text[64], &Text[128], &Text[192] };
+	sprintf(Lines[0], "Setting hotkey for %s", (*ActiveMenu)->Entries[*ActiveMenuEntryIndex]->Name);
+	GetButtonsText(*(uint32_t*) (*ActiveMenu)->Entries[*ActiveMenuEntryIndex]->Target, Lines[2]);
+	sprintf(Lines[1], "Currently %s", Lines[2]);
+	strcpy(Lines[2], "Press the new buttons or");
+	strcpy(Lines[3], "B to leave alone");
+
+	enum OpenDingux_Buttons ButtonTotal = GrabButtons(*ActiveMenu, Lines);
+	if (ButtonTotal != OPENDINGUX_BUTTON_FACE_DOWN)
+		*(uint32_t*) (*ActiveMenu)->Entries[*ActiveMenuEntryIndex]->Target = ButtonTotal;
+}
+
 static void ActionSetOrClearHotkey(struct Menu** ActiveMenu, uint32_t* ActiveMenuEntryIndex)
 {
 	char Text[256];
@@ -1114,9 +1129,18 @@ static struct MenuEntry HotkeyMenu_FastForward = {
 	.LoadFunction = LoadHotkeyFunction, .SaveFunction = SaveHotkeyFunction
 };
 
+static struct MenuEntry HotkeyMenu_Menu = {
+	.Kind = KIND_OPTION, .Position = 1, .Name = "Menu", .PersistentName = "hotkey_menu",
+	.Target = &Hotkeys[1],
+	.ChoiceCount = 0,
+	.ButtonLeftFunction = NullLeftFunction, .ButtonRightFunction = NullRightFunction,
+	.ButtonEnterFunction = ActionSetHotkey, .DisplayValueFunction = DisplayHotkeyValue,
+	.LoadFunction = LoadHotkeyFunction, .SaveFunction = SaveHotkeyFunction
+};
+
 static struct Menu HotkeyMenu = {
 	.Parent = &MainMenu, .Title = "Hotkeys",
-	.Entries = { &HotkeyMenu_FastForward, NULL }
+	.Entries = { &HotkeyMenu_FastForward, &HotkeyMenu_Menu, NULL }
 };
 
 // -- Main Menu --
@@ -1369,14 +1393,17 @@ bool ReGBA_SaveSettings(char *cfg_name)
  */
 void FixUpSettings()
 {
-	if (KeypadRemapping[0] == 0 || KeypadRemapping[1] == 0 || KeypadRemapping[2] == 0
-	 || KeypadRemapping[3] == 0 || KeypadRemapping[4] == 0 || KeypadRemapping[5] == 0
-	 || KeypadRemapping[6] == 0 || KeypadRemapping[7] == 0 || KeypadRemapping[8] == 0
-	 || KeypadRemapping[9] == 0 || KeypadRemapping[12] == 0
-	)
-	{
-		memcpy(KeypadRemapping, DefaultKeypadRemapping, sizeof(DefaultKeypadRemapping));
-	}
+	int i;
+	for (i = 0; i < 10; i++)
+		if (KeypadRemapping[i] == 0)
+		{
+			memcpy(KeypadRemapping, DefaultKeypadRemapping, sizeof(DefaultKeypadRemapping));
+			break;
+		}
+	if (IsImpossibleHotkey(Hotkeys[0]))
+		Hotkeys[0] = 0;
+	if (Hotkeys[1] == 0 || IsImpossibleHotkey(Hotkeys[1]))
+		Hotkeys[1] = OPENDINGUX_BUTTON_FACE_UP;
 }
 
 void ReGBA_LoadSettings(char *cfg_name)

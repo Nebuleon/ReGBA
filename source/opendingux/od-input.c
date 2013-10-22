@@ -57,7 +57,7 @@ uint32_t OpenDinguxKeys[OPENDINGUX_BUTTON_COUNT] = {
 
 // These must be OpenDingux buttons at the bit suitable for the ReGBA_Buttons
 // enumeration.
-const enum OpenDingux_Buttons DefaultKeypadRemapping[13] = {
+const enum OpenDingux_Buttons DefaultKeypadRemapping[12] = {
 	OPENDINGUX_BUTTON_FACE_RIGHT, // GBA A
 	OPENDINGUX_BUTTON_FACE_DOWN,  // GBA B
 	OPENDINGUX_BUTTON_SELECT,     // GBA Select
@@ -70,12 +70,11 @@ const enum OpenDingux_Buttons DefaultKeypadRemapping[13] = {
 	OPENDINGUX_BUTTON_L,          // GBA L trigger
 	0,                            // ReGBA rapid-fire A
 	0,                            // ReGBA rapid-fire B
-	OPENDINGUX_BUTTON_FACE_UP,    // ReGBA Menu
 };
 
 // These must be OpenDingux buttons at the bit suitable for the ReGBA_Buttons
 // enumeration.
-enum OpenDingux_Buttons KeypadRemapping[13] = {
+enum OpenDingux_Buttons KeypadRemapping[12] = {
 	OPENDINGUX_BUTTON_FACE_RIGHT, // GBA A
 	OPENDINGUX_BUTTON_FACE_DOWN,  // GBA B
 	OPENDINGUX_BUTTON_SELECT,     // GBA Select
@@ -88,11 +87,11 @@ enum OpenDingux_Buttons KeypadRemapping[13] = {
 	OPENDINGUX_BUTTON_L,          // GBA L trigger
 	0,                            // ReGBA rapid-fire A
 	0,                            // ReGBA rapid-fire B
-	OPENDINGUX_BUTTON_FACE_UP,    // ReGBA Menu
 };
 
-enum OpenDingux_Buttons Hotkeys[1] = {
+enum OpenDingux_Buttons Hotkeys[2] = {
 	0,                            // Fast-forward
+	OPENDINGUX_BUTTON_FACE_UP,    // Menu
 };
 
 // The menu keys, in decreasing order of priority when two or more are
@@ -188,11 +187,31 @@ enum ReGBA_Buttons ReGBA_GetPressedButtons()
 		if (LastButtons & OPENDINGUX_ANALOG_UP)    Result |= REGBA_BUTTON_UP;
 		if (LastButtons & OPENDINGUX_ANALOG_DOWN)  Result |= REGBA_BUTTON_DOWN;
 	}
-	// The ReGBA Menu key should be pressed if ONLY the button bound to it
+	// The ReGBA Menu key should be pressed if ONLY the hotkey bound to it
 	// is pressed on the native device.
-	if (LastButtons == KeypadRemapping[12])
+	// This is not in ProcessSpecialKeys because REGBA_BUTTON_MENU needs to
+	// be returned by ReGBA_GetPressedButtons.
+	if (LastButtons == Hotkeys[1])
 		Result |= REGBA_BUTTON_MENU;
 	return Result;
+}
+
+bool IsImpossibleHotkey(enum OpenDingux_Buttons Hotkey)
+{
+	if ((Hotkey & (OPENDINGUX_BUTTON_LEFT | OPENDINGUX_BUTTON_RIGHT)) == (OPENDINGUX_BUTTON_LEFT | OPENDINGUX_BUTTON_RIGHT))
+		return true;
+	if ((Hotkey & (OPENDINGUX_BUTTON_UP | OPENDINGUX_BUTTON_DOWN)) == (OPENDINGUX_BUTTON_UP | OPENDINGUX_BUTTON_DOWN))
+		return true;
+#if defined DINGOO_A320
+	if (Hotkey & (OPENDINGUX_ANALOG_LEFT | OPENDINGUX_ANALOG_RIGHT | OPENDINGUX_ANALOG_UP | OPENDINGUX_ANALOG_DOWN))
+		return true;
+#elif defined GCW_ZERO
+	if ((Hotkey & (OPENDINGUX_ANALOG_LEFT | OPENDINGUX_ANALOG_RIGHT)) == (OPENDINGUX_ANALOG_LEFT | OPENDINGUX_ANALOG_RIGHT))
+		return true;
+	if ((Hotkey & (OPENDINGUX_ANALOG_UP | OPENDINGUX_ANALOG_DOWN)) == (OPENDINGUX_ANALOG_UP | OPENDINGUX_ANALOG_DOWN))
+		return true;
+#endif
+	return false;
 }
 
 enum OpenDingux_Buttons GetPressedOpenDinguxButtons()
