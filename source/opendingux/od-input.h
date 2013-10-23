@@ -138,9 +138,10 @@ extern const enum OpenDingux_Buttons DefaultKeypadRemapping[12];
 extern enum OpenDingux_Buttons KeypadRemapping[12];
 
 // The OpenDingux_Buttons (as bitfields) for hotkeys.
-// [0] = Fast-forward
-// [1] = Menu
-extern enum OpenDingux_Buttons Hotkeys[2];
+// [0] = Fast-forward while held
+// Menu
+// [2] = Fast-forward toggle
+extern enum OpenDingux_Buttons Hotkeys[3];
 
 /*
  * Returns true if the given hotkey is completely impossible to input on the

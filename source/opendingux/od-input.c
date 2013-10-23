@@ -89,9 +89,10 @@ enum OpenDingux_Buttons KeypadRemapping[12] = {
 	0,                            // ReGBA rapid-fire B
 };
 
-enum OpenDingux_Buttons Hotkeys[2] = {
-	0,                            // Fast-forward
+enum OpenDingux_Buttons Hotkeys[3] = {
+	0,                            // Fast-forward while held
 	OPENDINGUX_BUTTON_FACE_UP,    // Menu
+	0,                            // Fast-forward toggle
 };
 
 // The menu keys, in decreasing order of priority when two or more are
@@ -159,9 +160,20 @@ static void UpdateOpenDinguxButtons()
 	else if (Y < -Threshold) LastButtons |= OPENDINGUX_ANALOG_UP;
 }
 
+static bool IsFastForwardToggled = false;
+static bool WasFastForwardToggleHeld = false;
+
 void ProcessSpecialKeys()
 {
-	FastForwardFrameskip = (Hotkeys[0] != 0 && (Hotkeys[0] & LastButtons) == Hotkeys[0])
+	bool IsFastForwardToggleHeld = Hotkeys[2] != 0 && (Hotkeys[2] & LastButtons) == Hotkeys[2];
+	if (!WasFastForwardToggleHeld && IsFastForwardToggleHeld)
+		IsFastForwardToggled = !IsFastForwardToggled;
+	WasFastForwardToggleHeld = IsFastForwardToggleHeld;
+
+	// Resolve fast-forwarding. It is activated if it's either toggled by the
+	// Toggle hotkey, or the While Held key is held down.
+	bool IsFastForwardWhileHeld = Hotkeys[0] != 0 && (Hotkeys[0] & LastButtons) == Hotkeys[0];
+	FastForwardFrameskip = (IsFastForwardToggled || IsFastForwardWhileHeld)
 		? FastForwardTarget + 1
 		: 0;
 }

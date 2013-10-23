@@ -1121,7 +1121,7 @@ static struct Menu InputMenu = {
 // -- Hotkeys --
 
 static struct MenuEntry HotkeyMenu_FastForward = {
-	.Kind = KIND_OPTION, .Position = 0, .Name = "Fast-forward", .PersistentName = "hotkey_fast_forward",
+	.Kind = KIND_OPTION, .Position = 0, .Name = "Fast-forward while held", .PersistentName = "hotkey_fast_forward",
 	.Target = &Hotkeys[0],
 	.ChoiceCount = 0,
 	.ButtonLeftFunction = NullLeftFunction, .ButtonRightFunction = NullRightFunction,
@@ -1138,9 +1138,18 @@ static struct MenuEntry HotkeyMenu_Menu = {
 	.LoadFunction = LoadHotkeyFunction, .SaveFunction = SaveHotkeyFunction
 };
 
+static struct MenuEntry HotkeyMenu_FastForwardToggle = {
+	.Kind = KIND_OPTION, .Position = 2, .Name = "Fast-forward toggle", .PersistentName = "hotkey_fast_forward_toggle",
+	.Target = &Hotkeys[2],
+	.ChoiceCount = 0,
+	.ButtonLeftFunction = NullLeftFunction, .ButtonRightFunction = NullRightFunction,
+	.ButtonEnterFunction = ActionSetOrClearHotkey, .DisplayValueFunction = DisplayHotkeyValue,
+	.LoadFunction = LoadHotkeyFunction, .SaveFunction = SaveHotkeyFunction
+};
+
 static struct Menu HotkeyMenu = {
 	.Parent = &MainMenu, .Title = "Hotkeys",
-	.Entries = { &HotkeyMenu_FastForward, &HotkeyMenu_Menu, NULL }
+	.Entries = { &HotkeyMenu_FastForward, &HotkeyMenu_Menu, &HotkeyMenu_FastForwardToggle, NULL }
 };
 
 // -- Main Menu --
@@ -1404,6 +1413,8 @@ void FixUpSettings()
 		Hotkeys[0] = 0;
 	if (Hotkeys[1] == 0 || IsImpossibleHotkey(Hotkeys[1]))
 		Hotkeys[1] = OPENDINGUX_BUTTON_FACE_UP;
+	if (IsImpossibleHotkey(Hotkeys[2]))
+		Hotkeys[2] = 0;
 }
 
 void ReGBA_LoadSettings(char *cfg_name)
