@@ -183,13 +183,13 @@ int main(int argc, char *argv[])
 		sprintf(file, "%s/gba_bios.bin", executable_path);
 		if (load_bios(file) == -1)
 		{
-			printf("The GBA BIOS was not found in any location.\n");
-			printf("You can load one in your home directory's\n");
-			printf(".gpsp subdirectory. On this platform, that's:\n");
-			printf("%s\n", main_path);
-			printf("The file needs to be named gba_bios.bin.\n");
+			fprintf(stderr, "The GBA BIOS was not found in any location.\n");
+			fprintf(stderr, "You can load one in your home directory's\n");
+			fprintf(stderr, ".gpsp subdirectory. On this platform, that's:\n");
+			fprintf(stderr, "%s\n", main_path);
+			fprintf(stderr, "The file needs to be named gba_bios.bin.\n");
 
-			quit();
+			error_quit();
 		}
 		else
 			ReGBA_ProgressUpdate(2, 2);
@@ -223,8 +223,8 @@ int main(int argc, char *argv[])
   {
     if(load_gamepak(argv[1]) == -1)
     {
-      printf("Failed to load gamepak %s, exiting.\n", load_filename);
-      quit();
+      fprintf(stderr, "Failed to load %s: %s\n", load_filename, strerror(errno));
+      error_quit();
     }
 
 #if 0
@@ -238,7 +238,8 @@ int main(int argc, char *argv[])
   }
   else
   {
-	    quit();
+      fprintf(stderr, "Failed to load %s: %s\n", load_filename, strerror(errno));
+	    error_quit();
 #if 0
 	init_video();
 	init_sound();
@@ -549,15 +550,23 @@ void quit()
   if(IsGameLoaded)
     update_backup_force();
 
-#if 0
-  sound_exit();
-#endif
-
   ReGBA_SaveSettings("global_config");
 
   SDL_Quit();
 
   exit(0);
+}
+
+void error_quit()
+{
+  if(IsGameLoaded)
+    update_backup_force();
+
+  ReGBA_SaveSettings("global_config");
+
+  SDL_Quit();
+
+  exit(1);
 }
 
 void reset_gba()
