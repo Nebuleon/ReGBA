@@ -46,6 +46,9 @@ extern void ApplyScaleMode(video_scale_type NewMode);
  */
 extern void ScaleModeUnapplied();
 
+extern void gba_render_half(uint16_t* Dest, uint16_t* Src, uint32_t DestX, uint32_t DestY,
+	uint32_t SrcPitch, uint32_t DestPitch);
+
 extern void print_string(const char *str, u16 fg_color,
  u32 x, u32 y);
 
@@ -55,6 +58,16 @@ extern void print_string_outline(const char *str, u16 fg_color, u16 border_color
 extern uint32_t GetRenderedWidth(const char* str);
 
 extern uint32_t GetRenderedHeight(const char* str);
+
+/*
+ * Returns a new allocation containing a copy of the GBA screen. Its pixels
+ * and lines are packed (the pitch is 480 bytes), and its pixel format is
+ * XBGR 1555.
+ * Output assertions:
+ *   The returned pointer is non-NULL. If it is NULL, then this is a fatal
+ *   error.
+ */
+extern uint16_t* copy_screen();
 
 #define RGB888_TO_RGB565(r, g, b) ( \
   (((r) & 0xF8) << 8) | \

@@ -475,12 +475,12 @@ static inline void gba_upscale_aspect(uint16_t *to, uint16_t *from,
 	}
 }
 
-static inline void gba_render(uint16_t* Dest, uint16_t* Src, uint32_t Width, uint32_t Height,
+static inline void gba_render(uint16_t* Dest, uint16_t* Src,
 	uint32_t SrcPitch, uint32_t DestPitch)
 {
 	Dest = (uint16_t*) ((uint8_t*) Dest
-		+ ((Height - GBA_SCREEN_HEIGHT) / 2 * DestPitch)
-		+ ((Width - GBA_SCREEN_WIDTH) / 2 * sizeof(uint16_t))
+		+ ((GCW0_SCREEN_HEIGHT - GBA_SCREEN_HEIGHT) / 2 * DestPitch)
+		+ ((GCW0_SCREEN_WIDTH - GBA_SCREEN_WIDTH) / 2 * sizeof(uint16_t))
 	);
 	uint32_t SrcSkip = SrcPitch - GBA_SCREEN_WIDTH * sizeof(uint16_t);
 	uint32_t DestSkip = DestPitch - GBA_SCREEN_WIDTH * sizeof(uint16_t);
@@ -495,6 +495,65 @@ static inline void gba_render(uint16_t* Dest, uint16_t* Src, uint32_t Width, uin
 			Src += 2;
 		}
 		Src = (uint16_t*) ((uint8_t*) Src + SrcSkip);
+		Dest = (uint16_t*) ((uint8_t*) Dest + DestSkip);
+	}
+}
+
+/* Downscales an image by half in with and in height; also does color
+ * conversion using the function above.
+ * Input:
+ *   Src: A pointer to the pixels member of a 240x160 surface to be read by
+ *     this function. The pixel format of this surface is XBGR 1555.
+ *   DestX: The column to start the thumbnail at in the destination surface.
+ *   DestY: The row to start the thumbnail at in the destination surface.
+ *   SrcPitch: The number of bytes making up a scanline in the source
+ *     surface.
+ *   DstPitch: The number of bytes making up a scanline in the destination
+ *     surface.
+ * Output:
+ *   Dest: A pointer to the pixels member of a surface to be filled with the
+ *     downscaled GBA image. The pixel format of this surface is RGB 565.
+ */
+void gba_render_half(uint16_t* Dest, uint16_t* Src, uint32_t DestX, uint32_t DestY,
+	uint32_t SrcPitch, uint32_t DestPitch)
+{
+	Dest = (uint16_t*) ((uint8_t*) Dest
+		+ (DestY * DestPitch)
+		+ (DestX * sizeof(uint16_t))
+	);
+	uint32_t SrcSkip = SrcPitch - GBA_SCREEN_WIDTH * sizeof(uint16_t);
+	uint32_t DestSkip = DestPitch - (GBA_SCREEN_WIDTH / 2) * sizeof(uint16_t);
+
+	uint32_t X, Y;
+	for (Y = 0; Y < GBA_SCREEN_HEIGHT / 2; Y++)
+	{
+		for (X = 0; X < GBA_SCREEN_WIDTH * sizeof(uint16_t) / (sizeof(uint32_t) * 2); X++)
+		{
+			/* Before:
+			*    a b c d
+			*    e f g h
+			*
+			* After (multiple letters = average):
+			*    abef cdgh
+			*/
+			uint32_t b_a = bgr555_to_rgb565(*(uint32_t*) ((uint8_t*) Src    )),
+			         d_c = bgr555_to_rgb565(*(uint32_t*) ((uint8_t*) Src + 4)),
+			         f_e = bgr555_to_rgb565(*(uint32_t*) ((uint8_t*) Src + SrcPitch    )),
+			         h_g = bgr555_to_rgb565(*(uint32_t*) ((uint8_t*) Src + SrcPitch + 4));
+			uint32_t bf_ae = likely(b_a == f_e)
+				? b_a
+				: Average32(b_a, f_e);
+			uint32_t dh_cg = likely(d_c == h_g)
+				? d_c
+				: Average32(d_c, h_g);
+			*(uint32_t*) Dest = likely(bf_ae == dh_cg)
+				? bf_ae
+				: Average(Hi(bf_ae), Lo(bf_ae)) |
+				  Raise(Average(Hi(dh_cg), Lo(dh_cg)));
+			Dest += 2;
+			Src += 4;
+		}
+		Src = (uint16_t*) ((uint8_t*) Src + SrcSkip + SrcPitch);
 		Dest = (uint16_t*) ((uint8_t*) Dest + DestSkip);
 	}
 }
@@ -541,7 +600,7 @@ void ReGBA_RenderScreen(void)
 		switch (ScaleMode)
 		{
 			case unscaled:
-				gba_render(OutputSurface->pixels, GBAScreen, GCW0_SCREEN_WIDTH, GCW0_SCREEN_HEIGHT, GBAScreenSurface->pitch, OutputSurface->pitch);
+				gba_render(OutputSurface->pixels, GBAScreen, GBAScreenSurface->pitch, OutputSurface->pitch);
 				break;
 
 			case fullscreen:
@@ -618,16 +677,13 @@ u16 *copy_screen()
 	u16 *copy = malloc(GBA_SCREEN_WIDTH * GBA_SCREEN_HEIGHT * sizeof(uint16_t));
 	u16 *dest_ptr = copy;
 	u16 *src_ptr = GBAScreen;
-	u32 line_skip = pitch - GBA_SCREEN_WIDTH;
 	u32 x, y;
 
 	for(y = 0; y < GBA_SCREEN_HEIGHT; y++)
 	{
-		for(x = 0; x < GBA_SCREEN_WIDTH; x++, src_ptr++, dest_ptr++)
-		{
-			*dest_ptr = *src_ptr;
-		}
-		src_ptr += line_skip;
+		memcpy(dest_ptr, src_ptr, GBA_SCREEN_WIDTH * sizeof(u16));
+		src_ptr += pitch;
+		dest_ptr += GBA_SCREEN_WIDTH;
 	}
 
 	return copy;

@@ -51,9 +51,20 @@ enum MenuDataType {
 	TYPE_UINT64,
 };
 
+// -- Data --
+
+static uint32_t SelectedState = 0;
+
+// -- Forward declarations --
+
 struct MenuEntry;
 
 struct Menu;
+
+static struct Menu MainMenu;
+static struct Menu DebugMenu;
+
+static void SavedStateUpdatePreview(struct Menu* ActiveMenu);
 
 /*
  * MenuModifyFunction is the type of a function that acts on an input in the
@@ -99,11 +110,21 @@ typedef void (*MenuEntryDisplayFunction) (struct MenuEntry*, struct MenuEntry*);
 typedef void (*MenuEntryFunction) (struct Menu*, struct MenuEntry*);
 
 /*
+ * MenuInitFunction is the type of a function that runs when a menu is being
+ * initialised.
+ * Variables:
+ *   1: A pointer to a variable holding the menu that is being initialised.
+ *   On exit from the function, the menu may be modified to a new one, in
+ *   which case the function has chosen to activate that new menu. This can
+ *   be used when the initialisation has failed for some reason.
+ */
+typedef void (*MenuInitFunction) (struct Menu**);
+
+/*
  * MenuFunction is the type of a function that runs when a menu is being
- * initialised or finalised, depending on which member receives a function of
- * this type.
+ * finalised or drawn.
  * Input:
- *   1: The menu that is being initialised or finalised.
+ *   1: The menu that is being finalised or drawn.
  */
 typedef void (*MenuFunction) (struct Menu*);
 
@@ -154,7 +175,7 @@ struct Menu {
 	MenuModifyFunction ButtonUpFunction;
 	MenuModifyFunction ButtonDownFunction;
 	MenuModifyFunction ButtonLeaveFunction;
-	MenuFunction InitFunction;
+	MenuInitFunction InitFunction;
 	MenuFunction EndFunction;
 	void* UserData;
 	uint32_t ActiveEntryIndex;
@@ -180,7 +201,10 @@ static void DefaultDownFunction(struct Menu** ActiveMenu, uint32_t* ActiveMenuEn
 
 static void DefaultRightFunction(struct Menu* ActiveMenu, struct MenuEntry* ActiveMenuEntry)
 {
-	if (ActiveMenuEntry->Kind == KIND_OPTION)
+	if (ActiveMenuEntry->Kind == KIND_OPTION
+	|| (ActiveMenuEntry->Kind == KIND_CUSTOM /* chose to use this function */
+	 && ActiveMenuEntry->Target != NULL)
+	)
 	{
 		uint32_t* Target = (uint32_t*) ActiveMenuEntry->Target;
 		(*Target)++;
@@ -191,7 +215,10 @@ static void DefaultRightFunction(struct Menu* ActiveMenu, struct MenuEntry* Acti
 
 static void DefaultLeftFunction(struct Menu* ActiveMenu, struct MenuEntry* ActiveMenuEntry)
 {
-	if (ActiveMenuEntry->Kind == KIND_OPTION)
+	if (ActiveMenuEntry->Kind == KIND_OPTION
+	|| (ActiveMenuEntry->Kind == KIND_CUSTOM /* chose to use this function */
+	 && ActiveMenuEntry->Target != NULL)
+	)
 	{
 		uint32_t* Target = (uint32_t*) ActiveMenuEntry->Target;
 		if (*Target == 0)
@@ -375,6 +402,29 @@ static void DefaultSaveFunction(struct MenuEntry* ActiveMenuEntry, char* Value)
 		ActiveMenuEntry->Choices[*((uint32_t*) ActiveMenuEntry->Target)].Pretty);
 }
 
+// -- Custom initialisation/finalisation --
+
+static void SavedStateMenuInit(struct Menu** ActiveMenu)
+{
+	(*ActiveMenu)->UserData = calloc(GBA_SCREEN_WIDTH * GBA_SCREEN_HEIGHT, sizeof(uint16_t));
+	if ((*ActiveMenu)->UserData == NULL)
+	{
+		ReGBA_Trace("E: Memory allocation error while entering the Saved States menu");
+		*ActiveMenu = (*ActiveMenu)->Parent;
+	}
+	else
+		SavedStateUpdatePreview(*ActiveMenu);
+}
+
+static void SavedStateMenuEnd(struct Menu* ActiveMenu)
+{
+	if (ActiveMenu->UserData != NULL)
+	{
+		free(ActiveMenu->UserData);
+		ActiveMenu->UserData = NULL;
+	}
+}
+
 // -- Custom display --
 
 static char* OpenDinguxButtonText[OPENDINGUX_BUTTON_COUNT] = {
@@ -497,6 +547,57 @@ static void DisplayHotkeyValue(struct MenuEntry* DrawnMenuEntry, struct MenuEntr
 	}
 	else
 		ReGBA_Trace("W: Hid value '%s' from the menu due to it being too long", Value);
+}
+
+static void SavedStateMenuDisplayData(struct Menu* ActiveMenu, struct MenuEntry* ActiveMenuEntry)
+{
+	print_string_outline("Preview", COLOR_INACTIVE_TEXT, COLOR_INACTIVE_OUTLINE, GCW0_SCREEN_WIDTH - GBA_SCREEN_WIDTH / 2, GetRenderedHeight(" ") * 2 + 1);
+
+	gba_render_half((uint16_t*) OutputSurface->pixels, (uint16_t*) ActiveMenu->UserData,
+		GCW0_SCREEN_WIDTH - GBA_SCREEN_WIDTH / 2,
+		GetRenderedHeight(" ") * 3 + 1,
+		GBA_SCREEN_WIDTH * sizeof(uint16_t),
+		OutputSurface->pitch);
+
+	DefaultDisplayDataFunction(ActiveMenu, ActiveMenuEntry);
+}
+
+static void SavedStateSelectionDisplayValue(struct MenuEntry* DrawnMenuEntry, struct MenuEntry* ActiveMenuEntry)
+{
+	char Value[11];
+	sprintf(Value, "%" PRIu32, *(uint32_t*) DrawnMenuEntry->Target + 1);
+	uint32_t TextWidth = GetRenderedWidth(Value);
+	if (TextWidth <= GCW0_SCREEN_WIDTH - GBA_SCREEN_WIDTH / 2 - 18)
+	{
+		bool IsActive = (DrawnMenuEntry == ActiveMenuEntry);
+		uint16_t TextColor = IsActive ? COLOR_ACTIVE_TEXT : COLOR_INACTIVE_TEXT;
+		uint16_t OutlineColor = IsActive ? COLOR_ACTIVE_OUTLINE : COLOR_INACTIVE_OUTLINE;
+		print_string_outline(Value, TextColor, OutlineColor, GCW0_SCREEN_WIDTH - GBA_SCREEN_WIDTH / 2 - TextWidth - 17, GetRenderedHeight(" ") * (DrawnMenuEntry->Position + 2) + 1);
+	}
+	else
+		ReGBA_Trace("W: Hid value '%s' from the menu due to it being too long", Value);
+}
+
+static void SavedStateUpdatePreview(struct Menu* ActiveMenu)
+{
+	memset(ActiveMenu->UserData, 0, GBA_SCREEN_WIDTH * GBA_SCREEN_HEIGHT * sizeof(u16));
+	char SavedStateFilename[MAX_PATH + 1];
+	if (!ReGBA_GetSavedStateFilename(SavedStateFilename, CurrentGamePath, SelectedState))
+	{
+		ReGBA_Trace("W: Failed to get the name of saved state #%d for '%s'", SelectedState, CurrentGamePath);
+		return;
+	}
+
+	FILE_TAG_TYPE fp;
+	FILE_OPEN(fp, SavedStateFilename, READ);
+	if (!FILE_CHECK_VALID(fp))
+		return;
+
+	FILE_SEEK(fp, SVS_HEADER_SIZE + sizeof(struct ReGBA_RTC), SEEK_SET);
+
+	FILE_READ(fp, ActiveMenu->UserData, GBA_SCREEN_WIDTH * GBA_SCREEN_HEIGHT * sizeof(u16));
+
+	FILE_CLOSE(fp);
 }
 
 // -- Custom saving --
@@ -782,10 +883,41 @@ static void ActionSetOrClearHotkey(struct Menu** ActiveMenu, uint32_t* ActiveMen
 		: ButtonTotal;
 }
 
-// -- Forward declarations --
+static void SavedStateSelectionLeft(struct Menu* ActiveMenu, struct MenuEntry* ActiveMenuEntry)
+{
+	DefaultLeftFunction(ActiveMenu, ActiveMenuEntry);
+	SavedStateUpdatePreview(ActiveMenu);
+}
 
-static struct Menu MainMenu;
-static struct Menu DebugMenu;
+static void SavedStateSelectionRight(struct Menu* ActiveMenu, struct MenuEntry* ActiveMenuEntry)
+{
+	DefaultRightFunction(ActiveMenu, ActiveMenuEntry);
+	SavedStateUpdatePreview(ActiveMenu);
+}
+
+static void ActionSavedStateRead(struct Menu** ActiveMenu, uint32_t* ActiveMenuEntryIndex)
+{
+	load_state(SelectedState);
+	*ActiveMenu = NULL;
+}
+
+static void ActionSavedStateWrite(struct Menu** ActiveMenu, uint32_t* ActiveMenuEntryIndex)
+{
+	save_state(SelectedState, MainMenu.UserData /* preserved screenshot */);
+	SavedStateUpdatePreview(*ActiveMenu);
+}
+
+static void ActionSavedStateDelete(struct Menu** ActiveMenu, uint32_t* ActiveMenuEntryIndex)
+{
+	char SavedStateFilename[MAX_PATH + 1];
+	if (!ReGBA_GetSavedStateFilename(SavedStateFilename, CurrentGamePath, SelectedState))
+	{
+		ReGBA_Trace("W: Failed to get the name of saved state #%d for '%s'", SelectedState, CurrentGamePath);
+		return;
+	}
+	remove(SavedStateFilename);
+	SavedStateUpdatePreview(*ActiveMenu);
+}
 
 // -- Debug > Native code stats --
 
@@ -1152,6 +1284,38 @@ static struct Menu HotkeyMenu = {
 	.Entries = { &HotkeyMenu_FastForward, &HotkeyMenu_Menu, &HotkeyMenu_FastForwardToggle, NULL }
 };
 
+// -- Saved States --
+
+static struct MenuEntry SavedStateMenu_SelectedState = {
+	.Kind = KIND_CUSTOM, .Position = 0, .Name = "Save slot #", .PersistentName = "",
+	.Target = &SelectedState,
+	.ChoiceCount = 100,
+	.ButtonLeftFunction = SavedStateSelectionLeft, .ButtonRightFunction = SavedStateSelectionRight,
+	.DisplayValueFunction = SavedStateSelectionDisplayValue
+};
+
+static struct MenuEntry SavedStateMenu_Read = {
+	.Kind = KIND_CUSTOM, .Position = 2, .Name = "Load from selected slot",
+	.ButtonEnterFunction = ActionSavedStateRead
+};
+
+static struct MenuEntry SavedStateMenu_Write = {
+	.Kind = KIND_CUSTOM, .Position = 3, .Name = "Save to selected slot",
+	.ButtonEnterFunction = ActionSavedStateWrite
+};
+
+static struct MenuEntry SavedStateMenu_Delete = {
+	.Kind = KIND_CUSTOM, .Position = 4, .Name = "Delete selected state",
+	.ButtonEnterFunction = ActionSavedStateDelete
+};
+
+static struct Menu SavedStateMenu = {
+	.Parent = &MainMenu, .Title = "Saved states",
+	.InitFunction = SavedStateMenuInit, .EndFunction = SavedStateMenuEnd,
+	.DisplayDataFunction = SavedStateMenuDisplayData,
+	.Entries = { &SavedStateMenu_SelectedState, &SavedStateMenu_Read, &SavedStateMenu_Write, &SavedStateMenu_Delete, NULL }
+};
+
 // -- Main Menu --
 
 static struct MenuEntry MainMenu_Display = {
@@ -1167,6 +1331,11 @@ static struct MenuEntry MainMenu_Input = {
 static struct MenuEntry MainMenu_Hotkey = {
 	.Kind = KIND_SUBMENU, .Position = 2, .Name = "Hotkeys...",
 	.Target = &HotkeyMenu
+};
+
+static struct MenuEntry MainMenu_SavedStates = {
+	.Kind = KIND_SUBMENU, .Position = 4, .Name = "Saved states...",
+	.Target = &SavedStateMenu
 };
 
 static struct MenuEntry MainMenu_Debug = {
@@ -1191,16 +1360,27 @@ static struct MenuEntry MainMenu_Exit = {
 
 static struct Menu MainMenu = {
 	.Parent = NULL, .Title = "ReGBA Main Menu",
-	.Entries = { &MainMenu_Display, &MainMenu_Input, &MainMenu_Hotkey, &MainMenu_Debug, &MainMenu_Reset, &MainMenu_Return, &MainMenu_Exit, NULL }
+	.Entries = { &MainMenu_Display, &MainMenu_Input, &MainMenu_Hotkey, &MainMenu_SavedStates, &MainMenu_Debug, &MainMenu_Reset, &MainMenu_Return, &MainMenu_Exit, NULL }
 };
 
 u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason)
 {
 	SDL_PauseAudio(SDL_ENABLE);
+	MainMenu.UserData = copy_screen();
 	ScaleModeUnapplied();
-	struct Menu* ActiveMenu = &MainMenu;
+	struct Menu *ActiveMenu = &MainMenu, *PreviousMenu = ActiveMenu;
 	if (MainMenu.InitFunction != NULL)
-		(*(MainMenu.InitFunction))(&MainMenu);
+	{
+		(*(MainMenu.InitFunction))(&ActiveMenu);
+		while (PreviousMenu != ActiveMenu)
+		{
+			if (PreviousMenu->EndFunction != NULL)
+				(*(PreviousMenu->EndFunction))(PreviousMenu);
+			PreviousMenu = ActiveMenu;
+			if (ActiveMenu != NULL && ActiveMenu->InitFunction != NULL)
+				(*(ActiveMenu->InitFunction))(&ActiveMenu);
+		}
+	}
 
 	while (ActiveMenu != NULL)
 	{
@@ -1222,8 +1402,6 @@ u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason)
 		// Wait. (This is for platforms on which flips don't wait for vertical
 		// sync.)
 		usleep(5000);
-
-		struct Menu* PreviousMenu = ActiveMenu;
 
 		// Get input.
 		enum GUI_Action Action = GetGUIAction();
@@ -1283,12 +1461,13 @@ u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason)
 		}
 
 		// Possibly finalise this menu and activate and initialise a new one.
-		if (ActiveMenu != PreviousMenu)
+		while (ActiveMenu != PreviousMenu)
 		{
 			if (PreviousMenu->EndFunction != NULL)
 				(*(PreviousMenu->EndFunction))(PreviousMenu);
+			PreviousMenu = ActiveMenu;
 			if (ActiveMenu != NULL && ActiveMenu->InitFunction != NULL)
-				(*(ActiveMenu->InitFunction))(ActiveMenu);
+				(*(ActiveMenu->InitFunction))(&ActiveMenu);
 		}
 	}
 
@@ -1309,6 +1488,8 @@ u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason)
 	timespec Now;
 	clock_gettime(CLOCK_MONOTONIC, &Now);
 	Stats.LastFPSCalculationTime = Now;
+	if (MainMenu.UserData != NULL)
+		free(MainMenu.UserData);
 	return 0;
 }
 
@@ -1499,10 +1680,12 @@ void ReGBA_LoadSettings(char *cfg_name)
 			{
 				ReGBA_Trace("W: Option '%s' not found; ignored", opt);
 			}
-
-			MenuPersistenceFunction LoadFunction = entry->LoadFunction;
-			if (LoadFunction == NULL) LoadFunction = &DefaultLoadFunction;
-			(*LoadFunction)(entry, arg);
+			else
+			{
+				MenuPersistenceFunction LoadFunction = entry->LoadFunction;
+				if (LoadFunction == NULL) LoadFunction = &DefaultLoadFunction;
+				(*LoadFunction)(entry, arg);
+			}
 		}
 		ReGBA_ProgressUpdate(1, 1);
 	}
