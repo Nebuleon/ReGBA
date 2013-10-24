@@ -294,8 +294,9 @@ static void DefaultDisplayValueFunction(struct MenuEntry* DrawnMenuEntry, struct
 {
 	if (DrawnMenuEntry->Kind == KIND_OPTION || DrawnMenuEntry->Kind == KIND_DISPLAY)
 	{
-		char* Value;
 		char Temp[21];
+		Temp[0] = '\0';
+		char* Value = Temp;
 		bool Error = false;
 		if (DrawnMenuEntry->Kind == KIND_OPTION)
 		{
@@ -316,19 +317,15 @@ static void DefaultDisplayValueFunction(struct MenuEntry* DrawnMenuEntry, struct
 					break;
 				case TYPE_INT32:
 					sprintf(Temp, "%" PRIi32, *(int32_t*) DrawnMenuEntry->Target);
-					Value = Temp;
 					break;
 				case TYPE_UINT32:
 					sprintf(Temp, "%" PRIu32, *(uint32_t*) DrawnMenuEntry->Target);
-					Value = Temp;
 					break;
 				case TYPE_INT64:
 					print_i64(Temp, *(int64_t*) DrawnMenuEntry->Target);
-					Value = Temp;
 					break;
 				case TYPE_UINT64:
 					print_u64(Temp, *(uint64_t*) DrawnMenuEntry->Target);
-					Value = Temp;
 					break;
 				default:
 					Value = "Unknown type";
