@@ -89,10 +89,12 @@ enum OpenDingux_Buttons KeypadRemapping[12] = {
 	0,                            // ReGBA rapid-fire B
 };
 
-enum OpenDingux_Buttons Hotkeys[3] = {
+enum OpenDingux_Buttons Hotkeys[5] = {
 	0,                            // Fast-forward while held
 	OPENDINGUX_BUTTON_FACE_UP,    // Menu
 	0,                            // Fast-forward toggle
+	0,                            // Quick load state #1
+	0,                            // Quick save state #1
 };
 
 // The menu keys, in decreasing order of priority when two or more are
@@ -162,6 +164,8 @@ static void UpdateOpenDinguxButtons()
 
 static bool IsFastForwardToggled = false;
 static bool WasFastForwardToggleHeld = false;
+static bool WasLoadStateHeld = false;
+static bool WasSaveStateHeld = false;
 
 void ProcessSpecialKeys()
 {
@@ -176,6 +180,46 @@ void ProcessSpecialKeys()
 	FastForwardFrameskip = (IsFastForwardToggled || IsFastForwardWhileHeld)
 		? FastForwardTarget + 1
 		: 0;
+
+	bool IsLoadStateHeld = Hotkeys[3] != 0 && (Hotkeys[3] & LastButtons) == Hotkeys[3];
+	if (!WasLoadStateHeld && IsLoadStateHeld)
+	{
+		switch (load_state(0))
+		{
+			case 1:
+				if (errno != 0)
+					ShowErrorScreen("Reading saved state #1 failed:\n%s", strerror(errno));
+				else
+					ShowErrorScreen("Reading saved state #1 failed:\nIncomplete file");
+				break;
+
+			case 2:
+				ShowErrorScreen("Reading saved state #1 failed:\nFile format invalid");
+				break;
+		}
+	}
+	WasLoadStateHeld = IsLoadStateHeld;
+	
+	bool IsSaveStateHeld = Hotkeys[4] != 0 && (Hotkeys[4] & LastButtons) == Hotkeys[4];
+	if (!WasSaveStateHeld && IsSaveStateHeld)
+	{
+		void* Screenshot = copy_screen();
+		if (Screenshot == NULL)
+			ShowErrorScreen("Gathering the screenshot for saved state #1 failed: Memory allocation error");
+		else
+		{
+			uint32_t ret = save_state(0, Screenshot /* preserved screenshot */);
+			free(Screenshot);
+			if (ret != 1)
+			{
+				if (errno != 0)
+					ShowErrorScreen("Writing saved state #1 failed:\n%s", strerror(errno));
+				else
+					ShowErrorScreen("Writing saved state #1 failed:\nUnknown error");
+			}
+		}
+	}
+	WasSaveStateHeld = IsSaveStateHeld;
 }
 
 enum ReGBA_Buttons ReGBA_GetPressedButtons()

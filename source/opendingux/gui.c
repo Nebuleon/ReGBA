@@ -1316,9 +1316,27 @@ static struct MenuEntry HotkeyMenu_FastForwardToggle = {
 	.LoadFunction = LoadHotkeyFunction, .SaveFunction = SaveHotkeyFunction
 };
 
+static struct MenuEntry HotkeyMenu_QuickLoadState = {
+	.Kind = KIND_OPTION, .Position = 3, .Name = "Quick load state #1", .PersistentName = "hotkey_quick_load_state",
+	.Target = &Hotkeys[3],
+	.ChoiceCount = 0,
+	.ButtonLeftFunction = NullLeftFunction, .ButtonRightFunction = NullRightFunction,
+	.ButtonEnterFunction = ActionSetOrClearHotkey, .DisplayValueFunction = DisplayHotkeyValue,
+	.LoadFunction = LoadHotkeyFunction, .SaveFunction = SaveHotkeyFunction
+};
+
+static struct MenuEntry HotkeyMenu_QuickSaveState = {
+	.Kind = KIND_OPTION, .Position = 4, .Name = "Quick save state #1", .PersistentName = "hotkey_quick_save_state",
+	.Target = &Hotkeys[4],
+	.ChoiceCount = 0,
+	.ButtonLeftFunction = NullLeftFunction, .ButtonRightFunction = NullRightFunction,
+	.ButtonEnterFunction = ActionSetOrClearHotkey, .DisplayValueFunction = DisplayHotkeyValue,
+	.LoadFunction = LoadHotkeyFunction, .SaveFunction = SaveHotkeyFunction
+};
+
 static struct Menu HotkeyMenu = {
 	.Parent = &MainMenu, .Title = "Hotkeys",
-	.Entries = { &HotkeyMenu_FastForward, &HotkeyMenu_Menu, &HotkeyMenu_FastForwardToggle, NULL }
+	.Entries = { &HotkeyMenu_FastForward, &HotkeyMenu_Menu, &HotkeyMenu_FastForwardToggle, &HotkeyMenu_QuickLoadState, &HotkeyMenu_QuickSaveState, NULL }
 };
 
 // -- Saved States --
@@ -1640,6 +1658,10 @@ void FixUpSettings()
 		Hotkeys[1] = OPENDINGUX_BUTTON_FACE_UP;
 	if (IsImpossibleHotkey(Hotkeys[2]))
 		Hotkeys[2] = 0;
+	if (IsImpossibleHotkey(Hotkeys[3]))
+		Hotkeys[3] = 0;
+	if (IsImpossibleHotkey(Hotkeys[4]))
+		Hotkeys[4] = 0;
 }
 
 void ReGBA_LoadSettings(char *cfg_name)
