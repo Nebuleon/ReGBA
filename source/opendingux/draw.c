@@ -45,14 +45,14 @@ SDL_Rect ScreenRectangle = {
 
 video_scale_type ScaleMode = scaled_aspect;
 
-#define COLOR_PROGRESS_BACKGROUND RGB888_TO_RGB565(  0,   0,   0)
-#define COLOR_PROGRESS_TEXT       RGB888_TO_RGB565(255, 255, 255)
-#define COLOR_PROGRESS_BORDER     RGB888_TO_RGB565(  0,   0,   0)
-#define COLOR_PROGRESS_CONTENT    RGB888_TO_RGB565(255, 255, 255)
+#define COLOR_PROGRESS_BACKGROUND   RGB888_TO_RGB565(  0,   0,   0)
+#define COLOR_PROGRESS_TEXT_CONTENT RGB888_TO_RGB565(255, 255, 255)
+#define COLOR_PROGRESS_TEXT_OUTLINE RGB888_TO_RGB565(  0,   0,   0)
+#define COLOR_PROGRESS_CONTENT      RGB888_TO_RGB565(  0, 128, 255)
+#define COLOR_PROGRESS_OUTLINE      RGB888_TO_RGB565(255, 255, 255)
 
 #define PROGRESS_WIDTH 240
-#define PROGRESS_HEIGHT 13
-#define PROGRESS_SPACING 4
+#define PROGRESS_HEIGHT 18
 
 static bool InFileAction = false;
 static enum ReGBA_FileAction CurrentFileAction;
@@ -934,27 +934,24 @@ static void ProgressUpdateInternal(uint32_t Current, uint32_t Total)
 			break;
 	}
 	SDL_FillRect(OutputSurface, &ScreenRectangle, COLOR_PROGRESS_BACKGROUND);
-	uint32_t Width = GetRenderedWidth(Line);
-	uint32_t Height = GetRenderedHeight(Line);
-	uint32_t Y = (GCW0_SCREEN_HEIGHT - (Height + PROGRESS_SPACING + PROGRESS_HEIGHT)) / 2;
 
-	PrintStringOutline(Line, COLOR_PROGRESS_TEXT, COLOR_PROGRESS_BORDER, OutputSurface->pixels, OutputSurface->pitch, 0, Y, GCW0_SCREEN_WIDTH, GetRenderedHeight(" ") + 2, CENTER, TOP);
-	Y += Height + PROGRESS_SPACING;
+	SDL_Rect TopLine = { (GCW0_SCREEN_WIDTH - PROGRESS_WIDTH) / 2, (GCW0_SCREEN_HEIGHT - PROGRESS_HEIGHT) / 2, PROGRESS_WIDTH, 1 };
+	SDL_FillRect(OutputSurface, &TopLine, COLOR_PROGRESS_OUTLINE);
 
-	SDL_Rect TopLine = { (GCW0_SCREEN_WIDTH - PROGRESS_WIDTH) / 2, Y, PROGRESS_WIDTH, 1 };
-	SDL_FillRect(OutputSurface, &TopLine, COLOR_PROGRESS_CONTENT);
+	SDL_Rect BottomLine = { (GCW0_SCREEN_WIDTH - PROGRESS_WIDTH) / 2, (GCW0_SCREEN_HEIGHT - PROGRESS_HEIGHT) / 2 + PROGRESS_HEIGHT - 1, PROGRESS_WIDTH, 1 };
+	SDL_FillRect(OutputSurface, &BottomLine, COLOR_PROGRESS_OUTLINE);
 
-	SDL_Rect BottomLine = { (GCW0_SCREEN_WIDTH - PROGRESS_WIDTH) / 2, Y + PROGRESS_HEIGHT - 1, PROGRESS_WIDTH, 1 };
-	SDL_FillRect(OutputSurface, &BottomLine, COLOR_PROGRESS_CONTENT);
+	SDL_Rect LeftLine = { (GCW0_SCREEN_WIDTH - PROGRESS_WIDTH) / 2, (GCW0_SCREEN_HEIGHT - PROGRESS_HEIGHT) / 2, 1, PROGRESS_HEIGHT };
+	SDL_FillRect(OutputSurface, &LeftLine, COLOR_PROGRESS_OUTLINE);
 
-	SDL_Rect LeftLine = { (GCW0_SCREEN_WIDTH - PROGRESS_WIDTH) / 2, Y, 1, PROGRESS_HEIGHT };
-	SDL_FillRect(OutputSurface, &LeftLine, COLOR_PROGRESS_CONTENT);
+	SDL_Rect RightLine = { (GCW0_SCREEN_WIDTH + PROGRESS_WIDTH) / 2 - 1, (GCW0_SCREEN_HEIGHT - PROGRESS_HEIGHT) / 2, 1, PROGRESS_HEIGHT };
+	SDL_FillRect(OutputSurface, &RightLine, COLOR_PROGRESS_OUTLINE);
 
-	SDL_Rect RightLine = { (GCW0_SCREEN_WIDTH + PROGRESS_WIDTH) / 2 - 1, Y, 1, PROGRESS_HEIGHT };
-	SDL_FillRect(OutputSurface, &RightLine, COLOR_PROGRESS_CONTENT);
-
-	SDL_Rect Content = { (GCW0_SCREEN_WIDTH - PROGRESS_WIDTH) / 2 + 1, Y + 1, (uint32_t) ((uint64_t) Current * (PROGRESS_WIDTH - 2) / Total), PROGRESS_HEIGHT - 2 };
+	SDL_Rect Content = { (GCW0_SCREEN_WIDTH - PROGRESS_WIDTH) / 2 + 1, (GCW0_SCREEN_HEIGHT - PROGRESS_HEIGHT) / 2 + 1, (uint32_t) ((uint64_t) Current * (PROGRESS_WIDTH - 2) / Total), PROGRESS_HEIGHT - 2 };
 	SDL_FillRect(OutputSurface, &Content, COLOR_PROGRESS_CONTENT);
+
+	PrintStringOutline(Line, COLOR_PROGRESS_TEXT_CONTENT, COLOR_PROGRESS_TEXT_OUTLINE, OutputSurface->pixels, OutputSurface->pitch, 0, 0, GCW0_SCREEN_WIDTH, GCW0_SCREEN_HEIGHT, CENTER, MIDDLE);
+
 	SDL_Flip(OutputSurface);
 }
 
