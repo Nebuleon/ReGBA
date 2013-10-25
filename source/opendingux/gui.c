@@ -898,7 +898,6 @@ static void ActionSavedStateRead(struct Menu** ActiveMenu, uint32_t* ActiveMenuE
 			ShowErrorScreen("Reading saved state #%" PRIu32 " failed:\nFile format invalid", SelectedState + 1);
 			break;
 	}
-	*ActiveMenu = NULL;
 }
 
 static void ActionSavedStateWrite(struct Menu** ActiveMenu, uint32_t* ActiveMenuEntryIndex)
