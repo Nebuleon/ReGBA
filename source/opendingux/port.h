@@ -65,6 +65,7 @@ typedef struct timespec timespec;
   ftell(filename_tag)                                                       \
 
 #include "draw.h"
+#include "gui.h"
 #include "main.h"
 #include "od-sound.h"
 #include "od-input.h"

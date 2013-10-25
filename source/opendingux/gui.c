@@ -27,6 +27,7 @@
 #include "port.h"
 
 #define COLOR_BACKGROUND       RGB888_TO_RGB565(  0,  48,   0)
+#define COLOR_ERROR_BACKGROUND RGB888_TO_RGB565( 64,   0,   0)
 #define COLOR_INACTIVE_TEXT    RGB888_TO_RGB565( 64, 160,  64)
 #define COLOR_INACTIVE_OUTLINE RGB888_TO_RGB565(  0,   0,   0)
 #define COLOR_ACTIVE_TEXT      RGB888_TO_RGB565(255, 255, 255)
@@ -62,6 +63,7 @@ struct MenuEntry;
 struct Menu;
 
 static struct Menu MainMenu;
+static struct Menu ErrorScreen;
 static struct Menu DebugMenu;
 
 static void SavedStateUpdatePreview(struct Menu* ActiveMenu);
@@ -518,6 +520,11 @@ static void DisplayHotkeyValue(struct MenuEntry* DrawnMenuEntry, struct MenuEntr
 	PrintStringOutline(Value, TextColor, OutlineColor, OutputSurface->pixels, OutputSurface->pitch, 0, GetRenderedHeight(" ") * (DrawnMenuEntry->Position + 2), GCW0_SCREEN_WIDTH, GetRenderedHeight(" ") + 2, RIGHT, TOP);
 }
 
+static void DisplayErrorBackgroundFunction(struct Menu* ActiveMenu)
+{
+	SDL_FillRect(OutputSurface, &ScreenRectangle, COLOR_ERROR_BACKGROUND);
+}
+
 static void SavedStateMenuDisplayData(struct Menu* ActiveMenu, struct MenuEntry* ActiveMenuEntry)
 {
 	PrintStringOutline("Preview", COLOR_INACTIVE_TEXT, COLOR_INACTIVE_OUTLINE, OutputSurface->pixels, OutputSurface->pitch, GCW0_SCREEN_WIDTH - GBA_SCREEN_WIDTH / 2, GetRenderedHeight(" ") * 2, GBA_SCREEN_WIDTH / 2, GetRenderedHeight(" ") + 2, LEFT, TOP);
@@ -690,18 +697,20 @@ static void NullRightFunction(struct Menu* ActiveMenu, struct MenuEntry* ActiveM
 
 static enum OpenDingux_Buttons GrabButton(struct Menu* ActiveMenu, char* Text)
 {
+	MenuFunction DisplayBackgroundFunction = ActiveMenu->DisplayBackgroundFunction;
+	if (DisplayBackgroundFunction == NULL) DisplayBackgroundFunction = DefaultDisplayBackgroundFunction;
 	enum OpenDingux_Buttons Buttons;
 	// Wait for the buttons that triggered the action to be released.
 	while (GetPressedOpenDinguxButtons() != 0)
 	{
-		DefaultDisplayBackgroundFunction(ActiveMenu);
+		(*DisplayBackgroundFunction)(ActiveMenu);
 		SDL_Flip(OutputSurface);
 		usleep(5000); // for platforms that don't sync their flips
 	}
 	// Wait until a button is pressed.
 	while ((Buttons = GetPressedOpenDinguxButtons()) == 0)
 	{
-		DefaultDisplayBackgroundFunction(ActiveMenu);
+		(*DisplayBackgroundFunction)(ActiveMenu);
 		PrintStringOutline(Text, COLOR_ACTIVE_TEXT, COLOR_ACTIVE_OUTLINE, OutputSurface->pixels, OutputSurface->pitch, 0, 0, GCW0_SCREEN_WIDTH, GCW0_SCREEN_HEIGHT, CENTER, MIDDLE);
 		SDL_Flip(OutputSurface);
 		usleep(5000); // for platforms that don't sync their flips
@@ -711,7 +720,8 @@ static enum OpenDingux_Buttons GrabButton(struct Menu* ActiveMenu, char* Text)
 	while ((Buttons = GetPressedOpenDinguxButtons()) != 0)
 	{
 		ButtonTotal |= Buttons;
-		DefaultDisplayBackgroundFunction(ActiveMenu);
+		(*DisplayBackgroundFunction)(ActiveMenu);
+		PrintStringOutline(Text, COLOR_ACTIVE_TEXT, COLOR_ACTIVE_OUTLINE, OutputSurface->pixels, OutputSurface->pitch, 0, 0, GCW0_SCREEN_WIDTH, GCW0_SCREEN_HEIGHT, CENTER, MIDDLE);
 		SDL_Flip(OutputSurface);
 		usleep(5000); // for platforms that don't sync their flips
 	}
@@ -720,18 +730,20 @@ static enum OpenDingux_Buttons GrabButton(struct Menu* ActiveMenu, char* Text)
 
 static enum OpenDingux_Buttons GrabButtons(struct Menu* ActiveMenu, char* Text)
 {
+	MenuFunction DisplayBackgroundFunction = ActiveMenu->DisplayBackgroundFunction;
+	if (DisplayBackgroundFunction == NULL) DisplayBackgroundFunction = DefaultDisplayBackgroundFunction;
 	enum OpenDingux_Buttons Buttons;
 	// Wait for the buttons that triggered the action to be released.
 	while (GetPressedOpenDinguxButtons() != 0)
 	{
-		DefaultDisplayBackgroundFunction(ActiveMenu);
+		(*DisplayBackgroundFunction)(ActiveMenu);
 		SDL_Flip(OutputSurface);
 		usleep(5000); // for platforms that don't sync their flips
 	}
 	// Wait until a button is pressed.
 	while ((Buttons = GetPressedOpenDinguxButtons()) == 0)
 	{
-		DefaultDisplayBackgroundFunction(ActiveMenu);
+		(*DisplayBackgroundFunction)(ActiveMenu);
 		PrintStringOutline(Text, COLOR_ACTIVE_TEXT, COLOR_ACTIVE_OUTLINE, OutputSurface->pixels, OutputSurface->pitch, 0, 0, GCW0_SCREEN_WIDTH, GCW0_SCREEN_HEIGHT, CENTER, MIDDLE);
 		SDL_Flip(OutputSurface);
 		usleep(5000); // for platforms that don't sync their flips
@@ -752,11 +764,37 @@ static enum OpenDingux_Buttons GrabButtons(struct Menu* ActiveMenu, char* Text)
 		//    completely, for example, R+X turning into R+Y.
 		else
 			ButtonTotal = Buttons;
-		DefaultDisplayBackgroundFunction(ActiveMenu);
+		(*DisplayBackgroundFunction)(ActiveMenu);
+		PrintStringOutline(Text, COLOR_ACTIVE_TEXT, COLOR_ACTIVE_OUTLINE, OutputSurface->pixels, OutputSurface->pitch, 0, 0, GCW0_SCREEN_WIDTH, GCW0_SCREEN_HEIGHT, CENTER, MIDDLE);
 		SDL_Flip(OutputSurface);
 		usleep(5000); // for platforms that don't sync their flips
 	}
 	return ButtonTotal;
+}
+
+void ShowErrorScreen(const char* Format, ...)
+{
+	char* line = malloc(82);
+	va_list args;
+	int linelen;
+
+	va_start(args, Format);
+	if ((linelen = vsnprintf(line, 82, Format, args)) >= 82)
+	{
+		va_end(args);
+		va_start(args, Format);
+		free(line);
+		line = malloc(linelen + 1);
+		vsnprintf(line, linelen + 1, Format, args);
+	}
+	va_end(args);
+	GrabButton(&ErrorScreen, line);
+	free(line);
+}
+
+static enum OpenDingux_Buttons GrabYesOrNo(struct Menu* ActiveMenu, char* Text)
+{
+	return GrabButtons(ActiveMenu, Text) == OPENDINGUX_BUTTON_FACE_RIGHT;
 }
 
 static void ActionSetMapping(struct Menu** ActiveMenu, uint32_t* ActiveMenuEntryIndex)
@@ -843,25 +881,79 @@ static void SavedStateSelectionRight(struct Menu* ActiveMenu, struct MenuEntry* 
 
 static void ActionSavedStateRead(struct Menu** ActiveMenu, uint32_t* ActiveMenuEntryIndex)
 {
-	load_state(SelectedState);
+	switch (load_state(SelectedState))
+	{
+		case 0:
+			*ActiveMenu = NULL;
+			break;
+
+		case 1:
+			if (errno != 0)
+				ShowErrorScreen("Reading saved state #%" PRIu32 " failed:\n%s", SelectedState + 1, strerror(errno));
+			else
+				ShowErrorScreen("Reading saved state #%" PRIu32 " failed:\nIncomplete file", SelectedState + 1);
+			break;
+
+		case 2:
+			ShowErrorScreen("Reading saved state #%" PRIu32 " failed:\nFile format invalid", SelectedState + 1);
+			break;
+	}
 	*ActiveMenu = NULL;
 }
 
 static void ActionSavedStateWrite(struct Menu** ActiveMenu, uint32_t* ActiveMenuEntryIndex)
 {
-	save_state(SelectedState, MainMenu.UserData /* preserved screenshot */);
+	// 1. If the file already exists, ask the user if s/he wants to overwrite it.
+	char SavedStateFilename[MAX_PATH + 1];
+	if (!ReGBA_GetSavedStateFilename(SavedStateFilename, CurrentGamePath, SelectedState))
+	{
+		ReGBA_Trace("W: Failed to get the name of saved state #%d for '%s'", SelectedState, CurrentGamePath);
+		ShowErrorScreen("Preparing to write saved state #%" PRIu32 " failed:\nPath too long", SelectedState + 1);
+		return;
+	}
+	FILE_TAG_TYPE dummy;
+	FILE_OPEN(dummy, SavedStateFilename, READ);
+	if (FILE_CHECK_VALID(dummy))
+	{
+		FILE_CLOSE(dummy);
+		char Temp[1024];
+		sprintf(Temp, "Do you want to overwrite saved state #%" PRIu32 "?\n[A] = Yes  Others = No", SelectedState + 1);
+		if (!GrabYesOrNo(*ActiveMenu, Temp))
+			return;
+	}
+	
+	// 2. If the file didn't exist or the user wanted to overwrite it, save.
+	uint32_t ret = save_state(SelectedState, MainMenu.UserData /* preserved screenshot */);
+	if (!(ret == 1 && errno == 0))
+	{
+		if (errno != 0)
+			ShowErrorScreen("Writing saved state #%" PRIu32 " failed:\n%s", SelectedState + 1, strerror(errno));
+		else
+			ShowErrorScreen("Writing saved state #%" PRIu32 " failed:\nUnknown error", SelectedState + 1);
+	}
 	SavedStateUpdatePreview(*ActiveMenu);
 }
 
 static void ActionSavedStateDelete(struct Menu** ActiveMenu, uint32_t* ActiveMenuEntryIndex)
 {
+	// 1. Ask the user if s/he wants to delete this saved state.
 	char SavedStateFilename[MAX_PATH + 1];
 	if (!ReGBA_GetSavedStateFilename(SavedStateFilename, CurrentGamePath, SelectedState))
 	{
 		ReGBA_Trace("W: Failed to get the name of saved state #%d for '%s'", SelectedState, CurrentGamePath);
+		ShowErrorScreen("Preparing to delete saved state #%" PRIu32 " failed:\nPath too long", SelectedState + 1);
 		return;
 	}
-	remove(SavedStateFilename);
+	char Temp[1024];
+	sprintf(Temp, "Do you want to delete saved state #%" PRIu32 "?\n[A] = Yes  Others = No", SelectedState + 1);
+	if (!GrabYesOrNo(*ActiveMenu, Temp))
+		return;
+	
+	// 2. If the user wants to, delete the saved state.
+	if (remove(SavedStateFilename) != 0)
+	{
+		ShowErrorScreen("Deleting saved state #%" PRIu32 " failed:\n%s", SelectedState + 1, strerror(errno));
+	}
 	SavedStateUpdatePreview(*ActiveMenu);
 }
 
@@ -1307,6 +1399,13 @@ static struct MenuEntry MainMenu_Exit = {
 static struct Menu MainMenu = {
 	.Parent = NULL, .Title = "ReGBA Main Menu",
 	.Entries = { &MainMenu_Display, &MainMenu_Input, &MainMenu_Hotkey, &MainMenu_SavedStates, &MainMenu_Debug, &MainMenu_Reset, &MainMenu_Return, &MainMenu_Exit, NULL }
+};
+
+/* Do not make this the active menu */
+static struct Menu ErrorScreen = {
+	.Parent = &MainMenu, .Title = "Error",
+	.DisplayBackgroundFunction = DisplayErrorBackgroundFunction,
+	.Entries = { NULL }
 };
 
 u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason)

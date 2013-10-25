@@ -183,11 +183,10 @@ int main(int argc, char *argv[])
 		sprintf(file, "%s/gba_bios.bin", executable_path);
 		if (load_bios(file) == -1)
 		{
-			fprintf(stderr, "The GBA BIOS was not found in any location.\n");
-			fprintf(stderr, "You can load one in your home directory's\n");
-			fprintf(stderr, ".gpsp subdirectory. On this platform, that's:\n");
-			fprintf(stderr, "%s\n", main_path);
-			fprintf(stderr, "The file needs to be named gba_bios.bin.\n");
+			ShowErrorScreen("The GBA BIOS was not found in any location. "
+				"You can load one in your home directory's .gpsp "
+				"subdirectory. On this platform, that's:\n%s\nThe file needs "
+				"to be named gba_bios.bin.", main_path);
 
 			error_quit();
 		}
@@ -223,7 +222,7 @@ int main(int argc, char *argv[])
   {
     if(load_gamepak(argv[1]) == -1)
     {
-      fprintf(stderr, "Failed to load %s: %s\n", load_filename, strerror(errno));
+      ShowErrorScreen("Loading ROM failed: %s", strerror(errno));
       error_quit();
     }
 
@@ -238,7 +237,7 @@ int main(int argc, char *argv[])
   }
   else
   {
-      fprintf(stderr, "Failed to load %s: %s\n", load_filename, strerror(errno));
+      fprintf(stderr, "No ROM was specified was on the command line.\n");
 	    error_quit();
 #if 0
 	init_video();
