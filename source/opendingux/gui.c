@@ -923,7 +923,7 @@ static void ActionSavedStateWrite(struct Menu** ActiveMenu, uint32_t* ActiveMenu
 	
 	// 2. If the file didn't exist or the user wanted to overwrite it, save.
 	uint32_t ret = save_state(SelectedState, MainMenu.UserData /* preserved screenshot */);
-	if (!(ret == 1 && errno == 0))
+	if (ret != 1)
 	{
 		if (errno != 0)
 			ShowErrorScreen("Writing saved state #%" PRIu32 " failed:\n%s", SelectedState + 1, strerror(errno));

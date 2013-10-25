@@ -3846,6 +3846,7 @@ u32 load_state(uint32_t SlotNumber)
 	if(FILE_CHECK_VALID(savestate_file))
     {
 		u8 header[SVS_HEADER_SIZE];
+		errno = 0;
 		i = FILE_READ(savestate_file, header, SVS_HEADER_SIZE);
 		ReGBA_ProgressUpdate(SVS_HEADER_SIZE, SAVESTATE_SIZE);
 		if (i < SVS_HEADER_SIZE) {
@@ -3956,10 +3957,19 @@ u32 save_state(uint32_t SlotNumber, u16 *screen_capture)
   FILE_OPEN(savestate_file, SavedStateFilename, WRITE);
   if(FILE_CHECK_VALID(savestate_file))
   {
-    FILE_WRITE(savestate_file, SVS_HEADER_F, SVS_HEADER_SIZE);
+    if (FILE_WRITE(savestate_file, SVS_HEADER_F, SVS_HEADER_SIZE) < SVS_HEADER_SIZE)
+	{
+		ret = 0;
+		goto fail;
+	}
 	ReGBA_ProgressUpdate(SVS_HEADER_SIZE, SAVESTATE_SIZE);
-    FILE_WRITE(savestate_file, savestate_write_buffer, sizeof(savestate_write_buffer));
+    if (FILE_WRITE(savestate_file, savestate_write_buffer, sizeof(savestate_write_buffer)) < sizeof(savestate_write_buffer))
+	{
+		ret = 0;
+		goto fail;
+	}
 	ReGBA_ProgressUpdate(SAVESTATE_SIZE, SAVESTATE_SIZE);
+fail:
     FILE_CLOSE(savestate_file);
   }
   else
