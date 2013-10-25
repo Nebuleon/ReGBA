@@ -2606,6 +2606,7 @@ static ssize_t load_gamepak_raw(char *name_path)
  */
 ssize_t load_gamepak(char *file_path)
 {
+	errno = 0;
 	u8 magicbit[4];
 	FILE_TAG_TYPE fd;
 	if (IsGameLoaded) {

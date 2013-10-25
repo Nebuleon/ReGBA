@@ -220,11 +220,14 @@ int main(int argc, char *argv[])
 
   if(argc > 1)
   {
-    if(load_gamepak(argv[1]) == -1)
-    {
-      ShowErrorScreen("Loading ROM failed: %s", strerror(errno));
-      error_quit();
-    }
+		if(load_gamepak(argv[1]) == -1)
+		{
+			if (errno != 0)
+				ShowErrorScreen("Loading ROM failed: %s", strerror(errno));
+			else
+				ShowErrorScreen("Loading ROM failed: File format invalid");
+			error_quit();
+		}
 
 #if 0
 	init_input();
