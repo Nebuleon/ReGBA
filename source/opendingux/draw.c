@@ -19,6 +19,11 @@
 
 #include "common.h"
 
+struct StringCut {
+	uint32_t Start;  // Starting character index of the cut, inclusive.
+	uint32_t End;    // Ending character index of the cut, exclusive.
+};
+
 uint16_t* GBAScreen;
 uint32_t  GBAScreenPitch = GBA_SCREEN_WIDTH;
 
@@ -707,83 +712,177 @@ void blit_to_screen(u16 *src, u32 w, u32 h, u32 dest_x, u32 dest_y)
   }
 }
 
-void print_string_ext(const char *str, u16 fg_color,
- u32 x, u32 y, void *_dest_ptr, u32 pitch)
+static uint32_t CutString(const char* String, const uint32_t MaxWidth,
+	struct StringCut* Cuts, uint32_t CutsAllocated)
 {
-  u16 *dest_ptr;
-  uint_fast8_t current_char;
-  u32 current_halfword;
-  u32 glyph_offset, glyph_width;
-  u32 glyph_row, glyph_column;
-  u32 i = 0;
-  u32 str_index = 0;
-  u32 current_x = x;
-
-  while((current_char = str[str_index++]) != '\0')
-  {
-    dest_ptr = (u16 *)_dest_ptr + (y * pitch) + current_x;
-    if(current_char == '\n')
-    {
-      y += _font_height;
-      current_x = x;
-    }
-    else
-    {
-      glyph_offset = current_char * _font_height;
-	  glyph_width = _font_width[current_char];
-      current_x += glyph_width;
-      for(glyph_row = 0; glyph_row < _font_height; glyph_row++, glyph_offset++)
-      {
-		current_halfword = _font_bits[glyph_offset];
-		for (glyph_column = 0; glyph_column < glyph_width; glyph_column++)
+	uint32_t Cut = 0;
+	uint32_t CutStart = 0, Cur = 0, CutWidth = 0;
+	uint32_t LastSpace = -1;
+	bool SpaceInCut = false;
+	while (String[Cur] != '\0')
+	{
+		if (String[Cur] != '\n')
 		{
-			if ((current_halfword >> (15 - glyph_column)) & 0x01)
-				*dest_ptr = fg_color;
-			dest_ptr++;
+			if (String[Cur] == ' ')
+			{
+				LastSpace = Cur;
+				SpaceInCut = true;
+			}
+			CutWidth += _font_width[(uint8_t) String[Cur]];
 		}
-		  dest_ptr += pitch - glyph_width;
-	  }
+
+		if (String[Cur] == '\n' || CutWidth > MaxWidth)
+		{
+			if (Cut < CutsAllocated)
+				Cuts[Cut].Start = CutStart;
+			if (String[Cur] == '\n')
+			{
+				if (Cut < CutsAllocated)
+					Cuts[Cut].End = Cur;
+			}
+			else if (CutWidth > MaxWidth)
+			{
+				if (SpaceInCut)
+				{
+					if (Cut < CutsAllocated)
+						Cuts[Cut].End = LastSpace;
+					Cur = LastSpace;
+				}
+				else
+				{
+					if (Cut < CutsAllocated)
+						Cuts[Cut].End = Cur;
+					Cur--; // Next iteration redoes this character
+				}
+			}
+			CutStart = Cur + 1;
+			CutWidth = 0;
+			SpaceInCut = false;
+			Cut++;
+		}
+		Cur++;
 	}
 
-    if(current_x >= GCW0_SCREEN_WIDTH)
-      break;
-  }
+	if (Cut < CutsAllocated)
+	{
+		Cuts[Cut].Start = CutStart;
+		Cuts[Cut].End = Cur;
+	}
+	return Cut + 1;
+}
+
+uint32_t GetSectionRenderedWidth(const char* String, const uint32_t Start, const uint32_t End)
+{
+	uint32_t Result = 0, i;
+	for (i = Start; i < End; i++)
+		Result += _font_width[(uint8_t) String[i]];
+	return Result;
+}
+
+void PrintString(const char* String, uint16_t TextColor,
+	void* Dest, uint32_t DestPitch, uint32_t X, uint32_t Y, uint32_t Width, uint32_t Height,
+	enum HorizontalAlignment HorizontalAlignment, enum VerticalAlignment VerticalAlignment)
+{
+	struct StringCut* Cuts = malloc((Height / _font_height) * sizeof(struct StringCut));
+	uint32_t CutCount = CutString(String, Width, Cuts, Height / _font_height), Cut;
+	if (CutCount > Height / _font_height)
+		CutCount = Height / _font_height;
+
+	for (Cut = 0; Cut < CutCount; Cut++)
+	{
+		uint32_t TextWidth = GetSectionRenderedWidth(String, Cuts[Cut].Start, Cuts[Cut].End);
+		uint32_t LineX, LineY;
+		switch (HorizontalAlignment)
+		{
+			case LEFT:   LineX = X;                           break;
+			case CENTER: LineX = X + (Width - TextWidth) / 2; break;
+			case RIGHT:  LineX = (X + Width) - TextWidth;     break;
+			default:     LineX = 0; /* shouldn't happen */    break;
+		}
+		switch (VerticalAlignment)
+		{
+			case TOP:
+				LineY = Y + Cut * _font_height;
+				break;
+			case MIDDLE:
+				LineY = Y + (Height - CutCount * _font_height) / 2 + Cut * _font_height;
+				break;
+			case BOTTOM:
+				LineY = (Y + Height) - (CutCount - Cut) * _font_height;
+				break;
+			default:
+				LineY = 0; /* shouldn't happen */
+				break;
+		}
+
+		uint32_t Cur;
+		for (Cur = Cuts[Cut].Start; Cur < Cuts[Cut].End; Cur++)
+		{
+			uint32_t glyph_offset = (uint32_t) String[Cur] * _font_height;
+			uint32_t glyph_width = _font_width[(uint8_t) String[Cur]];
+			uint32_t glyph_column, glyph_row;
+			uint16_t current_halfword;
+
+			for(glyph_row = 0; glyph_row < _font_height; glyph_row++, glyph_offset++)
+			{
+				current_halfword = _font_bits[glyph_offset];
+				for (glyph_column = 0; glyph_column < glyph_width; glyph_column++)
+				{
+					if ((current_halfword >> (15 - glyph_column)) & 0x01)
+						*(uint16_t*) ((uint8_t*) Dest + (LineY + glyph_row) * DestPitch + (LineX + glyph_column) * sizeof(uint16_t)) = TextColor;
+				}
+			}
+
+			LineX += glyph_width;
+		}
+	}
+
+	free(Cuts);
 }
 
 uint32_t GetRenderedWidth(const char* str)
 {
-	uint_fast8_t current_char;
-	u32 str_index = 0;
-	uint32_t Result = 0;
-
-	while((current_char = str[str_index++]) != '\0')
+	struct StringCut* Cuts = malloc(sizeof(struct StringCut));
+	uint32_t CutCount = CutString(str, UINT32_MAX, Cuts, 1);
+	if (CutCount > 1)
 	{
-		Result += _font_width[current_char];
+		Cuts = realloc(Cuts, CutCount * sizeof(struct StringCut));
+		CutString(str, UINT32_MAX, Cuts, CutCount);
 	}
+
+	uint32_t Result = 0, LineWidth, Cut;
+	for (Cut = 0; Cut < CutCount; Cut++)
+	{
+		LineWidth = 0;
+		uint32_t Cur;
+		for (Cur = Cuts[Cut].Start; Cur < Cuts[Cut].End; Cur++)
+		{
+			LineWidth += _font_width[(uint8_t) str[Cur]];
+		}
+		if (LineWidth > Result)
+			Result = LineWidth;
+	}
+
+	free(Cuts);
 
 	return Result;
 }
 
 uint32_t GetRenderedHeight(const char* str)
 {
-	return _font_height;
+	return CutString(str, UINT32_MAX, NULL, 0) * _font_height;
 }
 
-void print_string(const char *str, u16 fg_color,
- u32 x, u32 y)
+void PrintStringOutline(const char* String, uint16_t TextColor, uint16_t OutlineColor,
+	void* Dest, uint32_t DestPitch, uint32_t X, uint32_t Y, uint32_t Width, uint32_t Height,
+	enum HorizontalAlignment HorizontalAlignment, enum VerticalAlignment VerticalAlignment)
 {
-  print_string_ext(str, fg_color, x, y, OutputSurface->pixels, GCW0_SCREEN_WIDTH);
-}
-
-void print_string_outline(const char *str, u16 fg_color, u16 border_color,
- u32 x, u32 y)
-{
-	int32_t sx, sy;
-	for (sx = -1; sx <= 1; sx++)
-		for (sy = -1; sy <= 1; sy++)
-			if (!(sx == 0 && sy == 0))
-				print_string(str, border_color, x + sx, y + sy);
-	print_string(str, fg_color, x, y);
+	uint32_t sx, sy;
+	for (sx = 0; sx <= 2; sx++)
+		for (sy = 0; sy <= 2; sy++)
+			if (!(sx == 1 && sy == 1))
+				PrintString(String, OutlineColor, Dest, DestPitch, X + sx, Y + sy, Width - 2, Height - 2, HorizontalAlignment, VerticalAlignment);
+	PrintString(String, TextColor, Dest, DestPitch, X + 1, Y + 1, Width - 2, Height - 2, HorizontalAlignment, VerticalAlignment);
 }
 
 static void ProgressUpdateInternal(uint32_t Current, uint32_t Total)
@@ -839,7 +938,7 @@ static void ProgressUpdateInternal(uint32_t Current, uint32_t Total)
 	uint32_t Height = GetRenderedHeight(Line);
 	uint32_t Y = (GCW0_SCREEN_HEIGHT - (Height + PROGRESS_SPACING + PROGRESS_HEIGHT)) / 2;
 
-	print_string_outline(Line, COLOR_PROGRESS_TEXT, COLOR_PROGRESS_BORDER, (GCW0_SCREEN_WIDTH - Width) / 2, Y);
+	PrintStringOutline(Line, COLOR_PROGRESS_TEXT, COLOR_PROGRESS_BORDER, OutputSurface->pixels, OutputSurface->pitch, 0, Y, GCW0_SCREEN_WIDTH, GetRenderedHeight(" ") + 2, CENTER, TOP);
 	Y += Height + PROGRESS_SPACING;
 
 	SDL_Rect TopLine = { (GCW0_SCREEN_WIDTH - PROGRESS_WIDTH) / 2, Y, PROGRESS_WIDTH, 1 };

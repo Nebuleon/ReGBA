@@ -242,16 +242,10 @@ static void DefaultLeaveFunction(struct Menu** ActiveMenu, uint32_t* ActiveMenuE
 
 static void DefaultDisplayNameFunction(struct MenuEntry* DrawnMenuEntry, struct MenuEntry* ActiveMenuEntry)
 {
-	uint32_t TextWidth = GetRenderedWidth(DrawnMenuEntry->Name);
-	if (TextWidth <= GCW0_SCREEN_WIDTH - 2)
-	{
-		bool IsActive = (DrawnMenuEntry == ActiveMenuEntry);
-		uint16_t TextColor = IsActive ? COLOR_ACTIVE_TEXT : COLOR_INACTIVE_TEXT;
-		uint16_t OutlineColor = IsActive ? COLOR_ACTIVE_OUTLINE : COLOR_INACTIVE_OUTLINE;
-		print_string_outline(DrawnMenuEntry->Name, TextColor, OutlineColor, 1, GetRenderedHeight(" ") * (DrawnMenuEntry->Position + 2) + 1);
-	}
-	else
-		ReGBA_Trace("W: Hid name '%s' from the menu due to it being too long", DrawnMenuEntry->Name);
+	bool IsActive = (DrawnMenuEntry == ActiveMenuEntry);
+	uint16_t TextColor = IsActive ? COLOR_ACTIVE_TEXT : COLOR_INACTIVE_TEXT;
+	uint16_t OutlineColor = IsActive ? COLOR_ACTIVE_OUTLINE : COLOR_INACTIVE_OUTLINE;
+	PrintStringOutline(DrawnMenuEntry->Name, TextColor, OutlineColor, OutputSurface->pixels, OutputSurface->pitch, 0, GetRenderedHeight(" ") * (DrawnMenuEntry->Position + 2), GCW0_SCREEN_WIDTH, GetRenderedHeight(" ") + 2, LEFT, TOP);
 }
 
 static void print_u64(char* Result, uint64_t Value)
@@ -333,16 +327,10 @@ static void DefaultDisplayValueFunction(struct MenuEntry* DrawnMenuEntry, struct
 					break;
 			}
 		}
-		uint32_t TextWidth = GetRenderedWidth(Value);
-		if (TextWidth <= GCW0_SCREEN_WIDTH - 2)
-		{
-			bool IsActive = (DrawnMenuEntry == ActiveMenuEntry);
-			uint16_t TextColor = Error ? COLOR_ERROR_TEXT : (IsActive ? COLOR_ACTIVE_TEXT : COLOR_INACTIVE_TEXT);
-			uint16_t OutlineColor = Error ? COLOR_ERROR_OUTLINE : (IsActive ? COLOR_ACTIVE_OUTLINE : COLOR_INACTIVE_OUTLINE);
-			print_string_outline(Value, TextColor, OutlineColor, GCW0_SCREEN_WIDTH - TextWidth - 1, GetRenderedHeight(" ") * (DrawnMenuEntry->Position + 2) + 1);
-		}
-		else
-			ReGBA_Trace("W: Hid value '%s' from the menu due to it being too long", Value);
+		bool IsActive = (DrawnMenuEntry == ActiveMenuEntry);
+		uint16_t TextColor = Error ? COLOR_ERROR_TEXT : (IsActive ? COLOR_ACTIVE_TEXT : COLOR_INACTIVE_TEXT);
+		uint16_t OutlineColor = Error ? COLOR_ERROR_OUTLINE : (IsActive ? COLOR_ACTIVE_OUTLINE : COLOR_INACTIVE_OUTLINE);
+		PrintStringOutline(Value, TextColor, OutlineColor, OutputSurface->pixels, OutputSurface->pitch, 0, GetRenderedHeight(" ") * (DrawnMenuEntry->Position + 2), GCW0_SCREEN_WIDTH, GetRenderedHeight(" ") + 2, RIGHT, TOP);
 	}
 }
 
@@ -371,11 +359,7 @@ static void DefaultDisplayDataFunction(struct Menu* ActiveMenu, struct MenuEntry
 
 static void DefaultDisplayTitleFunction(struct Menu* ActiveMenu)
 {
-	uint32_t TextWidth = GetRenderedWidth(ActiveMenu->Title);
-	if (TextWidth <= GCW0_SCREEN_WIDTH - 2)
-		print_string_outline(ActiveMenu->Title, COLOR_TITLE_TEXT, COLOR_TITLE_OUTLINE, (GCW0_SCREEN_WIDTH - TextWidth) / 2, 1);
-	else
-		ReGBA_Trace("W: Hid title '%s' from the menu due to it being too long", ActiveMenu->Title);
+	PrintStringOutline(ActiveMenu->Title, COLOR_TITLE_TEXT, COLOR_TITLE_OUTLINE, OutputSurface->pixels, OutputSurface->pitch, 0, 0, GCW0_SCREEN_WIDTH, GCW0_SCREEN_HEIGHT, CENTER, TOP);
 }
 
 static void DefaultLoadFunction(struct MenuEntry* ActiveMenuEntry, char* Value)
@@ -517,16 +501,10 @@ static void DisplayButtonMappingValue(struct MenuEntry* DrawnMenuEntry, struct M
 	bool Valid;
 	char* Value = GetButtonText(*(uint32_t*) DrawnMenuEntry->Target, &Valid);
 
-	uint32_t TextWidth = GetRenderedWidth(Value);
-	if (TextWidth <= GCW0_SCREEN_WIDTH - 2)
-	{
-		bool IsActive = (DrawnMenuEntry == ActiveMenuEntry);
-		uint16_t TextColor = Valid ? (IsActive ? COLOR_ACTIVE_TEXT : COLOR_INACTIVE_TEXT) : COLOR_ERROR_TEXT;
-		uint16_t OutlineColor = Valid ? (IsActive ? COLOR_ACTIVE_OUTLINE : COLOR_INACTIVE_OUTLINE) : COLOR_ERROR_OUTLINE;
-		print_string_outline(Value, TextColor, OutlineColor, GCW0_SCREEN_WIDTH - TextWidth - 1, GetRenderedHeight(" ") * (DrawnMenuEntry->Position + 2) + 1);
-	}
-	else
-		ReGBA_Trace("W: Hid value '%s' from the menu due to it being too long", Value);
+	bool IsActive = (DrawnMenuEntry == ActiveMenuEntry);
+	uint16_t TextColor = Valid ? (IsActive ? COLOR_ACTIVE_TEXT : COLOR_INACTIVE_TEXT) : COLOR_ERROR_TEXT;
+	uint16_t OutlineColor = Valid ? (IsActive ? COLOR_ACTIVE_OUTLINE : COLOR_INACTIVE_OUTLINE) : COLOR_ERROR_OUTLINE;
+	PrintStringOutline(Value, TextColor, OutlineColor, OutputSurface->pixels, OutputSurface->pitch, 0, GetRenderedHeight(" ") * (DrawnMenuEntry->Position + 2), GCW0_SCREEN_WIDTH, GetRenderedHeight(" ") + 2, RIGHT, TOP);
 }
 
 static void DisplayHotkeyValue(struct MenuEntry* DrawnMenuEntry, struct MenuEntry* ActiveMenuEntry)
@@ -534,21 +512,15 @@ static void DisplayHotkeyValue(struct MenuEntry* DrawnMenuEntry, struct MenuEntr
 	char Value[256];
 	GetButtonsText(*(uint32_t*) DrawnMenuEntry->Target, Value);
 
-	uint32_t TextWidth = GetRenderedWidth(Value);
-	if (TextWidth <= GCW0_SCREEN_WIDTH - 2)
-	{
-		bool IsActive = (DrawnMenuEntry == ActiveMenuEntry);
-		uint16_t TextColor = IsActive ? COLOR_ACTIVE_TEXT : COLOR_INACTIVE_TEXT;
-		uint16_t OutlineColor = IsActive ? COLOR_ACTIVE_OUTLINE : COLOR_INACTIVE_OUTLINE;
-		print_string_outline(Value, TextColor, OutlineColor, GCW0_SCREEN_WIDTH - TextWidth - 1, GetRenderedHeight(" ") * (DrawnMenuEntry->Position + 2) + 1);
-	}
-	else
-		ReGBA_Trace("W: Hid value '%s' from the menu due to it being too long", Value);
+	bool IsActive = (DrawnMenuEntry == ActiveMenuEntry);
+	uint16_t TextColor = IsActive ? COLOR_ACTIVE_TEXT : COLOR_INACTIVE_TEXT;
+	uint16_t OutlineColor = IsActive ? COLOR_ACTIVE_OUTLINE : COLOR_INACTIVE_OUTLINE;
+	PrintStringOutline(Value, TextColor, OutlineColor, OutputSurface->pixels, OutputSurface->pitch, 0, GetRenderedHeight(" ") * (DrawnMenuEntry->Position + 2), GCW0_SCREEN_WIDTH, GetRenderedHeight(" ") + 2, RIGHT, TOP);
 }
 
 static void SavedStateMenuDisplayData(struct Menu* ActiveMenu, struct MenuEntry* ActiveMenuEntry)
 {
-	print_string_outline("Preview", COLOR_INACTIVE_TEXT, COLOR_INACTIVE_OUTLINE, GCW0_SCREEN_WIDTH - GBA_SCREEN_WIDTH / 2, GetRenderedHeight(" ") * 2 + 1);
+	PrintStringOutline("Preview", COLOR_INACTIVE_TEXT, COLOR_INACTIVE_OUTLINE, OutputSurface->pixels, OutputSurface->pitch, GCW0_SCREEN_WIDTH - GBA_SCREEN_WIDTH / 2, GetRenderedHeight(" ") * 2, GBA_SCREEN_WIDTH / 2, GetRenderedHeight(" ") + 2, LEFT, TOP);
 
 	gba_render_half((uint16_t*) OutputSurface->pixels, (uint16_t*) ActiveMenu->UserData,
 		GCW0_SCREEN_WIDTH - GBA_SCREEN_WIDTH / 2,
@@ -563,16 +535,11 @@ static void SavedStateSelectionDisplayValue(struct MenuEntry* DrawnMenuEntry, st
 {
 	char Value[11];
 	sprintf(Value, "%" PRIu32, *(uint32_t*) DrawnMenuEntry->Target + 1);
-	uint32_t TextWidth = GetRenderedWidth(Value);
-	if (TextWidth <= GCW0_SCREEN_WIDTH - GBA_SCREEN_WIDTH / 2 - 18)
-	{
-		bool IsActive = (DrawnMenuEntry == ActiveMenuEntry);
-		uint16_t TextColor = IsActive ? COLOR_ACTIVE_TEXT : COLOR_INACTIVE_TEXT;
-		uint16_t OutlineColor = IsActive ? COLOR_ACTIVE_OUTLINE : COLOR_INACTIVE_OUTLINE;
-		print_string_outline(Value, TextColor, OutlineColor, GCW0_SCREEN_WIDTH - GBA_SCREEN_WIDTH / 2 - TextWidth - 17, GetRenderedHeight(" ") * (DrawnMenuEntry->Position + 2) + 1);
-	}
-	else
-		ReGBA_Trace("W: Hid value '%s' from the menu due to it being too long", Value);
+
+	bool IsActive = (DrawnMenuEntry == ActiveMenuEntry);
+	uint16_t TextColor = IsActive ? COLOR_ACTIVE_TEXT : COLOR_INACTIVE_TEXT;
+	uint16_t OutlineColor = IsActive ? COLOR_ACTIVE_OUTLINE : COLOR_INACTIVE_OUTLINE;
+	PrintStringOutline(Value, TextColor, OutlineColor, OutputSurface->pixels, OutputSurface->pitch, 0, GetRenderedHeight(" ") * (DrawnMenuEntry->Position + 2), GCW0_SCREEN_WIDTH - GBA_SCREEN_WIDTH / 2 - 16, GetRenderedHeight(" ") + 2, RIGHT, TOP);
 }
 
 static void SavedStateUpdatePreview(struct Menu* ActiveMenu)
@@ -721,7 +688,7 @@ static void NullRightFunction(struct Menu* ActiveMenu, struct MenuEntry* ActiveM
 {
 }
 
-static enum OpenDingux_Buttons GrabButton(struct Menu* ActiveMenu, char* Lines[4])
+static enum OpenDingux_Buttons GrabButton(struct Menu* ActiveMenu, char* Text)
 {
 	enum OpenDingux_Buttons Buttons;
 	// Wait for the buttons that triggered the action to be released.
@@ -735,15 +702,7 @@ static enum OpenDingux_Buttons GrabButton(struct Menu* ActiveMenu, char* Lines[4
 	while ((Buttons = GetPressedOpenDinguxButtons()) == 0)
 	{
 		DefaultDisplayBackgroundFunction(ActiveMenu);
-		uint32_t Line;
-		for (Line = 0; Line < 4; Line++)
-		{
-			uint32_t TextWidth = GetRenderedWidth(Lines[Line]);
-			if (TextWidth <= GCW0_SCREEN_WIDTH - 2)
-				print_string_outline(Lines[Line], COLOR_ACTIVE_TEXT, COLOR_ACTIVE_OUTLINE, (GCW0_SCREEN_WIDTH - TextWidth) / 2, (GCW0_SCREEN_HEIGHT - GetRenderedHeight(" ") * 4) / 2 + GetRenderedHeight(" ") * Line);
-			else
-				ReGBA_Trace("E: '%s' doesn't fit the screen! Fix this, Nebuleon!", Lines[Line]);
-		}
+		PrintStringOutline(Text, COLOR_ACTIVE_TEXT, COLOR_ACTIVE_OUTLINE, OutputSurface->pixels, OutputSurface->pitch, 0, 0, GCW0_SCREEN_WIDTH, GCW0_SCREEN_HEIGHT, CENTER, MIDDLE);
 		SDL_Flip(OutputSurface);
 		usleep(5000); // for platforms that don't sync their flips
 	}
@@ -759,7 +718,7 @@ static enum OpenDingux_Buttons GrabButton(struct Menu* ActiveMenu, char* Lines[4
 	return ButtonTotal;
 }
 
-static enum OpenDingux_Buttons GrabButtons(struct Menu* ActiveMenu, char* Lines[4])
+static enum OpenDingux_Buttons GrabButtons(struct Menu* ActiveMenu, char* Text)
 {
 	enum OpenDingux_Buttons Buttons;
 	// Wait for the buttons that triggered the action to be released.
@@ -773,15 +732,7 @@ static enum OpenDingux_Buttons GrabButtons(struct Menu* ActiveMenu, char* Lines[
 	while ((Buttons = GetPressedOpenDinguxButtons()) == 0)
 	{
 		DefaultDisplayBackgroundFunction(ActiveMenu);
-		uint32_t Line;
-		for (Line = 0; Line < 4; Line++)
-		{
-			uint32_t TextWidth = GetRenderedWidth(Lines[Line]);
-			if (TextWidth <= GCW0_SCREEN_WIDTH - 2)
-				print_string_outline(Lines[Line], COLOR_ACTIVE_TEXT, COLOR_ACTIVE_OUTLINE, (GCW0_SCREEN_WIDTH - TextWidth) / 2, (GCW0_SCREEN_HEIGHT - GetRenderedHeight(" ") * 4) / 2 + GetRenderedHeight(" ") * Line);
-			else
-				ReGBA_Trace("E: '%s' doesn't fit the screen! Fix this, Nebuleon!", Lines[Line]);
-		}
+		PrintStringOutline(Text, COLOR_ACTIVE_TEXT, COLOR_ACTIVE_OUTLINE, OutputSurface->pixels, OutputSurface->pitch, 0, 0, GCW0_SCREEN_WIDTH, GCW0_SCREEN_HEIGHT, CENTER, MIDDLE);
 		SDL_Flip(OutputSurface);
 		usleep(5000); // for platforms that don't sync their flips
 	}
@@ -811,14 +762,13 @@ static enum OpenDingux_Buttons GrabButtons(struct Menu* ActiveMenu, char* Lines[
 static void ActionSetMapping(struct Menu** ActiveMenu, uint32_t* ActiveMenuEntryIndex)
 {
 	char Text[256];
-	char* Lines[] = { &Text[0], &Text[64], &Text[128], &Text[192] };
 	bool Valid;
-	sprintf(Lines[0], "Setting mapping for %s", (*ActiveMenu)->Entries[*ActiveMenuEntryIndex]->Name);
-	sprintf(Lines[1], "Currently %s", GetButtonText(*(uint32_t*) (*ActiveMenu)->Entries[*ActiveMenuEntryIndex]->Target, &Valid));
-	strcpy(Lines[2], "Press the new button or");
-	strcpy(Lines[3], "two at once to leave alone");
+	sprintf(Text, "Setting binding for %s\nCurrently %s\n"
+		"Press the new button or two at once to leave the binding alone.",
+		(*ActiveMenu)->Entries[*ActiveMenuEntryIndex]->Name,
+		GetButtonText(*(uint32_t*) (*ActiveMenu)->Entries[*ActiveMenuEntryIndex]->Target, &Valid));
 
-	enum OpenDingux_Buttons ButtonTotal = GrabButton(*ActiveMenu, Lines);
+	enum OpenDingux_Buttons ButtonTotal = GrabButton(*ActiveMenu, Text);
 	// If there's more than one button, change nothing.
 	uint_fast8_t BitCount = 0, i;
 	for (i = 0; i < OPENDINGUX_BUTTON_COUNT; i++)
@@ -831,14 +781,13 @@ static void ActionSetMapping(struct Menu** ActiveMenu, uint32_t* ActiveMenuEntry
 static void ActionSetOrClearMapping(struct Menu** ActiveMenu, uint32_t* ActiveMenuEntryIndex)
 {
 	char Text[256];
-	char* Lines[] = { &Text[0], &Text[64], &Text[128], &Text[192] };
 	bool Valid;
-	sprintf(Lines[0], "Setting mapping for %s", (*ActiveMenu)->Entries[*ActiveMenuEntryIndex]->Name);
-	sprintf(Lines[1], "Currently %s", GetButtonText(*(uint32_t*) (*ActiveMenu)->Entries[*ActiveMenuEntryIndex]->Target, &Valid));
-	strcpy(Lines[2], "Press the new button or");
-	strcpy(Lines[3], "two at once to clear");
+	sprintf(Text, "Setting binding for %s\nCurrently %s\n"
+		"Press the new button or two at once to clear the binding.",
+		(*ActiveMenu)->Entries[*ActiveMenuEntryIndex]->Name,
+		GetButtonText(*(uint32_t*) (*ActiveMenu)->Entries[*ActiveMenuEntryIndex]->Target, &Valid));
 
-	enum OpenDingux_Buttons ButtonTotal = GrabButton(*ActiveMenu, Lines);
+	enum OpenDingux_Buttons ButtonTotal = GrabButton(*ActiveMenu, Text);
 	// If there's more than one button, clear the mapping.
 	uint_fast8_t BitCount = 0, i;
 	for (i = 0; i < OPENDINGUX_BUTTON_COUNT; i++)
@@ -852,14 +801,14 @@ static void ActionSetOrClearMapping(struct Menu** ActiveMenu, uint32_t* ActiveMe
 static void ActionSetHotkey(struct Menu** ActiveMenu, uint32_t* ActiveMenuEntryIndex)
 {
 	char Text[256];
-	char* Lines[] = { &Text[0], &Text[64], &Text[128], &Text[192] };
-	sprintf(Lines[0], "Setting hotkey for %s", (*ActiveMenu)->Entries[*ActiveMenuEntryIndex]->Name);
-	GetButtonsText(*(uint32_t*) (*ActiveMenu)->Entries[*ActiveMenuEntryIndex]->Target, Lines[2]);
-	sprintf(Lines[1], "Currently %s", Lines[2]);
-	strcpy(Lines[2], "Press the new buttons or");
-	strcpy(Lines[3], "B to leave alone");
+	char Current[256];
+	GetButtonsText(*(uint32_t*) (*ActiveMenu)->Entries[*ActiveMenuEntryIndex]->Target, Current);
+	sprintf(Text, "Setting hotkey binding for %s\nCurrently %s\n"
+		"Press the new buttons or B to leave the hotkey binding alone.",
+		(*ActiveMenu)->Entries[*ActiveMenuEntryIndex]->Name,
+		Current);
 
-	enum OpenDingux_Buttons ButtonTotal = GrabButtons(*ActiveMenu, Lines);
+	enum OpenDingux_Buttons ButtonTotal = GrabButtons(*ActiveMenu, Text);
 	if (ButtonTotal != OPENDINGUX_BUTTON_FACE_DOWN)
 		*(uint32_t*) (*ActiveMenu)->Entries[*ActiveMenuEntryIndex]->Target = ButtonTotal;
 }
@@ -867,14 +816,14 @@ static void ActionSetHotkey(struct Menu** ActiveMenu, uint32_t* ActiveMenuEntryI
 static void ActionSetOrClearHotkey(struct Menu** ActiveMenu, uint32_t* ActiveMenuEntryIndex)
 {
 	char Text[256];
-	char* Lines[] = { &Text[0], &Text[64], &Text[128], &Text[192] };
-	sprintf(Lines[0], "Setting hotkey for %s", (*ActiveMenu)->Entries[*ActiveMenuEntryIndex]->Name);
-	GetButtonsText(*(uint32_t*) (*ActiveMenu)->Entries[*ActiveMenuEntryIndex]->Target, Lines[2]);
-	sprintf(Lines[1], "Currently %s", Lines[2]);
-	strcpy(Lines[2], "Press the new buttons or");
-	strcpy(Lines[3], "B to clear");
+	char Current[256];
+	GetButtonsText(*(uint32_t*) (*ActiveMenu)->Entries[*ActiveMenuEntryIndex]->Target, Current);
+	sprintf(Text, "Setting hotkey binding for %s\nCurrently %s\n"
+		"Press the new buttons or B to clear the hotkey binding.",
+		(*ActiveMenu)->Entries[*ActiveMenuEntryIndex]->Name,
+		Current);
 
-	enum OpenDingux_Buttons ButtonTotal = GrabButtons(*ActiveMenu, Lines);
+	enum OpenDingux_Buttons ButtonTotal = GrabButtons(*ActiveMenu, Text);
 	*(uint32_t*) (*ActiveMenu)->Entries[*ActiveMenuEntryIndex]->Target = (ButtonTotal == OPENDINGUX_BUTTON_FACE_DOWN)
 		? 0
 		: ButtonTotal;

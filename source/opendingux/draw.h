@@ -31,6 +31,18 @@ typedef enum
   unscaled,
 } video_scale_type;
 
+enum HorizontalAlignment {
+	LEFT,
+	CENTER,
+	RIGHT
+};
+
+enum VerticalAlignment {
+	TOP,
+	MIDDLE,
+	BOTTOM
+};
+
 extern video_scale_type ScaleMode;
 
 void init_video();
@@ -49,11 +61,13 @@ extern void ScaleModeUnapplied();
 extern void gba_render_half(uint16_t* Dest, uint16_t* Src, uint32_t DestX, uint32_t DestY,
 	uint32_t SrcPitch, uint32_t DestPitch);
 
-extern void print_string(const char *str, u16 fg_color,
- u32 x, u32 y);
+void PrintString(const char* String, uint16_t TextColor,
+	void* Dest, uint32_t DestPitch, uint32_t X, uint32_t Y, uint32_t Width, uint32_t Height,
+	enum HorizontalAlignment HorizontalAlignment, enum VerticalAlignment VerticalAlignment);
 
-extern void print_string_outline(const char *str, u16 fg_color, u16 border_color,
- u32 x, u32 y);
+void PrintStringOutline(const char* String, uint16_t TextColor, uint16_t OutlineColor,
+	void* Dest, uint32_t DestPitch, uint32_t X, uint32_t Y, uint32_t Width, uint32_t Height,
+	enum HorizontalAlignment HorizontalAlignment, enum VerticalAlignment VerticalAlignment);
 
 extern uint32_t GetRenderedWidth(const char* str);
 
