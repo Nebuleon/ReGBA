@@ -10,7 +10,7 @@
 # $5 = parameter #2: unsigned int CodeLength
 # Clobbered: $1, $4, $5
 ReGBA_MakeCodeVisible:
-#ifdef MIPS_32R2
+#ifdef MIPS_USE_SYNCI
   beq   $5, $0, 2f
   add   $5, $4, $5        # $5 is now End, derived from CodeLength (delay)
   srl   $4, $4, 5         # Round $4 down to the cache line containing it

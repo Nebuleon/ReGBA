@@ -25,8 +25,9 @@ directives. Here are some of the most important ones:
   calculations for GBA memory access, because these operations can use single
   INS and EXT instructions instead of much longer sequences of bitwise and
   shift (AND, OR, SLL, SRL) instructions.
+* MIPS_USE_SYNCI, MIPS optimisation option.
   The SYNCI instruction, which flushes native code that has just been written,
-  is also faster than needing to switch to the kernel constantly.
+  is faster than needing to switch to the kernel constantly.
   Do not use this option if you are using a MIPS32 Revision I processor.
 * PERFORMANCE_IMPACTING_STATISTICS, cross-platform statistics gathering option.
   If compiled with this option, ReGBA will fill the Stats structure in stats.c
