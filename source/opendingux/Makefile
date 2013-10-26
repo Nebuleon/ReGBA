@@ -22,7 +22,7 @@ INCLUDE     := -I. -I.. -I../mips
 DEFS        := -DGCW_ZERO -DMIPS_XBURST -DLOAD_ALL_ROM
 HAS_MIPS32R2 := $(shell echo | $(CC) -dM -E - |grep _MIPS_ARCH_MIPS32R2)
 ifneq ($(HAS_MIPS32R2),)
-	DEFS += -DMIPS_USE_SYNCI
+	DEFS += -DMIPS_32R2
 endif
 
 CFLAGS      := $(SDL_CFLAGS) -mno-abicalls -Wall -Wno-unused-variable \

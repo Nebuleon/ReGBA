@@ -163,9 +163,9 @@
 .macro extract_flags_body         # extract flags from $1
   srl $20, $1, 31                 # flag in $1 bit 31 goes into $20
 #ifdef MIPS_32R2
-  ext $21, $2, 30, 1              # flag in $1 bit 30 goes into $21
-  ext $22, $2, 29, 1              # flag in $1 bit 29 goes into $22
-  ext $23, $2, 28, 1              # flag in $1 bit 28 goes into $23
+  ext $21, $1, 30, 1              # flag in $1 bit 30 goes into $21
+  ext $22, $1, 29, 1              # flag in $1 bit 29 goes into $22
+  ext $23, $1, 28, 1              # flag in $1 bit 28 goes into $23
 #else
   srl $21, $1, 30
   andi $21, $21, 1
