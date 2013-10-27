@@ -1,15 +1,6 @@
 The compilation of ReGBA can be affected by various conditional compilation
 directives. Here are some of the most important ones:
 
-* GAMEPAK_FITS_IN_RAM, cross-platform optimisation option.
-  If compiled with this option, ReGBA will assume that the host is always able
-  to allocate a full 32 MiB to serve as the Game Pak buffer, in addition to the
-  rest of the allocations needed to perform the emulation, as well as the code
-  cache.
-  In particular, ReGBA does not use data structures meant for loading Game Pak
-  pages on demand, and does not check for unloaded pages before accessing them.
-  Do not use this option if the hosts you reasonably expect users to run your
-  port on, do not have 64 MiB of memory available to them.
 * MIPS_XBURST, MIPS optimisation option.
   If compiled with this option, ReGBA's MIPS assembly core will assume that the
   instruction following a load-memory instruction may read the register that
@@ -25,9 +16,8 @@ directives. Here are some of the most important ones:
   calculations for GBA memory access, because these operations can use single
   INS and EXT instructions instead of much longer sequences of bitwise and
   shift (AND, OR, SLL, SRL) instructions.
-* MIPS_USE_SYNCI, MIPS optimisation option.
   The SYNCI instruction, which flushes native code that has just been written,
-  is faster than needing to switch to the kernel constantly.
+  is also faster than needing to switch to the kernel constantly.
   Do not use this option if you are using a MIPS32 Revision I processor.
 * PERFORMANCE_IMPACTING_STATISTICS, cross-platform statistics gathering option.
   If compiled with this option, ReGBA will fill the Stats structure in stats.c
