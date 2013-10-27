@@ -151,6 +151,11 @@ static void UpdateOpenDinguxButtons()
 				break;
 		}
 	}
+	
+	if ((LastButtons & OPENDINGUX_BUTTON_LEFT) && (LastButtons & OPENDINGUX_BUTTON_RIGHT))
+		LastButtons &= ~OPENDINGUX_BUTTON_LEFT;
+	if ((LastButtons & OPENDINGUX_BUTTON_UP) && (LastButtons & OPENDINGUX_BUTTON_DOWN))
+		LastButtons &= ~OPENDINGUX_BUTTON_UP;
 
 	LastButtons &= ~(OPENDINGUX_ANALOG_LEFT | OPENDINGUX_ANALOG_RIGHT
 	               | OPENDINGUX_ANALOG_UP | OPENDINGUX_ANALOG_DOWN);
