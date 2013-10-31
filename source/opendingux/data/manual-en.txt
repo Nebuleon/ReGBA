@@ -1,0 +1,95 @@
+ReGBA, Recompiling Emulator for the Game Boy Advance
+
+- OpenDingux version 1.45, 2013-10-31 -
+
+== Table of contents ==
+1. Selecting a ROM
+2. Playing a game
+3. Entering the ReGBA Main Menu
+   a) Display Settings
+   b) Input Settings
+   c) Hotkeys
+   d) Saved States
+   e) Performance and Debugging
+4. Files
+   a) GBA BIOS
+   b) Unscaled mode border
+   c) Per-game data
+   d) Saved data
+   e) Saved states
+   f) Game compatibility database
+5. Credits
+6. Source code
+
+== Selecting a ROM ==
+After activating the ReGBA icon, a file selector will appear. This is gmenu2x's file selector; it may have saved the directory you previously used, as you have configured it. You can use this file selector to select a ROM to emulate. It accepts any valid GBA ROM file, or any ZIP archive containing a valid GBA ROM with the extension .gba or .bin.
+
+== Playing a game ==
+While playing a game, the default button bindings allow the use of everything on your device that has the same name as on the Game Boy Advance. Your device's D-pad controls the GBA's D-pad; its A, B, L, R, Start and Select buttons control the GBA's A, B, L, R, Start and Select buttons. These bindings can be changed in the Input Settings menu.
+
+Saved data is written a short period of time after saving in a GBA game's menus, meaning that your save is likely not lost if ReGBA crashes. However, running out of battery power or the kernel crashing can cause corrupted saves. See the 'Files' section for more information.
+
+== Entering the ReGBA Main Menu ==
+To properly leave ReGBA after emulating a ROM, or to change settings for emulation, you need to enter the ReGBA Main Menu. By default, the top face button (Y on the GCW Zero, or X on the Dingoo A320) does this. It needs to be pressed on its own; pressing it while any other button is pressed will not do anything. This is to allow hotkeys to use the same buttons and not trigger the Main Menu.
+
+- Display Settings -
+> Boot from: "Cartridge ROM" does not show the GBA logo screen. "GBA BIOS" does. The GBA logo screen can be either 'Normmatt' in the Nintendo logo style, or the real GBA logo screen. See the 'Files' section for more information.
+> FPS counter: "Show" displays rendered/emulated FPS at the bottom-left corner of the screen for performance testing purposes. "Hide" does not.
+> Image scaling: "None" shows the image exactly as a Game Boy Advance would (240x160), with a border around it. "Aspect" shows the image scaled up at the correct aspect ratio, with black bars (320x213.3). "Full" shows the image scaled up to the entire screen (320x240). The border in the unscaled mode can be the ReGBA Advanced SP border or a custom border. See the 'Files' section for more information.
+> Frame skipping: "Automatic" attempts to skip the least amount of frames necessary for the audio to be flawless. Manual selections exist up to 3 (~15 FPS). Most games are fine with automatic frame skipping.
+> Fast-forward target: When fast-forwarding the game, this specifies the maximum speedup to allow, from 2x to 6x. If emulating a demanding game, the actual speedup may be less.
+
+- Input Settings -
+> GBA buttons: Press A on one of these, and you can set a new button on your device to be used for triggering it on the GBA. These mappings are mandatory; you cannot have a mapping such that nothing on your device can trigger a GBA button. However, you can set multiple GBA buttons to be triggered by one on your device.
+> Rapid-fire buttons: These mappings are optional; you can press A, then two buttons at once to clear them. Rapid-fire buttons press and release their GBA button at 30 Hz: they are pressed for 1/60 of a second, then unpressed for the same time.
+> Analog sensitivity (GCW Zero only): This setting controls how far the analog nub needs to go to trigger a direction. The analog nub can be used to navigate the menus with this sensitivity as well.
+> Analog in-game binding (GCW Zero only): "None" does not allow the analog nub to be passed through to the GBA game, but allows it to be used for hotkeys. "GBA D-pad" allows the analog nub to be passed to the GBA according to the sensitivity setting, as well as hotkeys.
+
+- Hotkeys -
+Press A on these, and you can set a new combination of buttons on your device to be used during emulation to trigger each function, or B to clear the binding.
+> Fast-forward while held: Exactly what it says on the tin.
+> Menu: Enters the ReGBA Main Menu during emulation. This is a mandatory binding.
+> Fast-forward toggle: Press this hotkey once during emulation, and it will fast-forward until you press it again.
+> Quick load state #1: Loads the saved state in the first slot.
+> Quick save state #1: Saves into the first saved state slot without confirmation if it already exists.
+
+- Saved States -
+In this menu you can look at the screenshots taken when you created your saved states for the currently-loaded game (to help you decide which one to load, overwrite or delete), load a state, create one, or delete one. The operations all act on the saved state slot selected by the Save slot # option. You have 100 slots to choose from. See the 'Files' section for more information.
+
+- Performance and Debugging -
+This menu is mainly of interest to ReGBA developers, except for its ROM Information item. It shows statistics about the emulation of a game; you can tell if, for example, the recompiler is working too hard, or the audio rendering is skipping a lot.
+
+== Files ==
+
+- GBA BIOS -
+ReGBA bundles an open-source GBA BIOS that is written by Normmatt and derived from the code of VisualBoyAdvance. Its logo is 'Normmatt' in a rounded rectangle. It will run the great majority of GBA games, but some games require the GBA BIOS, as written by Nintendo, for greater compatibility. A dump of the official GBA BIOS can be put at ~/.gpsp/gba_bios.bin (where ~ represents $HOME) and must be exactly 16384 bytes. Booting games from the BIOS will show you whether you put the BIOS at the correct location (if it doesn't, you'll see 'Normmatt').
+
+- Unscaled mode border -
+The unscaled mode allows every GBA pixel to be reproduced faithfully to the original, with a border to make it seem more like playing on a GBA. The default border, drawn by hi-ban, is a silver GBA SP with the words 'ReGBA Advanced SP' at the bottom, to symbolise the fact that ReGBA is an improvement over gpSP and played on backlit screens. You can make a custom border in the PNG format and put it at ~/.gpsp/border.png (where ~ represents $HOME). Its dimensions need to be 320x240, and the middle 240x160 pixels can be anything.
+
+- Global configuration -
+The global configuration is saved to ~/.gpsp/global_config.cfg (where ~ represents $HOME). It is in a key=value text format with comments.
+
+- Per-game data -
+Per-game data files are saved with the name of the file containing the GBA ROM, with their extension replaced. If the GBA ROM was loaded from a ZIP archive, then the data files use the name of the ZIP archive, not the name of the file inside the archive. All files are saved into ~/.gpsp (where ~ represents $HOME).
+
+- Saved data -
+Also known as SRAM saves, battery saves and flash saves, saved data files are more portable than saved states, as they are used by the games themselves to reload their state. You can use these files on other Game Boy Advance emulators, and use these files from other Game Boy Advance emulators in ReGBA (provided they have the size ReGBA expects - create an empty save on the game on ReGBA to see which size it expects, and pad it accordingly using a hex editor on a PC). They use the extension 'sav'.
+
+- Saved states -
+Also known as save states, saved state files are specific to ReGBA. ReGBA/DSTwo, betas 6-15 and versions 1.43-1.45, and ReGBA/OpenDingux, alphas 10-12 and version 1.45, can read the saved state format used by the release you are reading the manual for. It cannot read the format used by gpSP/PSP, which saved pointers into the PSP's memory and would corrupt the emulator's memory when loaded. Saved states use the extensions 's00' (for slot #1) to 's99' (for slot #100).
+
+- Game compatibility database -
+A file called game_config.txt is bundled in ReGBA. It contains declarations of idle loops that can be skipped for enhanced performance, as well as saved data size declarations that help some games create saves, or even boot. You can put declarations in a similarly-formatted file at ~/.gpsp/game_config.txt (where ~ represents $HOME) and submit these declarations for inclusion into the bundled version of ReGBA.
+
+== Credits ==
+Emulator: Exophase, Quasar84, Gladius and others (see the original gpSP readme), Nebuleon, Normmatt
+UI and image scaling: Nebuleon, JohnnyonFlame, pcercuei
+Open-source BIOS: Normmatt, VisualBoyAdvance developers
+Artwork: hi-ban
+
+== Source code ==
+Find the latest source code for ReGBA at:
+  https://github.com/Nebuleon/ReGBA
+The code is licensed under the GNU General Public License, version 2 or later.
+The artwork is licensed under the Creative Commons Attribution-ShareAlike 3.0 license.
