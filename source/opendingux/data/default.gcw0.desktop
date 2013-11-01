@@ -6,6 +6,7 @@ Comment[fr]=Émulateur Game Boy Advance
 Comment[es]=Emulador Game Boy Advance
 X-OD-Manual=manual-en.txt
 X-OD-Manual[es]=manual-es.txt
+X-OD-Manual[fr]=manual-fr.txt
 Icon=regba-silver
 Exec=regba %f
 Terminal=false
