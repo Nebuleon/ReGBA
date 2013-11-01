@@ -1,0 +1,95 @@
+ReGBA, Emulador de la Game Boy Advance con recompilador
+
+- OpenDingux versión 1.45, 2013-10-31 -
+
+== Tabla de contenido ==
+1. Selección de ROM
+2. Jugar a un juego
+3. Entrando en el Menú Principal de ReGBA
+   a) Ajustes de Pantalla (Display Settings)
+   b) Ajustes de Entrada (Input Settings)
+   c) Teclas de Acceso Rápido (Hotkeys)
+   d) Estados Guardados (Saved States)
+   e) Rendimiento y Depuración (Performance and Debugging)
+4. Archivos
+   a) BIOS de GBA
+   b) Borde para el modo sin escalado
+   c) Datos de Juego
+   d) Partidas Salvadas
+   e) Estados Guardados
+   f) La base de datos de compatibilidad del juego
+5. Créditos
+6. Código Fuente
+
+== Selección de una ROM ==
+Tras seleccionar el icono de ReGBA, aparecerá un selector de archivos. Se trata del selector de archivos de gmenu2x; guardará en su configuración el último directorio seleccionado. Este selector de archivos sirve para seleccionar la ROM a emular. Acepta cualquier ROM de GBA válida, o cualquier archivo ZIP que contenga una ROM de GBA válida con la extensión .gba o .bin.
+
+== Jugar a un juego ==
+Durante el juego, las asignaciones de botones predeterminadas permiten el uso de los controles del dispositivo que tienen el mismo nombre que en la Game Boy Advance. La cruceta del dispositivo controla la cruceta de la GBA, los botones A, B, L, R, Start y Select controlan los botones A, B, L, R, Start y Select de la GBA. Estas asignaciones se pueden cambiar en el menú de Ajustes de Entrada.
+
+Los datos de las partidas se escriben un corto período de tiempo después de guardar en los menús de los juegos de GBA, lo que significa que tu partida probablemente no se pierda si ReGBA se bloquea. Sin embargo, quedarse sin batería o un fallo en el kernel puede corromper los datos de la partida. Vea la sección "Archivos" para más información.
+
+== Entrando en el Menú Principal de ReGBA ==
+Para salir correctamente ReGBA después de emular una ROM, o para cambiar la configuración del emulador, es necesario entrar en el menú principal de ReGBA. Por defecto, el botón frontal superior (Y en la GCW Zero, o X en la Dingoo A320) hace esto. Tiene que ser presionado sólamente ese botón; presionándolo mientras se pulsa cualquier otro botón no hará nada. Esto sirve para poder compartir diferentes funciones simultáneas en los mismos botones y no activar el menú principal por accidente.
+
+- Ajustes de Pantalla (Display Settings) -
+> Boot from: "Cartridge ROM" no mostrará la pantalla del logotipo de GBA. "GBA BIOS" sí la mostrará. En la pantalla del logotipo de GBA puede aparecer "Normmatt" en el estilo del logotipo de Nintendo, o la pantalla del logotipo original de GBA. Vea la sección "Archivos" para obtener más información.
+> FPS counter: "Show" muestra el contador de FPS renderizados/emulados en la esquina inferior izquierda de la pantalla para realizar pruebas de rendimiento. "Hide" oculta el contador.
+> Image scaling: "None" muestra la imagen tal y como la Game Boy Advance haría (240x160), con un borde alrededor. "Aspect" muestra la imagen ampliada con la relación de aspecto correcta, con barras negras (320x213). "Full" muestra la imagen ampliada a pantalla completa (320x240). El borde en el modo sin escalado puede ser el borde de "ReGBA Advanced SP" o un borde personalizado. Vea la sección "Archivos" para obtener más información.
+> Frame skipping: "Automatic" intenta saltarse la menor cantidad de fotogramas posibles para que el audio sea impecable. Puede seleccionarse frameskip manual hasta 3 (~15 FPS). La mayoría de los juegos funcionan muy bien con el frameskip automático.
+> Fast-forward target: Cuando se activa el avance rápido del juego, especifica el aumento de velocidad máxima que permite, de 2x a 6x. Si se emula un juego exigente, el aumento de velocidad real puede ser menor.
+
+- Ajustes de entrada (Input Settings) -
+> GBA buttons: Presione A en uno de ellos para establecer un nuevo botón en el dispositivo para ser utilizado en la GBA. Estas asignaciones son obligatorias, no se puede tener una asignación tal que no haya ningun botón asignado. Sin embargo, se puede configurar un solo boton que active múltiples botones en la GBA.
+> Rapid-fire buttons: Estas asignaciones son opcionales, se pueden pulsar A, y luego dos botones a la vez para eliminarlas. Los botones de disparo rápido (Turbo) pulsan y sueltan el botón de GBA a 30 Hz: son presionados durante 1/60 de segundo, entonces se sueltan durante el mismo tiempo.
+> Analog sensitivity (Sólo GCW Zero): Este ajuste controla cuanto tiene que moverse el stick analógico para activar una dirección. El stick analógico se puede utilizar para navegar por los menús con esta sensibilidad también.
+> Analog in-game binding (Sólo GCW Zero): "None" no permite controlar el juego de GBA con el stick analógico, pero permite que sea utilizado para teclas de acceso rápido. "GBA D-pad" permite controlar el juego de GBA con el stick analógico de acuerdo con el ajuste de la sensibilidad, así como teclas de acceso rápido.
+
+- Teclas de Acceso Rápido (Hotkeys) -
+Presione A en ellos, y se puede establecer una nueva combinación de botones en el dispositivo para activar cada función durante la emulación, o B para borrar la asignación.
+> Fast-forward while held: Permite usar el avance rápido sólamente mientras se presiona un botón.
+> Menu: Entra en el menú principal ReGBA durante la emulación. Esta es una asignación obligatoria.
+> Fast-forward toggle: Pulse esta tecla una vez durante la emulación, y se activará el avance rápido hasta que se pulse de nuevo.
+> Quick load state #1: Carga el savestate guardado en la ranura #1.
+> Quick save state #1: Guarda en la ranura #1 el savestate sin pedir confirmación si ya existe.
+
+- Estados Guardados (Saved States) -
+En este menú se pueden ver las capturas de pantalla tomadas al crear los savestates para el juego cargado en ese momento (para ayudar a decidir cuál cargar, sobreescribir o borrar), cargar un savestate, crear uno, o eliminar uno. Las operaciones se aplican sobre la casilla seleccionada en la opcion "Save slot #". Hay 100 ranuras para elegir. Vea la sección "Archivos" para obtener más información.
+
+- Rendimiento y depuración (Performance and Debugging) -
+Este menú es principalmente de interés para los desarrolladores de ReGBA, a excepción del campo "ROM Information". Muestra información sobre la emulación de un juego, se puede saber si, por ejemplo, el recompilador está trabajando demasiado, o el audio está fallando mucho.
+
+== Archivos ==
+
+- BIOS de GBA -
+ReGBA contiene una BIOS de GBA de código abierto, escrita por Normmatt y derivada del código de VisualBoyAdvance. Su logo es "Normmatt" en un rectángulo redondeado. Funciona con la gran mayoría de los juegos de GBA, pero algunos juegos requieren la BIOS de GBA, escrita por Nintendo, para una mayor compatibilidad. Un volcado de la BIOS de GBA oficial se puede poner en ~/.gpsp/gba_bios.bin (donde ~ representa $HOME) y debe ser exactamente de 16384 bytes. Arrancar juegos desde la BIOS mostrará si la BIOS está puesta en el lugar correcto (si no, se verá "Normmatt").
+
+- Borde para el modo sin escalado -
+El modo sin escalado permite que cada pixel GBA sea reproducido fielmente al original, con un borde para hacer que parezca más como jugar en una GBA. El borde predeterminado, dibujado por hi-ban, es una GBA SP plateada con las palabras "ReGBA Advanced SP" en la parte inferior, para simbolizar el hecho de que ReGBA es una mejora sobre gpSP y utilizaba pantallas retroiluminadas. Usted puede hacer un borde personalizado en formato PNG y ponerlo en ~/.gpsp/border.png (donde ~ representa $HOME). La imagen debe de tener una resolucion de 320x240, y los 240x160 píxeles centrales pueden contener cualquier cosa.
+
+- Configuración Global -
+La configuración global se guarda en ~/.gpsp/global_config.cfg (donde ~ representa $HOME). Está en un formato clave=valor de texto, con comentarios.
+
+- Datos de Juego -
+Los archivos de datos de juego se guardan con el nombre del archivo que contiene la ROM de GBA, con su extensión cambiada. Si la ROM de GBA se cargó desde un archivo ZIP, los archivos de datos utilizan el nombre del archivo ZIP, y no el nombre del archivo dentro del ZIP. Todos los archivos se guardan en ~/.gpsp (donde ~ representa $HOME).
+
+- Partidas Salvadas -
+También conocidas como "SRAM saves", "battery saves" y "flash saves", las partidas salvadas son más compatibles que los savestates, ya que son utilizados por los juegos en sí para recargar su estado. Se pueden utilizar estos archivos en otros emuladores de Game Boy Advance, y usar archivos de otros emuladores de Game Boy Avance en ReGBA (siempre que tengan el tamaño que ReGBA espera). Utilizan la extensión ".sav".
+
+- Estados Guardados -
+También conocidos como "savestates", estos archivos son específicos de ReGBA. ReGBA/DSTwo: betas 6-15 y versiones 1.43-1.45 y ReGBA/OpenDingux: alphas 10-12 y la versión 1.45, pueden leer el formato de savestate utilizado por la versión que lleva este manual. No se puede leer el formato utilizado por gpSP/PSP, que guarda los punteros en la memoria de la PSP y que corrompería la memoria del emulador cuando está cargado. Los Estados Guardados utilizan las extensiones desde ".s00" (para la ranura #1) hasta ".s99" (para la ranura #100).
+
+- Base de datos de compatibilidad de juegos -
+Un archivo llamado game_config.txt se incluye en ReGBA. Contiene declaraciones de bucles inactivos que se pueden omitir para mejorar el rendimiento, así como las declaraciones de tamaño de los datos guardados que ayudan a algunos juegos de crear datos guardados, o incluso a arrancar. Se pueden añadir declaraciones creando un archivo de igual formato en ~/.gpsp/game_config.txt (donde ~ representa $HOME) y enviar estas declaraciones para su añadirlas en la versión que incluye ReGBA.
+
+== Créditos ==
+Emulador: Exophase, Quasar84, Gladius y otros ( ver el readme original de gpSP ), Nebuleon, Normmatt
+UI y escalado de imagen: Nebuleon, JohnnyonFlame, pcercuei
+BIOS de codigo abierto: Normmatt, desarrolladores VisualBoyAdvance
+Artwork: hi-ban
+
+== Código Fuente ==
+Encuentre el último código fuente para ReGBA en:
+  https://github.com/Nebuleon/ReGBA
+El código está licenciado bajo la GNU General Public License, versión 2 o posterior.
+El artwork está disponible bajo la licencia Attribution-ShareAlike 3.0 de Creative Commons.
