@@ -80,7 +80,7 @@ Also known as SRAM saves, battery saves and flash saves, saved data files are mo
 Also known as save states, saved state files are specific to ReGBA. ReGBA/DSTwo, betas 6-15 and versions 1.43-1.45, and ReGBA/OpenDingux, alphas 10-12 and version 1.45, can read the saved state format used by the release you are reading the manual for. It cannot read the format used by gpSP/PSP, which saved pointers into the PSP's memory and would corrupt the emulator's memory when loaded. Saved states use the extensions 's00' (for slot #1) to 's99' (for slot #100).
 
 - Game compatibility database -
-A file called game_config.txt is bundled in ReGBA. It contains declarations of idle loops that can be skipped for enhanced performance, as well as saved data size declarations that help some games create saves, or even boot. You can put declarations in a similarly-formatted file at ~/.gpsp/game_config.txt (where ~ represents $HOME) and submit these declarations for inclusion into the bundled version of ReGBA.
+A file called game_config.txt is bundled in ReGBA. It contains declarations of idle loops that can be skipped for enhanced performance, as well as saved data size declarations that help some games create saves, or even boot. You can put declarations in a similarly-formatted file at ~/.gpsp/game_config.txt (where ~ represents $HOME) and submit these declarations for inclusion into the version bundled in ReGBA.
 
 == Credits ==
 Emulator: Exophase, Quasar84, Gladius and others (see the original gpSP readme), Nebuleon, Normmatt
