@@ -14,10 +14,11 @@ ReGBA, Recompiling Emulator for the Game Boy Advance
 4. Files
    a) GBA BIOS
    b) Unscaled mode border
-   c) Per-game data
-   d) Saved data
-   e) Saved states
-   f) Game compatibility database
+   c) Global configuration
+   d) Per-game data
+   e) Saved data
+   f) Saved states
+   g) Game compatibility database
 5. Credits
 6. Source code
 

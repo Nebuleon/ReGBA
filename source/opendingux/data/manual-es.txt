@@ -14,10 +14,11 @@ ReGBA, Emulador de la Game Boy Advance con recompilador
 4. Archivos
    a) BIOS de GBA
    b) Borde para el modo sin escalado
-   c) Datos de Juego
-   d) Partidas Salvadas
-   e) Estados Guardados
-   f) La base de datos de compatibilidad del juego
+   c) Configuración Global
+   d) Datos de Juego
+   e) Partidas Salvadas
+   f) Estados Guardados
+   g) Base de datos de compatibilidad de juegos
 5. Créditos
 6. Código Fuente
 
