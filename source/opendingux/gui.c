@@ -1615,7 +1615,7 @@ u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason)
 
 			// Keep moving down until a menu entry can be focused, if
 			// the first one can't be.
-			if (ActiveMenu->Entries[ActiveMenu->ActiveEntryIndex] != NULL)
+			if (ActiveMenu != NULL && ActiveMenu->Entries[ActiveMenu->ActiveEntryIndex] != NULL)
 			{
 				uint32_t Sentinel = ActiveMenu->ActiveEntryIndex;
 				MenuEntryCanFocusFunction CanFocusFunction = ActiveMenu->Entries[ActiveMenu->ActiveEntryIndex]->CanFocusFunction;
