@@ -102,11 +102,20 @@ typedef void (*MenuModifyFunction) (struct Menu**, uint32_t*);
 typedef void (*MenuEntryDisplayFunction) (struct MenuEntry*, struct MenuEntry*);
 
 /*
- * MenuEntryFunction is the type of a function that displays an element
- * (the name or the value, depending on which member receives a function of
- * this type) of a single menu entry.
+ * MenuEntryCanFocusFunction is the type of a function that determines whether
+ * a menu entry can receive the focus.
  * Input:
- *   1: The menu entry whose part is being drawn.
+ *   1: The menu containing the entry that is being tested.
+ *   2: The menu entry that is being tested.
+ */
+typedef bool (*MenuEntryCanFocusFunction) (struct Menu*, struct MenuEntry*);
+
+/*
+ * MenuEntryFunction is the type of a function that displays all data related
+ * to a menu or that modifies the Target variable of the active menu entry.
+ * Input:
+ *   1: The menu containing the entries that are being drawn, or the entry
+ *     whose Target variable is being modified.
  *   2: The active menu entry.
  */
 typedef void (*MenuEntryFunction) (struct Menu*, struct MenuEntry*);
@@ -161,6 +170,7 @@ struct MenuEntry {
 	MenuEntryDisplayFunction DisplayValueFunction;
 	MenuPersistenceFunction LoadFunction;
 	MenuPersistenceFunction SaveFunction;
+	MenuEntryCanFocusFunction CanFocusFunction;
 	void* UserData;
 	struct {
 		char* Pretty;
@@ -184,21 +194,93 @@ struct Menu {
 	struct MenuEntry* Entries[]; // Entries are ended by a NULL pointer value.
 };
 
-static void DefaultUpFunction(struct Menu** ActiveMenu, uint32_t* ActiveMenuEntryIndex)
+static bool DefaultCanFocusFunction(struct Menu* ActiveMenu, struct MenuEntry* ActiveMenuEntry)
 {
-	if (*ActiveMenuEntryIndex == 0)  // went over the top
-	{  // go back to the bottom
-		while ((*ActiveMenu)->Entries[*ActiveMenuEntryIndex] != NULL)
-			(*ActiveMenuEntryIndex)++;
+	if (ActiveMenuEntry->Kind == KIND_DISPLAY)
+		return false;
+	return true;
+}
+
+static uint32_t FindNullEntry(struct Menu* ActiveMenu)
+{
+	uint32_t Result = 0;
+	while (ActiveMenu->Entries[Result] != NULL)
+		Result++;
+	return Result;
+}
+
+static bool MoveUp(struct Menu* ActiveMenu, uint32_t* ActiveMenuEntryIndex)
+{
+	if (*ActiveMenuEntryIndex == 0)  // Going over the top?
+	{  // Go back to the bottom.
+		uint32_t NullEntry = FindNullEntry(ActiveMenu);
+		if (NullEntry == 0)
+			return false;
+		*ActiveMenuEntryIndex = NullEntry - 1;
+		return true;
 	}
 	(*ActiveMenuEntryIndex)--;
+	return true;
+}
+
+static bool MoveDown(struct Menu* ActiveMenu, uint32_t* ActiveMenuEntryIndex)
+{
+	if (*ActiveMenuEntryIndex == 0 && ActiveMenu->Entries[*ActiveMenuEntryIndex] == NULL)
+		return false;
+	if (ActiveMenu->Entries[*ActiveMenuEntryIndex] == NULL)  // Is the sentinel "active"?
+		*ActiveMenuEntryIndex = 0;  // Go back to the top.
+	(*ActiveMenuEntryIndex)++;
+	if (ActiveMenu->Entries[*ActiveMenuEntryIndex] == NULL)  // Going below the bottom?
+		*ActiveMenuEntryIndex = 0;  // Go back to the top.
+	return true;
+}
+
+static void DefaultUpFunction(struct Menu** ActiveMenu, uint32_t* ActiveMenuEntryIndex)
+{
+	if (MoveUp(*ActiveMenu, ActiveMenuEntryIndex))
+	{
+		// Keep moving up until a menu entry can be focused.
+		uint32_t Sentinel = *ActiveMenuEntryIndex;
+		MenuEntryCanFocusFunction CanFocusFunction = (*ActiveMenu)->Entries[*ActiveMenuEntryIndex]->CanFocusFunction;
+		if (CanFocusFunction == NULL) CanFocusFunction = DefaultCanFocusFunction;
+		while (!(*CanFocusFunction)(*ActiveMenu, (*ActiveMenu)->Entries[*ActiveMenuEntryIndex]))
+		{
+			MoveUp(*ActiveMenu, ActiveMenuEntryIndex);
+			if (*ActiveMenuEntryIndex == Sentinel)
+			{
+				// If we went through all of them, we cannot focus anything.
+				// Place the focus on the NULL entry.
+				*ActiveMenuEntryIndex = FindNullEntry(*ActiveMenu);
+				return;
+			}
+			CanFocusFunction = (*ActiveMenu)->Entries[*ActiveMenuEntryIndex]->CanFocusFunction;
+			if (CanFocusFunction == NULL) CanFocusFunction = DefaultCanFocusFunction;
+		}
+	}
 }
 
 static void DefaultDownFunction(struct Menu** ActiveMenu, uint32_t* ActiveMenuEntryIndex)
 {
-	(*ActiveMenuEntryIndex)++;
-	if ((*ActiveMenu)->Entries[*ActiveMenuEntryIndex] == NULL)  // fell through the bottom
-		*ActiveMenuEntryIndex = 0;  // go back to the top
+	if (MoveDown(*ActiveMenu, ActiveMenuEntryIndex))
+	{
+		// Keep moving down until a menu entry can be focused.
+		uint32_t Sentinel = *ActiveMenuEntryIndex;
+		MenuEntryCanFocusFunction CanFocusFunction = (*ActiveMenu)->Entries[*ActiveMenuEntryIndex]->CanFocusFunction;
+		if (CanFocusFunction == NULL) CanFocusFunction = DefaultCanFocusFunction;
+		while (!(*CanFocusFunction)(*ActiveMenu, (*ActiveMenu)->Entries[*ActiveMenuEntryIndex]))
+		{
+			MoveDown(*ActiveMenu, ActiveMenuEntryIndex);
+			if (*ActiveMenuEntryIndex == Sentinel)
+			{
+				// If we went through all of them, we cannot focus anything.
+				// Place the focus on the NULL entry.
+				*ActiveMenuEntryIndex = FindNullEntry(*ActiveMenu);
+				return;
+			}
+			CanFocusFunction = (*ActiveMenu)->Entries[*ActiveMenuEntryIndex]->CanFocusFunction;
+			if (CanFocusFunction == NULL) CanFocusFunction = DefaultCanFocusFunction;
+		}
+	}
 }
 
 static void DefaultRightFunction(struct Menu* ActiveMenu, struct MenuEntry* ActiveMenuEntry)
@@ -1471,12 +1553,13 @@ u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason)
 		switch (Action)
 		{
 			case GUI_ACTION_ENTER:
-			{
-				MenuModifyFunction ButtonEnterFunction = ActiveMenu->Entries[ActiveMenu->ActiveEntryIndex]->ButtonEnterFunction;
-				if (ButtonEnterFunction == NULL) ButtonEnterFunction = DefaultEnterFunction;
-				(*ButtonEnterFunction)(&ActiveMenu, &ActiveMenu->ActiveEntryIndex);
-				break;
-			}
+				if (ActiveMenu->Entries[ActiveMenu->ActiveEntryIndex] != NULL)
+				{
+					MenuModifyFunction ButtonEnterFunction = ActiveMenu->Entries[ActiveMenu->ActiveEntryIndex]->ButtonEnterFunction;
+					if (ButtonEnterFunction == NULL) ButtonEnterFunction = DefaultEnterFunction;
+					(*ButtonEnterFunction)(&ActiveMenu, &ActiveMenu->ActiveEntryIndex);
+					break;
+				}
 
 			case GUI_ACTION_LEAVE:
 			{
@@ -1503,20 +1586,22 @@ u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason)
 			}
 
 			case GUI_ACTION_LEFT:
-			{
-				MenuEntryFunction ButtonLeftFunction = ActiveMenu->Entries[ActiveMenu->ActiveEntryIndex]->ButtonLeftFunction;
-				if (ButtonLeftFunction == NULL) ButtonLeftFunction = DefaultLeftFunction;
-				(*ButtonLeftFunction)(ActiveMenu, ActiveMenu->Entries[ActiveMenu->ActiveEntryIndex]);
-				break;
-			}
+				if (ActiveMenu->Entries[ActiveMenu->ActiveEntryIndex] != NULL)
+				{
+					MenuEntryFunction ButtonLeftFunction = ActiveMenu->Entries[ActiveMenu->ActiveEntryIndex]->ButtonLeftFunction;
+					if (ButtonLeftFunction == NULL) ButtonLeftFunction = DefaultLeftFunction;
+					(*ButtonLeftFunction)(ActiveMenu, ActiveMenu->Entries[ActiveMenu->ActiveEntryIndex]);
+					break;
+				}
 
 			case GUI_ACTION_RIGHT:
-			{
-				MenuEntryFunction ButtonRightFunction = ActiveMenu->Entries[ActiveMenu->ActiveEntryIndex]->ButtonRightFunction;
-				if (ButtonRightFunction == NULL) ButtonRightFunction = DefaultRightFunction;
-				(*ButtonRightFunction)(ActiveMenu, ActiveMenu->Entries[ActiveMenu->ActiveEntryIndex]);
-				break;
-			}
+				if (ActiveMenu->Entries[ActiveMenu->ActiveEntryIndex] != NULL)
+				{
+					MenuEntryFunction ButtonRightFunction = ActiveMenu->Entries[ActiveMenu->ActiveEntryIndex]->ButtonRightFunction;
+					if (ButtonRightFunction == NULL) ButtonRightFunction = DefaultRightFunction;
+					(*ButtonRightFunction)(ActiveMenu, ActiveMenu->Entries[ActiveMenu->ActiveEntryIndex]);
+					break;
+				}
 			
 			default:
 				break;
@@ -1527,6 +1612,29 @@ u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason)
 		{
 			if (PreviousMenu->EndFunction != NULL)
 				(*(PreviousMenu->EndFunction))(PreviousMenu);
+
+			// Keep moving down until a menu entry can be focused, if
+			// the first one can't be.
+			if (ActiveMenu->Entries[ActiveMenu->ActiveEntryIndex] != NULL)
+			{
+				uint32_t Sentinel = ActiveMenu->ActiveEntryIndex;
+				MenuEntryCanFocusFunction CanFocusFunction = ActiveMenu->Entries[ActiveMenu->ActiveEntryIndex]->CanFocusFunction;
+				if (CanFocusFunction == NULL) CanFocusFunction = DefaultCanFocusFunction;
+				while (!(*CanFocusFunction)(ActiveMenu, ActiveMenu->Entries[ActiveMenu->ActiveEntryIndex]))
+				{
+					MoveDown(ActiveMenu, &ActiveMenu->ActiveEntryIndex);
+					if (ActiveMenu->ActiveEntryIndex == Sentinel)
+					{
+						// If we went through all of them, we cannot focus anything.
+						// Place the focus on the NULL entry.
+						ActiveMenu->ActiveEntryIndex = FindNullEntry(ActiveMenu);
+						break;
+					}
+					CanFocusFunction = ActiveMenu->Entries[ActiveMenu->ActiveEntryIndex]->CanFocusFunction;
+					if (CanFocusFunction == NULL) CanFocusFunction = DefaultCanFocusFunction;
+				}
+			}
+
 			PreviousMenu = ActiveMenu;
 			if (ActiveMenu != NULL && ActiveMenu->InitFunction != NULL)
 				(*(ActiveMenu->InitFunction))(&ActiveMenu);
