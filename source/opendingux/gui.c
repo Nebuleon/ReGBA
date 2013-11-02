@@ -66,6 +66,12 @@ static struct Menu MainMenu;
 static struct Menu ErrorScreen;
 static struct Menu DebugMenu;
 
+/*
+ * A strut is an invisible line that cannot receive the focus, does not
+ * display anything and does not act in any way.
+ */
+static struct MenuEntry Strut;
+
 static void SavedStateUpdatePreview(struct Menu* ActiveMenu);
 
 /*
@@ -98,8 +104,10 @@ typedef void (*MenuModifyFunction) (struct Menu**, uint32_t*);
  * Input:
  *   1: A pointer to the data for the menu entry whose part is being drawn.
  *   2: A pointer to the data for the active menu entry.
+ *   3: The position, expressed as a line number starting at 0, of the entry
+ *     part to be drawn.
  */
-typedef void (*MenuEntryDisplayFunction) (struct MenuEntry*, struct MenuEntry*);
+typedef void (*MenuEntryDisplayFunction) (struct MenuEntry*, struct MenuEntry*, uint32_t);
 
 /*
  * MenuEntryCanFocusFunction is the type of a function that determines whether
@@ -154,9 +162,6 @@ struct MenuEntry {
 	char* Name;
 	char* PersistentName;
 	enum MenuDataType DisplayType;
-	uint32_t Position;      // 0-based line number with default functions.
-	                        // Custom display functions may give it a new
-	                        // meaning.
 	void* Target;           // With KIND_OPTION, must point to uint32_t.
 	                        // With KIND_DISPLAY, must point to the data type
 	                        // specified by DisplayType.
@@ -324,12 +329,12 @@ static void DefaultLeaveFunction(struct Menu** ActiveMenu, uint32_t* ActiveMenuE
 	*ActiveMenu = (*ActiveMenu)->Parent;
 }
 
-static void DefaultDisplayNameFunction(struct MenuEntry* DrawnMenuEntry, struct MenuEntry* ActiveMenuEntry)
+static void DefaultDisplayNameFunction(struct MenuEntry* DrawnMenuEntry, struct MenuEntry* ActiveMenuEntry, uint32_t Position)
 {
 	bool IsActive = (DrawnMenuEntry == ActiveMenuEntry);
 	uint16_t TextColor = IsActive ? COLOR_ACTIVE_TEXT : COLOR_INACTIVE_TEXT;
 	uint16_t OutlineColor = IsActive ? COLOR_ACTIVE_OUTLINE : COLOR_INACTIVE_OUTLINE;
-	PrintStringOutline(DrawnMenuEntry->Name, TextColor, OutlineColor, OutputSurface->pixels, OutputSurface->pitch, 0, GetRenderedHeight(" ") * (DrawnMenuEntry->Position + 2), GCW0_SCREEN_WIDTH, GetRenderedHeight(" ") + 2, LEFT, TOP);
+	PrintStringOutline(DrawnMenuEntry->Name, TextColor, OutlineColor, OutputSurface->pixels, OutputSurface->pitch, 0, GetRenderedHeight(" ") * (Position + 2), GCW0_SCREEN_WIDTH, GetRenderedHeight(" ") + 2, LEFT, TOP);
 }
 
 static void print_u64(char* Result, uint64_t Value)
@@ -368,7 +373,7 @@ static void print_i64(char* Result, int64_t Value)
 		print_u64(Result, (uint64_t) Value);
 }
 
-static void DefaultDisplayValueFunction(struct MenuEntry* DrawnMenuEntry, struct MenuEntry* ActiveMenuEntry)
+static void DefaultDisplayValueFunction(struct MenuEntry* DrawnMenuEntry, struct MenuEntry* ActiveMenuEntry, uint32_t Position)
 {
 	if (DrawnMenuEntry->Kind == KIND_OPTION || DrawnMenuEntry->Kind == KIND_DISPLAY)
 	{
@@ -414,7 +419,7 @@ static void DefaultDisplayValueFunction(struct MenuEntry* DrawnMenuEntry, struct
 		bool IsActive = (DrawnMenuEntry == ActiveMenuEntry);
 		uint16_t TextColor = Error ? COLOR_ERROR_TEXT : (IsActive ? COLOR_ACTIVE_TEXT : COLOR_INACTIVE_TEXT);
 		uint16_t OutlineColor = Error ? COLOR_ERROR_OUTLINE : (IsActive ? COLOR_ACTIVE_OUTLINE : COLOR_INACTIVE_OUTLINE);
-		PrintStringOutline(Value, TextColor, OutlineColor, OutputSurface->pixels, OutputSurface->pitch, 0, GetRenderedHeight(" ") * (DrawnMenuEntry->Position + 2), GCW0_SCREEN_WIDTH, GetRenderedHeight(" ") + 2, RIGHT, TOP);
+		PrintStringOutline(Value, TextColor, OutlineColor, OutputSurface->pixels, OutputSurface->pitch, 0, GetRenderedHeight(" ") * (Position + 2), GCW0_SCREEN_WIDTH, GetRenderedHeight(" ") + 2, RIGHT, TOP);
 	}
 }
 
@@ -431,11 +436,11 @@ static void DefaultDisplayDataFunction(struct Menu* ActiveMenu, struct MenuEntry
 	{
 		MenuEntryDisplayFunction Function = DrawnMenuEntry->DisplayNameFunction;
 		if (Function == NULL) Function = &DefaultDisplayNameFunction;
-		(*Function)(DrawnMenuEntry, ActiveMenuEntry);
+		(*Function)(DrawnMenuEntry, ActiveMenuEntry, DrawnMenuEntryIndex);
 
 		Function = DrawnMenuEntry->DisplayValueFunction;
 		if (Function == NULL) Function = &DefaultDisplayValueFunction;
-		(*Function)(DrawnMenuEntry, ActiveMenuEntry);
+		(*Function)(DrawnMenuEntry, ActiveMenuEntry, DrawnMenuEntryIndex);
 
 		DrawnMenuEntry++;
 	}
@@ -580,7 +585,7 @@ static void GetButtonsText(enum OpenDingux_Buttons Buttons, char* Result)
 	}
 }
 
-static void DisplayButtonMappingValue(struct MenuEntry* DrawnMenuEntry, struct MenuEntry* ActiveMenuEntry)
+static void DisplayButtonMappingValue(struct MenuEntry* DrawnMenuEntry, struct MenuEntry* ActiveMenuEntry, uint32_t Position)
 {
 	bool Valid;
 	char* Value = GetButtonText(*(uint32_t*) DrawnMenuEntry->Target, &Valid);
@@ -588,10 +593,10 @@ static void DisplayButtonMappingValue(struct MenuEntry* DrawnMenuEntry, struct M
 	bool IsActive = (DrawnMenuEntry == ActiveMenuEntry);
 	uint16_t TextColor = Valid ? (IsActive ? COLOR_ACTIVE_TEXT : COLOR_INACTIVE_TEXT) : COLOR_ERROR_TEXT;
 	uint16_t OutlineColor = Valid ? (IsActive ? COLOR_ACTIVE_OUTLINE : COLOR_INACTIVE_OUTLINE) : COLOR_ERROR_OUTLINE;
-	PrintStringOutline(Value, TextColor, OutlineColor, OutputSurface->pixels, OutputSurface->pitch, 0, GetRenderedHeight(" ") * (DrawnMenuEntry->Position + 2), GCW0_SCREEN_WIDTH, GetRenderedHeight(" ") + 2, RIGHT, TOP);
+	PrintStringOutline(Value, TextColor, OutlineColor, OutputSurface->pixels, OutputSurface->pitch, 0, GetRenderedHeight(" ") * (Position + 2), GCW0_SCREEN_WIDTH, GetRenderedHeight(" ") + 2, RIGHT, TOP);
 }
 
-static void DisplayHotkeyValue(struct MenuEntry* DrawnMenuEntry, struct MenuEntry* ActiveMenuEntry)
+static void DisplayHotkeyValue(struct MenuEntry* DrawnMenuEntry, struct MenuEntry* ActiveMenuEntry, uint32_t Position)
 {
 	char Value[256];
 	GetButtonsText(*(uint32_t*) DrawnMenuEntry->Target, Value);
@@ -599,7 +604,7 @@ static void DisplayHotkeyValue(struct MenuEntry* DrawnMenuEntry, struct MenuEntr
 	bool IsActive = (DrawnMenuEntry == ActiveMenuEntry);
 	uint16_t TextColor = IsActive ? COLOR_ACTIVE_TEXT : COLOR_INACTIVE_TEXT;
 	uint16_t OutlineColor = IsActive ? COLOR_ACTIVE_OUTLINE : COLOR_INACTIVE_OUTLINE;
-	PrintStringOutline(Value, TextColor, OutlineColor, OutputSurface->pixels, OutputSurface->pitch, 0, GetRenderedHeight(" ") * (DrawnMenuEntry->Position + 2), GCW0_SCREEN_WIDTH, GetRenderedHeight(" ") + 2, RIGHT, TOP);
+	PrintStringOutline(Value, TextColor, OutlineColor, OutputSurface->pixels, OutputSurface->pitch, 0, GetRenderedHeight(" ") * (Position + 2), GCW0_SCREEN_WIDTH, GetRenderedHeight(" ") + 2, RIGHT, TOP);
 }
 
 static void DisplayErrorBackgroundFunction(struct Menu* ActiveMenu)
@@ -620,7 +625,7 @@ static void SavedStateMenuDisplayData(struct Menu* ActiveMenu, struct MenuEntry*
 	DefaultDisplayDataFunction(ActiveMenu, ActiveMenuEntry);
 }
 
-static void SavedStateSelectionDisplayValue(struct MenuEntry* DrawnMenuEntry, struct MenuEntry* ActiveMenuEntry)
+static void SavedStateSelectionDisplayValue(struct MenuEntry* DrawnMenuEntry, struct MenuEntry* ActiveMenuEntry, uint32_t Position)
 {
 	char Value[11];
 	sprintf(Value, "%" PRIu32, *(uint32_t*) DrawnMenuEntry->Target + 1);
@@ -628,7 +633,7 @@ static void SavedStateSelectionDisplayValue(struct MenuEntry* DrawnMenuEntry, st
 	bool IsActive = (DrawnMenuEntry == ActiveMenuEntry);
 	uint16_t TextColor = IsActive ? COLOR_ACTIVE_TEXT : COLOR_INACTIVE_TEXT;
 	uint16_t OutlineColor = IsActive ? COLOR_ACTIVE_OUTLINE : COLOR_INACTIVE_OUTLINE;
-	PrintStringOutline(Value, TextColor, OutlineColor, OutputSurface->pixels, OutputSurface->pitch, 0, GetRenderedHeight(" ") * (DrawnMenuEntry->Position + 2), GCW0_SCREEN_WIDTH - GBA_SCREEN_WIDTH / 2 - 16, GetRenderedHeight(" ") + 2, RIGHT, TOP);
+	PrintStringOutline(Value, TextColor, OutlineColor, OutputSurface->pixels, OutputSurface->pitch, 0, GetRenderedHeight(" ") * (Position + 2), GCW0_SCREEN_WIDTH - GBA_SCREEN_WIDTH / 2 - 16, GetRenderedHeight(" ") + 2, RIGHT, TOP);
 }
 
 static void SavedStateUpdatePreview(struct Menu* ActiveMenu)
@@ -1038,25 +1043,37 @@ static void ActionSavedStateDelete(struct Menu** ActiveMenu, uint32_t* ActiveMen
 	SavedStateUpdatePreview(*ActiveMenu);
 }
 
+// -- Strut --
+
+static bool CanNeverFocusFunction(struct Menu* ActiveMenu, struct MenuEntry* ActiveMenuEntry)
+{
+	return false;
+}
+
+static struct MenuEntry Strut = {
+	.Kind = KIND_CUSTOM, .Name = "",
+	.CanFocusFunction = CanNeverFocusFunction
+};
+
 // -- Debug > Native code stats --
 
 static struct MenuEntry NativeCodeMenu_ROPeak = {
-	.Kind = KIND_DISPLAY, .Position = 0, .Name = "Read-only bytes at peak",
+	.Kind = KIND_DISPLAY, .Name = "Read-only bytes at peak",
 	.DisplayType = TYPE_UINT64, .Target = &Stats.TranslationBytesPeak[TRANSLATION_REGION_READONLY]
 };
 
 static struct MenuEntry NativeCodeMenu_RWPeak = {
-	.Kind = KIND_DISPLAY, .Position = 1, .Name = "Writable bytes at peak",
+	.Kind = KIND_DISPLAY, .Name = "Writable bytes at peak",
 	.DisplayType = TYPE_UINT64, .Target = &Stats.TranslationBytesPeak[TRANSLATION_REGION_WRITABLE]
 };
 
 static struct MenuEntry NativeCodeMenu_ROFlushed = {
-	.Kind = KIND_DISPLAY, .Position = 2, .Name = "Read-only bytes flushed",
+	.Kind = KIND_DISPLAY, .Name = "Read-only bytes flushed",
 	.DisplayType = TYPE_UINT64, .Target = &Stats.TranslationBytesFlushed[TRANSLATION_REGION_READONLY]
 };
 
 static struct MenuEntry NativeCodeMenu_RWFlushed = {
-	.Kind = KIND_DISPLAY, .Position = 3, .Name = "Writable bytes flushed",
+	.Kind = KIND_DISPLAY, .Name = "Writable bytes flushed",
 	.DisplayType = TYPE_UINT64, .Target = &Stats.TranslationBytesFlushed[TRANSLATION_REGION_WRITABLE]
 };
 
@@ -1066,44 +1083,44 @@ static struct Menu NativeCodeMenu = {
 };
 
 static struct MenuEntry DebugMenu_NativeCode = {
-	.Kind = KIND_SUBMENU, .Position = 0, .Name = "Native code statistics...",
+	.Kind = KIND_SUBMENU, .Name = "Native code statistics...",
 	.Target = &NativeCodeMenu
 };
 
 // -- Debug > Metadata stats --
 
 static struct MenuEntry MetadataMenu_ROFull = {
-	.Kind = KIND_DISPLAY, .Position = 0, .Name = "Read-only area full",
+	.Kind = KIND_DISPLAY, .Name = "Read-only area full",
 	.DisplayType = TYPE_UINT64, .Target = &Stats.TranslationFlushCount[TRANSLATION_REGION_READONLY][FLUSH_REASON_FULL_CACHE]
 };
 
 static struct MenuEntry MetadataMenu_RWFull = {
-	.Kind = KIND_DISPLAY,.Position = 1, .Name = "Writable area full",
+	.Kind = KIND_DISPLAY, .Name = "Writable area full",
 	.DisplayType = TYPE_UINT64, .Target = &Stats.TranslationFlushCount[TRANSLATION_REGION_WRITABLE][FLUSH_REASON_FULL_CACHE]
 };
 
 static struct MenuEntry MetadataMenu_BIOSLastTag = {
-	.Kind = KIND_DISPLAY, .Position = 2, .Name = "BIOS tags full",
+	.Kind = KIND_DISPLAY, .Name = "BIOS tags full",
 	.DisplayType = TYPE_UINT64, .Target = &Stats.MetadataClearCount[METADATA_AREA_BIOS][CLEAR_REASON_LAST_TAG]
 };
 
 static struct MenuEntry MetadataMenu_EWRAMLastTag = {
-	.Kind = KIND_DISPLAY, .Position = 3, .Name = "EWRAM tags full",
+	.Kind = KIND_DISPLAY, .Name = "EWRAM tags full",
 	.DisplayType = TYPE_UINT64, .Target = &Stats.MetadataClearCount[METADATA_AREA_EWRAM][CLEAR_REASON_LAST_TAG]
 };
 
 static struct MenuEntry MetadataMenu_IWRAMLastTag = {
-	.Kind = KIND_DISPLAY, .Position = 4, .Name = "IWRAM tags full",
+	.Kind = KIND_DISPLAY, .Name = "IWRAM tags full",
 	.DisplayType = TYPE_UINT64, .Target = &Stats.MetadataClearCount[METADATA_AREA_IWRAM][CLEAR_REASON_LAST_TAG]
 };
 
 static struct MenuEntry MetadataMenu_VRAMLastTag = {
-	.Kind = KIND_DISPLAY, .Position = 5, .Name = "VRAM tags full",
+	.Kind = KIND_DISPLAY, .Name = "VRAM tags full",
 	.DisplayType = TYPE_UINT64, .Target = &Stats.MetadataClearCount[METADATA_AREA_VRAM][CLEAR_REASON_LAST_TAG]
 };
 
 static struct MenuEntry MetadataMenu_PartialClears = {
-	.Kind = KIND_DISPLAY, .Position = 7, .Name = "Partial clears",
+	.Kind = KIND_DISPLAY, .Name = "Partial clears",
 	.DisplayType = TYPE_UINT64, .Target = &Stats.PartialFlushCount
 };
 
@@ -1113,40 +1130,40 @@ static struct Menu MetadataMenu = {
 };
 
 static struct MenuEntry DebugMenu_Metadata = {
-	.Kind = KIND_SUBMENU, .Position = 1, .Name = "Metadata clear statistics...",
+	.Kind = KIND_SUBMENU, .Name = "Metadata clear statistics...",
 	.Target = &MetadataMenu
 };
 
 // -- Debug > Execution stats --
 
 static struct MenuEntry ExecutionMenu_SoundUnderruns = {
-	.Kind = KIND_DISPLAY, .Position = 0, .Name = "Sound buffer underruns",
+	.Kind = KIND_DISPLAY, .Name = "Sound buffer underruns",
 	.DisplayType = TYPE_UINT64, .Target = &Stats.SoundBufferUnderrunCount
 };
 
 static struct MenuEntry ExecutionMenu_FramesEmulated = {
-	.Kind = KIND_DISPLAY, .Position = 1, .Name = "Frames emulated",
+	.Kind = KIND_DISPLAY, .Name = "Frames emulated",
 	.DisplayType = TYPE_UINT64, .Target = &Stats.TotalEmulatedFrames
 };
 
 static struct MenuEntry ExecutionMenu_FramesRendered = {
-	.Kind = KIND_DISPLAY, .Position = 2, .Name = "Frames rendered",
+	.Kind = KIND_DISPLAY, .Name = "Frames rendered",
 	.DisplayType = TYPE_UINT64, .Target = &Stats.TotalRenderedFrames
 };
 
 #ifdef PERFORMANCE_IMPACTING_STATISTICS
 static struct MenuEntry ExecutionMenu_ARMOps = {
-	.Kind = KIND_DISPLAY, .Position = 3, .Name = "ARM opcodes decoded",
+	.Kind = KIND_DISPLAY, .Name = "ARM opcodes decoded",
 	.DisplayType = TYPE_UINT64, .Target = &Stats.ARMOpcodesDecoded
 };
 
 static struct MenuEntry ExecutionMenu_ThumbOps = {
-	.Kind = KIND_DISPLAY, .Position = 4, .Name = "Thumb opcodes decoded",
+	.Kind = KIND_DISPLAY, .Name = "Thumb opcodes decoded",
 	.DisplayType = TYPE_UINT64, .Target = &Stats.ThumbOpcodesDecoded
 };
 
 static struct MenuEntry ExecutionMenu_MemAccessors = {
-	.Kind = KIND_DISPLAY, .Position = 5, .Name = "Memory accessors patched",
+	.Kind = KIND_DISPLAY, .Name = "Memory accessors patched",
 	.DisplayType = TYPE_UINT32, .Target = &Stats.WrongAddressLineCount
 };
 #endif
@@ -1161,7 +1178,7 @@ static struct Menu ExecutionMenu = {
 };
 
 static struct MenuEntry DebugMenu_Execution = {
-	.Kind = KIND_SUBMENU, .Position = 2, .Name = "Execution statistics...",
+	.Kind = KIND_SUBMENU, .Name = "Execution statistics...",
 	.Target = &ExecutionMenu
 };
 
@@ -1169,22 +1186,22 @@ static struct MenuEntry DebugMenu_Execution = {
 
 #ifdef PERFORMANCE_IMPACTING_STATISTICS
 static struct MenuEntry ReuseMenu_OpsRecompiled = {
-	.Kind = KIND_DISPLAY, .Position = 0, .Name = "Opcodes recompiled",
+	.Kind = KIND_DISPLAY, .Name = "Opcodes recompiled",
 	.DisplayType = TYPE_UINT64, .Target = &Stats.OpcodeRecompilationCount
 };
 
 static struct MenuEntry ReuseMenu_BlocksRecompiled = {
-	.Kind = KIND_DISPLAY, .Position = 1, .Name = "Blocks recompiled",
+	.Kind = KIND_DISPLAY, .Name = "Blocks recompiled",
 	.DisplayType = TYPE_UINT64, .Target = &Stats.BlockRecompilationCount
 };
 
 static struct MenuEntry ReuseMenu_OpsReused = {
-	.Kind = KIND_DISPLAY, .Position = 2, .Name = "Opcodes reused",
+	.Kind = KIND_DISPLAY, .Name = "Opcodes reused",
 	.DisplayType = TYPE_UINT64, .Target = &Stats.OpcodeReuseCount
 };
 
 static struct MenuEntry ReuseMenu_BlocksReused = {
-	.Kind = KIND_DISPLAY, .Position = 3, .Name = "Blocks reused",
+	.Kind = KIND_DISPLAY, .Name = "Blocks reused",
 	.DisplayType = TYPE_UINT64, .Target = &Stats.BlockReuseCount
 };
 
@@ -1194,23 +1211,23 @@ static struct Menu ReuseMenu = {
 };
 
 static struct MenuEntry DebugMenu_Reuse = {
-	.Kind = KIND_SUBMENU, .Position = 3, .Name = "Code reuse statistics...",
+	.Kind = KIND_SUBMENU, .Name = "Code reuse statistics...",
 	.Target = &ReuseMenu
 };
 #endif
 
 static struct MenuEntry ROMInfoMenu_GameName = {
-	.Kind = KIND_DISPLAY, .Position = 0, .Name = "game_name =",
+	.Kind = KIND_DISPLAY, .Name = "game_name =",
 	.DisplayType = TYPE_STRING, .Target = gamepak_title
 };
 
 static struct MenuEntry ROMInfoMenu_GameCode = {
-	.Kind = KIND_DISPLAY, .Position = 1, .Name = "game_code =",
+	.Kind = KIND_DISPLAY, .Name = "game_code =",
 	.DisplayType = TYPE_STRING, .Target = gamepak_code
 };
 
 static struct MenuEntry ROMInfoMenu_VendorCode = {
-	.Kind = KIND_DISPLAY, .Position = 2, .Name = "vender_code =",
+	.Kind = KIND_DISPLAY, .Name = "vender_code =",
 	.DisplayType = TYPE_STRING, .Target = gamepak_maker
 };
 
@@ -1220,7 +1237,7 @@ static struct Menu ROMInfoMenu = {
 };
 
 static struct MenuEntry DebugMenu_ROMInfo = {
-	.Kind = KIND_SUBMENU, .Position = 5, .Name = "ROM information...",
+	.Kind = KIND_SUBMENU, .Name = "ROM information...",
 	.Target = &ROMInfoMenu
 };
 
@@ -1230,40 +1247,39 @@ static struct Menu DebugMenu = {
 	.Parent = &MainMenu, .Title = "Performance and debugging",
 	.Entries = { &DebugMenu_NativeCode, &DebugMenu_Metadata, &DebugMenu_Execution
 #ifdef PERFORMANCE_IMPACTING_STATISTICS
-		, &DebugMenu_Reuse
+	, &DebugMenu_Reuse
 #endif
-		, &DebugMenu_ROMInfo
-		, NULL }
+	, &Strut, &DebugMenu_ROMInfo, NULL }
 };
 
 // -- Display Settings --
 
 static struct MenuEntry DisplayMenu_BootSource = {
-	.Kind = KIND_OPTION, .Position = 0, .Name = "Boot from", .PersistentName = "boot_from",
+	.Kind = KIND_OPTION, .Name = "Boot from", .PersistentName = "boot_from",
 	.Target = &BootFromBIOS,
 	.ChoiceCount = 2, .Choices = { { "Cartridge ROM", "cartridge" }, { "GBA BIOS", "gba_bios" } }
 };
 
 static struct MenuEntry DisplayMenu_FPSCounter = {
-	.Kind = KIND_OPTION, .Position = 1, .Name = "FPS counter", .PersistentName = "fps_counter",
+	.Kind = KIND_OPTION, .Name = "FPS counter", .PersistentName = "fps_counter",
 	.Target = &ShowFPS,
 	.ChoiceCount = 2, .Choices = { { "Hide", "hide" }, { "Show", "show" } }
 };
 
 static struct MenuEntry DisplayMenu_ScaleMode = {
-	.Kind = KIND_OPTION, .Position = 2, .Name = "Image scaling", .PersistentName = "image_size",
+	.Kind = KIND_OPTION, .Name = "Image scaling", .PersistentName = "image_size",
 	.Target = &ScaleMode,
 	.ChoiceCount = 3, .Choices = { { "Aspect", "aspect" }, { "Full", "fullscreen" }, { "None", "original" } }
 };
 
 static struct MenuEntry DisplayMenu_Frameskip = {
-	.Kind = KIND_OPTION, .Position = 3, .Name = "Frame skipping", .PersistentName = "frameskip",
+	.Kind = KIND_OPTION, .Name = "Frame skipping", .PersistentName = "frameskip",
 	.Target = &UserFrameskip,
 	.ChoiceCount = 5, .Choices = { { "Automatic", "auto" }, { "0 (~60 FPS)", "0" }, { "1 (~30 FPS)", "1" }, { "2 (~20 FPS)", "2" }, { "3 (~15 FPS)", "3" } }
 };
 
 static struct MenuEntry DisplayMenu_FastForwardTarget = {
-	.Kind = KIND_OPTION, .Position = 4, .Name = "Fast-forward target", .PersistentName = "fast_forward_target",
+	.Kind = KIND_OPTION, .Name = "Fast-forward target", .PersistentName = "fast_forward_target",
 	.Target = &FastForwardTarget,
 	.ChoiceCount = 5, .Choices = { { "2x (~120 FPS)", "2" }, { "3x (~180 FPS)", "3" }, { "4x (~240 FPS)", "4" }, { "5x (~300 FPS)", "5" }, { "6x (~360 FPS)", "6" } }
 };
@@ -1275,7 +1291,7 @@ static struct Menu DisplayMenu = {
 
 // -- Input Settings --
 static struct MenuEntry InputMenu_A = {
-	.Kind = KIND_OPTION, .Position = 0, .Name = "GBA A", .PersistentName = "gba_a",
+	.Kind = KIND_OPTION, .Name = "GBA A", .PersistentName = "gba_a",
 	.Target = &KeypadRemapping[0],
 	.ChoiceCount = 0,
 	.ButtonLeftFunction = NullLeftFunction, .ButtonRightFunction = NullRightFunction,
@@ -1284,7 +1300,7 @@ static struct MenuEntry InputMenu_A = {
 };
 
 static struct MenuEntry InputMenu_B = {
-	.Kind = KIND_OPTION, .Position = 1, .Name = "GBA B", .PersistentName = "gba_b",
+	.Kind = KIND_OPTION, .Name = "GBA B", .PersistentName = "gba_b",
 	.Target = &KeypadRemapping[1],
 	.ChoiceCount = 0,
 	.ButtonLeftFunction = NullLeftFunction, .ButtonRightFunction = NullRightFunction,
@@ -1293,7 +1309,7 @@ static struct MenuEntry InputMenu_B = {
 };
 
 static struct MenuEntry InputMenu_Start = {
-	.Kind = KIND_OPTION, .Position = 2, .Name = "GBA Start", .PersistentName = "gba_start",
+	.Kind = KIND_OPTION, .Name = "GBA Start", .PersistentName = "gba_start",
 	.Target = &KeypadRemapping[3],
 	.ChoiceCount = 0,
 	.ButtonLeftFunction = NullLeftFunction, .ButtonRightFunction = NullRightFunction,
@@ -1302,7 +1318,7 @@ static struct MenuEntry InputMenu_Start = {
 };
 
 static struct MenuEntry InputMenu_Select = {
-	.Kind = KIND_OPTION, .Position = 3, .Name = "GBA Select", .PersistentName = "gba_select",
+	.Kind = KIND_OPTION, .Name = "GBA Select", .PersistentName = "gba_select",
 	.Target = &KeypadRemapping[2],
 	.ChoiceCount = 0,
 	.ButtonLeftFunction = NullLeftFunction, .ButtonRightFunction = NullRightFunction,
@@ -1311,7 +1327,7 @@ static struct MenuEntry InputMenu_Select = {
 };
 
 static struct MenuEntry InputMenu_L = {
-	.Kind = KIND_OPTION, .Position = 4, .Name = "GBA L", .PersistentName = "gba_l",
+	.Kind = KIND_OPTION, .Name = "GBA L", .PersistentName = "gba_l",
 	.Target = &KeypadRemapping[9],
 	.ChoiceCount = 0,
 	.ButtonLeftFunction = NullLeftFunction, .ButtonRightFunction = NullRightFunction,
@@ -1320,7 +1336,7 @@ static struct MenuEntry InputMenu_L = {
 };
 
 static struct MenuEntry InputMenu_R = {
-	.Kind = KIND_OPTION, .Position = 5, .Name = "GBA R", .PersistentName = "gba_r",
+	.Kind = KIND_OPTION, .Name = "GBA R", .PersistentName = "gba_r",
 	.Target = &KeypadRemapping[8],
 	.ChoiceCount = 0,
 	.ButtonLeftFunction = NullLeftFunction, .ButtonRightFunction = NullRightFunction,
@@ -1329,7 +1345,7 @@ static struct MenuEntry InputMenu_R = {
 };
 
 static struct MenuEntry InputMenu_RapidA = {
-	.Kind = KIND_OPTION, .Position = 6, .Name = "Rapid-fire A", .PersistentName = "rapid_a",
+	.Kind = KIND_OPTION, .Name = "Rapid-fire A", .PersistentName = "rapid_a",
 	.Target = &KeypadRemapping[10],
 	.ChoiceCount = 0,
 	.ButtonLeftFunction = NullLeftFunction, .ButtonRightFunction = NullRightFunction,
@@ -1338,7 +1354,7 @@ static struct MenuEntry InputMenu_RapidA = {
 };
 
 static struct MenuEntry InputMenu_RapidB = {
-	.Kind = KIND_OPTION, .Position = 7, .Name = "Rapid-fire B", .PersistentName = "rapid_b",
+	.Kind = KIND_OPTION, .Name = "Rapid-fire B", .PersistentName = "rapid_b",
 	.Target = &KeypadRemapping[11],
 	.ChoiceCount = 0,
 	.ButtonLeftFunction = NullLeftFunction, .ButtonRightFunction = NullRightFunction,
@@ -1348,13 +1364,13 @@ static struct MenuEntry InputMenu_RapidB = {
 
 #ifdef GCW_ZERO
 static struct MenuEntry InputMenu_AnalogSensitivity = {
-	.Kind = KIND_OPTION, .Position = 9, .Name = "Analog sensitivity", .PersistentName = "analog_sensitivity",
+	.Kind = KIND_OPTION, .Name = "Analog sensitivity", .PersistentName = "analog_sensitivity",
 	.Target = &AnalogSensitivity,
 	.ChoiceCount = 5, .Choices = { { "Very low", "lowest" }, { "Low", "low" }, { "Medium", "medium" }, { "High", "high" }, { "Very high", "highest" } }
 };
 
 static struct MenuEntry InputMenu_AnalogAction = {
-	.Kind = KIND_OPTION, .Position = 10, .Name = "Analog in-game binding", .PersistentName = "analog_action",
+	.Kind = KIND_OPTION, .Name = "Analog in-game binding", .PersistentName = "analog_action",
 	.Target = &AnalogAction,
 	.ChoiceCount = 2, .Choices = { { "None", "none" }, { "GBA D-pad", "dpad" } }
 };
@@ -1364,7 +1380,7 @@ static struct Menu InputMenu = {
 	.Parent = &MainMenu, .Title = "Input settings",
 	.Entries = { &InputMenu_A, &InputMenu_B, &InputMenu_Start, &InputMenu_Select, &InputMenu_L, &InputMenu_R, &InputMenu_RapidA, &InputMenu_RapidB
 #ifdef GCW_ZERO
-	, &InputMenu_AnalogSensitivity, &InputMenu_AnalogAction
+	, &Strut, &InputMenu_AnalogSensitivity, &InputMenu_AnalogAction
 #endif
 	, NULL }
 };
@@ -1372,7 +1388,7 @@ static struct Menu InputMenu = {
 // -- Hotkeys --
 
 static struct MenuEntry HotkeyMenu_FastForward = {
-	.Kind = KIND_OPTION, .Position = 0, .Name = "Fast-forward while held", .PersistentName = "hotkey_fast_forward",
+	.Kind = KIND_OPTION, .Name = "Fast-forward while held", .PersistentName = "hotkey_fast_forward",
 	.Target = &Hotkeys[0],
 	.ChoiceCount = 0,
 	.ButtonLeftFunction = NullLeftFunction, .ButtonRightFunction = NullRightFunction,
@@ -1381,7 +1397,7 @@ static struct MenuEntry HotkeyMenu_FastForward = {
 };
 
 static struct MenuEntry HotkeyMenu_Menu = {
-	.Kind = KIND_OPTION, .Position = 1, .Name = "Menu", .PersistentName = "hotkey_menu",
+	.Kind = KIND_OPTION, .Name = "Menu", .PersistentName = "hotkey_menu",
 	.Target = &Hotkeys[1],
 	.ChoiceCount = 0,
 	.ButtonLeftFunction = NullLeftFunction, .ButtonRightFunction = NullRightFunction,
@@ -1390,7 +1406,7 @@ static struct MenuEntry HotkeyMenu_Menu = {
 };
 
 static struct MenuEntry HotkeyMenu_FastForwardToggle = {
-	.Kind = KIND_OPTION, .Position = 2, .Name = "Fast-forward toggle", .PersistentName = "hotkey_fast_forward_toggle",
+	.Kind = KIND_OPTION, .Name = "Fast-forward toggle", .PersistentName = "hotkey_fast_forward_toggle",
 	.Target = &Hotkeys[2],
 	.ChoiceCount = 0,
 	.ButtonLeftFunction = NullLeftFunction, .ButtonRightFunction = NullRightFunction,
@@ -1399,7 +1415,7 @@ static struct MenuEntry HotkeyMenu_FastForwardToggle = {
 };
 
 static struct MenuEntry HotkeyMenu_QuickLoadState = {
-	.Kind = KIND_OPTION, .Position = 3, .Name = "Quick load state #1", .PersistentName = "hotkey_quick_load_state",
+	.Kind = KIND_OPTION, .Name = "Quick load state #1", .PersistentName = "hotkey_quick_load_state",
 	.Target = &Hotkeys[3],
 	.ChoiceCount = 0,
 	.ButtonLeftFunction = NullLeftFunction, .ButtonRightFunction = NullRightFunction,
@@ -1408,7 +1424,7 @@ static struct MenuEntry HotkeyMenu_QuickLoadState = {
 };
 
 static struct MenuEntry HotkeyMenu_QuickSaveState = {
-	.Kind = KIND_OPTION, .Position = 4, .Name = "Quick save state #1", .PersistentName = "hotkey_quick_save_state",
+	.Kind = KIND_OPTION, .Name = "Quick save state #1", .PersistentName = "hotkey_quick_save_state",
 	.Target = &Hotkeys[4],
 	.ChoiceCount = 0,
 	.ButtonLeftFunction = NullLeftFunction, .ButtonRightFunction = NullRightFunction,
@@ -1424,7 +1440,7 @@ static struct Menu HotkeyMenu = {
 // -- Saved States --
 
 static struct MenuEntry SavedStateMenu_SelectedState = {
-	.Kind = KIND_CUSTOM, .Position = 0, .Name = "Save slot #", .PersistentName = "",
+	.Kind = KIND_CUSTOM, .Name = "Save slot #", .PersistentName = "",
 	.Target = &SelectedState,
 	.ChoiceCount = 100,
 	.ButtonLeftFunction = SavedStateSelectionLeft, .ButtonRightFunction = SavedStateSelectionRight,
@@ -1432,17 +1448,17 @@ static struct MenuEntry SavedStateMenu_SelectedState = {
 };
 
 static struct MenuEntry SavedStateMenu_Read = {
-	.Kind = KIND_CUSTOM, .Position = 2, .Name = "Load from selected slot",
+	.Kind = KIND_CUSTOM, .Name = "Load from selected slot",
 	.ButtonEnterFunction = ActionSavedStateRead
 };
 
 static struct MenuEntry SavedStateMenu_Write = {
-	.Kind = KIND_CUSTOM, .Position = 3, .Name = "Save to selected slot",
+	.Kind = KIND_CUSTOM, .Name = "Save to selected slot",
 	.ButtonEnterFunction = ActionSavedStateWrite
 };
 
 static struct MenuEntry SavedStateMenu_Delete = {
-	.Kind = KIND_CUSTOM, .Position = 4, .Name = "Delete selected state",
+	.Kind = KIND_CUSTOM, .Name = "Delete selected state",
 	.ButtonEnterFunction = ActionSavedStateDelete
 };
 
@@ -1450,54 +1466,54 @@ static struct Menu SavedStateMenu = {
 	.Parent = &MainMenu, .Title = "Saved states",
 	.InitFunction = SavedStateMenuInit, .EndFunction = SavedStateMenuEnd,
 	.DisplayDataFunction = SavedStateMenuDisplayData,
-	.Entries = { &SavedStateMenu_SelectedState, &SavedStateMenu_Read, &SavedStateMenu_Write, &SavedStateMenu_Delete, NULL }
+	.Entries = { &SavedStateMenu_SelectedState, &Strut, &SavedStateMenu_Read, &SavedStateMenu_Write, &SavedStateMenu_Delete, NULL }
 };
 
 // -- Main Menu --
 
 static struct MenuEntry MainMenu_Display = {
-	.Kind = KIND_SUBMENU, .Position = 0, .Name = "Display settings...",
+	.Kind = KIND_SUBMENU, .Name = "Display settings...",
 	.Target = &DisplayMenu
 };
 
 static struct MenuEntry MainMenu_Input = {
-	.Kind = KIND_SUBMENU, .Position = 1, .Name = "Input settings...",
+	.Kind = KIND_SUBMENU, .Name = "Input settings...",
 	.Target = &InputMenu
 };
 
 static struct MenuEntry MainMenu_Hotkey = {
-	.Kind = KIND_SUBMENU, .Position = 2, .Name = "Hotkeys...",
+	.Kind = KIND_SUBMENU, .Name = "Hotkeys...",
 	.Target = &HotkeyMenu
 };
 
 static struct MenuEntry MainMenu_SavedStates = {
-	.Kind = KIND_SUBMENU, .Position = 4, .Name = "Saved states...",
+	.Kind = KIND_SUBMENU, .Name = "Saved states...",
 	.Target = &SavedStateMenu
 };
 
 static struct MenuEntry MainMenu_Debug = {
-	.Kind = KIND_SUBMENU, .Position = 7, .Name = "Performance and debugging...",
+	.Kind = KIND_SUBMENU, .Name = "Performance and debugging...",
 	.Target = &DebugMenu
 };
 
 static struct MenuEntry MainMenu_Reset = {
-	.Kind = KIND_CUSTOM, .Position = 9, .Name = "Reset the game",
+	.Kind = KIND_CUSTOM, .Name = "Reset the game",
 	.ButtonEnterFunction = &ActionReset
 };
 
 static struct MenuEntry MainMenu_Return = {
-	.Kind = KIND_CUSTOM, .Position = 10, .Name = "Return to the game",
+	.Kind = KIND_CUSTOM, .Name = "Return to the game",
 	.ButtonEnterFunction = &ActionReturn
 };
 
 static struct MenuEntry MainMenu_Exit = {
-	.Kind = KIND_CUSTOM, .Position = 11, .Name = "Exit",
+	.Kind = KIND_CUSTOM, .Name = "Exit",
 	.ButtonEnterFunction = &ActionExit
 };
 
 static struct Menu MainMenu = {
 	.Parent = NULL, .Title = "ReGBA Main Menu",
-	.Entries = { &MainMenu_Display, &MainMenu_Input, &MainMenu_Hotkey, &MainMenu_SavedStates, &MainMenu_Debug, &MainMenu_Reset, &MainMenu_Return, &MainMenu_Exit, NULL }
+	.Entries = { &MainMenu_Display, &MainMenu_Input, &MainMenu_Hotkey, &Strut, &MainMenu_SavedStates, &Strut, &Strut, &MainMenu_Debug, &Strut, &MainMenu_Reset, &MainMenu_Return, &MainMenu_Exit, NULL }
 };
 
 /* Do not make this the active menu */
@@ -1560,6 +1576,8 @@ u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason)
 					(*ButtonEnterFunction)(&ActiveMenu, &ActiveMenu->ActiveEntryIndex);
 					break;
 				}
+				// otherwise, no entry has the focus, so ENTER acts like LEAVE
+				// (fall through)
 
 			case GUI_ACTION_LEAVE:
 			{
@@ -1591,8 +1609,8 @@ u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason)
 					MenuEntryFunction ButtonLeftFunction = ActiveMenu->Entries[ActiveMenu->ActiveEntryIndex]->ButtonLeftFunction;
 					if (ButtonLeftFunction == NULL) ButtonLeftFunction = DefaultLeftFunction;
 					(*ButtonLeftFunction)(ActiveMenu, ActiveMenu->Entries[ActiveMenu->ActiveEntryIndex]);
-					break;
 				}
+				break;
 
 			case GUI_ACTION_RIGHT:
 				if (ActiveMenu->Entries[ActiveMenu->ActiveEntryIndex] != NULL)
@@ -1600,8 +1618,8 @@ u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason)
 					MenuEntryFunction ButtonRightFunction = ActiveMenu->Entries[ActiveMenu->ActiveEntryIndex]->ButtonRightFunction;
 					if (ButtonRightFunction == NULL) ButtonRightFunction = DefaultRightFunction;
 					(*ButtonRightFunction)(ActiveMenu, ActiveMenu->Entries[ActiveMenu->ActiveEntryIndex]);
-					break;
 				}
+				break;
 			
 			default:
 				break;
