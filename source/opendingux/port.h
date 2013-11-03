@@ -66,6 +66,7 @@ typedef struct timespec timespec;
 
 #include "draw.h"
 #include "gui.h"
+#include "settings.h"
 #include "main.h"
 #include "od-sound.h"
 #include "od-input.h"
