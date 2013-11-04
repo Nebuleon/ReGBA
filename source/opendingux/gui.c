@@ -658,6 +658,9 @@ static void SaveHotkeyFunction(struct MenuEntry* ActiveMenuEntry, char* Value)
 
 static void ActionExit(struct Menu** ActiveMenu, uint32_t* ActiveMenuEntryIndex)
 {
+	// Please ensure that the Main Menu itself does not have entries of type
+	// KIND_OPTION. The on-demand writing of settings to storage will not
+	// occur after quit(), since it acts after the action function returns.
 	quit();
 	*ActiveMenu = NULL;
 }
@@ -1466,6 +1469,9 @@ u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason)
 		}
 	}
 
+	void* PreviousGlobal = ReGBA_PreserveMenuSettings(&MainMenu);
+	void* PreviousPerGame = ReGBA_PreserveMenuSettings(MainMenu.AlternateVersion);
+
 	while (ActiveMenu != NULL)
 	{
 		// Draw.
@@ -1560,6 +1566,26 @@ u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason)
 			if (PreviousMenu->EndFunction != NULL)
 				(*(PreviousMenu->EndFunction))(PreviousMenu);
 
+			// Save settings if they have changed.
+			void* Global = ReGBA_PreserveMenuSettings(&MainMenu);
+
+			if (!ReGBA_AreMenuSettingsEqual(&MainMenu, PreviousGlobal, Global))
+			{
+				ReGBA_SaveSettings("global_config", false);
+			}
+			free(PreviousGlobal);
+			PreviousGlobal = Global;
+
+			void* PerGame = ReGBA_PreserveMenuSettings(MainMenu.AlternateVersion);
+			if (!ReGBA_AreMenuSettingsEqual(MainMenu.AlternateVersion, PreviousPerGame, PerGame) && IsGameLoaded)
+			{
+				char FileNameNoExt[MAX_PATH + 1];
+				GetFileNameNoExtension(FileNameNoExt, CurrentGamePath);
+				ReGBA_SaveSettings(FileNameNoExt, true);
+			}
+			free(PreviousPerGame);
+			PreviousPerGame = PerGame;
+
 			// Keep moving down until a menu entry can be focused, if
 			// the first one can't be.
 			if (ActiveMenu != NULL && ActiveMenu->Entries[ActiveMenu->ActiveEntryIndex] != NULL)
@@ -1587,6 +1613,9 @@ u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason)
 				(*(ActiveMenu->InitFunction))(&ActiveMenu);
 		}
 	}
+
+	free(PreviousGlobal);
+	free(PreviousPerGame);
 
 	// Avoid leaving the menu with GBA keys pressed (namely the one bound to
 	// the native exit button, B).

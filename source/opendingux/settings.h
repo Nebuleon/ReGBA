@@ -26,6 +26,43 @@ extern bool ReGBA_SaveSettings(char *cfg_name, bool PerGame);
 extern void ReGBA_LoadSettings(char *cfg_name, bool PerGame);
 
 /*
+ * Returns a new memory allocation filled with the contents of the specified
+ * menu's setting variables in order.
+ * 
+ * Input:
+ *   Menu: The root of the menu whose settings are to be preserved.
+ * Returns:
+ *   A pointer to the first byte of the allocation created to preserve the
+ *   specified menu's settings. This pointer should be treated like an opaque
+ *   pointer.
+ * Output assertions:
+ *   a) The pointer is left allocated on the heap and it is the caller's
+ *      responsibility to free it.
+ *   b) The return value is non-NULL. If it is NULL, this is a fatal error.
+ */
+extern void* ReGBA_PreserveMenuSettings(struct Menu* Menu);
+
+/*
+ * Compares the contents of two opaque pointers containing preservations of
+ * the same menu's setting variables, made by successive calls to
+ * ReGBA_PreserveMenuSettings.
+ * 
+ * Input:
+ *   Menu: The menu from which the preservations were derived.
+ *   A, B: Two preservations of the same menu's setting variables.
+ * Input assertions:
+ *   a) Menu, A and B are non-NULL.
+ *   b) Menu was the menu from which A and B were preserved.
+ *   c) The number of entries in Menu and its submenus, recursively, matches
+ *      the length of the allocations made for A and B times the size of
+ *      uint32_t.
+ * Returns:
+ *   true if all setting variables in A have the same value in B; false
+ *   otherwise.
+ */
+extern bool ReGBA_AreMenuSettingsEqual(struct Menu* Menu, void* A, void* B);
+
+/*
  * Resolves the value of a setting that can be overridden in per-game
  * configuration.
  * 

@@ -558,14 +558,6 @@ static void quit_common()
 	if(IsGameLoaded)
 		update_backup_force();
 
-	ReGBA_SaveSettings("global_config", false);
-	if (IsGameLoaded)
-	{
-		char FileNameNoExt[MAX_PATH + 1];
-		GetFileNameNoExtension(FileNameNoExt, CurrentGamePath);
-		ReGBA_SaveSettings(FileNameNoExt, true);
-	}
-
 	SDL_Quit();
 }
 

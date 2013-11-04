@@ -68,6 +68,50 @@ static void Menu_ClearPerGameIterateRecurse(struct Menu *menu)
 	}
 }
 
+static uint32_t Menu_CountIterateRecurse(struct Menu *menu)
+{
+	struct MenuEntry *cur;
+	int i=0;
+	uint32_t Result = 0;
+
+	while ((cur = menu->Entries[i++])) {
+		switch (cur->Kind) {
+		case KIND_SUBMENU:
+			Result += Menu_CountIterateRecurse(cur->Target);
+			break;
+		case KIND_OPTION:
+			Result++;
+			break;
+		default:
+			break;
+		}
+	}
+	
+	return Result;
+}
+
+static void* Menu_PreserveIterateRecurse(struct Menu *menu, void* ptr)
+{
+	struct MenuEntry *cur;
+	int i=0;
+
+	while ((cur = menu->Entries[i++])) {
+		switch (cur->Kind) {
+		case KIND_SUBMENU:
+			ptr = Menu_PreserveIterateRecurse(cur->Target, ptr);
+			break;
+		case KIND_OPTION:
+			*(uint32_t *) ptr = *(uint32_t *) cur->Target;
+			ptr = (uint8_t *) ptr + sizeof(uint32_t);
+			break;
+		default:
+			break;
+		}
+	}
+	
+	return ptr;
+}
+
 static struct MenuEntry *Menu_FindByPersistentName(struct Menu *menu, char *name)
 {
 	struct MenuEntry *retcode = NULL;
@@ -258,6 +302,25 @@ void ReGBA_LoadSettings(char *cfg_name, bool PerGame)
 void ReGBA_ClearPerGameSettings()
 {
 	Menu_ClearPerGameIterateRecurse(MainMenu.AlternateVersion);
+}
+
+void* ReGBA_PreserveMenuSettings(struct Menu* Menu)
+{
+	uint32_t EntryCount = Menu_CountIterateRecurse(Menu);
+
+	void* Result = malloc(EntryCount * sizeof(uint32_t));
+	if (Result != NULL)
+	{
+		Menu_PreserveIterateRecurse(Menu, Result);
+	}
+	return Result;
+}
+
+bool ReGBA_AreMenuSettingsEqual(struct Menu* Menu, void* A, void* B)
+{
+	uint32_t EntryCount = Menu_CountIterateRecurse(Menu);
+
+	return memcmp(A, B, EntryCount * sizeof(uint32_t)) == 0;
 }
 
 uint32_t ResolveSetting(uint32_t GlobalValue, uint32_t PerGameValue)
