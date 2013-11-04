@@ -151,11 +151,6 @@ static void UpdateOpenDinguxButtons()
 				break;
 		}
 	}
-	
-	if ((LastButtons & OPENDINGUX_BUTTON_LEFT) && (LastButtons & OPENDINGUX_BUTTON_RIGHT))
-		LastButtons &= ~OPENDINGUX_BUTTON_LEFT;
-	if ((LastButtons & OPENDINGUX_BUTTON_UP) && (LastButtons & OPENDINGUX_BUTTON_DOWN))
-		LastButtons &= ~OPENDINGUX_BUTTON_UP;
 
 	LastButtons &= ~(OPENDINGUX_ANALOG_LEFT | OPENDINGUX_ANALOG_RIGHT
 	               | OPENDINGUX_ANALOG_UP | OPENDINGUX_ANALOG_DOWN);
@@ -248,6 +243,12 @@ enum ReGBA_Buttons ReGBA_GetPressedButtons()
 		if (LastButtons & OPENDINGUX_ANALOG_UP)    Result |= REGBA_BUTTON_UP;
 		if (LastButtons & OPENDINGUX_ANALOG_DOWN)  Result |= REGBA_BUTTON_DOWN;
 	}
+
+	if ((Result & REGBA_BUTTON_LEFT) && (Result & REGBA_BUTTON_RIGHT))
+		Result &= ~REGBA_BUTTON_LEFT;
+	if ((Result & REGBA_BUTTON_UP) && (Result & REGBA_BUTTON_DOWN))
+		Result &= ~REGBA_BUTTON_UP;
+
 	// The ReGBA Menu key should be pressed if ONLY the hotkey bound to it
 	// is pressed on the native device.
 	// This is not in ProcessSpecialKeys because REGBA_BUTTON_MENU needs to
