@@ -6,19 +6,21 @@ ReGBA, Emulador de la Game Boy Advance con recompilador
 1. Selección de ROM
 2. Jugar a un juego
 3. Entrando en el Menú Principal de ReGBA
-   a) Ajustes de Pantalla (Display Settings)
-   b) Ajustes de Entrada (Input Settings)
-   c) Teclas de Acceso Rápido (Hotkeys)
-   d) Estados Guardados (Saved States)
-   e) Rendimiento y Depuración (Performance and Debugging)
+   a) Configuración Individual (Per-Game Settings)
+   b) Ajustes de Pantalla (Display Settings)
+   c) Ajustes de Entrada (Input Settings)
+   d) Teclas de Acceso Rápido (Hotkeys)
+   e) Estados Guardados (Saved States)
+   f) Rendimiento y Depuración (Performance and Debugging)
 4. Archivos
    a) BIOS de GBA
    b) Borde para el modo sin escalado
    c) Configuración Global
    d) Datos de Juego
-   e) Partidas Salvadas
-   f) Estados Guardados
-   g) Base de datos de compatibilidad de juegos
+   e) Configuración Individual
+   f) Partidas Salvadas
+   g) Estados Guardados
+   h) Base de datos de compatibilidad de juegos
 5. Créditos
 6. Código Fuente
 
@@ -32,6 +34,9 @@ Los datos de las partidas se escriben un corto período de tiempo después de gu
 
 == Entrando en el Menú Principal de ReGBA ==
 Para salir correctamente ReGBA después de emular una ROM, o para cambiar la configuración del emulador, es necesario entrar en el menú principal de ReGBA. Por defecto, el botón frontal superior (Y en la GCW Zero, o X en la Dingoo A320) hace esto. Tiene que ser presionado sólamente ese botón; presionándolo mientras se pulsa cualquier otro botón no hará nada. Esto sirve para poder compartir diferentes funciones simultáneas en los mismos botones y no activar el menú principal por accidente.
+
+- Configuración Individual (Per-Game Settings) -
+En el Menú Principal o cualquier submenú que contenga opciones, se puede pulsar el botón Select para entrar a una versión del menú en la que se pueden hacer cambios en la configuración que solo afectan a la ROM actual. Pulse Select otra vez para volver a la versión del menú que configura los ajustes por defecto. El título del menú de configuración individual contendrá "for <nombre del juego>". Una vez que se hace una configuración individual para una ROM, un archivo de configuración individual será creado para esa ROM. Ver "Archivos" para mas información.
 
 - Ajustes de Pantalla (Display Settings) -
 > Boot from: "Cartridge ROM" no mostrará la pantalla del logotipo de GBA. "GBA BIOS" sí la mostrará. En la pantalla del logotipo de GBA puede aparecer "Normmatt" en el estilo del logotipo de Nintendo, o la pantalla del logotipo original de GBA. Vea la sección "Archivos" para obtener más información.
@@ -73,6 +78,9 @@ La configuración global se guarda en ~/.gpsp/global_config.cfg (donde ~ represe
 
 - Datos de Juego -
 Los archivos de datos de juego se guardan con el nombre del archivo que contiene la ROM de GBA, con su extensión cambiada. Si la ROM de GBA se cargó desde un archivo ZIP, los archivos de datos utilizan el nombre del archivo ZIP, y no el nombre del archivo dentro del ZIP. Todos los archivos se guardan en ~/.gpsp (donde ~ representa $HOME).
+
+- Configuración Individual -
+Los cambios individuales de la configuración para cada juego en particular. Utilizan la extensión ".cfg".
 
 - Partidas Salvadas -
 También conocidas como "SRAM saves", "battery saves" y "flash saves", las partidas salvadas son más compatibles que los savestates, ya que son utilizados por los juegos en sí para recargar su estado. Se pueden utilizar estos archivos en otros emuladores de Game Boy Advance, y usar archivos de otros emuladores de Game Boy Avance en ReGBA (siempre que tengan el tamaño que ReGBA espera). Utilizan la extensión ".sav".
