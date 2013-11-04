@@ -6,19 +6,21 @@ ReGBA, Recompiling Emulator for the Game Boy Advance
 1. Selecting a ROM
 2. Playing a game
 3. Entering the ReGBA Main Menu
-   a) Display Settings
-   b) Input Settings
-   c) Hotkeys
-   d) Saved States
-   e) Performance and Debugging
+   a) Using per-game settings
+   b) Display Settings
+   c) Input Settings
+   d) Hotkeys
+   e) Saved States
+   f) Performance and Debugging
 4. Files
    a) GBA BIOS
    b) Unscaled mode border
    c) Global configuration
    d) Per-game data
-   e) Saved data
-   f) Saved states
-   g) Game compatibility database
+   e) Per-game configuration
+   f) Saved data
+   g) Saved states
+   h) Game compatibility database
 5. Credits
 6. Source code
 
@@ -32,6 +34,9 @@ Saved data is written a short period of time after saving in a GBA game's menus,
 
 == Entering the ReGBA Main Menu ==
 To properly leave ReGBA after emulating a ROM, or to change settings for emulation, you need to enter the ReGBA Main Menu. By default, the top face button (Y on the GCW Zero, or X on the Dingoo A320) does this. It needs to be pressed on its own; pressing it while any other button is pressed will not do anything. This is to allow hotkeys to use the same buttons and not trigger the Main Menu.
+
+- Using per-game settings -
+In the Main Menu or any submenu containing options, you can press the Select key to enter a variation of the menu in which you can make changes to the options only for the current ROM. Press Select again to return to the variation of the menu that affects the defaults. The title of the per-game menu will contain "for <game name>". Once you make the first override, a per-game configuration will be created. See 'Files' for more information.
 
 - Display Settings -
 > Boot from: "Cartridge ROM" does not show the GBA logo screen. "GBA BIOS" does. The GBA logo screen can be either 'Normmatt' in the Nintendo logo style, or the real GBA logo screen. See the 'Files' section for more information.
@@ -73,6 +78,9 @@ The global configuration is saved to ~/.gpsp/global_config.cfg (where ~ represen
 
 - Per-game data -
 Per-game data files are saved with the name of the file containing the GBA ROM, with their extension replaced. If the GBA ROM was loaded from a ZIP archive, then the data files use the name of the ZIP archive, not the name of the file inside the archive. All files are saved into ~/.gpsp (where ~ represents $HOME).
+
+- Per-game configuration -
+The per-game configuration saves overrides made to the defaults for single games. They use the extension 'cfg'.
 
 - Saved data -
 Also known as SRAM saves, battery saves and flash saves, saved data files are more portable than saved states, as they are used by the games themselves to reload their state. You can use these files on other Game Boy Advance emulators, and use these files from other Game Boy Advance emulators in ReGBA (provided they have the size ReGBA expects - create an empty save on the game on ReGBA to see which size it expects, and pad it accordingly using a hex editor on a PC). They use the extension 'sav'.
