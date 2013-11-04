@@ -1,6 +1,14 @@
 #ifndef __REGBA_GUI_H__
 #define __REGBA_GUI_H__
 
+#ifdef GIT_VERSION
+#  define STRINGIFY(x) XSTRINGIFY(x)
+#  define XSTRINGIFY(x) #x
+#  define GIT_VERSION_STRING STRINGIFY(GIT_VERSION)
+#endif
+
+#define REGBA_VERSION_STRING "1.45"
+
 enum MenuEntryKind {
 	KIND_OPTION,
 	KIND_SUBMENU,

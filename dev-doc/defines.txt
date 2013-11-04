@@ -55,6 +55,9 @@ The following options are also available on the OpenDingux ports:
   If compiled with this option, ReGBA will emit trace information when memory
   is being mapped, unmapped, loaded on demand, or allocated or deallocated for
   a compressed ROM.
+* GIT_VERSION, version variable.
+  The OpenDingux ports use the value of this variable to show the Git commit
+  hash of the version being compiled.
 
 The following trace options are available on all platforms:
 

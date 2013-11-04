@@ -946,6 +946,17 @@ static void ActionSavedStateDelete(struct Menu** ActiveMenu, uint32_t* ActiveMen
 	SavedStateUpdatePreview(*ActiveMenu);
 }
 
+static void ActionShowVersion(struct Menu** ActiveMenu, uint32_t* ActiveMenuEntryIndex)
+{
+	char Text[1024];
+#ifdef GIT_VERSION_STRING
+	sprintf(Text, "ReGBA version %s\nNebuleon/ReGBA commit %s", REGBA_VERSION_STRING, GIT_VERSION_STRING);
+#else
+	sprintf(Text, "ReGBA version %s", REGBA_VERSION_STRING);
+#endif
+	GrabButtons(*ActiveMenu, Text);
+}
+
 // -- Strut --
 
 static bool CanNeverFocusFunction(struct Menu* ActiveMenu, struct MenuEntry* ActiveMenuEntry)
@@ -1115,6 +1126,11 @@ static struct MenuEntry DebugMenu_ROMInfo = {
 	ENTRY_SUBMENU("ROM information...", &ROMInfoMenu)
 };
 
+static struct MenuEntry DebugMenu_VersionInfo = {
+	.Kind = KIND_CUSTOM, .Name = "ReGBA version information...",
+	.ButtonEnterFunction = &ActionShowVersion
+};
+
 // -- Debug --
 
 static struct Menu DebugMenu = {
@@ -1123,7 +1139,7 @@ static struct Menu DebugMenu = {
 #ifdef PERFORMANCE_IMPACTING_STATISTICS
 	, &DebugMenu_Reuse
 #endif
-	, &Strut, &DebugMenu_ROMInfo, NULL }
+	, &Strut, &DebugMenu_ROMInfo, &Strut, &DebugMenu_VersionInfo, NULL }
 };
 
 // -- Display Settings --
