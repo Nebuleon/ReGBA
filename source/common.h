@@ -576,16 +576,20 @@ void ReGBA_ProgressFinalise();
  * Saves the emulator settings.
  * Input:
  *   File: Extension-less file name of the settings. global_config/gamename
+ *   PerGame: true if the settings to be saved are the per-game settings;
+ *     false if the settings to be saved are the global settings.
+ * Returns
+ *   Bool: false for failures, true for successful saving.
  */
-bool ReGBA_SaveSettings(char *cfg_name);
+bool ReGBA_SaveSettings(char *cfg_name, bool PerGame);
 
 /*
  * Load the emulator settings.
  * Input:
  *   File: Extension-less file name of the settings. global_config/gamename
- * Returns
- *   Bool: false for failures, true for successful loading.
+ *   PerGame: true if the settings to be loaded are the per-game settings;
+ *     false if the settings to be loaded are the global settings.
  */
-void ReGBA_LoadSettings(char *cfg_name);
+void ReGBA_LoadSettings(char *cfg_name, bool PerGame);
 
 #endif /* COMMON_H */

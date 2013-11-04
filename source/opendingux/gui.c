@@ -32,6 +32,9 @@
 
 // -- Shorthand for creating menu entries --
 
+#define MENU_PER_GAME \
+	.DisplayTitleFunction = DisplayPerGameTitleFunction
+
 #define ENTRY_OPTION(_PersistentName, _Name, _Target) \
 	.Kind = KIND_OPTION, .PersistentName = _PersistentName, .Name = _Name, .Target = _Target
 
@@ -71,6 +74,10 @@ static uint32_t SelectedState = 0;
 
 // -- Forward declarations --
 
+static struct Menu PerGameMainMenu;
+static struct Menu DisplayMenu;
+static struct Menu InputMenu;
+static struct Menu HotkeyMenu;
 static struct Menu ErrorScreen;
 static struct Menu DebugMenu;
 
@@ -332,6 +339,16 @@ static void DefaultDisplayDataFunction(struct Menu* ActiveMenu, struct MenuEntry
 static void DefaultDisplayTitleFunction(struct Menu* ActiveMenu)
 {
 	PrintStringOutline(ActiveMenu->Title, COLOR_TITLE_TEXT, COLOR_TITLE_OUTLINE, OutputSurface->pixels, OutputSurface->pitch, 0, 0, GCW0_SCREEN_WIDTH, GCW0_SCREEN_HEIGHT, CENTER, TOP);
+}
+
+static void DisplayPerGameTitleFunction(struct Menu* ActiveMenu)
+{
+	PrintStringOutline(ActiveMenu->Title, COLOR_TITLE_TEXT, COLOR_TITLE_OUTLINE, OutputSurface->pixels, OutputSurface->pitch, 0, 0, GCW0_SCREEN_WIDTH, GCW0_SCREEN_HEIGHT, CENTER, TOP);
+	char ForGame[MAX_PATH * 2];
+	char FileNameNoExt[MAX_PATH + 1];
+	GetFileNameNoExtension(FileNameNoExt, CurrentGamePath);
+	sprintf(ForGame, "for %s", FileNameNoExt);
+	PrintStringOutline(ForGame, COLOR_TITLE_TEXT, COLOR_TITLE_OUTLINE, OutputSurface->pixels, OutputSurface->pitch, 0, GetRenderedHeight(" "), GCW0_SCREEN_WIDTH, GetRenderedHeight(" ") + 2, CENTER, TOP);
 }
 
 void DefaultLoadFunction(struct MenuEntry* ActiveMenuEntry, char* Value)
@@ -1108,91 +1125,169 @@ static struct Menu DebugMenu = {
 
 // -- Display Settings --
 
+static struct MenuEntry PerGameDisplayMenu_BootSource = {
+	ENTRY_OPTION("boot_from", "Boot from", &PerGameBootFromBIOS),
+	.ChoiceCount = 3, .Choices = { { "No override", "" }, { "Cartridge ROM", "cartridge" }, { "GBA BIOS", "gba_bios" } }
+};
 static struct MenuEntry DisplayMenu_BootSource = {
 	ENTRY_OPTION("boot_from", "Boot from", &BootFromBIOS),
 	.ChoiceCount = 2, .Choices = { { "Cartridge ROM", "cartridge" }, { "GBA BIOS", "gba_bios" } }
 };
 
+static struct MenuEntry PerGameDisplayMenu_FPSCounter = {
+	ENTRY_OPTION("fps_counter", "FPS counter", &PerGameShowFPS),
+	.ChoiceCount = 3, .Choices = { { "No override", "" }, { "Hide", "hide" }, { "Show", "show" } }
+};
 static struct MenuEntry DisplayMenu_FPSCounter = {
 	ENTRY_OPTION("fps_counter", "FPS counter", &ShowFPS),
 	.ChoiceCount = 2, .Choices = { { "Hide", "hide" }, { "Show", "show" } }
 };
 
+static struct MenuEntry PerGameDisplayMenu_ScaleMode = {
+	ENTRY_OPTION("image_size", "Image scaling", &PerGameScaleMode),
+	.ChoiceCount = 4, .Choices = { { "No override", "" }, { "Aspect", "aspect" }, { "Full", "fullscreen" }, { "None", "original" } }
+};
 static struct MenuEntry DisplayMenu_ScaleMode = {
 	ENTRY_OPTION("image_size", "Image scaling", &ScaleMode),
 	.ChoiceCount = 3, .Choices = { { "Aspect", "aspect" }, { "Full", "fullscreen" }, { "None", "original" } }
 };
 
+static struct MenuEntry PerGameDisplayMenu_Frameskip = {
+	ENTRY_OPTION("frameskip", "Frame skipping", &PerGameUserFrameskip),
+	.ChoiceCount = 6, .Choices = { { "No override", "" }, { "Automatic", "auto" }, { "0 (~60 FPS)", "0" }, { "1 (~30 FPS)", "1" }, { "2 (~20 FPS)", "2" }, { "3 (~15 FPS)", "3" } }
+};
 static struct MenuEntry DisplayMenu_Frameskip = {
 	ENTRY_OPTION("frameskip", "Frame skipping", &UserFrameskip),
 	.ChoiceCount = 5, .Choices = { { "Automatic", "auto" }, { "0 (~60 FPS)", "0" }, { "1 (~30 FPS)", "1" }, { "2 (~20 FPS)", "2" }, { "3 (~15 FPS)", "3" } }
 };
 
+static struct MenuEntry PerGameDisplayMenu_FastForwardTarget = {
+	ENTRY_OPTION("fast_forward_target", "Fast-forward target", &PerGameFastForwardTarget),
+	.ChoiceCount = 6, .Choices = { { "No override", "" }, { "2x (~120 FPS)", "2" }, { "3x (~180 FPS)", "3" }, { "4x (~240 FPS)", "4" }, { "5x (~300 FPS)", "5" }, { "6x (~360 FPS)", "6" } }
+};
 static struct MenuEntry DisplayMenu_FastForwardTarget = {
 	ENTRY_OPTION("fast_forward_target", "Fast-forward target", &FastForwardTarget),
 	.ChoiceCount = 5, .Choices = { { "2x (~120 FPS)", "2" }, { "3x (~180 FPS)", "3" }, { "4x (~240 FPS)", "4" }, { "5x (~300 FPS)", "5" }, { "6x (~360 FPS)", "6" } }
 };
 
+static struct Menu PerGameDisplayMenu = {
+	.Parent = &PerGameMainMenu, .Title = "Display settings",
+	MENU_PER_GAME,
+	.AlternateVersion = &DisplayMenu,
+	.Entries = { &PerGameDisplayMenu_BootSource, &PerGameDisplayMenu_FPSCounter, &PerGameDisplayMenu_ScaleMode, &PerGameDisplayMenu_Frameskip, &PerGameDisplayMenu_FastForwardTarget, NULL }
+};
 static struct Menu DisplayMenu = {
 	.Parent = &MainMenu, .Title = "Display settings",
-	.Entries = { &DisplayMenu_BootSource, &DisplayMenu_FPSCounter, &DisplayMenu_ScaleMode, &DisplayMenu_Frameskip, &DisplayMenu_FastForwardTarget }
+	.AlternateVersion = &PerGameDisplayMenu,
+	.Entries = { &DisplayMenu_BootSource, &DisplayMenu_FPSCounter, &DisplayMenu_ScaleMode, &DisplayMenu_Frameskip, &DisplayMenu_FastForwardTarget, NULL }
 };
 
 // -- Input Settings --
+static struct MenuEntry PerGameInputMenu_A = {
+	ENTRY_OPTION("gba_a", "GBA A", &PerGameKeypadRemapping[0]),
+	ENTRY_OPTIONAL_MAPPING
+};
 static struct MenuEntry InputMenu_A = {
 	ENTRY_OPTION("gba_a", "GBA A", &KeypadRemapping[0]),
 	ENTRY_MANDATORY_MAPPING
 };
 
+static struct MenuEntry PerGameInputMenu_B = {
+	ENTRY_OPTION("gba_b", "GBA B", &PerGameKeypadRemapping[1]),
+	ENTRY_OPTIONAL_MAPPING
+};
 static struct MenuEntry InputMenu_B = {
 	ENTRY_OPTION("gba_b", "GBA B", &KeypadRemapping[1]),
 	ENTRY_MANDATORY_MAPPING
 };
 
+static struct MenuEntry PerGameInputMenu_Start = {
+	ENTRY_OPTION("gba_start", "GBA Start", &PerGameKeypadRemapping[3]),
+	ENTRY_OPTIONAL_MAPPING
+};
 static struct MenuEntry InputMenu_Start = {
 	ENTRY_OPTION("gba_start", "GBA Start", &KeypadRemapping[3]),
 	ENTRY_MANDATORY_MAPPING
 };
 
+static struct MenuEntry PerGameInputMenu_Select = {
+	ENTRY_OPTION("gba_select", "GBA Select", &PerGameKeypadRemapping[2]),
+	ENTRY_OPTIONAL_MAPPING
+};
 static struct MenuEntry InputMenu_Select = {
 	ENTRY_OPTION("gba_select", "GBA Select", &KeypadRemapping[2]),
 	ENTRY_MANDATORY_MAPPING
 };
 
+static struct MenuEntry PerGameInputMenu_L = {
+	ENTRY_OPTION("gba_l", "GBA L", &PerGameKeypadRemapping[9]),
+	ENTRY_OPTIONAL_MAPPING
+};
 static struct MenuEntry InputMenu_L = {
 	ENTRY_OPTION("gba_l", "GBA L", &KeypadRemapping[9]),
 	ENTRY_MANDATORY_MAPPING
 };
 
+static struct MenuEntry PerGameInputMenu_R = {
+	ENTRY_OPTION("gba_r", "GBA R", &PerGameKeypadRemapping[8]),
+	ENTRY_OPTIONAL_MAPPING
+};
 static struct MenuEntry InputMenu_R = {
 	ENTRY_OPTION("gba_r", "GBA R", &KeypadRemapping[8]),
 	ENTRY_MANDATORY_MAPPING
 };
 
+static struct MenuEntry PerGameInputMenu_RapidA = {
+	ENTRY_OPTION("rapid_a", "Rapid-fire A", &PerGameKeypadRemapping[10]),
+	ENTRY_OPTIONAL_MAPPING
+};
 static struct MenuEntry InputMenu_RapidA = {
 	ENTRY_OPTION("rapid_a", "Rapid-fire A", &KeypadRemapping[10]),
 	ENTRY_OPTIONAL_MAPPING
 };
 
+static struct MenuEntry PerGameInputMenu_RapidB = {
+	ENTRY_OPTION("rapid_b", "Rapid-fire B", &PerGameKeypadRemapping[11]),
+	ENTRY_OPTIONAL_MAPPING
+};
 static struct MenuEntry InputMenu_RapidB = {
 	ENTRY_OPTION("rapid_b", "Rapid-fire B", &KeypadRemapping[11]),
 	ENTRY_OPTIONAL_MAPPING
 };
 
 #ifdef GCW_ZERO
+static struct MenuEntry PerGameInputMenu_AnalogSensitivity = {
+	ENTRY_OPTION("analog_sensitivity", "Analog sensitivity", &PerGameAnalogSensitivity),
+	.ChoiceCount = 6, .Choices = { { "No override", "" }, { "Very low", "lowest" }, { "Low", "low" }, { "Medium", "medium" }, { "High", "high" }, { "Very high", "highest" } }
+};
 static struct MenuEntry InputMenu_AnalogSensitivity = {
 	ENTRY_OPTION("analog_sensitivity", "Analog sensitivity", &AnalogSensitivity),
 	.ChoiceCount = 5, .Choices = { { "Very low", "lowest" }, { "Low", "low" }, { "Medium", "medium" }, { "High", "high" }, { "Very high", "highest" } }
 };
 
+static struct MenuEntry PerGameInputMenu_AnalogAction = {
+	ENTRY_OPTION("analog_action", "Analog in-game binding", &PerGameAnalogAction),
+	.ChoiceCount = 3, .Choices = { { "No override", "" }, { "None", "none" }, { "GBA D-pad", "dpad" } }
+};
 static struct MenuEntry InputMenu_AnalogAction = {
 	ENTRY_OPTION("analog_action", "Analog in-game binding", &AnalogAction),
 	.ChoiceCount = 2, .Choices = { { "None", "none" }, { "GBA D-pad", "dpad" } }
 };
 #endif
 
+static struct Menu PerGameInputMenu = {
+	.Parent = &PerGameMainMenu, .Title = "Input settings",
+	MENU_PER_GAME,
+	.AlternateVersion = &InputMenu,
+	.Entries = { &PerGameInputMenu_A, &PerGameInputMenu_B, &PerGameInputMenu_Start, &PerGameInputMenu_Select, &PerGameInputMenu_L, &PerGameInputMenu_R, &PerGameInputMenu_RapidA, &PerGameInputMenu_RapidB
+#ifdef GCW_ZERO
+	, &Strut, &PerGameInputMenu_AnalogSensitivity, &PerGameInputMenu_AnalogAction
+#endif
+	, NULL }
+};
 static struct Menu InputMenu = {
 	.Parent = &MainMenu, .Title = "Input settings",
+	.AlternateVersion = &PerGameInputMenu,
 	.Entries = { &InputMenu_A, &InputMenu_B, &InputMenu_Start, &InputMenu_Select, &InputMenu_L, &InputMenu_R, &InputMenu_RapidA, &InputMenu_RapidB
 #ifdef GCW_ZERO
 	, &Strut, &InputMenu_AnalogSensitivity, &InputMenu_AnalogAction
@@ -1202,6 +1297,10 @@ static struct Menu InputMenu = {
 
 // -- Hotkeys --
 
+static struct MenuEntry PerGameHotkeyMenu_FastForward = {
+	ENTRY_OPTION("hotkey_fast_forward", "Fast-forward while held", &PerGameHotkeys[0]),
+	ENTRY_OPTIONAL_HOTKEY
+};
 static struct MenuEntry HotkeyMenu_FastForward = {
 	ENTRY_OPTION("hotkey_fast_forward", "Fast-forward while held", &Hotkeys[0]),
 	ENTRY_OPTIONAL_HOTKEY
@@ -1212,23 +1311,42 @@ static struct MenuEntry HotkeyMenu_Menu = {
 	ENTRY_MANDATORY_HOTKEY
 };
 
+static struct MenuEntry PerGameHotkeyMenu_FastForwardToggle = {
+	ENTRY_OPTION("hotkey_fast_forward_toggle", "Fast-forward toggle", &PerGameHotkeys[2]),
+	ENTRY_OPTIONAL_HOTKEY
+};
 static struct MenuEntry HotkeyMenu_FastForwardToggle = {
 	ENTRY_OPTION("hotkey_fast_forward_toggle", "Fast-forward toggle", &Hotkeys[2]),
 	ENTRY_OPTIONAL_HOTKEY
 };
 
+static struct MenuEntry PerGameHotkeyMenu_QuickLoadState = {
+	ENTRY_OPTION("hotkey_quick_load_state", "Quick load state #1", &PerGameHotkeys[3]),
+	ENTRY_OPTIONAL_HOTKEY
+};
 static struct MenuEntry HotkeyMenu_QuickLoadState = {
 	ENTRY_OPTION("hotkey_quick_load_state", "Quick load state #1", &Hotkeys[3]),
 	ENTRY_OPTIONAL_HOTKEY
 };
 
+static struct MenuEntry PerGameHotkeyMenu_QuickSaveState = {
+	ENTRY_OPTION("hotkey_quick_save_state", "Quick save state #1", &PerGameHotkeys[4]),
+	ENTRY_OPTIONAL_HOTKEY
+};
 static struct MenuEntry HotkeyMenu_QuickSaveState = {
 	ENTRY_OPTION("hotkey_quick_save_state", "Quick save state #1", &Hotkeys[4]),
 	ENTRY_OPTIONAL_HOTKEY
 };
 
+static struct Menu PerGameHotkeyMenu = {
+	.Parent = &PerGameMainMenu, .Title = "Hotkeys",
+	MENU_PER_GAME,
+	.AlternateVersion = &HotkeyMenu,
+	.Entries = { &Strut, &PerGameHotkeyMenu_FastForward, &PerGameHotkeyMenu_FastForwardToggle, &PerGameHotkeyMenu_QuickLoadState, &PerGameHotkeyMenu_QuickSaveState, NULL }
+};
 static struct Menu HotkeyMenu = {
 	.Parent = &MainMenu, .Title = "Hotkeys",
+	.AlternateVersion = &PerGameHotkeyMenu,
 	.Entries = { &HotkeyMenu_Menu, &HotkeyMenu_FastForward, &HotkeyMenu_FastForwardToggle, &HotkeyMenu_QuickLoadState, &HotkeyMenu_QuickSaveState, NULL }
 };
 
@@ -1266,14 +1384,23 @@ static struct Menu SavedStateMenu = {
 
 // -- Main Menu --
 
+static struct MenuEntry PerGameMainMenu_Display = {
+	ENTRY_SUBMENU("Display settings...", &PerGameDisplayMenu)
+};
 static struct MenuEntry MainMenu_Display = {
 	ENTRY_SUBMENU("Display settings...", &DisplayMenu)
 };
 
+static struct MenuEntry PerGameMainMenu_Input = {
+	ENTRY_SUBMENU("Input settings...", &PerGameInputMenu)
+};
 static struct MenuEntry MainMenu_Input = {
 	ENTRY_SUBMENU("Input settings...", &InputMenu)
 };
 
+static struct MenuEntry PerGameMainMenu_Hotkey = {
+	ENTRY_SUBMENU("Hotkeys...", &PerGameHotkeyMenu)
+};
 static struct MenuEntry MainMenu_Hotkey = {
 	ENTRY_SUBMENU("Hotkeys...", &HotkeyMenu)
 };
@@ -1301,8 +1428,15 @@ static struct MenuEntry MainMenu_Exit = {
 	.ButtonEnterFunction = &ActionExit
 };
 
+static struct Menu PerGameMainMenu = {
+	.Parent = NULL, .Title = "ReGBA Main Menu",
+	MENU_PER_GAME,
+	.AlternateVersion = &MainMenu,
+	.Entries = { &PerGameMainMenu_Display, &PerGameMainMenu_Input, &PerGameMainMenu_Hotkey, &Strut, &Strut, &Strut, &Strut, &Strut, &Strut, &MainMenu_Reset, &MainMenu_Return, &MainMenu_Exit, NULL }
+};
 struct Menu MainMenu = {
 	.Parent = NULL, .Title = "ReGBA Main Menu",
+	.AlternateVersion = &PerGameMainMenu,
 	.Entries = { &MainMenu_Display, &MainMenu_Input, &MainMenu_Hotkey, &Strut, &MainMenu_SavedStates, &Strut, &Strut, &MainMenu_Debug, &Strut, &MainMenu_Reset, &MainMenu_Return, &MainMenu_Exit, NULL }
 };
 
@@ -1410,7 +1544,12 @@ u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason)
 					(*ButtonRightFunction)(ActiveMenu, ActiveMenu->Entries[ActiveMenu->ActiveEntryIndex]);
 				}
 				break;
-			
+
+			case GUI_ACTION_ALTERNATE:
+				if (IsGameLoaded && ActiveMenu->AlternateVersion != NULL)
+					ActiveMenu = ActiveMenu->AlternateVersion;
+				break;
+
 			default:
 				break;
 		}

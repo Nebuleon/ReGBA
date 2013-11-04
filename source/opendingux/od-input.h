@@ -50,6 +50,7 @@ enum GUI_Action {
 	GUI_ACTION_RIGHT,
 	GUI_ACTION_ENTER,
 	GUI_ACTION_LEAVE,
+	GUI_ACTION_ALTERNATE,
 };
 
 // 0 if not fast-forwarding.
@@ -63,17 +64,20 @@ extern uint_fast8_t FastForwardFrameskip;
 
 // The number of times to target while fast-forwarding is enabled. (UI option)
 // 0 means 2x, 1 means 3x, ... 4 means 6x.
+extern uint32_t PerGameFastForwardTarget;
 extern uint32_t FastForwardTarget;
 
 // A value indicating how sensitive the analog stick is to being moved in a
 // direction.
 // 0 is the least sensitive, requiring the axis to be fully engaged.
 // 4 is the most sensitive, requiring the axis to be lightly tapped.
+extern uint32_t PerGameAnalogSensitivity;
 extern uint32_t AnalogSensitivity;
 
 // A value indicating what the analog stick does in a game.
 // 0 means nothing special is done (but hotkeys may use the axes).
 // 1 means the analog stick is mapped to the GBA d-pad.
+extern uint32_t PerGameAnalogAction;
 extern uint32_t AnalogAction;
 
 // If this is greater than 0, a frame and its audio are skipped.
@@ -104,7 +108,8 @@ extern int16_t GetVerticalAxisValue();
  *   yet passed since the last automatic repeat of the same button.
  * Output assertions:
  *   a) The return value is a valid member of 'enum GUI_Action'.
- *   b) The priority order is Enter (sub-menu), Leave, Down, Up, Right, Left.
+ *   b) The priority order is Enter (sub-menu), Leave, Down, Up, Right, Left,
+ *      Alternate.
  *      For example, if the user had pressed Down, and now presses Enter+Down,
  *      Down's repeating is stopped while Enter is held.
  *      If the user had pressed Enter, and now presses Enter+Down, Down is
@@ -135,6 +140,7 @@ extern const enum OpenDingux_Buttons DefaultKeypadRemapping[12];
 // GBA L trigger
 // ReGBA rapid-fire A
 // [11] = ReGBA rapid-fire B
+extern enum OpenDingux_Buttons PerGameKeypadRemapping[12];
 extern enum OpenDingux_Buttons KeypadRemapping[12];
 
 // The OpenDingux_Buttons (as bitfields) for hotkeys.
@@ -143,6 +149,7 @@ extern enum OpenDingux_Buttons KeypadRemapping[12];
 // Fast-forward toggle
 // Quick load state #1
 // [4] = Quick save state #1
+extern enum OpenDingux_Buttons PerGameHotkeys[5];
 extern enum OpenDingux_Buttons Hotkeys[5];
 
 /*

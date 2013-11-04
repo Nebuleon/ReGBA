@@ -168,7 +168,7 @@ int main(int argc, char *argv[])
   sprintf(main_path, "%s/.gpsp", getenv("HOME"));
   mkdir(main_path, 0755);
 
-  ReGBA_LoadSettings("global_config");
+  ReGBA_LoadSettings("global_config", false);
 #if 0
   load_config_file();
 #endif
@@ -229,6 +229,12 @@ int main(int argc, char *argv[])
 			error_quit();
 		}
 
+		if (IsGameLoaded)
+		{
+			char FileNameNoExt[MAX_PATH + 1];
+			GetFileNameNoExtension(FileNameNoExt, CurrentGamePath);
+			ReGBA_LoadSettings(FileNameNoExt, true);
+		}
 #if 0
 	init_input();
 
@@ -236,7 +242,7 @@ int main(int argc, char *argv[])
     video_resolution_small();
 #endif
 
-    init_cpu(BootFromBIOS /* in port.c */);
+    init_cpu(ResolveSetting(BootFromBIOS, PerGameBootFromBIOS) /* in port.c */);
   }
   else
   {
@@ -264,7 +270,7 @@ int main(int argc, char *argv[])
       video_resolution_small();
       clear_screen(0);
       flip_screen();
-      init_cpu(BootFromBIOS /* in port.c */);
+      init_cpu(ResolveSetting(BootFromBIOS, PerGameBootFromBIOS) /* in port.c */);
     }
 #endif
   }
@@ -547,35 +553,39 @@ void synchronize()
 }
 #endif
 
+static void quit_common()
+{
+	if(IsGameLoaded)
+		update_backup_force();
+
+	ReGBA_SaveSettings("global_config", false);
+	if (IsGameLoaded)
+	{
+		char FileNameNoExt[MAX_PATH + 1];
+		GetFileNameNoExtension(FileNameNoExt, CurrentGamePath);
+		ReGBA_SaveSettings(FileNameNoExt, true);
+	}
+
+	SDL_Quit();
+}
+
 void quit()
 {
-  if(IsGameLoaded)
-    update_backup_force();
-
-  ReGBA_SaveSettings("global_config");
-
-  SDL_Quit();
-
-  exit(0);
+	quit_common();
+	exit(0);
 }
 
 void error_quit()
 {
-  if(IsGameLoaded)
-    update_backup_force();
-
-  ReGBA_SaveSettings("global_config");
-
-  SDL_Quit();
-
-  exit(1);
+	quit_common();
+	exit(1);
 }
 
 void reset_gba()
 {
   init_main();
   init_memory();
-  init_cpu(BootFromBIOS /* in port.c */);
+  init_cpu(ResolveSetting(BootFromBIOS, PerGameBootFromBIOS) /* in port.c */);
   reset_sound();
 }
 

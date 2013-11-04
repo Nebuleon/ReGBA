@@ -73,10 +73,14 @@ typedef struct timespec timespec;
 #include "imageio.h"
 #include "unifont.h"
 
+extern uint32_t PerGameBootFromBIOS;
 extern uint32_t BootFromBIOS;
+extern uint32_t PerGameShowFPS;
 extern uint32_t ShowFPS;
+extern uint32_t PerGameUserFrameskip;
 extern uint32_t UserFrameskip;
 
 extern struct timespec TimeDifference(struct timespec Past, struct timespec Present);
+extern void GetFileNameNoExtension(char* Result, const char* Path);
 
 #endif

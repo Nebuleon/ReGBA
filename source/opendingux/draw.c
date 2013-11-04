@@ -43,6 +43,7 @@ SDL_Rect ScreenRectangle = {
 	0, 0, GCW0_SCREEN_WIDTH, GCW0_SCREEN_HEIGHT
 };
 
+video_scale_type PerGameScaleMode = 0;
 video_scale_type ScaleMode = scaled_aspect;
 
 #define COLOR_PROGRESS_BACKGROUND   RGB888_TO_RGB565(  0,   0,   0)
@@ -583,7 +584,6 @@ void ApplyScaleMode(video_scale_type NewMode)
 		case fullscreen:
 			break;
 	}
-	ScaleMode = NewMode;
 }
 
 void ScaleModeUnapplied()
@@ -597,12 +597,13 @@ void ReGBA_RenderScreen(void)
 	{
 		Stats.TotalRenderedFrames++;
 		Stats.RenderedFrames++;
+		video_scale_type ResolvedScaleMode = ResolveSetting(ScaleMode, PerGameScaleMode);
 		if (FramesBordered < 3)
 		{
-			ApplyScaleMode(ScaleMode);
+			ApplyScaleMode(ResolvedScaleMode);
 			FramesBordered++;
 		}
-		switch (ScaleMode)
+		switch (ResolvedScaleMode)
 		{
 			case unscaled:
 				gba_render(OutputSurface->pixels, GBAScreen, GBAScreenSurface->pitch, OutputSurface->pitch);
@@ -661,10 +662,11 @@ void ReGBA_RenderScreen(void)
 	else
 	{
 		FastForwardFrameskipControl = FastForwardFrameskip;
-		if (UserFrameskip != 0)
+		uint32_t ResolvedUserFrameskip = ResolveSetting(UserFrameskip, PerGameUserFrameskip);
+		if (ResolvedUserFrameskip != 0)
 		{
 			if (UserFrameskipControl == 0)
-				UserFrameskipControl = UserFrameskip - 1;
+				UserFrameskipControl = ResolvedUserFrameskip - 1;
 			else
 				UserFrameskipControl--;
 		}

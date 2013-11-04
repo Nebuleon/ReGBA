@@ -132,6 +132,10 @@ struct MenuEntry {
 struct Menu {
 	struct Menu* Parent;
 	char* Title;
+	// The alternate version of a menu is the per-game version of the menu
+	// if the menu itself is the global version of it, and vice versa.
+	// The alternation is made with GUI_ACTION_ALTERNATE (Select).
+	struct Menu* AlternateVersion;
 	MenuFunction DisplayBackgroundFunction;
 	MenuFunction DisplayTitleFunction;
 	MenuEntryFunction DisplayDataFunction;

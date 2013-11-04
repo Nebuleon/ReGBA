@@ -49,6 +49,25 @@ static void Menu_SaveIterateRecurse(FILE_TAG_TYPE fd, struct Menu *menu)
 	}
 }
 
+static void Menu_ClearPerGameIterateRecurse(struct Menu *menu)
+{
+	struct MenuEntry *cur;
+	int i=0;
+
+	while ((cur = menu->Entries[i++])) {
+		switch (cur->Kind) {
+		case KIND_SUBMENU:
+			Menu_ClearPerGameIterateRecurse(cur->Target);
+			break;
+		case KIND_OPTION:
+			*(uint32_t *) cur->Target = 0;
+			break;
+		default:
+			break;
+		}
+	}
+}
+
 static struct MenuEntry *Menu_FindByPersistentName(struct Menu *menu, char *name)
 {
 	struct MenuEntry *retcode = NULL;
@@ -74,7 +93,7 @@ static struct MenuEntry *Menu_FindByPersistentName(struct Menu *menu, char *name
 	return retcode;
 }
 
-bool ReGBA_SaveSettings(char *cfg_name)
+bool ReGBA_SaveSettings(char *cfg_name, bool PerGame)
 {
 	char fname[MAX_PATH + 1];
 	if (strlen(main_path) + strlen(cfg_name) + 5 /* / .cfg */ > MAX_PATH)
@@ -85,11 +104,11 @@ bool ReGBA_SaveSettings(char *cfg_name)
 	sprintf(fname, "%s/%s.cfg", main_path, cfg_name);
 	FILE_TAG_TYPE fd;
 
-	ReGBA_ProgressInitialise(FILE_ACTION_SAVE_GLOBAL_SETTINGS);
+	ReGBA_ProgressInitialise(PerGame ? FILE_ACTION_SAVE_GAME_SETTINGS : FILE_ACTION_SAVE_GLOBAL_SETTINGS);
 
 	FILE_OPEN(fd, fname, WRITE);
 	if(FILE_CHECK_VALID(fd)) {
-		Menu_SaveIterateRecurse(fd, &MainMenu);
+		Menu_SaveIterateRecurse(fd, PerGame ? MainMenu.AlternateVersion : &MainMenu);
 		ReGBA_ProgressUpdate(1, 1);
 		ReGBA_ProgressFinalise();
 	}
@@ -126,9 +145,18 @@ static void FixUpSettings()
 		Hotkeys[3] = 0;
 	if (IsImpossibleHotkey(Hotkeys[4]))
 		Hotkeys[4] = 0;
+
+	if (IsImpossibleHotkey(PerGameHotkeys[0]))
+		PerGameHotkeys[0] = 0;
+	if (IsImpossibleHotkey(PerGameHotkeys[2]))
+		PerGameHotkeys[2] = 0;
+	if (IsImpossibleHotkey(PerGameHotkeys[3]))
+		PerGameHotkeys[3] = 0;
+	if (IsImpossibleHotkey(PerGameHotkeys[4]))
+		PerGameHotkeys[4] = 0;
 }
 
-void ReGBA_LoadSettings(char *cfg_name)
+void ReGBA_LoadSettings(char *cfg_name, bool PerGame)
 {
 	char fname[MAX_PATH + 1];
 	if (strlen(main_path) + strlen(cfg_name) + 5 /* / .cfg */ > MAX_PATH)
@@ -140,7 +168,7 @@ void ReGBA_LoadSettings(char *cfg_name)
 
 	FILE_TAG_TYPE fd;
 
-	ReGBA_ProgressInitialise(FILE_ACTION_LOAD_GLOBAL_SETTINGS);
+	ReGBA_ProgressInitialise(PerGame ? FILE_ACTION_LOAD_GAME_SETTINGS : FILE_ACTION_LOAD_GLOBAL_SETTINGS);
 
 	FILE_OPEN(fd, fname, READ);
 
@@ -205,7 +233,7 @@ void ReGBA_LoadSettings(char *cfg_name)
 				cur--;
 			}
 
-			struct MenuEntry* entry = Menu_FindByPersistentName(&MainMenu, opt);
+			struct MenuEntry* entry = Menu_FindByPersistentName(PerGame ? MainMenu.AlternateVersion : &MainMenu, opt);
 			if (entry == NULL)
 			{
 				ReGBA_Trace("W: Option '%s' not found; ignored", opt);
@@ -225,4 +253,25 @@ void ReGBA_LoadSettings(char *cfg_name)
 	}
 	FixUpSettings();
 	ReGBA_ProgressFinalise();
+}
+
+void ReGBA_ClearPerGameSettings()
+{
+	Menu_ClearPerGameIterateRecurse(MainMenu.AlternateVersion);
+}
+
+uint32_t ResolveSetting(uint32_t GlobalValue, uint32_t PerGameValue)
+{
+	if (PerGameValue != 0)
+		return PerGameValue - 1;
+	else
+		return GlobalValue;
+}
+
+enum OpenDingux_Buttons ResolveButtons(enum OpenDingux_Buttons GlobalValue, enum OpenDingux_Buttons PerGameValue)
+{
+	if (PerGameValue != 0)
+		return PerGameValue;
+	else
+		return GlobalValue;
 }

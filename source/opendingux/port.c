@@ -20,8 +20,11 @@
 #include "common.h"
 #include <stdarg.h>
 
+uint32_t PerGameBootFromBIOS;
 uint32_t BootFromBIOS;
+uint32_t PerGameShowFPS;
 uint32_t ShowFPS;
+uint32_t PerGameUserFrameskip;
 uint32_t UserFrameskip;
 
 void ReGBA_Trace(const char* Format, ...)
@@ -81,7 +84,7 @@ timespec TimeDifference(timespec Past, timespec Present)
 
 void ReGBA_DisplayFPS(void)
 {
-	u32 Visible = ShowFPS;
+	u32 Visible = ResolveSetting(ShowFPS, PerGameShowFPS);
 	if (Visible)
 	{
 		timespec Now;
@@ -133,16 +136,17 @@ void ReGBA_LoadRTCTime(struct ReGBA_RTC* RTCData)
 
 bool ReGBA_IsRenderingNextFrame()
 {
+	uint32_t ResolvedUserFrameskip = ResolveSetting(UserFrameskip, PerGameUserFrameskip);
 	if (FastForwardFrameskip != 0) /* fast-forwarding */
 	{
-		if (UserFrameskip != 0)  /* fast-forwarding on user frameskip */
+		if (ResolvedUserFrameskip != 0)  /* fast-forwarding on user frameskip */
 			return FastForwardFrameskipControl == 0 && UserFrameskipControl == 0;
 		else /* fast-forwarding on automatic frameskip */
 			return FastForwardFrameskipControl == 0 && AudioFrameskipControl == 0;
 	}
 	else
 	{
-		if (UserFrameskip != 0) /* user frameskip */
+		if (ResolvedUserFrameskip != 0) /* user frameskip */
 			return UserFrameskipControl == 0;
 		else /* automatic frameskip */
 			return AudioFrameskipControl == 0;

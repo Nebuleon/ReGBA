@@ -21,10 +21,13 @@
 
 uint_fast8_t FastForwardFrameskip = 0;
 
+uint32_t PerGameFastForwardTarget = 0;
 uint32_t FastForwardTarget = 4; // 6x by default
 
+uint32_t PerGameAnalogSensitivity = 0;
 uint32_t AnalogSensitivity = 0; // require 32256/32767 of the axis by default
 
+uint32_t PerGameAnalogAction = 0;
 uint32_t AnalogAction = 0;
 
 uint_fast8_t FastForwardFrameskipControl = 0;
@@ -74,6 +77,20 @@ const enum OpenDingux_Buttons DefaultKeypadRemapping[12] = {
 
 // These must be OpenDingux buttons at the bit suitable for the ReGBA_Buttons
 // enumeration.
+enum OpenDingux_Buttons PerGameKeypadRemapping[12] = {
+	0, // GBA A
+	0, // GBA B
+	0, // GBA Select
+	0, // GBA Start
+	0, // GBA D-pad Right
+	0, // GBA D-pad Left
+	0, // GBA D-pad Up
+	0, // GBA D-pad Down
+	0, // GBA R trigger
+	0, // GBA L trigger
+	0, // ReGBA rapid-fire A
+	0, // ReGBA rapid-fire B
+};
 enum OpenDingux_Buttons KeypadRemapping[12] = {
 	OPENDINGUX_BUTTON_FACE_RIGHT, // GBA A
 	OPENDINGUX_BUTTON_FACE_DOWN,  // GBA B
@@ -89,6 +106,13 @@ enum OpenDingux_Buttons KeypadRemapping[12] = {
 	0,                            // ReGBA rapid-fire B
 };
 
+enum OpenDingux_Buttons PerGameHotkeys[5] = {
+	0, // Fast-forward while held
+	0, // Menu
+	0, // Fast-forward toggle
+	0, // Quick load state #1
+	0, // Quick save state #1
+};
 enum OpenDingux_Buttons Hotkeys[5] = {
 	0,                            // Fast-forward while held
 	OPENDINGUX_BUTTON_FACE_UP,    // Menu
@@ -100,24 +124,26 @@ enum OpenDingux_Buttons Hotkeys[5] = {
 // The menu keys, in decreasing order of priority when two or more are
 // pressed. For example, when the user keeps a direction pressed but also
 // presses A, start ignoring the direction.
-enum OpenDingux_Buttons MenuKeys[6] = {
+enum OpenDingux_Buttons MenuKeys[7] = {
 	OPENDINGUX_BUTTON_FACE_RIGHT,                     // Select/Enter button
 	OPENDINGUX_BUTTON_FACE_DOWN,                      // Cancel/Leave button
 	OPENDINGUX_BUTTON_DOWN  | OPENDINGUX_ANALOG_DOWN, // Menu navigation
 	OPENDINGUX_BUTTON_UP    | OPENDINGUX_ANALOG_UP,
 	OPENDINGUX_BUTTON_RIGHT | OPENDINGUX_ANALOG_RIGHT,
 	OPENDINGUX_BUTTON_LEFT  | OPENDINGUX_ANALOG_LEFT,
+	OPENDINGUX_BUTTON_SELECT,
 };
 
 // In the same order as MenuKeys above. Maps the OpenDingux buttons to their
 // corresponding GUI action.
-enum GUI_Action MenuKeysToGUI[6] = {
+enum GUI_Action MenuKeysToGUI[7] = {
 	GUI_ACTION_ENTER,
 	GUI_ACTION_LEAVE,
 	GUI_ACTION_DOWN,
 	GUI_ACTION_UP,
 	GUI_ACTION_RIGHT,
 	GUI_ACTION_LEFT,
+	GUI_ACTION_ALTERNATE,
 };
 
 static enum OpenDingux_Buttons LastButtons = 0;
@@ -155,7 +181,7 @@ static void UpdateOpenDinguxButtons()
 	LastButtons &= ~(OPENDINGUX_ANALOG_LEFT | OPENDINGUX_ANALOG_RIGHT
 	               | OPENDINGUX_ANALOG_UP | OPENDINGUX_ANALOG_DOWN);
 	int16_t X = GetHorizontalAxisValue(), Y = GetVerticalAxisValue(),
-	        Threshold = (4 - AnalogSensitivity) * 7808 + 1024;
+	        Threshold = (4 - ResolveSetting(AnalogSensitivity, PerGameAnalogSensitivity)) * 7808 + 1024;
 	if (X > Threshold)       LastButtons |= OPENDINGUX_ANALOG_RIGHT;
 	else if (X < -Threshold) LastButtons |= OPENDINGUX_ANALOG_LEFT;
 	if (Y > Threshold)       LastButtons |= OPENDINGUX_ANALOG_DOWN;
@@ -169,19 +195,22 @@ static bool WasSaveStateHeld = false;
 
 void ProcessSpecialKeys()
 {
-	bool IsFastForwardToggleHeld = Hotkeys[2] != 0 && (Hotkeys[2] & LastButtons) == Hotkeys[2];
+	enum OpenDingux_Buttons FastForwardToggle = ResolveButtons(Hotkeys[2], PerGameHotkeys[2]);
+	bool IsFastForwardToggleHeld = FastForwardToggle != 0 && (FastForwardToggle & LastButtons) == FastForwardToggle;
 	if (!WasFastForwardToggleHeld && IsFastForwardToggleHeld)
 		IsFastForwardToggled = !IsFastForwardToggled;
 	WasFastForwardToggleHeld = IsFastForwardToggleHeld;
 
 	// Resolve fast-forwarding. It is activated if it's either toggled by the
 	// Toggle hotkey, or the While Held key is held down.
-	bool IsFastForwardWhileHeld = Hotkeys[0] != 0 && (Hotkeys[0] & LastButtons) == Hotkeys[0];
+	enum OpenDingux_Buttons FastForwardWhileHeld = ResolveButtons(Hotkeys[0], PerGameHotkeys[0]);
+	bool IsFastForwardWhileHeld = FastForwardWhileHeld != 0 && (FastForwardWhileHeld & LastButtons) == FastForwardWhileHeld;
 	FastForwardFrameskip = (IsFastForwardToggled || IsFastForwardWhileHeld)
-		? FastForwardTarget + 1
+		? ResolveSetting(FastForwardTarget, PerGameFastForwardTarget) + 1
 		: 0;
 
-	bool IsLoadStateHeld = Hotkeys[3] != 0 && (Hotkeys[3] & LastButtons) == Hotkeys[3];
+	enum OpenDingux_Buttons LoadState = ResolveButtons(Hotkeys[3], PerGameHotkeys[3]);
+	bool IsLoadStateHeld = LoadState != 0 && (LoadState & LastButtons) == LoadState;
 	if (!WasLoadStateHeld && IsLoadStateHeld)
 	{
 		switch (load_state(0))
@@ -200,7 +229,8 @@ void ProcessSpecialKeys()
 	}
 	WasLoadStateHeld = IsLoadStateHeld;
 	
-	bool IsSaveStateHeld = Hotkeys[4] != 0 && (Hotkeys[4] & LastButtons) == Hotkeys[4];
+	enum OpenDingux_Buttons SaveState = ResolveButtons(Hotkeys[4], PerGameHotkeys[4]);
+	bool IsSaveStateHeld = SaveState != 0 && (SaveState & LastButtons) == SaveState;
 	if (!WasSaveStateHeld && IsSaveStateHeld)
 	{
 		void* Screenshot = copy_screen();
@@ -231,12 +261,12 @@ enum ReGBA_Buttons ReGBA_GetPressedButtons()
 	ProcessSpecialKeys();
 	for (i = 0; i < 12; i++)
 	{
-		if (LastButtons & KeypadRemapping[i])
+		if (LastButtons & ResolveButtons(KeypadRemapping[i], PerGameKeypadRemapping[i]))
 		{
 			Result |= 1 << (uint_fast16_t) i;
 		}
 	}
-	if (AnalogAction == 1)
+	if (ResolveSetting(AnalogAction, PerGameAnalogAction) == 1)
 	{
 		if (LastButtons & OPENDINGUX_ANALOG_LEFT)  Result |= REGBA_BUTTON_LEFT;
 		if (LastButtons & OPENDINGUX_ANALOG_RIGHT) Result |= REGBA_BUTTON_RIGHT;
@@ -337,7 +367,7 @@ enum GUI_Action GetGUIAction()
 	UpdateOpenDinguxButtons();
 	enum OpenDingux_Buttons EffectiveButtons = LastButtons;
 	// Now get the currently-held button with the highest priority in MenuKeys.
-	for (i = 0; i < 6; i++)
+	for (i = 0; i < sizeof(MenuKeys) / sizeof(MenuKeys[0]); i++)
 	{
 		if ((EffectiveButtons & MenuKeys[i]) != 0)
 		{

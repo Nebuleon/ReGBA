@@ -43,6 +43,7 @@ enum VerticalAlignment {
 	BOTTOM
 };
 
+extern video_scale_type PerGameScaleMode;
 extern video_scale_type ScaleMode;
 
 void init_video();
