@@ -28,6 +28,8 @@ typedef enum
 {
   scaled_aspect,
   fullscreen,
+  scaled_aspect_subpixel,
+  fullscreen_subpixel,
   unscaled,
 } video_scale_type;
 

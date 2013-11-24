@@ -118,6 +118,16 @@ static inline uint32_t bgr555_to_rgb565(uint32_t px)
 	  | ((px & 0x001f001f) << 11);
 }
 
+/***************************************************************************
+ *   16-bit I/O version used by the sub-pixel scaler, (C) 2013 kuwanger    *
+ ***************************************************************************/
+static inline uint16_t bgr555_to_rgb565_16(uint16_t px)
+{
+	return ((px & 0x7c00) >> 10)
+	  | ((px & 0x03e0) << 1)
+	  | ((px & 0x001f) << 11);
+}
+
 // Explaining the magic constants:
 // F7DEh is the mask to remove the lower bit of all color
 // components before dividing them by 2. Otherwise, the lower bit
@@ -481,6 +491,145 @@ static inline void gba_upscale_aspect(uint16_t *to, uint16_t *from,
 	}
 }
 
+#define X(a,b) ((a & 0xf800) | (b & 0x07ff))
+#define Y(b,c) ((b & 0xffe0) | (c & 0x001f))
+#define Z(A,B) ((((A) >> 1) & 0x7bef) + (((B) >> 1) & 0x7bef))
+
+/* Upscales an image based on subpixel rendering; also does color conversion
+ * using the function above.
+ * Input:
+ *   from: A pointer to the pixels member of a src_x by src_y surface to be
+ *     read by this function. The pixel format of this surface is XBGR 1555.
+ *   src_x: The width of the source.
+ *   src_y: The height of the source.
+ *   src_pitch: The number of bytes making up a scanline in the source
+ *     surface.
+ *   dst_pitch: The number of bytes making up a scanline in the destination
+ *     surface.
+ * Output:
+ *   to: A pointer to the pixels member of a (src_x * 4/3) by (src_y * 3/2)
+ *     surface to be filled with the upscaled GBA image. The pixel format of
+ *     this surface is RGB 565.
+ */
+static inline void gba_upscale_subpixel(uint16_t *to, uint16_t *from,
+	  uint32_t src_x, uint32_t src_y, uint32_t src_pitch, uint32_t dst_pitch)
+{
+	/* Before:
+	 *    a b c
+	 *    d e f
+	 * After (multiple letters = (average)/subpixel overlap):
+	 *    a    ab       bc       c
+	 *    (ad) (ad)(be) (be)(cf) (cf)
+	 *    d    de       ef       f
+	 */
+	uint16_t a, b, c, d, e, f;
+	uint16_t *src, *dst;
+
+	uint32_t x, y;
+
+	const uint32_t sp = src_pitch / sizeof(uint16_t), dp = dst_pitch / sizeof(uint16_t);
+
+	for (y = 0; y < src_y/2; y++) {
+		src = from;
+		dst = to;
+		for (x = 0; x < src_x/3; x++) {
+			a = bgr555_to_rgb565_16(src[0]);
+			b = bgr555_to_rgb565_16(src[1]);
+			c = bgr555_to_rgb565_16(src[2]);
+			d = bgr555_to_rgb565_16(src[sp]);
+			e = bgr555_to_rgb565_16(src[sp+1]);
+			f = bgr555_to_rgb565_16(src[sp+2]);
+
+			dst[0]    = a;      dst[1]      = X(a,b);           dst[2]      = Y(b,c);           dst[3]      = c;
+			dst[dp]   = Z(a,d); dst[dp+1]   = X(Z(a,d),Z(b,e)); dst[dp+2]   = Y(Z(b,e),Z(c,f)); dst[dp+3]   = Z(c,f);
+			dst[dp*2] = d;      dst[dp*2+1] = X(d,e);           dst[dp*2+2] = Y(e,f);           dst[dp*2+3] = f;
+
+			src += 3;
+			dst += 4;
+		}
+		from = (uint16_t *) (((uint8_t *) from) + src_pitch * 2);
+		to   = (uint16_t *) (((uint8_t *) to  ) + dst_pitch * 3);
+	}
+}
+
+/* Upscales an image by 33% in width and in height, based on subpixel
+ * rendering; also does color conversion using the function above.
+ * Input:
+ *   from: A pointer to the pixels member of a src_x by src_y surface to be
+ *     read by this function. The pixel format of this surface is XBGR 1555.
+ *   src_x: The width of the source.
+ *   src_y: The height of the source.
+ *   src_pitch: The number of bytes making up a scanline in the source
+ *     surface.
+ *   dst_pitch: The number of bytes making up a scanline in the destination
+ *     surface.
+ * Output:
+ *   to: A pointer to the pixels member of a (src_x * 4/3) by (src_y * 4/3)
+ *     surface to be filled with the upscaled GBA image. The pixel format of
+ *     this surface is RGB 565.
+ */
+static inline void gba_upscale_aspect_subpixel(uint16_t *to, uint16_t *from,
+	  uint32_t src_x, uint32_t src_y, uint32_t src_pitch, uint32_t dst_pitch)
+{
+	/* Before:
+	 *    a b c
+	 *    d e f
+	 *    g h i
+	 * After (multiple letters = (average)/subpixel overlap):
+	 *    a    ab       bc       c
+	 *    (ad) (ad)(be) (be)(cf) (cf)
+	 *    (dg) (dg)(eh) (eh)(fi) (fi)
+	 *    g    gh       hi       i
+	 */
+	uint16_t a, b, c, d, e, f, g, h, i;
+	uint16_t *src, *dst;
+
+	uint32_t x, y;
+
+	const uint32_t sp = src_pitch / sizeof(uint16_t), dp = dst_pitch / sizeof(uint16_t);
+
+	for (y = 0; y < src_y/3; y++) {
+		src = from;
+		dst = to;
+		for (x = 0; x < src_x/3; x++) {
+			a = bgr555_to_rgb565_16(src[0]);
+			b = bgr555_to_rgb565_16(src[1]);
+			c = bgr555_to_rgb565_16(src[2]);
+			d = bgr555_to_rgb565_16(src[sp]);
+			e = bgr555_to_rgb565_16(src[sp+1]);
+			f = bgr555_to_rgb565_16(src[sp+2]);
+			g = bgr555_to_rgb565_16(src[sp*2]);
+			h = bgr555_to_rgb565_16(src[sp*2+1]);
+			i = bgr555_to_rgb565_16(src[sp*2+2]);
+
+			dst[0]    = a;      dst[1]      = X(a,b);           dst[2]      = Y(b,c);           dst[3]      = c;
+			dst[dp]   = Z(a,d); dst[dp+1]   = X(Z(a,d),Z(b,e)); dst[dp+2]   = Y(Z(b,e),Z(c,f)); dst[dp+3]   = Z(c,f);
+			dst[dp*2] = Z(d,g); dst[dp*2+1] = X(Z(d,g),Z(e,h)); dst[dp*2+2] = Y(Z(e,h),Z(f,i)); dst[dp*2+3] = Z(f,i);
+			dst[dp*3] = g;      dst[dp*3+1] = X(g,h);           dst[dp*3+2] = Y(h,i);           dst[dp*3+3] = i;
+
+			src += 3;
+			dst += 4;
+		}
+		from = (uint16_t *) (((uint8_t *) from) + src_pitch * 3);
+		to   = (uint16_t *) (((uint8_t *) to  ) + dst_pitch * 4);
+	}
+	if (likely(src_y % 3 == 1))
+	{
+		src = from;
+		dst = to;
+		for (x = 0; x < src_x/3; x++) {
+			a = bgr555_to_rgb565_16(src[0]);
+			b = bgr555_to_rgb565_16(src[1]);
+			c = bgr555_to_rgb565_16(src[2]);
+
+			dst[0] = a; dst[1] = X(a,b); dst[2] = Y(b,c); dst[3] = c;
+
+			src += 3;
+			dst += 4;
+		}
+	}
+}
+
 static inline void gba_render(uint16_t* Dest, uint16_t* Src,
 	uint32_t SrcPitch, uint32_t DestPitch)
 {
@@ -578,10 +727,12 @@ void ApplyScaleMode(video_scale_type NewMode)
 			break;
 
 		case scaled_aspect:
+		case scaled_aspect_subpixel:
 			memset(OutputSurface->pixels, 0, OutputSurface->pitch * GCW0_SCREEN_HEIGHT);
 			break;
 
 		case fullscreen:
+		case fullscreen_subpixel:
 			break;
 	}
 }
@@ -613,8 +764,19 @@ void ReGBA_RenderScreen(void)
 				gba_upscale(OutputSurface->pixels, GBAScreen, GBA_SCREEN_WIDTH, GBA_SCREEN_HEIGHT, GBAScreenSurface->pitch, OutputSurface->pitch);
 				break;
 
+			case fullscreen_subpixel:
+				gba_upscale_subpixel(OutputSurface->pixels, GBAScreen, GBA_SCREEN_WIDTH, GBA_SCREEN_HEIGHT, GBAScreenSurface->pitch, OutputSurface->pitch);
+				break;
+
 			case scaled_aspect:
 				gba_upscale_aspect((uint16_t*) ((uint8_t*)
+					OutputSurface->pixels +
+					(((GCW0_SCREEN_HEIGHT - (GBA_SCREEN_HEIGHT) * 4 / 3) / 2) * OutputSurface->pitch)) /* center vertically */,
+					GBAScreen, GBA_SCREEN_WIDTH, GBA_SCREEN_HEIGHT, GBAScreenSurface->pitch, OutputSurface->pitch);
+				break;
+
+			case scaled_aspect_subpixel:
+				gba_upscale_aspect_subpixel((uint16_t*) ((uint8_t*)
 					OutputSurface->pixels +
 					(((GCW0_SCREEN_HEIGHT - (GBA_SCREEN_HEIGHT) * 4 / 3) / 2) * OutputSurface->pitch)) /* center vertically */,
 					GBAScreen, GBA_SCREEN_WIDTH, GBA_SCREEN_HEIGHT, GBAScreenSurface->pitch, OutputSurface->pitch);

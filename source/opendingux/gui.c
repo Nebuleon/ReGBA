@@ -1164,11 +1164,11 @@ static struct MenuEntry DisplayMenu_FPSCounter = {
 
 static struct MenuEntry PerGameDisplayMenu_ScaleMode = {
 	ENTRY_OPTION("image_size", "Image scaling", &PerGameScaleMode),
-	.ChoiceCount = 4, .Choices = { { "No override", "" }, { "Aspect", "aspect" }, { "Full", "fullscreen" }, { "None", "original" } }
+	.ChoiceCount = 6, .Choices = { { "No override", "" }, { "Aspect", "aspect" }, { "Full", "fullscreen" }, {"Aspect, sub-pixel", "aspect_subpixel"}, {"Full, sub-pixel", "fullscreen_subpixel"}, { "None", "original" } }
 };
 static struct MenuEntry DisplayMenu_ScaleMode = {
 	ENTRY_OPTION("image_size", "Image scaling", &ScaleMode),
-	.ChoiceCount = 3, .Choices = { { "Aspect", "aspect" }, { "Full", "fullscreen" }, { "None", "original" } }
+	.ChoiceCount = 5, .Choices = { { "Aspect", "aspect" }, { "Full", "fullscreen" }, {"Aspect, sub-pixel", "aspect_subpixel"}, {"Full, sub-pixel", "fullscreen_subpixel"}, { "None", "original" } }
 };
 
 static struct MenuEntry PerGameDisplayMenu_Frameskip = {
