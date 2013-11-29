@@ -181,6 +181,49 @@ static inline uint16_t bgr555_to_rgb565_16(uint16_t px)
  * color and the second pixel contributes 1/4. */
 #define AverageQuarters3_1(A, B) ( (((A) & 0xF7DE) >> 1) + (((A) & 0xE79C) >> 2) + (((B) & 0xE79C) >> 2) + ((( (( ((A) & 0x1863) + ((A) & 0x0821) ) << 1) + ((B) & 0x1863) ) >> 2) & 0x1863) )
 
+#define RED_FROM_RGB565(rgb565) (((rgb565) >> 11) & 0x1F)
+#define RED_TO_RGB565(r) (((r) & 0x1F) << 11)
+#define GREEN_FROM_RGB565(rgb565) (((rgb565) >> 5) & 0x3F)
+#define GREEN_TO_RGB565(g) (((g) & 0x3F) << 5)
+#define BLUE_FROM_RGB565(rgb565) ((rgb565) & 0x1F)
+#define BLUE_TO_RGB565(b) ((b) & 0x1F)
+
+/*
+ * Blends, with sub-pixel accuracy, 3/4 of the first argument with 1/4 of the
+ * second argument. The pixel format of both arguments is RGB 565. The first
+ * pixel is assumed to be to the left of the second pixel.
+ */
+static inline uint16_t SubpixelRGB3_1(uint16_t A, uint16_t B)
+{
+	return RED_TO_RGB565(RED_FROM_RGB565(A))
+	     | GREEN_TO_RGB565(GREEN_FROM_RGB565(A) * 3 / 4 + GREEN_FROM_RGB565(B) * 1 / 4)
+	     | BLUE_TO_RGB565(BLUE_FROM_RGB565(A) * 1 / 4 + BLUE_FROM_RGB565(B) * 3 / 4);
+}
+
+/*
+ * Blends, with sub-pixel accuracy, 1/2 of the first argument with 1/2 of the
+ * second argument. The pixel format of both arguments is RGB 565. The first
+ * pixel is assumed to be to the left of the second pixel.
+ */
+static inline uint16_t SubpixelRGB1_1(uint16_t A, uint16_t B)
+{
+	return RED_TO_RGB565(RED_FROM_RGB565(A) * 3 / 4 + RED_FROM_RGB565(B) * 1 / 4)
+	     | GREEN_TO_RGB565(GREEN_FROM_RGB565(A) * 1 / 2 + GREEN_FROM_RGB565(B) * 1 / 2)
+	     | BLUE_TO_RGB565(BLUE_FROM_RGB565(A) * 1 / 4 + BLUE_FROM_RGB565(B) * 3 / 4);
+}
+
+/*
+ * Blends, with sub-pixel accuracy, 1/4 of the first argument with 3/4 of the
+ * second argument. The pixel format of both arguments is RGB 565. The first
+ * pixel is assumed to be to the left of the second pixel.
+ */
+static inline uint16_t SubpixelRGB1_3(uint16_t A, uint16_t B)
+{
+	return RED_TO_RGB565(RED_FROM_RGB565(B) * 1 / 4 + RED_FROM_RGB565(A) * 3 / 4)
+	     | GREEN_TO_RGB565(GREEN_FROM_RGB565(B) * 3 / 4 + GREEN_FROM_RGB565(A) * 1 / 4)
+	     | BLUE_TO_RGB565(BLUE_FROM_RGB565(B));
+}
+
 /* Upscales an image by 33% in width and 50% in height; also does color
  * conversion using the function above.
  * Input:
@@ -511,10 +554,6 @@ static inline void gba_upscale_aspect(uint16_t *to, uint16_t *from,
 	}
 }
 
-#define X(a,b) ((a & 0xf800) | (b & 0x07ff))
-#define Y(b,c) ((b & 0xffe0) | (c & 0x001f))
-#define Z(A,B) ((((A) >> 1) & 0x7bef) + (((B) >> 1) & 0x7bef))
-
 /* Upscales an image based on subpixel rendering; also does color conversion
  * using the function above.
  * Input:
@@ -534,41 +573,124 @@ static inline void gba_upscale_aspect(uint16_t *to, uint16_t *from,
 static inline void gba_upscale_subpixel(uint16_t *to, uint16_t *from,
 	  uint32_t src_x, uint32_t src_y, uint32_t src_pitch, uint32_t dst_pitch)
 {
-	/* Before:
-	 *    a b c
-	 *    d e f
-	 * After (multiple letters = (average)/subpixel overlap):
-	 *    a    ab       bc       c
-	 *    (ad) (ad)(be) (be)(cf) (cf)
-	 *    d    de       ef       f
-	 */
-	uint16_t a, b, c, d, e, f;
-	uint16_t *src, *dst;
+	const uint32_t dst_x = src_x * 4 / 3;
+	const uint32_t src_skip = src_pitch - src_x * sizeof(uint16_t),
+	               dst_skip = dst_pitch - dst_x * sizeof(uint16_t);
 
-	uint32_t x, y;
+	uint_fast16_t sectY;
+	for (sectY = 0; sectY < src_y / 2; sectY++)
+	{
+		uint_fast16_t sectX;
+		for (sectX = 0; sectX < src_x / 3; sectX++)
+		{
+			uint_fast16_t rightCol = (sectX == src_x / 3 - 1) ? 4 : 6;
+			/* Read RGB565 elements in the source grid.
+			 * The last column blends with the first column of the next
+			 * section.
+			 *
+			 * a b c | d
+			 * e f g | h
+			 */
+			uint32_t a = bgr555_to_rgb565_16(*(uint16_t*) ((uint8_t*) from    )),
+			         b = bgr555_to_rgb565_16(*(uint16_t*) ((uint8_t*) from + 2)),
+			         c = bgr555_to_rgb565_16(*(uint16_t*) ((uint8_t*) from + 4)),
+			         d = bgr555_to_rgb565_16(*(uint16_t*) ((uint8_t*) from + rightCol));
+			// The 4 output pixels in a row use 0.75, 1.5 then 2.25 as the X
+			// coordinate for interpolation.
 
-	const uint32_t sp = src_pitch / sizeof(uint16_t), dp = dst_pitch / sizeof(uint16_t);
+			// -- Row 1 --
 
-	for (y = 0; y < src_y/2; y++) {
-		src = from;
-		dst = to;
-		for (x = 0; x < src_x/3; x++) {
-			a = bgr555_to_rgb565_16(src[0]);
-			b = bgr555_to_rgb565_16(src[1]);
-			c = bgr555_to_rgb565_16(src[2]);
-			d = bgr555_to_rgb565_16(src[sp]);
-			e = bgr555_to_rgb565_16(src[sp+1]);
-			f = bgr555_to_rgb565_16(src[sp+2]);
+			// -- Row 1 pixel 1 (X = 0) --
+			*to = a;
 
-			dst[0]    = a;      dst[1]      = X(a,b);           dst[2]      = Y(b,c);           dst[3]      = c;
-			dst[dp]   = Z(a,d); dst[dp+1]   = X(Z(a,d),Z(b,e)); dst[dp+2]   = Y(Z(b,e),Z(c,f)); dst[dp+3]   = Z(c,f);
-			dst[dp*2] = d;      dst[dp*2+1] = X(d,e);           dst[dp*2+2] = Y(e,f);           dst[dp*2+3] = f;
+			// -- Row 1 pixel 2 (X = 0.75) --
+			*(uint16_t*) ((uint8_t*) to + 2) = likely(a == b)
+				? a
+				: SubpixelRGB1_3(a, b);
 
-			src += 3;
-			dst += 4;
+			// -- Row 1 pixel 3 (X = 1.5) --
+			*(uint16_t*) ((uint8_t*) to + 4) = likely(b == c)
+				? b
+				: SubpixelRGB1_1(b, c);
+
+			// -- Row 1 pixel 4 (X = 2.25) --
+			*(uint16_t*) ((uint8_t*) to + 6) = likely(c == d)
+				? c
+				: SubpixelRGB3_1(c, d);
+
+			// -- Row 2 --
+			// All pixels in this row are blended from the two rows.
+			uint32_t e = bgr555_to_rgb565_16(*(uint16_t*) ((uint8_t*) from + src_pitch    )),
+			         f = bgr555_to_rgb565_16(*(uint16_t*) ((uint8_t*) from + src_pitch + 2)),
+			         g = bgr555_to_rgb565_16(*(uint16_t*) ((uint8_t*) from + src_pitch + 4)),
+			         h = bgr555_to_rgb565_16(*(uint16_t*) ((uint8_t*) from + src_pitch + rightCol));
+
+			// -- Row 2 pixel 1 (X = 0) --
+			*(uint16_t*) ((uint8_t*) to + dst_pitch) = likely(a == e)
+				? a
+				: Average(a, e);
+
+			// -- Row 2 pixel 2 (X = 0.75) --
+			uint16_t e1f3 = likely(e == f)
+				? e
+				: SubpixelRGB1_3(e, f);
+			uint16_t a1b3 = likely(a == b)
+				? a
+				: SubpixelRGB1_3(a, b);
+			*(uint16_t*) ((uint8_t*) to + dst_pitch + 2) = likely(a1b3 == e1f3)
+				? a1b3
+				: Average(a1b3, e1f3);
+
+			// -- Row 2 pixel 3 (X = 1.5) --
+			uint16_t fg = likely(f == g)
+				? f
+				: SubpixelRGB1_1(f, g);
+			uint16_t bc = likely(b == c)
+				? b
+				: SubpixelRGB1_1(b, c);
+			*(uint16_t*) ((uint8_t*) to + dst_pitch + 4) = likely(bc == fg)
+				? bc
+				: Average(bc, fg);
+
+			// -- Row 2 pixel 4 (X = 2.25) --
+			uint16_t g3h1 = likely(g == h)
+				? g
+				: SubpixelRGB3_1(g, h);
+			uint16_t c3d1 = likely(c == d)
+				? c
+				: SubpixelRGB3_1(c, d);
+			*(uint16_t*) ((uint8_t*) to + dst_pitch + 6) = /* in Y */ likely(g3h1 == c3d1)
+				? c3d1
+				: Average(c3d1, g3h1);
+
+			// -- Row 3 --
+
+			// -- Row 3 pixel 1 (X = 0) --
+			*(uint16_t*) ((uint8_t*) to + dst_pitch * 2) = e;
+
+			// -- Row 3 pixel 2 (X = 0.75) --
+			*(uint16_t*) ((uint8_t*) to + dst_pitch * 2 + 2) = likely(e == f)
+				? e
+				: SubpixelRGB1_3(e, f);
+
+			// -- Row 3 pixel 3 (X = 1.5) --
+			*(uint16_t*) ((uint8_t*) to + dst_pitch * 2 + 4) = likely(f == g)
+				? f
+				: SubpixelRGB1_1(f, g);
+
+			// -- Row 3 pixel 4 (X = 2.25) --
+			*(uint16_t*) ((uint8_t*) to + dst_pitch * 2 + 6) = likely(g == h)
+				? g
+				: SubpixelRGB3_1(g, h);
+
+			from += 3;
+			to   += 4;
 		}
-		from = (uint16_t *) (((uint8_t *) from) + src_pitch * 2);
-		to   = (uint16_t *) (((uint8_t *) to  ) + dst_pitch * 3);
+
+		// Skip past the waste at the end of the first line, if any,
+		// then past 1 whole lines of source and 2 of destination.
+		from = (uint16_t*) ((uint8_t*) from + src_skip + 1 * src_pitch);
+		to   = (uint16_t*) ((uint8_t*) to   + dst_skip + 2 * dst_pitch);
 	}
 }
 
@@ -591,8 +713,223 @@ static inline void gba_upscale_subpixel(uint16_t *to, uint16_t *from,
 static inline void gba_upscale_aspect_subpixel(uint16_t *to, uint16_t *from,
 	  uint32_t src_x, uint32_t src_y, uint32_t src_pitch, uint32_t dst_pitch)
 {
-	/* Currently redirects to the regular version */
-	gba_upscale_aspect(to, from, src_x, src_y, src_pitch, dst_pitch);
+	const uint32_t dst_x = src_x * 4 / 3;
+	const uint32_t src_skip = src_pitch - src_x * sizeof(uint16_t),
+	               dst_skip = dst_pitch - dst_x * sizeof(uint16_t);
+
+	uint_fast16_t sectY;
+	for (sectY = 0; sectY < src_y / 3; sectY++)
+	{
+		uint_fast16_t sectX;
+		for (sectX = 0; sectX < src_x / 3; sectX++)
+		{
+			uint_fast16_t rightCol = (sectX == src_x / 3 - 1) ? 4 : 6;
+			/* Read RGB565 elements in the source grid.
+			 * The last column blends with the first column of the next
+			 * section. The last row does the same thing.
+			 *
+			 * a b c | d
+			 * e f g | h
+			 * i j k | l
+			 * ---------
+			 * m n o | p
+			 */
+			uint32_t a = bgr555_to_rgb565_16(*(uint16_t*) ((uint8_t*) from    )),
+			         b = bgr555_to_rgb565_16(*(uint16_t*) ((uint8_t*) from + 2)),
+			         c = bgr555_to_rgb565_16(*(uint16_t*) ((uint8_t*) from + 4)),
+			         d = bgr555_to_rgb565_16(*(uint16_t*) ((uint8_t*) from + rightCol));
+			// The 4 output pixels in a row use 0.75, 1.5 then 2.25 as the X
+			// coordinate for interpolation.
+
+			// -- Row 1 --
+			// All pixels in this row use 0 as the Y coordinate.
+
+			// -- Row 1 pixel 1 (X = 0) --
+			*to = a;
+
+			// -- Row 1 pixel 2 (X = 0.75) --
+			*(uint16_t*) ((uint8_t*) to + 2) = likely(a == b)
+				? a
+				: SubpixelRGB1_3(a, b);
+
+			// -- Row 1 pixel 3 (X = 1.5) --
+			*(uint16_t*) ((uint8_t*) to + 4) = likely(b == c)
+				? b
+				: SubpixelRGB1_1(b, c);
+
+			// -- Row 1 pixel 4 (X = 2.25) --
+			*(uint16_t*) ((uint8_t*) to + 6) = likely(c == d)
+				? c
+				: SubpixelRGB3_1(c, d);
+
+			// -- Row 2 --
+			// All pixels in this row use 0.75 as the Y coordinate.
+			uint32_t e = bgr555_to_rgb565_16(*(uint16_t*) ((uint8_t*) from + src_pitch    )),
+			         f = bgr555_to_rgb565_16(*(uint16_t*) ((uint8_t*) from + src_pitch + 2)),
+			         g = bgr555_to_rgb565_16(*(uint16_t*) ((uint8_t*) from + src_pitch + 4)),
+			         h = bgr555_to_rgb565_16(*(uint16_t*) ((uint8_t*) from + src_pitch + rightCol));
+
+			// -- Row 2 pixel 1 (X = 0) --
+			*(uint16_t*) ((uint8_t*) to + dst_pitch) = likely(a == e)
+				? a
+				: AverageQuarters3_1(e, a);
+
+			// -- Row 2 pixel 2 (X = 0.75) --
+			uint16_t e1f3 = likely(e == f)
+				? e
+				: SubpixelRGB1_3(e, f);
+			uint16_t a1b3 = likely(a == b)
+				? a
+				: SubpixelRGB1_3(a, b);
+			*(uint16_t*) ((uint8_t*) to + dst_pitch + 2) = /* in Y */ likely(a1b3 == e1f3)
+				? a1b3
+				: AverageQuarters3_1(/* in X, bottom */ e1f3, /* in X, top */ a1b3);
+
+			// -- Row 2 pixel 3 (X = 1.5) --
+			uint16_t fg = likely(f == g)
+				? f
+				: SubpixelRGB1_1(f, g);
+			uint16_t bc = likely(b == c)
+				? b
+				: SubpixelRGB1_1(b, c);
+			*(uint16_t*) ((uint8_t*) to + dst_pitch + 4) = /* in Y */ likely(bc == fg)
+				? bc
+				: AverageQuarters3_1(/* in X, bottom */ fg, /* in X, top */ bc);
+
+			// -- Row 2 pixel 4 (X = 2.25) --
+			uint16_t g3h1 = likely(g == h)
+				? g
+				: SubpixelRGB3_1(g, h);
+			uint16_t c3d1 = likely(c == d)
+				? c
+				: SubpixelRGB3_1(c, d);
+			*(uint16_t*) ((uint8_t*) to + dst_pitch + 6) = /* in Y */ likely(g3h1 == c3d1)
+				? c3d1
+				: AverageQuarters3_1(/* in X, bottom */ g3h1, /* in X, top */ c3d1);
+
+			// -- Row 3 --
+			// All pixels in this row use 1.5 as the Y coordinate.
+			uint32_t i = bgr555_to_rgb565_16(*(uint16_t*) ((uint8_t*) from + src_pitch * 2    )),
+			         j = bgr555_to_rgb565_16(*(uint16_t*) ((uint8_t*) from + src_pitch * 2 + 2)),
+			         k = bgr555_to_rgb565_16(*(uint16_t*) ((uint8_t*) from + src_pitch * 2 + 4)),
+			         l = bgr555_to_rgb565_16(*(uint16_t*) ((uint8_t*) from + src_pitch * 2 + rightCol));
+
+			// -- Row 3 pixel 1 (X = 0) --
+			*(uint16_t*) ((uint8_t*) to + dst_pitch * 2) = likely(e == i)
+				? e
+				: Average(e, i);
+
+			// -- Row 3 pixel 2 (X = 0.75) --
+			uint16_t i1j3 = likely(i == j)
+				? i
+				: SubpixelRGB1_3(i, j);
+			*(uint16_t*) ((uint8_t*) to + dst_pitch * 2 + 2) = /* in Y */ likely(e1f3 == i1j3)
+				? e1f3
+				: Average(e1f3, i1j3);
+
+			// -- Row 3 pixel 3 (X = 1.5) --
+			uint16_t jk = likely(j == k)
+				? j
+				: SubpixelRGB1_1(j, k);
+			*(uint16_t*) ((uint8_t*) to + dst_pitch * 2 + 4) = /* in Y */ likely(fg == jk)
+				? fg
+				: Average(fg, jk);
+
+			// -- Row 3 pixel 4 (X = 2.25) --
+			uint16_t k3l1 = likely(k == l)
+				? k
+				: SubpixelRGB3_1(k, l);
+			*(uint16_t*) ((uint8_t*) to + dst_pitch * 2 + 6) = /* in Y */ likely(g3h1 == k3l1)
+				? g3h1
+				: Average(g3h1, k3l1);
+
+			// -- Row 4 --
+			// All pixels in this row use 2.25 as the Y coordinate.
+			uint32_t m = bgr555_to_rgb565_16(*(uint16_t*) ((uint8_t*) from + src_pitch * 3    )),
+			         n = bgr555_to_rgb565_16(*(uint16_t*) ((uint8_t*) from + src_pitch * 3 + 2)),
+			         o = bgr555_to_rgb565_16(*(uint16_t*) ((uint8_t*) from + src_pitch * 3 + 4)),
+			         p = bgr555_to_rgb565_16(*(uint16_t*) ((uint8_t*) from + src_pitch * 3 + rightCol));
+
+			// -- Row 4 pixel 1 (X = 0) --
+			*(uint16_t*) ((uint8_t*) to + dst_pitch * 3) = likely(i == m)
+				? i
+				: AverageQuarters3_1(i, m);
+
+			// -- Row 4 pixel 2 (X = 0.75) --
+			uint16_t m1n3 = likely(m == n)
+				? m
+				: SubpixelRGB1_3(m, n);
+			*(uint16_t*) ((uint8_t*) to + dst_pitch * 3 + 2) = /* in Y */ likely(i1j3 == m1n3)
+				? i1j3
+				: AverageQuarters3_1(/* in X, top */ i1j3, /* in X, bottom */ m1n3);
+
+			// -- Row 4 pixel 3 (X = 1.5) --
+			uint16_t no = likely(n == o)
+				? n
+				: SubpixelRGB1_1(n, o);
+			*(uint16_t*) ((uint8_t*) to + dst_pitch * 3 + 4) = /* in Y */ likely(jk == no)
+				? jk
+				: AverageQuarters3_1(/* in X, top */ jk, /* in X, bottom */ no);
+
+			// -- Row 4 pixel 4 (X = 2.25) --
+			uint16_t o3p1 = likely(o == p)
+				? o
+				: SubpixelRGB3_1(o, p);
+			*(uint16_t*) ((uint8_t*) to + dst_pitch * 3 + 6) = /* in Y */ likely(k3l1 == o3p1)
+				? k3l1
+				: AverageQuarters3_1(/* in X, top */ k3l1, /* in X, bottom */ o3p1);
+
+			from += 3;
+			to   += 4;
+		}
+
+		// Skip past the waste at the end of the first line, if any,
+		// then past 2 whole lines of source and 3 of destination.
+		from = (uint16_t*) ((uint8_t*) from + src_skip + 2 * src_pitch);
+		to   = (uint16_t*) ((uint8_t*) to   + dst_skip + 3 * dst_pitch);
+	}
+
+	if (src_y % 3 == 1)
+	{
+		uint_fast16_t sectX;
+		for (sectX = 0; sectX < src_x / 3; sectX++)
+		{
+			uint_fast16_t rightCol = (sectX == src_x / 3 - 1) ? 4 : 6;
+			/* Read RGB565 elements in the source grid.
+			 * The last column blends with the first column of the next
+			 * section. The last row does the same thing.
+			 *
+			 * a b c | d
+			 */
+			uint32_t a = bgr555_to_rgb565_16(*(uint16_t*) ((uint8_t*) from    )),
+			         b = bgr555_to_rgb565_16(*(uint16_t*) ((uint8_t*) from + 2)),
+			         c = bgr555_to_rgb565_16(*(uint16_t*) ((uint8_t*) from + 4)),
+			         d = bgr555_to_rgb565_16(*(uint16_t*) ((uint8_t*) from + rightCol));
+			// The 4 output pixels in a row use 0.75, 1.5 then 2.25 as the X
+			// coordinate for interpolation.
+
+			// -- Row 1 pixel 1 (X = 0) --
+			*to = a;
+
+			// -- Row 1 pixel 2 (X = 0.75) --
+			*(uint16_t*) ((uint8_t*) to + 2) = likely(a == b)
+				? a
+				: AverageQuarters3_1(b, a);
+
+			// -- Row 1 pixel 3 (X = 1.5) --
+			*(uint16_t*) ((uint8_t*) to + 4) = likely(b == c)
+				? b
+				: Average(b, c);
+
+			// -- Row 1 pixel 4 (X = 2.25) --
+			*(uint16_t*) ((uint8_t*) to + 6) = likely(c == d)
+				? c
+				: AverageQuarters3_1(c, d);
+
+			from += 3;
+			to   += 4;
+		}
+	}
 }
 
 /* Upscales an image by 33% in width and in height with bilinear filtering;
