@@ -1164,11 +1164,11 @@ static struct MenuEntry DisplayMenu_FPSCounter = {
 
 static struct MenuEntry PerGameDisplayMenu_ScaleMode = {
 	ENTRY_OPTION("image_size", "Image scaling", &PerGameScaleMode),
-	.ChoiceCount = 6, .Choices = { { "No override", "" }, { "Aspect", "aspect" }, { "Full", "fullscreen" }, {"Aspect, sub-pixel", "aspect_subpixel"}, {"Full, sub-pixel", "fullscreen_subpixel"}, { "None", "original" } }
+	.ChoiceCount = 8, .Choices = { { "No override", "" }, { "Aspect, fast", "aspect" }, { "Full, fast", "fullscreen" }, { "Aspect, bilinear", "aspect_bilinear" }, { "Full, bilinear", "fullscreen_bilinear" }, { "Aspect, sub-pixel", "aspect_subpixel" }, { "Full, sub-pixel", "fullscreen_subpixel" }, { "None", "original" } }
 };
 static struct MenuEntry DisplayMenu_ScaleMode = {
 	ENTRY_OPTION("image_size", "Image scaling", &ScaleMode),
-	.ChoiceCount = 5, .Choices = { { "Aspect", "aspect" }, { "Full", "fullscreen" }, {"Aspect, sub-pixel", "aspect_subpixel"}, {"Full, sub-pixel", "fullscreen_subpixel"}, { "None", "original" } }
+	.ChoiceCount = 7, .Choices = { { "Aspect, fast", "aspect" }, { "Full, fast", "fullscreen" }, { "Aspect, bilinear", "aspect_bilinear" }, { "Full, bilinear", "fullscreen_bilinear" }, { "Aspect, sub-pixel", "aspect_subpixel" }, { "Full, sub-pixel", "fullscreen_subpixel" }, { "None", "original" } }
 };
 
 static struct MenuEntry PerGameDisplayMenu_Frameskip = {
