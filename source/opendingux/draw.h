@@ -78,6 +78,8 @@ extern uint32_t GetRenderedWidth(const char* str);
 
 extern uint32_t GetRenderedHeight(const char* str);
 
+void ReGBA_VideoFlip();
+
 /*
  * Returns a new allocation containing a copy of the GBA screen. Its pixels
  * and lines are packed (the pitch is 480 bytes), and its pixel format is

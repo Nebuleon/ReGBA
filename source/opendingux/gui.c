@@ -694,7 +694,7 @@ static enum OpenDingux_Buttons GrabButton(struct Menu* ActiveMenu, char* Text)
 	while (GetPressedOpenDinguxButtons() != 0)
 	{
 		(*DisplayBackgroundFunction)(ActiveMenu);
-		SDL_Flip(OutputSurface);
+		ReGBA_VideoFlip();
 		usleep(5000); // for platforms that don't sync their flips
 	}
 	// Wait until a button is pressed.
@@ -702,7 +702,7 @@ static enum OpenDingux_Buttons GrabButton(struct Menu* ActiveMenu, char* Text)
 	{
 		(*DisplayBackgroundFunction)(ActiveMenu);
 		PrintStringOutline(Text, COLOR_ACTIVE_TEXT, COLOR_ACTIVE_OUTLINE, OutputSurface->pixels, OutputSurface->pitch, 0, 0, GCW0_SCREEN_WIDTH, GCW0_SCREEN_HEIGHT, CENTER, MIDDLE);
-		SDL_Flip(OutputSurface);
+		ReGBA_VideoFlip();
 		usleep(5000); // for platforms that don't sync their flips
 	}
 	// Accumulate buttons until they're all released.
@@ -712,7 +712,7 @@ static enum OpenDingux_Buttons GrabButton(struct Menu* ActiveMenu, char* Text)
 		ButtonTotal |= Buttons;
 		(*DisplayBackgroundFunction)(ActiveMenu);
 		PrintStringOutline(Text, COLOR_ACTIVE_TEXT, COLOR_ACTIVE_OUTLINE, OutputSurface->pixels, OutputSurface->pitch, 0, 0, GCW0_SCREEN_WIDTH, GCW0_SCREEN_HEIGHT, CENTER, MIDDLE);
-		SDL_Flip(OutputSurface);
+		ReGBA_VideoFlip();
 		usleep(5000); // for platforms that don't sync their flips
 	}
 	return ButtonTotal;
@@ -727,7 +727,7 @@ static enum OpenDingux_Buttons GrabButtons(struct Menu* ActiveMenu, char* Text)
 	while (GetPressedOpenDinguxButtons() != 0)
 	{
 		(*DisplayBackgroundFunction)(ActiveMenu);
-		SDL_Flip(OutputSurface);
+		ReGBA_VideoFlip();
 		usleep(5000); // for platforms that don't sync their flips
 	}
 	// Wait until a button is pressed.
@@ -735,7 +735,7 @@ static enum OpenDingux_Buttons GrabButtons(struct Menu* ActiveMenu, char* Text)
 	{
 		(*DisplayBackgroundFunction)(ActiveMenu);
 		PrintStringOutline(Text, COLOR_ACTIVE_TEXT, COLOR_ACTIVE_OUTLINE, OutputSurface->pixels, OutputSurface->pitch, 0, 0, GCW0_SCREEN_WIDTH, GCW0_SCREEN_HEIGHT, CENTER, MIDDLE);
-		SDL_Flip(OutputSurface);
+		ReGBA_VideoFlip();
 		usleep(5000); // for platforms that don't sync their flips
 	}
 	// Accumulate buttons until they're all released.
@@ -756,7 +756,7 @@ static enum OpenDingux_Buttons GrabButtons(struct Menu* ActiveMenu, char* Text)
 			ButtonTotal = Buttons;
 		(*DisplayBackgroundFunction)(ActiveMenu);
 		PrintStringOutline(Text, COLOR_ACTIVE_TEXT, COLOR_ACTIVE_OUTLINE, OutputSurface->pixels, OutputSurface->pitch, 0, 0, GCW0_SCREEN_WIDTH, GCW0_SCREEN_HEIGHT, CENTER, MIDDLE);
-		SDL_Flip(OutputSurface);
+		ReGBA_VideoFlip();
 		usleep(5000); // for platforms that don't sync their flips
 	}
 	return ButtonTotal;
@@ -1503,7 +1503,7 @@ u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason)
 		if (DisplayDataFunction == NULL) DisplayDataFunction = DefaultDisplayDataFunction;
 		(*DisplayDataFunction)(ActiveMenu, ActiveMenu->Entries[ActiveMenu->ActiveEntryIndex]);
 
-		SDL_Flip(OutputSurface);
+		ReGBA_VideoFlip();
 		
 		// Wait. (This is for platforms on which flips don't wait for vertical
 		// sync.)
@@ -1638,7 +1638,7 @@ u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason)
 	while (ReGBA_GetPressedButtons() != 0)
 	{
 		// Draw.
-		SDL_Flip(OutputSurface);
+		ReGBA_VideoFlip();
 		
 		// Wait. (This is for platforms on which flips don't wait for vertical
 		// sync.)

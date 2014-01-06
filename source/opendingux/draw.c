@@ -1477,7 +1477,7 @@ void ReGBA_RenderScreen(void)
 		}
 		ReGBA_DisplayFPS();
 
-		SDL_Flip(OutputSurface);
+		ReGBA_VideoFlip();
 
 		while (true)
 		{
@@ -1809,7 +1809,7 @@ static void ProgressUpdateInternal(uint32_t Current, uint32_t Total)
 
 	PrintStringOutline(Line, COLOR_PROGRESS_TEXT_CONTENT, COLOR_PROGRESS_TEXT_OUTLINE, OutputSurface->pixels, OutputSurface->pitch, 0, 0, GCW0_SCREEN_WIDTH, GCW0_SCREEN_HEIGHT, CENTER, MIDDLE);
 
-	SDL_Flip(OutputSurface);
+	ReGBA_VideoFlip();
 }
 
 void ReGBA_ProgressInitialise(enum ReGBA_FileAction Action)
@@ -1840,4 +1840,13 @@ void ReGBA_ProgressUpdate(uint32_t Current, uint32_t Total)
 void ReGBA_ProgressFinalise()
 {
 	InFileAction = false;
+}
+
+void ReGBA_VideoFlip()
+{
+	if (SDL_MUSTLOCK(OutputSurface))
+		SDL_UnlockSurface(OutputSurface);
+	SDL_Flip(OutputSurface);
+	if (SDL_MUSTLOCK(OutputSurface))
+		SDL_LockSurface(OutputSurface);
 }
