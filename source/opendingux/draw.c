@@ -1400,7 +1400,13 @@ void ApplyScaleMode(video_scale_type NewMode)
 		case unscaled:
 			// Either show the border
 			if (BorderSurface != NULL)
+			{
+				if (SDL_MUSTLOCK(OutputSurface))
+					SDL_UnlockSurface(OutputSurface);
 				SDL_BlitSurface(BorderSurface, NULL, OutputSurface, NULL);
+				if (SDL_MUSTLOCK(OutputSurface))
+					SDL_LockSurface(OutputSurface);
+			}
 			// or clear the rest of the screen to prevent image remanence.
 			else
 				memset(OutputSurface->pixels, 0, OutputSurface->pitch * GCW0_SCREEN_HEIGHT);
