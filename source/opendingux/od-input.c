@@ -147,50 +147,53 @@ enum GUI_Action MenuKeysToGUI[7] = {
 	GUI_ACTION_ALTERNATE,
 };
 
-static enum OpenDingux_Buttons LastButtons = 0;
+// CurButtons allows only one state change per button relative to LastButtons
+// during a frame.
+// FutureButtons alows any number of state changes per button.
+static enum OpenDingux_Buttons LastButtons = 0, CurButtons = 0, FutureButtons = 0;
 
 static void UpdateOpenDinguxButtons()
 {
 	SDL_Event ev;
+	uint_fast8_t i;
 
 	while (SDL_PollEvent(&ev))
 	{
 		switch (ev.type)
 		{
 			case SDL_KEYDOWN:
-			case SDL_KEYUP:
-			{
-				uint_fast8_t i;
 				for (i = 0; i < sizeof(OpenDinguxKeys) / sizeof(OpenDinguxKeys[0]); i++)
-				{
 					if (ev.key.keysym.sym == OpenDinguxKeys[i])
 					{
-						if (ev.type == SDL_KEYDOWN)
-							LastButtons |= 1 << (uint_fast16_t) i;
-						else
-						{
-							if ((i == 16) && (LastButtons & (1 << 16)))
-								continue;
-							LastButtons &= ~(1 << (uint_fast16_t) i);
-						}
+						FutureButtons |= 1 << i;
+						if ((LastButtons & (1 << i)) == (CurButtons & (1 << i)))
+							CurButtons |= 1 << i;
 						break;
 					}
-				}
 				break;
-			}
+			case SDL_KEYUP:
+				for (i = 0; i < sizeof(OpenDinguxKeys) / sizeof(OpenDinguxKeys[0]); i++)
+					if (ev.key.keysym.sym == OpenDinguxKeys[i])
+					{
+						FutureButtons &= ~(1 << i);
+						if ((LastButtons & (1 << i)) == (CurButtons & (1 << i)))
+							CurButtons &= ~(1 << i);
+						break;
+					}
+				break;
 			default:
 				break;
 		}
 	}
 
-	LastButtons &= ~(OPENDINGUX_ANALOG_LEFT | OPENDINGUX_ANALOG_RIGHT
+	CurButtons &= ~(OPENDINGUX_ANALOG_LEFT | OPENDINGUX_ANALOG_RIGHT
 	               | OPENDINGUX_ANALOG_UP | OPENDINGUX_ANALOG_DOWN);
 	int16_t X = GetHorizontalAxisValue(), Y = GetVerticalAxisValue(),
 	        Threshold = (4 - ResolveSetting(AnalogSensitivity, PerGameAnalogSensitivity)) * 7808 + 1024;
-	if (X > Threshold)       LastButtons |= OPENDINGUX_ANALOG_RIGHT;
-	else if (X < -Threshold) LastButtons |= OPENDINGUX_ANALOG_LEFT;
-	if (Y > Threshold)       LastButtons |= OPENDINGUX_ANALOG_DOWN;
-	else if (Y < -Threshold) LastButtons |= OPENDINGUX_ANALOG_UP;
+	if (X > Threshold)       CurButtons |= OPENDINGUX_ANALOG_RIGHT;
+	else if (X < -Threshold) CurButtons |= OPENDINGUX_ANALOG_LEFT;
+	if (Y > Threshold)       CurButtons |= OPENDINGUX_ANALOG_DOWN;
+	else if (Y < -Threshold) CurButtons |= OPENDINGUX_ANALOG_UP;
 }
 
 static bool IsFastForwardToggled = false;
@@ -263,6 +266,10 @@ enum ReGBA_Buttons ReGBA_GetPressedButtons()
 	enum ReGBA_Buttons Result = 0;
 
 	UpdateOpenDinguxButtons();
+
+	LastButtons = CurButtons;
+	CurButtons = FutureButtons;
+
 	ProcessSpecialKeys();
 	for (i = 0; i < 12; i++)
 	{
@@ -289,10 +296,8 @@ enum ReGBA_Buttons ReGBA_GetPressedButtons()
 	// This is not in ProcessSpecialKeys because REGBA_BUTTON_MENU needs to
 	// be returned by ReGBA_GetPressedButtons.
 	if (LastButtons == Hotkeys[1] || (LastButtons & OPENDINGUX_BUTTON_MENU))
-	{
 		Result |= REGBA_BUTTON_MENU;
-		LastButtons &= ~OPENDINGUX_BUTTON_MENU;
-	}
+
 	return Result;
 }
 
@@ -317,6 +322,10 @@ bool IsImpossibleHotkey(enum OpenDingux_Buttons Hotkey)
 enum OpenDingux_Buttons GetPressedOpenDinguxButtons()
 {
 	UpdateOpenDinguxButtons();
+
+	LastButtons = CurButtons;
+	CurButtons = FutureButtons;
+
 	return LastButtons;
 }
 
@@ -373,6 +382,10 @@ enum GUI_Action GetGUIAction()
 	enum GUI_Action Result = GUI_ACTION_NONE;
 
 	UpdateOpenDinguxButtons();
+
+	LastButtons = CurButtons;
+	CurButtons = FutureButtons;
+
 	enum OpenDingux_Buttons EffectiveButtons = LastButtons;
 	// Now get the currently-held button with the highest priority in MenuKeys.
 	for (i = 0; i < sizeof(MenuKeys) / sizeof(MenuKeys[0]); i++)
