@@ -8,13 +8,17 @@
 # Register assignment:
 # $4 = parameter #1: void* Code
 # $5 = parameter #2: unsigned int CodeLength
-# Clobbered: $1, $4, $5
+# Clobbered: $1, $2, $4, $5
 ReGBA_MakeCodeVisible:
 #ifdef MIPS_32R2
+  rdhwr $1, $1            # read SYNCI_Step into $1
+  beq   $1, $0, 2f        # no need to use SYNCI? return
+  addiu $2, $1, -1
+
   beq   $5, $0, 2f
   add   $5, $4, $5        # $5 is now End, derived from CodeLength (delay)
-  srl   $4, $4, 5         # Round $4 down to the cache line containing it
-  sll   $4, $4, 5         #   continue
+  nor   $2, $2, $0        # $2 is now the mask to use to round $4 down
+  and   $4, $4, $2        # Round $4 down to the cache line containing it
 
   # The rounding down was necessary above in order to allow a partial
   # cache line near the end of the code to be flushed. Otherwise, it may
@@ -32,13 +36,18 @@ ReGBA_MakeCodeVisible:
 .set mips32r2
   synci ($4)              # Combined Data Writeback-Instruction Invalidate (R2)
 .set mips0
-  addiu $4, $4, 32        # go to the next cache line
-  sltu  $1, $4, $5        # if Code < End
-  bne   $1, $0, 1b        #   goto 1
+  addu  $4, $4, $1        # go to the next cache line
+  sltu  $2, $4, $5        # if Code < End
+  bne   $2, $0, 1b        #   goto 1
   nop                     # cannot delay usefully here
 
+  sync                    # guard against memory hazards
+
 2:
-  jr    $ra               # return to caller
+.set mips32r2
+  jr.hb $ra               # return to caller, while guarding against
+                          #   instruction hazards
+.set mips0
   nop                     # cannot delay usefully here
 #else
   # Issue the cacheflush kernel call. Preserve registers first.
@@ -66,7 +75,7 @@ ReGBA_MakeCodeVisible:
   ori   $6, $0, 3                 # parameter #3: BCACHE (1|2) (branch delay)
 
   lw    $ra, 0($sp)               # restore the return address first, because
-  lw    $3, 4($sp)                # restoring it last woule cause an interlock
+  lw    $3, 4($sp)                # restoring it last would cause an interlock
   lw    $6, 8($sp)                # $6 = GBA PC, also restore this early
   lw    $7, 12($sp)
   lw    $8, 16($sp)
