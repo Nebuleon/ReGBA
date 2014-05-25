@@ -1,6 +1,6 @@
 ReGBA, Emulador de la Game Boy Advance con recompilador
 
-- OpenDingux versión 1.45, 2013-10-31 -
+- OpenDingux versión 1.45.4, 2014-05-25 -
 
 == Tabla de contenido ==
 1. Selección de ROM
