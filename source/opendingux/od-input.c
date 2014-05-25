@@ -56,6 +56,7 @@ uint32_t OpenDinguxKeys[OPENDINGUX_BUTTON_COUNT] = {
 	0,
 	0,
 	0,
+	SDLK_HOME,       // GCW: Quick flick of Power
 };
 
 // These must be OpenDingux buttons at the bit suitable for the ReGBA_Buttons
@@ -294,8 +295,9 @@ enum ReGBA_Buttons ReGBA_GetPressedButtons()
 	// is pressed on the native device.
 	// This is not in ProcessSpecialKeys because REGBA_BUTTON_MENU needs to
 	// be returned by ReGBA_GetPressedButtons.
-	if (LastButtons == Hotkeys[1])
+	if (LastButtons == Hotkeys[1] || (LastButtons & OPENDINGUX_BUTTON_MENU))
 		Result |= REGBA_BUTTON_MENU;
+
 	return Result;
 }
 
