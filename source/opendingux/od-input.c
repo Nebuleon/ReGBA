@@ -291,11 +291,18 @@ enum ReGBA_Buttons ReGBA_GetPressedButtons()
 	if ((Result & REGBA_BUTTON_UP) && (Result & REGBA_BUTTON_DOWN))
 		Result &= ~REGBA_BUTTON_UP;
 
+	if (
+#if defined GCW_ZERO
+	// Unified emulator menu buttons: Start+Select
+		((LastButtons & (OPENDINGUX_BUTTON_START | OPENDINGUX_BUTTON_SELECT)) == (OPENDINGUX_BUTTON_START | OPENDINGUX_BUTTON_SELECT))
+#else
 	// The ReGBA Menu key should be pressed if ONLY the hotkey bound to it
 	// is pressed on the native device.
 	// This is not in ProcessSpecialKeys because REGBA_BUTTON_MENU needs to
 	// be returned by ReGBA_GetPressedButtons.
-	if (LastButtons == Hotkeys[1] || (LastButtons & OPENDINGUX_BUTTON_MENU))
+		LastButtons == Hotkeys[1]
+#endif
+	 || (LastButtons & OPENDINGUX_BUTTON_MENU))
 		Result |= REGBA_BUTTON_MENU;
 
 	return Result;
@@ -326,7 +333,7 @@ enum OpenDingux_Buttons GetPressedOpenDinguxButtons()
 	LastButtons = CurButtons;
 	CurButtons = FutureButtons;
 
-	return LastButtons;
+	return LastButtons & ~OPENDINGUX_BUTTON_MENU;
 }
 
 static void EnsureJoystick()

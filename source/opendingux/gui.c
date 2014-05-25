@@ -1325,10 +1325,12 @@ static struct MenuEntry HotkeyMenu_FastForward = {
 	ENTRY_OPTIONAL_HOTKEY
 };
 
+#if !defined GCW_ZERO
 static struct MenuEntry HotkeyMenu_Menu = {
 	ENTRY_OPTION("hotkey_menu", "Menu", &Hotkeys[1]),
 	ENTRY_MANDATORY_HOTKEY
 };
+#endif
 
 static struct MenuEntry PerGameHotkeyMenu_FastForwardToggle = {
 	ENTRY_OPTION("hotkey_fast_forward_toggle", "Fast-forward toggle", &PerGameHotkeys[2]),
@@ -1366,7 +1368,14 @@ static struct Menu PerGameHotkeyMenu = {
 static struct Menu HotkeyMenu = {
 	.Parent = &MainMenu, .Title = "Hotkeys",
 	.AlternateVersion = &PerGameHotkeyMenu,
-	.Entries = { &HotkeyMenu_Menu, &HotkeyMenu_FastForward, &HotkeyMenu_FastForwardToggle, &HotkeyMenu_QuickLoadState, &HotkeyMenu_QuickSaveState, NULL }
+	.Entries = {
+#if !defined GCW_ZERO
+		&HotkeyMenu_Menu,
+#else
+		&Strut,
+#endif
+		&HotkeyMenu_FastForward, &HotkeyMenu_FastForwardToggle, &HotkeyMenu_QuickLoadState, &HotkeyMenu_QuickSaveState, NULL
+	}
 };
 
 // -- Saved States --
@@ -1471,6 +1480,14 @@ u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason)
 	SDL_PauseAudio(SDL_ENABLE);
 	MainMenu.UserData = copy_screen();
 	ScaleModeUnapplied();
+
+	// Avoid entering the menu with menu keys pressed (namely the one bound to
+	// the per-game option switching key, Select).
+	while (ReGBA_GetPressedButtons() != 0)
+	{
+		usleep(5000);
+	}
+
 	struct Menu *ActiveMenu = &MainMenu, *PreviousMenu = ActiveMenu;
 	if (MainMenu.InitFunction != NULL)
 	{
@@ -1637,11 +1654,6 @@ u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason)
 	// the native exit button, B).
 	while (ReGBA_GetPressedButtons() != 0)
 	{
-		// Draw.
-		ReGBA_VideoFlip();
-		
-		// Wait. (This is for platforms on which flips don't wait for vertical
-		// sync.)
 		usleep(5000);
 	}
 
