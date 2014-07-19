@@ -315,7 +315,11 @@ static void DefaultDisplayValueFunction(struct MenuEntry* DrawnMenuEntry, struct
 
 static void DefaultDisplayBackgroundFunction(struct Menu* ActiveMenu)
 {
-	SDL_FillRect(OutputSurface, &ScreenRectangle, COLOR_BACKGROUND);
+	if (SDL_MUSTLOCK(OutputSurface))
+		SDL_UnlockSurface(OutputSurface);
+	SDL_FillRect(OutputSurface, NULL, COLOR_BACKGROUND);
+	if (SDL_MUSTLOCK(OutputSurface))
+		SDL_LockSurface(OutputSurface);
 }
 
 static void DefaultDisplayDataFunction(struct Menu* ActiveMenu, struct MenuEntry* ActiveMenuEntry)
@@ -509,7 +513,11 @@ static void DisplayHotkeyValue(struct MenuEntry* DrawnMenuEntry, struct MenuEntr
 
 static void DisplayErrorBackgroundFunction(struct Menu* ActiveMenu)
 {
-	SDL_FillRect(OutputSurface, &ScreenRectangle, COLOR_ERROR_BACKGROUND);
+	if (SDL_MUSTLOCK(OutputSurface))
+		SDL_UnlockSurface(OutputSurface);
+	SDL_FillRect(OutputSurface, NULL, COLOR_ERROR_BACKGROUND);
+	if (SDL_MUSTLOCK(OutputSurface))
+		SDL_LockSurface(OutputSurface);
 }
 
 static void SavedStateMenuDisplayData(struct Menu* ActiveMenu, struct MenuEntry* ActiveMenuEntry)
@@ -1164,11 +1172,11 @@ static struct MenuEntry DisplayMenu_FPSCounter = {
 
 static struct MenuEntry PerGameDisplayMenu_ScaleMode = {
 	ENTRY_OPTION("image_size", "Image scaling", &PerGameScaleMode),
-	.ChoiceCount = 8, .Choices = { { "No override", "" }, { "Aspect, fast", "aspect" }, { "Full, fast", "fullscreen" }, { "Aspect, bilinear", "aspect_bilinear" }, { "Full, bilinear", "fullscreen_bilinear" }, { "Aspect, sub-pixel", "aspect_subpixel" }, { "Full, sub-pixel", "fullscreen_subpixel" }, { "None", "original" } }
+	.ChoiceCount = 9, .Choices = { { "No override", "" }, { "Aspect, fast", "aspect" }, { "Full, fast", "fullscreen" }, { "Aspect, bilinear", "aspect_bilinear" }, { "Full, bilinear", "fullscreen_bilinear" }, { "Aspect, sub-pixel", "aspect_subpixel" }, { "Full, sub-pixel", "fullscreen_subpixel" }, { "None", "original" }, { "Hardware", "hardware" } }
 };
 static struct MenuEntry DisplayMenu_ScaleMode = {
 	ENTRY_OPTION("image_size", "Image scaling", &ScaleMode),
-	.ChoiceCount = 7, .Choices = { { "Aspect, fast", "aspect" }, { "Full, fast", "fullscreen" }, { "Aspect, bilinear", "aspect_bilinear" }, { "Full, bilinear", "fullscreen_bilinear" }, { "Aspect, sub-pixel", "aspect_subpixel" }, { "Full, sub-pixel", "fullscreen_subpixel" }, { "None", "original" } }
+	.ChoiceCount = 8, .Choices = { { "Aspect, fast", "aspect" }, { "Full, fast", "fullscreen" }, { "Aspect, bilinear", "aspect_bilinear" }, { "Full, bilinear", "fullscreen_bilinear" }, { "Aspect, sub-pixel", "aspect_subpixel" }, { "Full, sub-pixel", "fullscreen_subpixel" }, { "None", "original" }, { "Hardware", "hardware" } }
 };
 
 static struct MenuEntry PerGameDisplayMenu_Frameskip = {
@@ -1488,6 +1496,8 @@ u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason)
 		usleep(5000);
 	}
 
+	SetMenuResolution();
+
 	struct Menu *ActiveMenu = &MainMenu, *PreviousMenu = ActiveMenu;
 	if (MainMenu.InitFunction != NULL)
 	{
@@ -1656,6 +1666,8 @@ u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason)
 	{
 		usleep(5000);
 	}
+
+	SetGameResolution();
 
 	SDL_PauseAudio(SDL_DISABLE);
 	StatsStopFPS();

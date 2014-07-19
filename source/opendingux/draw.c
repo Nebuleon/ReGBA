@@ -39,10 +39,6 @@ SDL_Surface *GBAScreenSurface = NULL;
 SDL_Surface *OutputSurface = NULL;
 SDL_Surface *BorderSurface = NULL;
 
-SDL_Rect ScreenRectangle = {
-	0, 0, GCW0_SCREEN_WIDTH, GCW0_SCREEN_HEIGHT
-};
-
 video_scale_type PerGameScaleMode = 0;
 video_scale_type ScaleMode = scaled_aspect;
 
@@ -68,6 +64,7 @@ void init_video()
 		// exit(1);
 	}
 
+	SDL_ShowCursor(SDL_DISABLE);
 	OutputSurface = SDL_SetVideoMode(GCW0_SCREEN_WIDTH, GCW0_SCREEN_HEIGHT, 16, SDL_HWSURFACE |
 #ifdef SDL_TRIPLEBUF
 		SDL_TRIPLEBUF
@@ -82,8 +79,41 @@ void init_video()
 	  0 /* alpha: none */);
 
 	GBAScreen = (uint16_t*) GBAScreenSurface->pixels;
+}
 
-	SDL_ShowCursor(0);
+void SetMenuResolution()
+{
+#ifdef GCW_ZERO
+	if (SDL_MUSTLOCK(OutputSurface))
+		SDL_UnlockSurface(OutputSurface);
+	OutputSurface = SDL_SetVideoMode(GCW0_SCREEN_WIDTH, GCW0_SCREEN_HEIGHT, 16, SDL_HWSURFACE | SDL_DOUBLEBUF);
+	if (SDL_MUSTLOCK(OutputSurface))
+		SDL_LockSurface(OutputSurface);
+#endif
+}
+
+void SetGameResolution()
+{
+#ifdef GCW_ZERO
+	video_scale_type ResolvedScaleMode = ResolveSetting(ScaleMode, PerGameScaleMode);
+	unsigned int Width = GBA_SCREEN_WIDTH, Height = GBA_SCREEN_HEIGHT;
+	if (ResolvedScaleMode != hardware)
+	{
+		Width = GCW0_SCREEN_WIDTH;
+		Height = GCW0_SCREEN_HEIGHT;
+	}
+	if (SDL_MUSTLOCK(OutputSurface))
+		SDL_UnlockSurface(OutputSurface);
+	OutputSurface = SDL_SetVideoMode(Width, Height, 16, SDL_HWSURFACE |
+#ifdef SDL_TRIPLEBUF
+		SDL_TRIPLEBUF
+#else
+		SDL_DOUBLEBUF
+#endif
+		);
+	if (SDL_MUSTLOCK(OutputSurface))
+		SDL_LockSurface(OutputSurface);
+#endif
 }
 
 bool ApplyBorder(const char* Filename)
@@ -1340,6 +1370,26 @@ static inline void gba_render(uint16_t* Dest, uint16_t* Src,
 	}
 }
 
+static inline void gba_convert(uint16_t* Dest, uint16_t* Src,
+	uint32_t SrcPitch, uint32_t DestPitch)
+{
+	uint32_t SrcSkip = SrcPitch - GBA_SCREEN_WIDTH * sizeof(uint16_t);
+	uint32_t DestSkip = DestPitch - GBA_SCREEN_WIDTH * sizeof(uint16_t);
+
+	uint32_t X, Y;
+	for (Y = 0; Y < GBA_SCREEN_HEIGHT; Y++)
+	{
+		for (X = 0; X < GBA_SCREEN_WIDTH * sizeof(uint16_t) / sizeof(uint32_t); X++)
+		{
+			*(uint32_t*) Dest = bgr555_to_rgb565(*(uint32_t*) Src);
+			Dest += 2;
+			Src += 2;
+		}
+		Src = (uint16_t*) ((uint8_t*) Src + SrcSkip);
+		Dest = (uint16_t*) ((uint8_t*) Dest + DestSkip);
+	}
+}
+
 /* Downscales an image by half in width and in height; also does color
  * conversion using the function above.
  * Input:
@@ -1427,6 +1477,7 @@ void ApplyScaleMode(video_scale_type NewMode)
 		case fullscreen:
 		case fullscreen_subpixel:
 		case fullscreen_bilinear:
+		case hardware:
 			break;
 	}
 }
@@ -1450,6 +1501,10 @@ void ReGBA_RenderScreen(void)
 		}
 		switch (ResolvedScaleMode)
 		{
+#ifndef GCW_ZERO
+			case hardware: /* Hardware, when there's no hardware to scale
+			                  images, acts as unscaled */
+#endif
 			case unscaled:
 				gba_render(OutputSurface->pixels, GBAScreen, GBAScreenSurface->pitch, OutputSurface->pitch);
 				break;
@@ -1486,6 +1541,11 @@ void ReGBA_RenderScreen(void)
 					(((GCW0_SCREEN_HEIGHT - (GBA_SCREEN_HEIGHT) * 4 / 3) / 2) * OutputSurface->pitch)) /* center vertically */,
 					GBAScreen, GBA_SCREEN_WIDTH, GBA_SCREEN_HEIGHT, GBAScreenSurface->pitch, OutputSurface->pitch);
 				break;
+
+#ifdef GCW_ZERO
+			case hardware:
+				gba_convert(OutputSurface->pixels, GBAScreen, GBAScreenSurface->pitch, OutputSurface->pitch);
+#endif
 		}
 		ReGBA_DisplayFPS();
 
@@ -1802,7 +1862,7 @@ static void ProgressUpdateInternal(uint32_t Current, uint32_t Total)
 			Line = "File action ongoing";
 			break;
 	}
-	SDL_FillRect(OutputSurface, &ScreenRectangle, COLOR_PROGRESS_BACKGROUND);
+	SDL_FillRect(OutputSurface, NULL, COLOR_PROGRESS_BACKGROUND);
 
 	SDL_Rect TopLine = { (GCW0_SCREEN_WIDTH - PROGRESS_WIDTH) / 2, (GCW0_SCREEN_HEIGHT - PROGRESS_HEIGHT) / 2, PROGRESS_WIDTH, 1 };
 	SDL_FillRect(OutputSurface, &TopLine, COLOR_PROGRESS_OUTLINE);

@@ -9,8 +9,6 @@
 extern SDL_Surface* GBAScreenSurface;
 extern SDL_Surface* OutputSurface;
 
-extern SDL_Rect ScreenRectangle;
-
 extern uint_fast8_t AudioFrameskip;
 extern uint_fast8_t AudioFrameskipControl;
 extern uint_fast8_t UserFrameskipControl;
@@ -33,6 +31,7 @@ typedef enum
   scaled_aspect_subpixel,
   fullscreen_subpixel,
   unscaled,
+  hardware
 } video_scale_type;
 
 enum HorizontalAlignment {
@@ -79,6 +78,10 @@ extern uint32_t GetRenderedWidth(const char* str);
 extern uint32_t GetRenderedHeight(const char* str);
 
 void ReGBA_VideoFlip();
+
+void SetMenuResolution();
+
+void SetGameResolution();
 
 /*
  * Returns a new allocation containing a copy of the GBA screen. Its pixels

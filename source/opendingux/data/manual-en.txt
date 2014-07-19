@@ -41,7 +41,7 @@ In the Main Menu or any submenu containing options, you can press the Select key
 - Display Settings -
 > Boot from: "Cartridge ROM" does not show the GBA logo screen. "GBA BIOS" does. The GBA logo screen can be either 'Normmatt' in the Nintendo logo style, or the real GBA logo screen. See the 'Files' section for more information.
 > FPS counter: "Show" displays rendered/emulated FPS at the bottom-left corner of the screen for performance testing purposes. "Hide" does not.
-> Image scaling: "None" shows the image exactly as a Game Boy Advance would (240x160), with a border around it. "Aspect" shows the image scaled up at the correct aspect ratio, with black bars (320x213). "Full" shows the image scaled up to the entire screen (320x240). The border in the unscaled mode can be the ReGBA Advanced SP border or a custom border. See the 'Files' section for more information.
+> Image scaling: "None" shows the image exactly as a Game Boy Advance would (240x160), with a border around it. "Aspect" shows the image scaled up at the correct aspect ratio, with black bars (320x213). "Full" shows the image scaled up to the entire screen (320x240). "Hardware" leaves scaling up to dedicated hardware on the GCW Zero. The border in the unscaled mode can be the ReGBA Advanced SP border or a custom border. See the 'Files' section for more information.
 > Frame skipping: "Automatic" attempts to skip the least amount of frames necessary for the audio to be flawless. Manual selections exist up to 3 (~15 FPS). Most games are fine with automatic frame skipping.
 > Fast-forward target: When fast-forwarding the game, this specifies the maximum speedup to allow, from 2x to 6x. If emulating a demanding game, the actual speedup may be less.
 

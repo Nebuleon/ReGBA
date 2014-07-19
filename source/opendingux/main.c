@@ -281,6 +281,8 @@ int main(int argc, char *argv[])
 
   // We'll never actually return from here.
 
+  SetGameResolution();
+
   execute_arm_translate(execute_cycles);
   return 0;
 }

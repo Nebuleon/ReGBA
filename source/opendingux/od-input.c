@@ -203,6 +203,8 @@ static bool WasSaveStateHeld = false;
 
 void ProcessSpecialKeys()
 {
+	enum OpenDingux_Buttons ButtonCopy = LastButtons;
+
 	enum OpenDingux_Buttons FastForwardToggle = ResolveButtons(Hotkeys[2], PerGameHotkeys[2]);
 	bool IsFastForwardToggleHeld = FastForwardToggle != 0 && (FastForwardToggle & LastButtons) == FastForwardToggle;
 	if (!WasFastForwardToggleHeld && IsFastForwardToggleHeld)
@@ -212,15 +214,16 @@ void ProcessSpecialKeys()
 	// Resolve fast-forwarding. It is activated if it's either toggled by the
 	// Toggle hotkey, or the While Held key is held down.
 	enum OpenDingux_Buttons FastForwardWhileHeld = ResolveButtons(Hotkeys[0], PerGameHotkeys[0]);
-	bool IsFastForwardWhileHeld = FastForwardWhileHeld != 0 && (FastForwardWhileHeld & LastButtons) == FastForwardWhileHeld;
+	bool IsFastForwardWhileHeld = FastForwardWhileHeld != 0 && (FastForwardWhileHeld & ButtonCopy) == FastForwardWhileHeld;
 	FastForwardFrameskip = (IsFastForwardToggled || IsFastForwardWhileHeld)
 		? ResolveSetting(FastForwardTarget, PerGameFastForwardTarget) + 1
 		: 0;
 
 	enum OpenDingux_Buttons LoadState = ResolveButtons(Hotkeys[3], PerGameHotkeys[3]);
-	bool IsLoadStateHeld = LoadState != 0 && (LoadState & LastButtons) == LoadState;
+	bool IsLoadStateHeld = LoadState != 0 && (LoadState & ButtonCopy) == LoadState;
 	if (!WasLoadStateHeld && IsLoadStateHeld)
 	{
+		SetMenuResolution();
 		switch (load_state(0))
 		{
 			case 1:
@@ -234,14 +237,16 @@ void ProcessSpecialKeys()
 				ShowErrorScreen("Reading saved state #1 failed:\nFile format invalid");
 				break;
 		}
+		SetGameResolution();
 	}
 	WasLoadStateHeld = IsLoadStateHeld;
 	
 	enum OpenDingux_Buttons SaveState = ResolveButtons(Hotkeys[4], PerGameHotkeys[4]);
-	bool IsSaveStateHeld = SaveState != 0 && (SaveState & LastButtons) == SaveState;
+	bool IsSaveStateHeld = SaveState != 0 && (SaveState & ButtonCopy) == SaveState;
 	if (!WasSaveStateHeld && IsSaveStateHeld)
 	{
 		void* Screenshot = copy_screen();
+		SetMenuResolution();
 		if (Screenshot == NULL)
 			ShowErrorScreen("Gathering the screenshot for saved state #1 failed: Memory allocation error");
 		else
@@ -256,6 +261,7 @@ void ProcessSpecialKeys()
 					ShowErrorScreen("Writing saved state #1 failed:\nUnknown error");
 			}
 		}
+		SetGameResolution();
 	}
 	WasSaveStateHeld = IsSaveStateHeld;
 }
