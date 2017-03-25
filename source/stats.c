@@ -38,8 +38,8 @@ void StatsInitGame(void)
 {
 	StatsInit();
 #ifndef USE_C_CORE
-	u32 reason;
-	u32 area;
+	uint32_t reason;
+	uint32_t area;
 	for (area = 0; area < TRANSLATION_REGION_COUNT; area++)
 	{
 		Stats.TranslationBytesFlushed[area] = 0;

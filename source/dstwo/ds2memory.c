@@ -18,10 +18,6 @@
  */
 
 #include "common.h"
-#include <sys/mman.h>
-
-static FILE_TAG_TYPE MappedFile = FILE_TAG_INVALID;
-static size_t MappedFileSize;
 
 uint8_t* ReGBA_MapEntireROM(FILE_TAG_TYPE File, size_t Size)
 {

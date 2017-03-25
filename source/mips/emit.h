@@ -22,36 +22,36 @@
 #ifndef MIPS_EMIT_H
 #define MIPS_EMIT_H
 
-u32 mips_update_gba(u32 pc);
+uint32_t mips_update_gba(uint32_t pc);
 
 // Although these are defined as a function, don't call them as
 // such (jump to it instead)
-void mips_indirect_branch_arm(u32 address);
-void mips_indirect_branch_thumb(u32 address);
-void mips_indirect_branch_dual(u32 address);
+void mips_indirect_branch_arm(uint32_t address);
+void mips_indirect_branch_thumb(uint32_t address);
+void mips_indirect_branch_dual(uint32_t address);
 
-u32 execute_read_cpsr();
-u32 execute_read_spsr();
-void execute_swi(u32 pc);
+uint32_t execute_read_cpsr();
+uint32_t execute_read_spsr();
+void execute_swi(uint32_t pc);
 
-u32 execute_spsr_restore(u32 address);
-void execute_store_cpsr(u32 new_cpsr, u32 store_mask);
-void execute_store_spsr(u32 new_spsr, u32 store_mask);
+uint32_t execute_spsr_restore(uint32_t address);
+void execute_store_cpsr(uint32_t new_cpsr, uint32_t store_mask);
+void execute_store_spsr(uint32_t new_spsr, uint32_t store_mask);
 
-u32 execute_spsr_restore_body(u32 address);
-u32 execute_store_cpsr_body(u32 _cpsr, u32 store_mask, u32 address);
+uint32_t execute_spsr_restore_body(uint32_t address);
+uint32_t execute_store_cpsr_body(uint32_t _cpsr, uint32_t store_mask, uint32_t address);
 
-u32 execute_lsl_flags_reg(u32 value, u32 shift);
-u32 execute_lsr_flags_reg(u32 value, u32 shift);
-u32 execute_asr_flags_reg(u32 value, u32 shift);
-u32 execute_ror_flags_reg(u32 value, u32 shift);
+uint32_t execute_lsl_flags_reg(uint32_t value, uint32_t shift);
+uint32_t execute_lsr_flags_reg(uint32_t value, uint32_t shift);
+uint32_t execute_asr_flags_reg(uint32_t value, uint32_t shift);
+uint32_t execute_ror_flags_reg(uint32_t value, uint32_t shift);
 
-void execute_aligned_store32(u32 address, u32 value);
-u32 execute_aligned_load32(u32 address);
+void execute_aligned_store32(uint32_t address, uint32_t value);
+uint32_t execute_aligned_load32(uint32_t address);
 
 void reg_check();
 
-void printf_reg(u32 num);
+void printf_reg(uint32_t num);
 
 typedef enum
 {
@@ -181,48 +181,48 @@ typedef enum
 } mips_opcode;
 
 #define mips_emit_reg(opcode, rs, rt, rd, shift, function)                    \
-  *((u32 *)translation_ptr) = (mips_opcode_##opcode << 26) |                  \
+  *((uint32_t *)translation_ptr) = (mips_opcode_##opcode << 26) |             \
   ((rs) << 21) | ((rt) << 16) | ((rd) << 11) | ((shift) << 6) | (function);   \
   translation_ptr += 4                                                        \
 
 #define mips_emit_special(function, rs, rt, rd, shift)                        \
-  *((u32 *)translation_ptr) = (mips_opcode_special << 26) |                   \
+  *((uint32_t *)translation_ptr) = (mips_opcode_special << 26) |              \
    ((rs) << 21) | ((rt) << 16) | ((rd) << 11) | ((shift) << 6) |              \
    mips_special_##function;                                                   \
   translation_ptr += 4                                                        \
 
 #define mips_emit_special2(function, rs, rt, rd, imm)                         \
-  *((u32 *)translation_ptr) = (mips_opcode_special2 << 26) |                  \
+  *((uint32_t *)translation_ptr) = (mips_opcode_special2 << 26) |             \
    ((rs) << 21) | ((rt) << 16) | ((rd) << 11) | ((imm) << 6) |                \
    mips_special2_##function;                                                  \
   translation_ptr += 4                                                        \
 
 #define mips_emit_special3(function, rs, rt, imm_a, imm_b)                    \
-  *((u32 *)translation_ptr) = (mips_opcode_special3 << 26) |                  \
+  *((uint32_t *)translation_ptr) = (mips_opcode_special3 << 26) |             \
    ((rs) << 21) | ((rt) << 16) | ((imm_a) << 11) | ((imm_b) << 6) |           \
    mips_special3_##function;                                                  \
   translation_ptr += 4                                                        \
 
 #define mips_emit_imm(opcode, rs, rt, immediate)                              \
-  *((u32 *)translation_ptr) = (mips_opcode_##opcode << 26) |                  \
+  *((uint32_t *)translation_ptr) = (mips_opcode_##opcode << 26) |             \
    ((rs) << 21) | ((rt) << 16) | ((immediate) & 0xFFFF);                      \
   translation_ptr += 4                                                        \
 
 #define mips_emit_regimm(function, rs, immediate)                             \
-  *((u32 *)translation_ptr) = (mips_opcode_regimm << 26) |                    \
+  *((uint32_t *)translation_ptr) = (mips_opcode_regimm << 26) |               \
    ((rs) << 21) | (mips_regimm_##function << 16) | ((immediate) & 0xFFFF);    \
   translation_ptr += 4                                                        \
 
 #define mips_emit_jump(opcode, offset)                                        \
-  *((u32 *)translation_ptr) = (mips_opcode_##opcode << 26) |                  \
+  *((uint32_t *)translation_ptr) = (mips_opcode_##opcode << 26) |             \
    ((offset) & 0x3FFFFFF);                                                    \
   translation_ptr += 4                                                        \
 
 #define mips_relative_offset(source, offset)                                  \
-  (((u32)(offset) - ((u32)(source) + 4)) >> 2)                                \
+  (((uint32_t)(offset) - ((uint32_t)(source) + 4)) >> 2)                      \
 
 #define mips_absolute_offset(offset)                                          \
-  ((u32)(offset) >> 2)                                                        \
+  ((uint32_t)(offset) >> 2)                                                   \
 
 // ADDU rd, rs, rt
 #define mips_emit_addu(rd, rs, rt)                                            \
@@ -440,7 +440,7 @@ typedef enum
 
 // Writing to r15 goes straight to a0, to be chained with other ops
 
-const u8 arm_to_mips_reg[] =
+const uint8_t arm_to_mips_reg[] =
 {
   reg_r0,
   reg_r1,
@@ -472,13 +472,13 @@ const u8 arm_to_mips_reg[] =
   mips_emit_addu(ireg, arm_to_mips_reg[reg_index], reg_zero)                  \
 
 #define generate_load_imm(ireg, imm)                                          \
-  if(((s32)imm >= -32768) && ((s32)imm <= 32767))                             \
+  if(((int32_t)imm >= -32768) && ((int32_t)imm <= 32767))                     \
   {                                                                           \
     mips_emit_addiu(ireg, reg_zero, imm);                                     \
   }                                                                           \
   else                                                                        \
   {                                                                           \
-    if(((u32)imm >> 16) == 0x0000)                                            \
+    if(((uint32_t)imm >> 16) == 0x0000)                                       \
     {                                                                         \
       mips_emit_ori(ireg, reg_zero, imm);                                     \
     }                                                                         \
@@ -486,7 +486,7 @@ const u8 arm_to_mips_reg[] =
     {                                                                         \
       mips_emit_lui(ireg, imm >> 16);                                         \
                                                                               \
-      if(((u32)imm & 0x0000FFFF) != 0x00000000)                               \
+      if(((uint32_t)imm & 0x0000FFFF) != 0x00000000)                          \
       {                                                                       \
         mips_emit_ori(ireg, ireg, imm & 0xFFFF);                              \
       }                                                                       \
@@ -495,7 +495,7 @@ const u8 arm_to_mips_reg[] =
 
 #define generate_load_pc(ireg, new_pc)                                        \
 {                                                                             \
-  s32 pc_delta = new_pc - stored_pc;                                          \
+  int32_t pc_delta = new_pc - stored_pc;                                      \
   if((pc_delta >= -32768) && (pc_delta <= 32767))                             \
   {                                                                           \
     mips_emit_addiu(ireg, reg_pc, pc_delta);                                  \
@@ -534,7 +534,7 @@ const u8 arm_to_mips_reg[] =
   mips_emit_xor(ireg_dest, ireg_dest, ireg_src)                               \
 
 #define generate_alu_imm(imm_type, reg_type, ireg_dest, ireg_src, imm)        \
-  if(((s32)imm >= -32768) && ((s32)imm <= 32767))                             \
+  if(((int32_t)imm >= -32768) && ((int32_t)imm <= 32767))                     \
   {                                                                           \
     mips_emit_##imm_type(ireg_dest, ireg_src, imm);                           \
   }                                                                           \
@@ -545,7 +545,7 @@ const u8 arm_to_mips_reg[] =
   }                                                                           \
 
 #define generate_alu_immu(imm_type, reg_type, ireg_dest, ireg_src, imm)       \
-  if(/*((u32)imm >= 0) && */((u32)imm <= 65535))                                  \
+  if(/*((uint32_t)imm >= 0) && */((uint32_t)imm <= 65535))                    \
   {                                                                           \
     mips_emit_##imm_type(ireg_dest, ireg_src, imm);                           \
   }                                                                           \
@@ -591,7 +591,7 @@ const u8 arm_to_mips_reg[] =
 
 #define generate_function_call_swap_delay(function_location)                  \
 {                                                                             \
-  u32 delay_instruction = ADDRESS32(translation_ptr, -4);                     \
+  uint32_t delay_instruction = ADDRESS32(translation_ptr, -4);                \
   translation_ptr -= 4;                                                       \
   mips_emit_jal(mips_absolute_offset(function_location));                     \
   ADDRESS32(translation_ptr, 0) = delay_instruction;                          \
@@ -600,8 +600,8 @@ const u8 arm_to_mips_reg[] =
 
 #define generate_swap_delay()                                                 \
 {                                                                             \
-  u32 delay_instruction = ADDRESS32(translation_ptr, -8);                     \
-  u32 branch_instruction = ADDRESS32(translation_ptr, -4);                    \
+  uint32_t delay_instruction = ADDRESS32(translation_ptr, -8);                \
+  uint32_t branch_instruction = ADDRESS32(translation_ptr, -4);               \
   branch_instruction = (branch_instruction & 0xFFFF0000) |                    \
    (((branch_instruction & 0x0000FFFF) + 1) & 0x0000FFFF);                    \
   ADDRESS32(translation_ptr, -8) = branch_instruction;                        \
@@ -620,16 +620,16 @@ const u8 arm_to_mips_reg[] =
   cycle_count = 0                                                             \
 
 #define generate_branch_patch_conditional(dest, offset)                       \
-  *((u16 *)(dest)) = mips_relative_offset(dest, offset)                       \
+  *((uint16_t *)(dest)) = mips_relative_offset(dest, offset)                  \
 
 #define generate_branch_patch_unconditional(dest, offset)                     \
-  *((u32 *)(dest)) = (mips_opcode_j << 26) |                                  \
+  *((uint32_t *)(dest)) = (mips_opcode_j << 26) |                             \
    ((mips_absolute_offset(offset)) & 0x3FFFFFF)                               \
 
 #define generate_branch_no_cycle_update(type, writeback_location, new_pc)     \
   {                                                                           \
-    u8 i;                                                                     \
-    u8 flag = 0;                                                              \
+    uint8_t i;                                                                \
+    uint8_t flag = 0;                                                         \
     for( i = 0; i < idle_loop_targets; i++)                                   \
       if(pc == idle_loop_target_pc[i])                                        \
         flag = 1;                                                             \
@@ -1023,11 +1023,11 @@ const u8 arm_to_mips_reg[] =
 #endif
 
 #define generate_shift_imm(arm_reg, name, flags_op)                           \
-  u32 shift = (opcode >> 7) & 0x1F;                                           \
+  uint32_t shift = (opcode >> 7) & 0x1F;                                      \
   generate_shift_imm_##name##_##flags_op(arm_reg, rm, shift)                  \
 
 #define generate_shift_reg(arm_reg, name, flags_op)                           \
-  u32 rs = ((opcode >> 8) & 0x0F);                                            \
+  uint32_t rs = ((opcode >> 8) & 0x0F);                                       \
   generate_shift_reg_##name##_##flags_op(rm, rs);                             \
   rm = arm_reg                                                                \
 
@@ -1036,7 +1036,7 @@ const u8 arm_to_mips_reg[] =
 // cases)
 
 #define generate_load_rm_sh_builder(flags_op)                                 \
-u32 generate_load_rm_sh_##flags_op(u32 rm)                                    \
+uint32_t generate_load_rm_sh_##flags_op(uint32_t rm)                          \
 {                                                                             \
   switch((opcode >> 4) & 0x07)                                                \
   {                                                                           \
@@ -1132,30 +1132,30 @@ u32 generate_load_rm_sh_##flags_op(u32 rm)                                    \
 
 #define generate_load_memory(type, ireg, address)                             \
 {                                                                             \
-  u32 _address = (u32)(address);                                              \
-  u32 _address_hi = (_address + 0x8000) >> 16;                                \
+  uint32_t _address = (uint32_t)(address);                                    \
+  uint32_t _address_hi = (_address + 0x8000) >> 16;                           \
   generate_load_imm(ireg, address);                                           \
   mips_emit_lui(ireg, _address_hi >> 16);                                     \
   generate_load_memory_##type(ireg, _address - (_address_hi << 16));          \
 }                                                                             \
 
 #define generate_block_extra_vars()                                           \
-  u32 stored_pc = pc;                                                         \
-  u8 *update_trampoline                                                       \
+  uint32_t stored_pc = pc;                                                    \
+  uint8_t *update_trampoline                                                  \
 
 #define generate_block_extra_vars_arm()                                       \
   generate_block_extra_vars();                                                \
                                                                               \
-  auto u32 generate_load_rm_sh_flags(u32 rm);                                 \
-  auto u32 generate_load_rm_sh_no_flags(u32 rm);                              \
-  auto u32 generate_load_offset_sh(u32 rm);                                   \
+  auto uint32_t generate_load_rm_sh_flags(uint32_t rm);                       \
+  auto uint32_t generate_load_rm_sh_no_flags(uint32_t rm);                    \
+  auto uint32_t generate_load_offset_sh(uint32_t rm);                         \
   auto void generate_indirect_branch_arm();                                   \
   auto void generate_indirect_branch_dual();                                  \
                                                                               \
   generate_load_rm_sh_builder(flags);                                         \
   generate_load_rm_sh_builder(no_flags);                                      \
                                                                               \
-  u32 generate_load_offset_sh(u32 rm)                                         \
+  uint32_t generate_load_offset_sh(uint32_t rm)                               \
   {                                                                           \
     switch((opcode >> 5) & 0x03)                                              \
     {                                                                         \
@@ -1222,7 +1222,7 @@ u32 generate_load_rm_sh_##flags_op(u32 rm)                                    \
 // This is pretty infrequent (returning from interrupt handlers, et al) so
 // probably not worth optimizing for.
 
-u32 execute_spsr_restore_body(u32 address)
+uint32_t execute_spsr_restore_body(uint32_t address)
 {
   set_cpu_mode(cpu_modes[reg[REG_CPSR] & 0x1F]);
   if((io_registers[REG_IE] & io_registers[REG_IF]) &&
@@ -1795,7 +1795,7 @@ typedef enum
   generate_function_call(execute_read_##psr_reg);                             \
   generate_store_reg(reg_rv, rd)                                              \
 
-u32 execute_store_cpsr_body(u32 _cpsr, u32 store_mask, u32 address)
+uint32_t execute_store_cpsr_body(uint32_t _cpsr, uint32_t store_mask, uint32_t address)
 {
   reg[REG_CPSR] = _cpsr;
   if(store_mask & 0xFF)
@@ -1958,7 +1958,7 @@ u32 execute_store_cpsr_body(u32 _cpsr, u32 store_mask, u32 address)
 
 #define arm_block_memory_sp_store()                                           \
 {                                                                             \
-  u32 store_reg = i;                                                          \
+  uint32_t store_reg = i;                                                     \
   check_load_reg_pc(arm_reg_a0, store_reg, 8);                                \
   mips_emit_sw(arm_to_mips_reg[store_reg], reg_a1, offset);                   \
 }                                                                             \
@@ -2007,9 +2007,9 @@ u32 execute_store_cpsr_body(u32 _cpsr, u32 store_mask, u32 address)
 #define arm_block_memory(access_type, offset_type, writeback_type, s_bit)     \
 {                                                                             \
   arm_decode_block_trans();                                                   \
-  u32 i;                                                                      \
-  u32 offset = 0;                                                             \
-  u32 base_reg = arm_to_mips_reg[rn];                                         \
+  uint32_t i;                                                                 \
+  uint32_t offset = 0;                                                        \
+  uint32_t base_reg = arm_to_mips_reg[rn];                                    \
                                                                               \
   arm_block_memory_offset_##offset_type();                                    \
   arm_block_memory_writeback_##access_type(writeback_type);                   \
@@ -2017,7 +2017,7 @@ u32 execute_store_cpsr_body(u32 _cpsr, u32 store_mask, u32 address)
   if((rn == REG_SP) && iwram_stack_optimize)                                  \
   {                                                                           \
     mips_emit_andi(reg_a1, reg_a2, 0x7FFC);                                   \
-    generate_load_imm(reg_a0, ((u32)iwram_data));                             \
+    generate_load_imm(reg_a0, ((uint32_t)iwram_data));                        \
     mips_emit_addu(reg_a1, reg_a1, reg_a0);                                   \
                                                                               \
     for(i = 0; i < 16; i++)                                                   \
@@ -2064,9 +2064,9 @@ u32 execute_store_cpsr_body(u32 _cpsr, u32 store_mask, u32 address)
 #define arm_block_memory(access_type, offset_type, writeback_type, s_bit)     \
 {                                                                             \
   arm_decode_block_trans();                                                   \
-  u32 i;                                                                      \
-  u32 offset = 0;                                                             \
-  u32 base_reg = arm_to_mips_reg[rn];                                         \
+  uint32_t i;                                                                 \
+  uint32_t offset = 0;                                                        \
+  uint32_t base_reg = arm_to_mips_reg[rn];                                    \
                                                                               \
   arm_block_memory_offset_##offset_type();                                    \
   arm_block_memory_writeback_##access_type(writeback_type);                   \
@@ -2074,7 +2074,7 @@ u32 execute_store_cpsr_body(u32 _cpsr, u32 store_mask, u32 address)
   if((rn == REG_SP) && iwram_stack_optimize)                                  \
   {                                                                           \
     mips_emit_andi(reg_a1, reg_a2, 0x7FFC);                                   \
-    generate_load_imm(reg_a0, ((u32)iwram_data));                             \
+    generate_load_imm(reg_a0, ((uint32_t)iwram_data));                        \
     mips_emit_addu(reg_a1, reg_a1, reg_a0);                                   \
                                                                               \
     for(i = 0; i < 16; i++)                                                   \
@@ -2191,7 +2191,7 @@ u32 execute_store_cpsr_body(u32 _cpsr, u32 store_mask, u32 address)
 
 #define arm_block_memory_sp_store()                                           \
 {                                                                             \
-  u32 store_reg = i;                                                          \
+  uint32_t store_reg = i;                                                     \
   check_load_reg_pc(arm_reg_a0, store_reg, 8);                                \
   mips_emit_sw(arm_to_mips_reg[store_reg], reg_a1, offset);                   \
 }                                                                             \
@@ -2270,7 +2270,7 @@ u32 execute_store_cpsr_body(u32 _cpsr, u32 store_mask, u32 address)
 #define thumb_data_proc_hi(name)                                              \
 {                                                                             \
   thumb_decode_hireg_op();                                                    \
-  u32 dest_rd = rd;                                                           \
+  uint32_t dest_rd = rd;                                                      \
   check_load_reg_pc(arm_reg_a0, rs, 4);                                       \
   check_load_reg_pc(arm_reg_a1, rd, 4);                                       \
   generate_op_##name##_reg(arm_to_mips_reg[dest_rd], arm_to_mips_reg[rd],     \
@@ -2333,7 +2333,7 @@ u32 execute_store_cpsr_body(u32 _cpsr, u32 store_mask, u32 address)
 
 #define thumb_generate_shift_reg(name)                                        \
 {                                                                             \
-  u32 original_rd = rd;                                                       \
+  uint32_t original_rd = rd;                                                  \
   if(check_generate_c_flag)                                                   \
   {                                                                           \
     generate_shift_reg_##name##_flags(rd, rs);                                \
@@ -2504,17 +2504,17 @@ u32 execute_store_cpsr_body(u32 _cpsr, u32 store_mask, u32 address)
 #define thumb_block_memory(access_type, pre_op, post_op, base_reg)            \
 {                                                                             \
   thumb_decode_rlist();                                                       \
-  u32 i;                                                                      \
-  u32 offset = 0;                                                             \
+  uint32_t i;                                                                 \
+  uint32_t offset = 0;                                                        \
                                                                               \
   thumb_block_address_preadjust_##pre_op(base_reg);                           \
-  /*thumb_block_address_postadjust_##post_op(base_reg);*/                         \
+  /*thumb_block_address_postadjust_##post_op(base_reg);*/                     \
   thumb_block_memory_writeback_##access_type(post_op, base_reg);              \
                                                                               \
   if((base_reg == REG_SP) && iwram_stack_optimize)                            \
   {                                                                           \
     mips_emit_andi(reg_a1, reg_a2, 0x7FFC);                                   \
-    generate_load_imm(reg_a0, ((u32)iwram_data));                             \
+    generate_load_imm(reg_a0, ((uint32_t)iwram_data));                        \
     generate_add(reg_a1, reg_a0);                                             \
                                                                               \
     for(i = 0; i < 8; i++)                                                    \
@@ -2561,17 +2561,17 @@ u32 execute_store_cpsr_body(u32 _cpsr, u32 store_mask, u32 address)
 #define thumb_block_memory(access_type, pre_op, post_op, base_reg)            \
 {                                                                             \
   thumb_decode_rlist();                                                       \
-  u32 i;                                                                      \
-  u32 offset = 0;                                                             \
+  uint32_t i;                                                                 \
+  uint32_t offset = 0;                                                        \
                                                                               \
   thumb_block_address_preadjust_##pre_op(base_reg);                           \
-  /*thumb_block_address_postadjust_##post_op(base_reg);*/                         \
+  /*thumb_block_address_postadjust_##post_op(base_reg);*/                     \
   thumb_block_memory_writeback_##access_type(post_op, base_reg);              \
                                                                               \
   if((base_reg == REG_SP) && iwram_stack_optimize)                            \
   {                                                                           \
     mips_emit_andi(reg_a1, reg_a2, 0x7FFC);                                   \
-    generate_load_imm(reg_a0, ((u32)iwram_data));                             \
+    generate_load_imm(reg_a0, ((uint32_t)iwram_data));                        \
     generate_add(reg_a1, reg_a0);                                             \
                                                                               \
     for(i = 0; i < 8; i++)                                                    \
@@ -2702,8 +2702,8 @@ extern intptr_t swi_hle_handle[0x2B][3];
 
 #define generate_swi_hle_handler(_swi_number)                                 \
 {                                                                             \
-  u32 swi_number = _swi_number;                                               \
-  if(swi_hle_handle[swi_number][0])                                   \
+  uint32_t swi_number = _swi_number;                                          \
+  if(swi_hle_handle[swi_number][0])                                           \
   {                                                                           \
     /* Div and DivArm */                                                      \
     if(swi_number == 0x06 || swi_number == 0x07)                              \

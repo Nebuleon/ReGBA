@@ -38,9 +38,9 @@
 #define EXPAND_AS_STRING(x) AS_STRING(x)
 #define AS_STRING(x) #x
 
-u32 reg_mode[7][7];
- 
-const u8 cpu_modes[32] =
+uint32_t reg_mode[7][7];
+
+const uint8_t cpu_modes[32] =
 {
   MODE_INVALID, MODE_INVALID, MODE_INVALID, MODE_INVALID,
   MODE_INVALID, MODE_INVALID, MODE_INVALID, MODE_INVALID,
@@ -52,11 +52,11 @@ const u8 cpu_modes[32] =
   MODE_INVALID, MODE_INVALID, MODE_INVALID, MODE_USER
 };
 
-const u8 cpu_modes_cpsr[7] = { 0x10, 0x11, 0x12, 0x13, 0x17, 0x1B, 0x1F };
+const uint8_t cpu_modes_cpsr[7] = { 0x10, 0x11, 0x12, 0x13, 0x17, 0x1B, 0x1F };
 
 // When switching modes set spsr[new_mode] to cpsr. Modifying PC as the
 // target of a data proc instruction will set cpsr to spsr[cpu_mode].
-u32 spsr[6];
+uint32_t spsr[6];
 
 // ARM/Thumb mode is stored in the flags directly, this is simpler than
 // shadowing it since it has a constant 1bit represenation.
@@ -67,9 +67,9 @@ char *reg_names[16] =
   " r8", " r9", "r10", " fp", " ip", " sp", " lr", " pc"
 };
 
-u32 output_field = 0;
+uint32_t output_field = 0;
 
-u32 last_instruction = 0;
+uint32_t last_instruction = 0;
 
 struct ReuseHeader {
 	struct ReuseHeader* Next;
@@ -79,185 +79,185 @@ struct ReuseHeader {
 
 /* These represent code caches. */
 __attribute__((aligned(CODE_ALIGN_SIZE)))
-  u8 readonly_code_cache[READONLY_CODE_CACHE_SIZE];
-u8* readonly_next_code = readonly_code_cache;
+  uint8_t readonly_code_cache[READONLY_CODE_CACHE_SIZE];
+uint8_t* readonly_next_code = readonly_code_cache;
 
 __attribute__((aligned(CODE_ALIGN_SIZE)))
-  u8 writable_code_cache[WRITABLE_CODE_CACHE_SIZE];
-u8* writable_next_code = writable_code_cache;
+  uint8_t writable_code_cache[WRITABLE_CODE_CACHE_SIZE];
+uint8_t* writable_next_code = writable_code_cache;
 
 /* These represent Metadata Areas. */
-u32 *rom_branch_hash[ROM_BRANCH_HASH_SIZE];
+uint32_t *rom_branch_hash[ROM_BRANCH_HASH_SIZE];
 struct ReuseHeader* writable_checksum_hash[WRITABLE_HASH_SIZE];
 
-u8 *iwram_block_ptrs[MAX_TAG_IWRAM + 1];
-u32 iwram_block_tag_top = MIN_TAG;
-u8 *ewram_block_ptrs[MAX_TAG_EWRAM + 1];
-u32 ewram_block_tag_top = MIN_TAG;
-u8 *vram_block_ptrs[MAX_TAG_VRAM + 1];
-u32 vram_block_tag_top = MIN_TAG;
+uint8_t *iwram_block_ptrs[MAX_TAG_IWRAM + 1];
+uint32_t iwram_block_tag_top = MIN_TAG;
+uint8_t *ewram_block_ptrs[MAX_TAG_EWRAM + 1];
+uint32_t ewram_block_tag_top = MIN_TAG;
+uint8_t *vram_block_ptrs[MAX_TAG_VRAM + 1];
+uint32_t vram_block_tag_top = MIN_TAG;
 
-u8 *bios_block_ptrs[MAX_TAG_BIOS + 1];
-u32 bios_block_tag_top = MIN_TAG;
+uint8_t *bios_block_ptrs[MAX_TAG_BIOS + 1];
+uint32_t bios_block_tag_top = MIN_TAG;
 
-u32 iwram_code_min = 0xFFFFFFFF;
-u32 iwram_code_max = 0xFFFFFFFF;
-u32 ewram_code_min = 0xFFFFFFFF;
-u32 ewram_code_max = 0xFFFFFFFF;
-u32 vram_code_min  = 0xFFFFFFFF;
-u32 vram_code_max  = 0xFFFFFFFF;
+uint32_t iwram_code_min = 0xFFFFFFFF;
+uint32_t iwram_code_max = 0xFFFFFFFF;
+uint32_t ewram_code_min = 0xFFFFFFFF;
+uint32_t ewram_code_max = 0xFFFFFFFF;
+uint32_t vram_code_min  = 0xFFFFFFFF;
+uint32_t vram_code_max  = 0xFFFFFFFF;
 
 // Default
-u32 idle_loop_targets = 0;
-u32 idle_loop_target_pc[MAX_IDLE_LOOPS];
-u32 force_pc_update_target = 0xFFFFFFFF;
-u32 iwram_stack_optimize = 1;
-//u32 allow_smc_ram_u8 = 1;
-//u32 allow_smc_ram_u16 = 1;
-//u32 allow_smc_ram_u32 = 1;
+uint32_t idle_loop_targets = 0;
+uint32_t idle_loop_target_pc[MAX_IDLE_LOOPS];
+uint32_t force_pc_update_target = 0xFFFFFFFF;
+uint32_t iwram_stack_optimize = 1;
+//uint32_t allow_smc_ram_u8 = 1;
+//uint32_t allow_smc_ram_u16 = 1;
+//uint32_t allow_smc_ram_u32 = 1;
 
-// u32 bios_mode;
+// uint32_t bios_mode;
 
 typedef struct
 {
-  u8 *block_offset;
-  u16 flag_data;
-  u8 condition;
-  u8 update_cycles;
+  uint8_t *block_offset;
+  uint16_t flag_data;
+  uint8_t condition;
+  uint8_t update_cycles;
 } block_data_arm_type;
 
 typedef struct
 {
-  u8 *block_offset;
-  u16 flag_data;
-  u8 update_cycles;
+  uint8_t *block_offset;
+  uint16_t flag_data;
+  uint8_t update_cycles;
 } block_data_thumb_type;
 
 typedef struct
 {
-  u32 branch_target;
-  u8 *branch_source;
+  uint32_t branch_target;
+  uint8_t *branch_source;
 } block_exit_type;
 
 #define arm_decode_data_proc_reg()                                            \
-  u32 rn = (opcode >> 16) & 0x0F;                                             \
-  u32 rd = (opcode >> 12) & 0x0F;                                             \
-  u32 rm = opcode & 0x0F                                                      \
+  uint32_t rn = (opcode >> 16) & 0x0F;                                        \
+  uint32_t rd = (opcode >> 12) & 0x0F;                                        \
+  uint32_t rm = opcode & 0x0F                                                 \
 
 #define arm_decode_data_proc_imm()                                            \
-  u32 rn = (opcode >> 16) & 0x0F;                                             \
-  u32 rd = (opcode >> 12) & 0x0F;                                             \
-  u32 imm;                                                                    \
+  uint32_t rn = (opcode >> 16) & 0x0F;                                        \
+  uint32_t rd = (opcode >> 12) & 0x0F;                                        \
+  uint32_t imm;                                                               \
   ROR(imm, opcode & 0xFF, (opcode >> 7) & 0x1E)                               \
 
 #define arm_decode_psr_reg()                                                  \
-  u32 psr_field = (opcode >> 16) & 0x0F;                                      \
-  u32 rd = (opcode >> 12) & 0x0F;                                             \
-  u32 rm = opcode & 0x0F                                                      \
+  uint32_t psr_field = (opcode >> 16) & 0x0F;                                 \
+  uint32_t rd = (opcode >> 12) & 0x0F;                                        \
+  uint32_t rm = opcode & 0x0F                                                 \
 
 #define arm_decode_psr_imm()                                                  \
-  u32 psr_field = (opcode >> 16) & 0x0F;                                      \
-  u32 rd = (opcode >> 12) & 0x0F;                                             \
-  u32 imm;                                                                    \
+  uint32_t psr_field = (opcode >> 16) & 0x0F;                                 \
+  uint32_t rd = (opcode >> 12) & 0x0F;                                        \
+  uint32_t imm;                                                               \
   ROR(imm, opcode & 0xFF, (opcode >> 7) & 0x1E)                               \
 
 #define arm_decode_branchx()                                                  \
-  u32 rn = opcode & 0x0F                                                      \
+  uint32_t rn = opcode & 0x0F                                                 \
 
 #define arm_decode_multiply()                                                 \
-  u32 rd = (opcode >> 16) & 0x0F;                                             \
-  u32 rn = (opcode >> 12) & 0x0F;                                             \
-  u32 rs = (opcode >> 8) & 0x0F;                                              \
-  u32 rm = opcode & 0x0F                                                      \
+  uint32_t rd = (opcode >> 16) & 0x0F;                                        \
+  uint32_t rn = (opcode >> 12) & 0x0F;                                        \
+  uint32_t rs = (opcode >> 8) & 0x0F;                                         \
+  uint32_t rm = opcode & 0x0F                                                 \
 
 #define arm_decode_multiply_long()                                            \
-  u32 rdhi = (opcode >> 16) & 0x0F;                                           \
-  u32 rdlo = (opcode >> 12) & 0x0F;                                           \
-  u32 rs = (opcode >> 8) & 0x0F;                                              \
-  u32 rm = opcode & 0x0F                                                      \
+  uint32_t rdhi = (opcode >> 16) & 0x0F;                                      \
+  uint32_t rdlo = (opcode >> 12) & 0x0F;                                      \
+  uint32_t rs = (opcode >> 8) & 0x0F;                                         \
+  uint32_t rm = opcode & 0x0F                                                 \
 
 #define arm_decode_swap()                                                     \
-  u32 rn = (opcode >> 16) & 0x0F;                                             \
-  u32 rd = (opcode >> 12) & 0x0F;                                             \
-  u32 rm = opcode & 0x0F                                                      \
+  uint32_t rn = (opcode >> 16) & 0x0F;                                        \
+  uint32_t rd = (opcode >> 12) & 0x0F;                                        \
+  uint32_t rm = opcode & 0x0F                                                 \
 
 #define arm_decode_half_trans_r()                                             \
-  u32 rn = (opcode >> 16) & 0x0F;                                             \
-  u32 rd = (opcode >> 12) & 0x0F;                                             \
-  u32 rm = opcode & 0x0F                                                      \
+  uint32_t rn = (opcode >> 16) & 0x0F;                                        \
+  uint32_t rd = (opcode >> 12) & 0x0F;                                        \
+  uint32_t rm = opcode & 0x0F                                                 \
 
 #define arm_decode_half_trans_of()                                            \
-  u32 rn = (opcode >> 16) & 0x0F;                                             \
-  u32 rd = (opcode >> 12) & 0x0F;                                             \
-  u32 offset = ((opcode >> 4) & 0xF0) | (opcode & 0x0F)                       \
+  uint32_t rn = (opcode >> 16) & 0x0F;                                        \
+  uint32_t rd = (opcode >> 12) & 0x0F;                                        \
+  uint32_t offset = ((opcode >> 4) & 0xF0) | (opcode & 0x0F)                  \
 
 #define arm_decode_data_trans_imm()                                           \
-  u32 rn = (opcode >> 16) & 0x0F;                                             \
-  u32 rd = (opcode >> 12) & 0x0F;                                             \
-  u32 offset = opcode & 0x0FFF                                                \
+  uint32_t rn = (opcode >> 16) & 0x0F;                                        \
+  uint32_t rd = (opcode >> 12) & 0x0F;                                        \
+  uint32_t offset = opcode & 0x0FFF                                           \
 
 #define arm_decode_data_trans_reg()                                           \
-  u32 rn = (opcode >> 16) & 0x0F;                                             \
-  u32 rd = (opcode >> 12) & 0x0F;                                             \
-  u32 rm = opcode & 0x0F                                                      \
+  uint32_t rn = (opcode >> 16) & 0x0F;                                        \
+  uint32_t rd = (opcode >> 12) & 0x0F;                                        \
+  uint32_t rm = opcode & 0x0F                                                 \
 
 #define arm_decode_block_trans()                                              \
-  u32 rn = (opcode >> 16) & 0x0F;                                             \
-  u32 reg_list = opcode & 0xFFFF                                              \
+  uint32_t rn = (opcode >> 16) & 0x0F;                                        \
+  uint32_t reg_list = opcode & 0xFFFF                                         \
 
 #define arm_decode_branch()                                                   \
-  s32 offset = (s32)(opcode << 8) >> 6                                        \
+  int32_t offset = (int32_t)(opcode << 8) >> 6                                \
 
 #define thumb_decode_shift()                                                  \
-  u32 imm = (opcode >> 6) & 0x1F;                                             \
-  u32 rs = (opcode >> 3) & 0x07;                                              \
-  u32 rd = opcode & 0x07                                                      \
+  uint32_t imm = (opcode >> 6) & 0x1F;                                        \
+  uint32_t rs = (opcode >> 3) & 0x07;                                         \
+  uint32_t rd = opcode & 0x07                                                 \
 
 #define thumb_decode_add_sub()                                                \
-  u32 rn = (opcode >> 6) & 0x07;                                              \
-  u32 rs = (opcode >> 3) & 0x07;                                              \
-  u32 rd = opcode & 0x07                                                      \
+  uint32_t rn = (opcode >> 6) & 0x07;                                         \
+  uint32_t rs = (opcode >> 3) & 0x07;                                         \
+  uint32_t rd = opcode & 0x07                                                 \
 
 #define thumb_decode_add_sub_imm()                                            \
-  u32 imm = (opcode >> 6) & 0x07;                                             \
-  u32 rs = (opcode >> 3) & 0x07;                                              \
-  u32 rd = opcode & 0x07                                                      \
+  uint32_t imm = (opcode >> 6) & 0x07;                                        \
+  uint32_t rs = (opcode >> 3) & 0x07;                                         \
+  uint32_t rd = opcode & 0x07                                                 \
 
 #define thumb_decode_imm()                                                    \
-  u32 imm = opcode & 0xFF                                                     \
+  uint32_t imm = opcode & 0xFF                                                \
 
 #define thumb_decode_alu_op()                                                 \
-  u32 rs = (opcode >> 3) & 0x07;                                              \
-  u32 rd = opcode & 0x07                                                      \
+  uint32_t rs = (opcode >> 3) & 0x07;                                         \
+  uint32_t rd = opcode & 0x07                                                 \
 
 #define thumb_decode_hireg_op()                                               \
-  u32 rs = (opcode >> 3) & 0x0F;                                              \
-  u32 rd = ((opcode >> 4) & 0x08) | (opcode & 0x07)                           \
+  uint32_t rs = (opcode >> 3) & 0x0F;                                         \
+  uint32_t rd = ((opcode >> 4) & 0x08) | (opcode & 0x07)                      \
 
 #define thumb_decode_mem_reg()                                                \
-  u32 ro = (opcode >> 6) & 0x07;                                              \
-  u32 rb = (opcode >> 3) & 0x07;                                              \
-  u32 rd = opcode & 0x07                                                      \
+  uint32_t ro = (opcode >> 6) & 0x07;                                         \
+  uint32_t rb = (opcode >> 3) & 0x07;                                         \
+  uint32_t rd = opcode & 0x07                                                 \
 
 #define thumb_decode_mem_imm()                                                \
-  u32 imm = (opcode >> 6) & 0x1F;                                             \
-  u32 rb = (opcode >> 3) & 0x07;                                              \
-  u32 rd = opcode & 0x07                                                      \
+  uint32_t imm = (opcode >> 6) & 0x1F;                                        \
+  uint32_t rb = (opcode >> 3) & 0x07;                                         \
+  uint32_t rd = opcode & 0x07                                                 \
 
 #define thumb_decode_add_sp()                                                 \
-  u32 imm = opcode & 0x7F                                                     \
+  uint32_t imm = opcode & 0x7F                                                \
 
 #define thumb_decode_rlist()                                                  \
-  u32 reg_list = opcode & 0xFF                                                \
+  uint32_t reg_list = opcode & 0xFF                                           \
 
 #define thumb_decode_branch_cond()                                            \
-  s32 offset = (s8)(opcode & 0xFF)                                            \
+  int32_t offset = (int8_t)(opcode & 0xFF)                                    \
 
 #define thumb_decode_swi()                                                    \
-  u32 comment = opcode & 0xFF                                                 \
+  uint32_t comment = opcode & 0xFF                                            \
 
 #define thumb_decode_branch()                                                 \
-  u32 offset = opcode & 0x07FF                                                \
+  uint32_t offset = opcode & 0x07FF                                           \
 
 extern void call_bios_hle(void* func);
 
@@ -283,13 +283,13 @@ static inline void StatsAddThumbOpcode()
 	Stats.ThumbOpcodesDecoded++;
 }
 
-static inline void StatsAddWritableReuse(u32 Opcodes)
+static inline void StatsAddWritableReuse(uint32_t Opcodes)
 {
 	Stats.BlockReuseCount++;
 	Stats.OpcodeReuseCount += Opcodes;
 }
 
-static inline void StatsAddWritableRecompilation(u32 Opcodes)
+static inline void StatsAddWritableRecompilation(uint32_t Opcodes)
 {
 	Stats.BlockRecompilationCount++;
 	Stats.OpcodeRecompilationCount += Opcodes;
@@ -299,15 +299,15 @@ static inline void StatsAddARMOpcode() {}
 
 static inline void StatsAddThumbOpcode() {}
 
-static inline void StatsAddWritableReuse(u32 Opcodes) {}
+static inline void StatsAddWritableReuse(uint32_t Opcodes) {}
 
-static inline void StatsAddWritableRecompilation(u32 Opcodes) {}
+static inline void StatsAddWritableRecompilation(uint32_t Opcodes) {}
 #endif
 
 #define translate_arm_instruction()                                           \
   opcode = opcodes.arm[block_data_position];                                  \
   condition = block_data.arm[block_data_position].condition;                  \
-  u32 has_condition_header = 0;                                               \
+  uint32_t has_condition_header = 0;                                          \
                                                                               \
   if((condition != 0x0E) || (condition >= 0x20))                              \
   {                                                                           \
@@ -1697,7 +1697,7 @@ static inline void StatsAddWritableRecompilation(u32 Opcodes) {}
                                                                               \
   pc += 4                                                                     \
 
-static void arm_flag_status(block_data_arm_type* block_data, u32 opcode)
+static void arm_flag_status(block_data_arm_type* block_data, uint32_t opcode)
 {
 }
 
@@ -2165,9 +2165,9 @@ static void arm_flag_status(block_data_arm_type* block_data, u32 opcode)
 #define thumb_flag_requires_all()                                             \
   flag_status |= 0xF00                                                        \
 
-static void thumb_flag_status(block_data_thumb_type* block_data, u16 opcode)
+static void thumb_flag_status(block_data_thumb_type* block_data, uint16_t opcode)
 {
-  u16 flag_status = 0;
+  uint16_t flag_status = 0;
   switch((opcode >> 8) & 0xFF)
   {
     /* left shift by imm */
@@ -2346,7 +2346,7 @@ static void thumb_flag_status(block_data_thumb_type* block_data, u16 opcode)
   if((block_tag < MIN_TAG) || (block_tag > metadata_area##_max_tag))          \
   {                                                                           \
     __label__ redo;                                                           \
-    u8* translation_result;                                                   \
+    uint8_t* translation_result;                                              \
                                                                               \
     redo:                                                                     \
     if (metadata_area##_block_tag_top > metadata_area##_max_tag)              \
@@ -2396,7 +2396,7 @@ static void thumb_flag_status(block_data_thumb_type* block_data, u16 opcode)
   if((block_tag < MIN_TAG) || (block_tag > metadata_area##_max_tag))          \
   {                                                                           \
     __label__ redo;                                                           \
-    u8* translation_result;                                                   \
+    uint8_t* translation_result;                                              \
                                                                               \
     redo:                                                                     \
     if (metadata_area##_block_tag_top > metadata_area##_max_tag)              \
@@ -2432,16 +2432,14 @@ static void thumb_flag_status(block_data_thumb_type* block_data, u16 opcode)
     block_address = metadata_area##_block_ptrs[block_tag];                    \
   }                                                                           \
 
-u32 translation_recursion_level = 0;
-u32 translation_flush_count = 0;
+uint32_t translation_recursion_level = 0;
+uint32_t translation_flush_count = 0;
 
-u32     recursion_level= 0;
-
-extern void ARMBadJump(unsigned int SourcePC, unsigned int TargetPC);
+uint32_t recursion_level = 0;
 
 static inline void AdjustTranslationBufferPeak(TRANSLATION_REGION_TYPE translation_region)
 {
-	u32 Size;
+	uint32_t Size;
 	switch (translation_region)
 	{
 		case TRANSLATION_REGION_READONLY:
@@ -2450,6 +2448,8 @@ static inline void AdjustTranslationBufferPeak(TRANSLATION_REGION_TYPE translati
 		case TRANSLATION_REGION_WRITABLE:
 			Size = writable_next_code - writable_code_cache;
 			break;
+		default:
+			return;
 	}
 	if (Size > Stats.TranslationBytesPeak[translation_region])
 		Stats.TranslationBytesPeak[translation_region] = Size;
@@ -2458,9 +2458,9 @@ static inline void AdjustTranslationBufferPeak(TRANSLATION_REGION_TYPE translati
 // Where emulation started
 #define block_lookup_address_body(type)                                       \
 {                                                                             \
-  u16 *location;                                                              \
-  u32 block_tag;                                                              \
-  u8 *block_address;                                                          \
+  uint16_t *location;                                                         \
+  uint32_t block_tag;                                                         \
+  uint8_t *block_address;                                                     \
                                                                               \
                                                                               \
   /* Starting at the beginning, we allow for one translation cache flush. */  \
@@ -2503,35 +2503,35 @@ static inline void AdjustTranslationBufferPeak(TRANSLATION_REGION_TYPE translati
                                                                               \
     case 0x8 ... 0xD:                                                         \
     {                                                                         \
-      u32 hash_target = ((pc * 2654435761U) >> 16) &                          \
+      uint32_t hash_target = ((pc * UINT32_C(2654435761)) >> 16) &            \
        (ROM_BRANCH_HASH_SIZE - 1);                                            \
-      u32 *block_ptr = rom_branch_hash[hash_target];                          \
-      u32 **block_ptr_address = rom_branch_hash + hash_target;                \
+      uint32_t *block_ptr = rom_branch_hash[hash_target];                     \
+      uint32_t **block_ptr_address = rom_branch_hash + hash_target;           \
                                                                               \
       while(block_ptr)                                                        \
       {                                                                       \
         if(block_ptr[0] == pc)                                                \
         {                                                                     \
-          block_address = (u8 *)(block_ptr + 2) + block_prologue_size;        \
+          block_address = (uint8_t *)(block_ptr + 2) + block_prologue_size;   \
           break;                                                              \
         }                                                                     \
                                                                               \
-        block_ptr_address = (u32 **)(block_ptr + 1);                          \
-        block_ptr = (u32 *)block_ptr[1];                                      \
+        block_ptr_address = (uint32_t **)(block_ptr + 1);                     \
+        block_ptr = (uint32_t *)block_ptr[1];                                 \
       }                                                                       \
                                                                               \
       if(block_ptr == NULL)                                                   \
       {                                                                       \
         __label__ redo;                                                       \
-        u8* translation_result;                                               \
+        uint8_t* translation_result;                                          \
                                                                               \
         redo:                                                                 \
                                                                               \
         translation_recursion_level++;                                        \
-        ((u32 *)readonly_next_code)[0] = pc;                                  \
-        ((u32 **)readonly_next_code)[1] = NULL;                               \
-        *block_ptr_address = (u32 *)readonly_next_code;                       \
-        readonly_next_code += sizeof(u32 *) + sizeof(u32 **);                 \
+        ((uint32_t *)readonly_next_code)[0] = pc;                             \
+        ((uint32_t **)readonly_next_code)[1] = NULL;                          \
+        *block_ptr_address = (uint32_t *)readonly_next_code;                  \
+        readonly_next_code += sizeof(uint32_t *) + sizeof(uint32_t **);       \
         block_address = readonly_next_code + block_prologue_size;             \
         block_lookup_translate_##type();                                      \
         translation_recursion_level--;                                        \
@@ -2566,7 +2566,7 @@ static inline void AdjustTranslationBufferPeak(TRANSLATION_REGION_TYPE translati
            _*type* will expect the return value to be a native address to     \
            jump to. So we just let the ARMBadJump procedure run endlessly. */ \
       }                                                                       \
-      block_address = (u8 *)(NULL);                                           \
+      block_address = (uint8_t *)(NULL);                                      \
       break;                                                                  \
   }                                                                           \
                                                                               \
@@ -2580,18 +2580,18 @@ static inline void AdjustTranslationBufferPeak(TRANSLATION_REGION_TYPE translati
 
 
 /*
-//    u32 index;\
+//    uint32_t index;\
 //    for(index= ram_translation_cache; index< ram_translation_ptr; index++ )\
-//        printf("%08x\n", *(((u32*)ram_translation_cache)+index));\
+//        printf("%08x\n", *(((uint32_t*)ram_translation_cache)+index));\
 */
 
-u8 *block_lookup_address_arm(u32 pc)
-block_lookup_address_body(arm);
+uint8_t *block_lookup_address_arm(uint32_t pc)
+block_lookup_address_body(arm)
 
-u8 *block_lookup_address_thumb(u32 pc)
-block_lookup_address_body(thumb);
+uint8_t *block_lookup_address_thumb(uint32_t pc)
+block_lookup_address_body(thumb)
 
-u8 *block_lookup_address_dual(u32 pc)
+uint8_t *block_lookup_address_dual(uint32_t pc)
 {
   if(pc & 0x01)
   {
@@ -2641,7 +2641,7 @@ u8 *block_lookup_address_dual(u32 pc)
   block_end_pc += 4                                                           \
 
 #define arm_branch_target()                                                   \
-  branch_target = (block_end_pc + 4 + ((s32)(opcode << 8) >> 6))              \
+  branch_target = (block_end_pc + 4 + ((int32_t)(opcode << 8) >> 6))          \
 
 // Contiguous conditional block flags modification - it will set 0x20 in the
 // condition's bits if this instruction modifies flags. Taken from the CPU
@@ -2700,7 +2700,7 @@ u8 *block_lookup_address_dual(u32 pc)
 
 #define arm_instruction_width 4
 #define arm_instruction_nibbles 8
-#define arm_instruction_type u32
+#define arm_instruction_type uint32_t
 
 #ifdef OLD_COUNT
 #define arm_base_cycles()                                                     \
@@ -2752,20 +2752,20 @@ u8 *block_lookup_address_dual(u32 pc)
 #define thumb_branch_target()                                                 \
   if(opcode < 0xDF00)                                                         \
   {                                                                           \
-    branch_target = block_end_pc + 2 + ((s32)(opcode << 24) >> 23);           \
+    branch_target = block_end_pc + 2 + ((int32_t)(opcode << 24) >> 23);       \
   }                                                                           \
   else                                                                        \
                                                                               \
   if(opcode < 0xE800)                                                         \
   {                                                                           \
-    branch_target = block_end_pc + 2 + ((s32)(opcode << 21) >> 20);           \
+    branch_target = block_end_pc + 2 + ((int32_t)(opcode << 21) >> 20);       \
   }                                                                           \
   else                                                                        \
   {                                                                           \
     if((last_opcode >= 0xF000) && (last_opcode < 0xF800))                     \
     {                                                                         \
       branch_target =                                                         \
-       (block_end_pc + ((s32)(last_opcode << 21) >> 9) +                      \
+       (block_end_pc + ((int32_t)(last_opcode << 21) >> 9) +                  \
        ((opcode & 0x07FF) << 1));                                             \
     }                                                                         \
     else                                                                      \
@@ -2784,7 +2784,7 @@ u8 *block_lookup_address_dual(u32 pc)
 
 #define thumb_instruction_width 2
 #define thumb_instruction_nibbles 4
-#define thumb_instruction_type u16
+#define thumb_instruction_type uint16_t
 
 #ifdef OLD_COUNT
 #define thumb_base_cycles()                                                   \
@@ -2825,7 +2825,7 @@ u8 *block_lookup_address_dual(u32 pc)
 
 #define thumb_dead_flag_eliminate()                                           \
 {                                                                             \
-  u32 needed_mask;                                                            \
+  uint32_t needed_mask;                                                       \
   needed_mask = block_data.thumb[block_data_position].flag_data >> 8;         \
                                                                               \
   block_data_position--;                                                      \
@@ -2849,8 +2849,8 @@ typedef union {
 } block_data_type;
 
 typedef union {
-  u32 arm[MAX_BLOCK_SIZE];
-  u16 thumb[MAX_BLOCK_SIZE];
+  uint32_t arm[MAX_BLOCK_SIZE];
+  uint16_t thumb[MAX_BLOCK_SIZE];
 } opcode_data_type;
 
 block_data_type block_data;
@@ -2896,7 +2896,7 @@ opcode_data_type opcodes;
 
 #define unconditional_branch_write_arm_yes()                                  \
   {                                                                           \
-    u32 previous_pc = block_end_pc - arm_instruction_width;                   \
+    uint32_t previous_pc = block_end_pc - arm_instruction_width;              \
     switch (previous_pc >> 24)                                                \
     {                                                                         \
       case 0x02: /* EWRAM */                                                  \
@@ -2917,7 +2917,7 @@ opcode_data_type opcodes;
 #define unconditional_branch_write_thumb_yes()                                \
   if ((block_end_pc & 2) == 0) /* Previous instruction is in 2nd half-word */ \
   {                                                                           \
-    u32 previous_pc = block_end_pc - thumb_instruction_width;                 \
+    uint32_t previous_pc = block_end_pc - thumb_instruction_width;            \
     switch (previous_pc >> 24)                                                \
     {                                                                         \
       case 0x02: /* EWRAM */                                                  \
@@ -2941,8 +2941,8 @@ opcode_data_type opcodes;
 
 #define scan_block(type, smc_write_op)                                        \
 {                                                                             \
-  u8 continue_block = 1;                                                      \
-  u8 branch_target_bitmap[MAX_BLOCK_SIZE];                                    \
+  uint8_t continue_block = 1;                                                 \
+  uint8_t branch_target_bitmap[MAX_BLOCK_SIZE];                               \
   memset(branch_target_bitmap, 0, sizeof(branch_target_bitmap));              \
   /* Find the end of the block */                                             \
 /*printf("str: %08x\n", block_start_pc);*/\
@@ -3045,7 +3045,7 @@ opcode_data_type opcodes;
      block_start_pc, block_end_pc - block_start_pc, checksum);                \
     char Line[80], Element[10];                                               \
     Line[0] = ' '; Line[1] = '\0';                                            \
-    u32 pc_itr;                                                               \
+    uint32_t pc_itr;                                                          \
     for (pc_itr = block_start_pc; pc_itr < block_end_pc;                      \
          pc_itr += type##_instruction_width)                                  \
     {                                                                         \
@@ -3093,27 +3093,27 @@ opcode_data_type opcodes;
 #endif
 
 #define translate_block_builder(type)                                         \
-u8* translate_block_##type(u32 pc)                                            \
+uint8_t* translate_block_##type(uint32_t pc)                                  \
 {                                                                             \
-  u32 opcode = 0;                                                             \
-  u32 last_opcode;                                                            \
-  u32 condition;                                                              \
-  u32 pc_region = (pc >> 15);                                                 \
-  u32 new_pc_region;                                                          \
-  u8 *pc_address_block = memory_map_read[pc_region];                          \
-  u32 block_start_pc = pc;                                                    \
-  u32 block_end_pc = pc;                                                      \
-  u32 block_exit_position = 0;                                                \
-  s32 block_data_position = 0;                                                \
-  u32 external_block_exit_position = 0;                                       \
-  u32 branch_target;                                                          \
-  u32 cycle_count = 0;                                                        \
-  u8 *translation_target;                                                     \
-  u8 *backpatch_address = NULL;                                               \
-  u8 *translation_ptr = NULL;                                                 \
-  u8 *translation_cache_limit = NULL;                                         \
-  s32 i;                                                                      \
-  u32 flag_status;                                                            \
+  uint32_t opcode = 0;                                                        \
+  uint32_t last_opcode;                                                       \
+  uint32_t condition;                                                         \
+  uint32_t pc_region = (pc >> 15);                                            \
+  uint32_t new_pc_region;                                                     \
+  uint8_t *pc_address_block = memory_map_read[pc_region];                     \
+  uint32_t block_start_pc = pc;                                               \
+  uint32_t block_end_pc = pc;                                                 \
+  uint32_t block_exit_position = 0;                                           \
+  int32_t block_data_position = 0;                                            \
+  uint32_t external_block_exit_position = 0;                                  \
+  uint32_t branch_target;                                                     \
+  uint32_t cycle_count = 0;                                                   \
+  uint8_t *translation_target;                                                \
+  uint8_t *backpatch_address = NULL;                                          \
+  uint8_t *translation_ptr = NULL;                                            \
+  uint8_t *translation_cache_limit = NULL;                                    \
+  int32_t i;                                                                  \
+  uint32_t flag_status;                                                       \
   block_exit_type block_exits[MAX_EXITS];                                     \
                                                                               \
   generate_block_extra_vars_##type();                                         \
@@ -3159,18 +3159,18 @@ u8* translate_block_##type(u32 pc)                                            \
                                                                               \
   update_metadata_area_start(pc);                                             \
                                                                               \
-  u8 translation_gate_required = 0; /* gets updated by scan_block */          \
+  uint8_t translation_gate_required = 0; /* gets updated by scan_block */     \
                                                                               \
   /* scan_block is the first pass of the compiler. It reads the instructions, \
    * determines basically what kind of instructions they are, the branch      \
-   * targets, the condition codes atop each instruction, as well  as the need \
+   * targets, the condition codes atop each instruction, as well as the need  \
    * for a translation gate to be placed at the end. */                       \
   if(translation_region == TRANSLATION_REGION_WRITABLE)                       \
   {                                                                           \
     scan_block(type, yes);                                                    \
                                                                               \
     /* Is a block with this checksum available? */                            \
-    u16 checksum = block_checksum_##type(block_data_position);                \
+    uint16_t checksum = block_checksum_##type(block_data_position);           \
                                                                               \
     /* Where can we modify the address of the current header for linking? */  \
     struct ReuseHeader** HeaderAddr =                                         \
@@ -3188,7 +3188,7 @@ u8* translate_block_##type(u32 pc)                                            \
          type##_instruction_width);                                           \
         trace_reuse();                                                        \
                                                                               \
-        u8* NativeCode = (u8 *) (Header + 1) + Header->GBACodeSize;           \
+        uint8_t* NativeCode = (uint8_t *) (Header + 1) + Header->GBACodeSize; \
         if ((((unsigned int) NativeCode) & (CODE_ALIGN_SIZE - 1)) != 0)       \
           NativeCode += CODE_ALIGN_SIZE - (((unsigned int) NativeCode) &      \
            (CODE_ALIGN_SIZE - 1));                                            \
@@ -3214,7 +3214,7 @@ u8* translate_block_##type(u32 pc)                                            \
     }                                                                         \
                                                                               \
     /* If we get here, we could not reuse code. */                            \
-    u32 Alignment = CODE_ALIGN_SIZE -                                         \
+    uint32_t Alignment = CODE_ALIGN_SIZE -                                    \
        (((unsigned int) translation_ptr + sizeof(struct ReuseHeader)          \
        + (block_end_pc - block_start_pc))                                     \
        & (CODE_ALIGN_SIZE - 1));                                              \
@@ -3344,9 +3344,9 @@ u8* translate_block_##type(u32 pc)                                            \
       readonly_next_code = translation_ptr;                                   \
       break;                                                                  \
     case TRANSLATION_REGION_WRITABLE:                                         \
-      if (((unsigned int) translation_ptr & (sizeof(u32) - 1)) != 0)          \
-        translation_ptr += sizeof(u32) - ((unsigned int) translation_ptr      \
-         & (sizeof(u32) - 1)); /* Align the next block to 4 bytes */          \
+      if (((unsigned int) translation_ptr & (sizeof(uint32_t) - 1)) != 0)     \
+        translation_ptr += sizeof(uint32_t) - ((unsigned int) translation_ptr \
+         & (sizeof(uint32_t) - 1)); /* Align the next block to 4 bytes */     \
       writable_next_code = translation_ptr;                                   \
       break;                                                                  \
   }                                                                           \
@@ -3369,20 +3369,20 @@ u8* translate_block_##type(u32 pc)                                            \
   return update_trampoline;                                                   \
 }                                                                             \
 
-static u16 block_checksum_arm(u32 block_data_count);
-static u16 block_checksum_thumb(u32 block_data_count);
+static uint16_t block_checksum_arm(uint32_t block_data_count);
+static uint16_t block_checksum_thumb(uint32_t block_data_count);
 
-static void update_metadata_area_start(u32 pc);
-static void update_metadata_area_end(u32 pc);
+static void update_metadata_area_start(uint32_t pc);
+static void update_metadata_area_end(uint32_t pc);
 
-translate_block_builder(arm);
-translate_block_builder(thumb);
+translate_block_builder(arm)
+translate_block_builder(thumb)
 
-static u16 block_checksum_arm(u32 opcode_count)
+static uint16_t block_checksum_arm(uint32_t opcode_count)
 {
 	// Init: Checksum = NOT Opcodes[0]
 	// assert opcode_count > 0;
-	u32 result = ~opcodes.arm[0], i;
+	uint32_t result = ~opcodes.arm[0], i;
 	for (i = 1; i < opcode_count; i++)
 	{
 		// Step: Checksum = Checksum XOR (Opcodes[N] SHR (N AND 7))
@@ -3390,15 +3390,15 @@ static u16 block_checksum_arm(u32 opcode_count)
 		result ^= opcodes.arm[i] >> (i & 7);
 	}
 	// Final: Map into bits 15..1, clear bit 0 to indicate ARM
-	return (u16) (((result >> 16) ^ result) & 0xFFFE);
+	return (uint16_t) (((result >> 16) ^ result) & 0xFFFE);
 }
 
-static u16 block_checksum_thumb(u32 opcode_count)
+static uint16_t block_checksum_thumb(uint32_t opcode_count)
 {
 	// Init: Checksum = NOT Opcodes[0]
 	// assert opcode_count > 0;
-	u16 result = ~opcodes.thumb[0];
-	u32 i;
+	uint16_t result = ~opcodes.thumb[0];
+	uint32_t i;
 	for (i = 1; i < opcode_count; i++)
 	{
 		// Step: Checksum = Checksum XOR (Opcodes[N] SHR (N AND 7))
@@ -3409,7 +3409,7 @@ static u16 block_checksum_thumb(u32 opcode_count)
 	return result | 0x0001;
 }
 
-static void update_metadata_area_start(u32 pc)
+static void update_metadata_area_start(uint32_t pc)
 {
   switch(pc >> 24)
   {
@@ -3430,7 +3430,7 @@ static void update_metadata_area_start(u32 pc)
   }
 }
 
-static void update_metadata_area_end(u32 pc)
+static void update_metadata_area_end(uint32_t pc)
 {
   switch(pc >> 24)
   {
@@ -3451,17 +3451,17 @@ static void update_metadata_area_end(u32 pc)
   }
 }
 
-static void partial_clear_metadata_arm(u16* metadata, u16* metadata_area_start, u16* metadata_area_end);
-static void partial_clear_metadata_thumb(u16* metadata, u16* metadata_area_start, u16* metadata_area_end);
+static void partial_clear_metadata_arm(uint16_t* metadata, uint16_t* metadata_area_start, uint16_t* metadata_area_end);
+static void partial_clear_metadata_thumb(uint16_t* metadata, uint16_t* metadata_area_start, uint16_t* metadata_area_end);
 
 /*
  * Starts a Partial Clear of the Metadata Entry for the Data Word at the given
  * GBA address, and all adjacent Metadata Entries.
  */
-void partial_clear_metadata(u32 address)
+void partial_clear_metadata(uint32_t address)
 {
   // 1. Determine where the Metadata Entry for this Data Word is.
-  u16 *metadata;
+  uint16_t *metadata;
 
   switch (address >> 24)
   {
@@ -3490,7 +3490,7 @@ void partial_clear_metadata(u32 address)
 
   // 3. Prepare for wrapping in the Metadata Area if there's code at the
   // boundaries of the Data Area.
-  u16 *metadata_area, *metadata_area_end;
+  uint16_t *metadata_area, *metadata_area_end;
   switch (address >> 24)
   {
     case 0x02: /* EWRAM */
@@ -3509,16 +3509,16 @@ void partial_clear_metadata(u32 address)
       return;
   }
 
-  u16 contents = metadata[3];
+  uint16_t contents = metadata[3];
   if (contents & 0x1)
     partial_clear_metadata_thumb(metadata, metadata_area, metadata_area_end);
   if (contents & 0x2)
     partial_clear_metadata_arm(metadata, metadata_area, metadata_area_end);
 }
 
-static void partial_clear_metadata_thumb(u16* metadata, u16* metadata_area_start, u16* metadata_area_end)
+static void partial_clear_metadata_thumb(uint16_t* metadata, uint16_t* metadata_area_start, uint16_t* metadata_area_end)
 {
-  u16* metadata_right = metadata; // Save this pointer to go to the right later
+  uint16_t* metadata_right = metadata; // Save this pointer to go to the right later
   // 4. Clear tags for code to the left.
   while (1)
   {
@@ -3539,7 +3539,7 @@ static void partial_clear_metadata_thumb(u16* metadata, u16* metadata_area_start
   metadata = metadata_right;
   while (1)
   {
-    u16 contents = metadata[3];
+    uint16_t contents = metadata[3];
     if ((contents & 0x1) != 0)
     { // code
       metadata[3] &= ~0x5;
@@ -3557,9 +3557,9 @@ static void partial_clear_metadata_thumb(u16* metadata, u16* metadata_area_start
   }
 }
 
-static void partial_clear_metadata_arm(u16* metadata, u16* metadata_area_start, u16* metadata_area_end)
+static void partial_clear_metadata_arm(uint16_t* metadata, uint16_t* metadata_area_start, uint16_t* metadata_area_end)
 {
-  u16* metadata_right = metadata; // Save this pointer to go to the right later
+  uint16_t* metadata_right = metadata; // Save this pointer to go to the right later
   // 4. Clear tags for code to the left.
   while (1)
   {
@@ -3579,7 +3579,7 @@ static void partial_clear_metadata_arm(u16* metadata, u16* metadata_area_start, 
   metadata = metadata_right;
   while (1)
   {
-    u16 contents = metadata[3];
+    uint16_t contents = metadata[3];
     if ((contents & 0x2) != 0)
     { // code
       metadata[3] &= ~0xA;
@@ -3647,7 +3647,7 @@ void clear_metadata_area(METADATA_AREA_TYPE metadata_area,
 					if (iwram_code_max & 2)
 						// Catch the last Metadata Entry for a 4-byte-aligned Thumb instruction
 						iwram_code_max += 2;
-					memset(iwram_metadata + iwram_code_min, 0, (iwram_code_max - iwram_code_min) * sizeof(u16));
+					memset(iwram_metadata + iwram_code_min, 0, (iwram_code_max - iwram_code_min) * sizeof(uint16_t));
 					iwram_code_min = 0xFFFFFFFF;
 					iwram_code_max = 0xFFFFFFFF;
 				}
@@ -3667,7 +3667,7 @@ void clear_metadata_area(METADATA_AREA_TYPE metadata_area,
 					if (ewram_code_max & 2)
 						// Catch the last Metadata Entry for a 4-byte-aligned Thumb instruction
 						ewram_code_max += 2;
-					memset(ewram_metadata + ewram_code_min, 0, (ewram_code_max - ewram_code_min) * sizeof(u16));
+					memset(ewram_metadata + ewram_code_min, 0, (ewram_code_max - ewram_code_min) * sizeof(uint16_t));
 					ewram_code_min = 0xFFFFFFFF;
 					ewram_code_max = 0xFFFFFFFF;
 				}
@@ -3760,8 +3760,8 @@ void flush_translation_cache(TRANSLATION_REGION_TYPE translation_region,
 	}
 }
 
-u8* last_readonly = readonly_code_cache;
-u8* last_writable = writable_code_cache;
+uint8_t* last_readonly = readonly_code_cache;
+uint8_t* last_writable = writable_code_cache;
 void dump_translation_cache()
 {
 //  FILE_OPEN(FILE *fp, "fat:/ram_cache.bin", WRITE);
@@ -3788,9 +3788,9 @@ void dump_translation_cache()
   printf("RO:%08X R/W:%08X\n", readonly_next_code - readonly_code_cache, writable_next_code - writable_code_cache);
 }
 
-void init_cpu(u32 BootFromBIOS) 
+void init_cpu(uint32_t BootFromBIOS)
 {
-  u32 i;
+  uint32_t i;
 
   for(i = 0; i < 16; i++)
   {
@@ -3820,7 +3820,7 @@ void init_cpu(u32 BootFromBIOS)
 }                                                                             \
 
 void cpu_read_mem_savestate()
-cpu_savestate_body(READ_MEM);
+cpu_savestate_body(READ_MEM)
 
 void cpu_write_mem_savestate()
-cpu_savestate_body(WRITE_MEM);
+cpu_savestate_body(WRITE_MEM)

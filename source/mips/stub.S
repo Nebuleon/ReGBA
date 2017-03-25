@@ -2327,7 +2327,7 @@ execute_load_bios_u32a:
   load_u32 bios_read_protect
 
 2:
-  open_load32_a
+  open_load32_a patch_load_u32a
 
 execute_load_ewram_u32a:
   translate_region_ewram patch_load_u32a
@@ -3741,7 +3741,7 @@ execute_arm_translate:
   addu $17, $4, $0                # $17 = cycle counter
   lui $16, %hi(reg)               # $16 = &reg
   addiu $16, %lo(reg)
-  extract_flags                   # $1 = CPSR, extract flags from $28..$31
+  extract_flags                   # $1 = CPSR, extract flags into $20..$23
 
   and $1, $1, 0x20                # $1 = $1 & 0x20
 #ifndef MIPS_XBURST

@@ -1,5 +1,6 @@
 /* vim:set ts=4 sw=4 cindent ignorecase enc=gbk: */
 
+#include <stdlib.h>
 #include <string.h>
 #include "charsets.h"
 

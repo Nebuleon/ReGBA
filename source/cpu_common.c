@@ -20,7 +20,7 @@
 
 #include "common.h"
 
-const u8 bit_count[256] =
+const uint8_t bit_count[256] =
 {
   0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4,
   1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5,
@@ -40,7 +40,7 @@ const u8 bit_count[256] =
   4, 5, 5, 6, 5, 6, 6, 7, 5, 6, 6, 7, 6, 7, 7, 8
 };
 
-const u32 psr_masks[16] =
+const uint32_t psr_masks[16] =
 {
   0x00000000, 0x000000FF, 0x0000FF00, 0x0000FFFF, 0x00FF0000,
   0x00FF00FF, 0x00FFFF00, 0x00FFFFFF, 0xFF000000, 0xFF0000FF,
@@ -50,7 +50,7 @@ const u32 psr_masks[16] =
 
 void set_cpu_mode(CPU_MODE_TYPE new_mode)
 {
-  u32 i;
+  uint32_t i;
   CPU_MODE_TYPE cpu_mode = reg[CPU_MODE];
 
   if(cpu_mode != new_mode)

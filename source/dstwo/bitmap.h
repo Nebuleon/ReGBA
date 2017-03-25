@@ -19,90 +19,50 @@
 
 #ifndef __BITMAP_H__
 #define __BITMAP_H__
-#include "ds2_types.h"
-#include "fs_api.h"
+#include <stdint.h>
+#include <stdio.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef struct _pixelmapheader{
-	u32		imHeadsize;	//Bitmap information header size
-	u32		imBitmapW;	//bitmap width in pixel
-	u32		imBitmapH;	//bitmap height in pixel
-	u16		imPlanes;	//bitmap planes numbers, must be set to 1
-	u16		imBitpixel;	//bits per pixel
-	u32		imCompess;	//compress method
-	u32		imImgsize;	//image size, times of 4-byte
-	u32		imHres;		//horizontal resolution, pixel/metel
-	u32		imVres;		//vertical resolution, pixel/metel
-	u32		imColnum;	//number of colors in color palette, 0 to exp(2)
-	u32		imImcolnum;	//important colors numbers used
-} IMAGEHEADER;
-
-
-typedef struct _bitmapfileheader{
-	u16		bfType;		//BMP file types
-	u32		bfSize;		//BMP file size(Not the pixel image size)
-	u16		bfReserved0;//reserved area0
-	u16		bfReserved1;//reserved area1
-	u32		bfImgoffst;	//pixel data area offset
-	IMAGEHEADER bfImghead;
-} BMPHEADER;
-
-
-typedef struct _bitmapInfo{
-	FILE* fp;
-	BMPHEADER bmpHead;
-} BMPINFO;
-
-//#define NULL 0
-
-//compression method
-/* Value Identified by 	Compression method 		Comments
-*	0 		BI_RGB 			none 				Most common
-*	1 		BI_RLE8 		RLE 8-bit/pixel 	Can be used only with 8-bit/pixel bitmaps
-*	2 		BI_RLE4 		RLE 4-bit/pixel 	Can be used only with 4-bit/pixel bitmaps
-*	3 		BI_BITFIELDS 	Bit field 			Can be used only with 16 and 32-bit/pixel bitmaps.
-*	4 		BI_JPEG 		JPEG 				The bitmap contains a JPEG image
-*	5 		BI_PNG 			PNG 				The bitmap contains a PNG image
-*/
-#define BI_RGB			0
-#define BI_RLE8			1
-#define BI_RLE4			2
-#define BI_BITFIELDS 	3
-#define BI_JPEG			4
-#define BI_PNG			5
-
-//error message
-#define BMP_OK				0
-#define BMP_ERR_OPENFAILURE	1
-#define BMP_ERR_FORMATE		2
-#define BMP_ERR_NOTSUPPORT	3
-#define BMP_ERR_NEED_GO_ON	4
-
-
-#define FILEOPENCHECK(fp)		(fp!=NULL)
-		
-
-extern int BMP_read(char* filename, char *buf, unsigned int width, 
-		unsigned int height, unsigned int *type);
+#define BMP_OK              0
+#define BMP_ERR_OPEN        1
+#define BMP_ERR_FORMAT      2
+#define BMP_ERR_UNSUPPORTED 3
+#define BMP_ERR_MEM         4
 
 /*
-*	open BMP file
-*/
-extern int openBMP(BMPINFO* bmpInfo, const char* file);
-
-/*
-*	read pixel form BMP file
-*/
-extern int readBMP(BMPINFO* bmpInfo, unsigned int start_x, unsigned int start_y, 
-		unsigned int width, unsigned int height, void* buffer);
-
-/*
-*	close BMP file
-*/
-extern void closeBMP(BMPINFO* bmpInfo);
+ * Reads a bitmap file into the given buffer, converting pixels to BGR 555.
+ *
+ * In:
+ *   filename: Full path to the file to be read.
+ *   width: Expected width of the data.
+ *   height: Expected height of the data.
+ * Out:
+ *   buf: The buffer to be filled with BGR 555 pixels from the bitmap file.
+ *     'width' pixels from row 0 are first, then row 1, and so on until row
+ *     'height - 1'.
+ * Input assertions:
+ *   (width * height) 16-bit quantities are valid and writable at 'buf'.
+ * Output assertions:
+ * - If the width of the bitmap file exceeds 'width', only the leftmost
+ *   'width' pixels of each row are written to 'buf'.
+ * - If the height of the bitmap file exceeds 'height', only the topmost
+ *   'height' rows of the file are written to 'buf'.
+ * - If the width of the bitmap file is less than 'width', the rightmost
+ *   pixels in excess in each row are filled with black in 'buf'.
+ * - If the height of the bitmap file is less than 'height', the bottommost
+ *   rows in excess of the file are filled with black in 'buf'.
+ * Returns:
+ *   BMP_OK on success.
+ *   BMP_ERR_OPEN: The file could not be opened, and errno is set accordingly.
+ *   BMP_ERR_FORMAT: The file may not be a .bmp file.
+ *   BMP_ERR_UNSUPPORTED: The file is a .bmp file with unsupported attributes.
+ *   BMP_ERR_MEM: An auxiliary memory allocation was required but could not be
+ *   made.
+ */
+extern int BMP_Read(const char* filename, uint16_t* buf, uint32_t width, uint32_t height);
 
 #ifdef __cplusplus
 }

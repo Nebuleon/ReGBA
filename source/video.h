@@ -30,12 +30,12 @@
 
 void update_scanline();
 
-extern s32 affine_reference_x[2];
-extern s32 affine_reference_y[2];
+extern int32_t affine_reference_x[2];
+extern int32_t affine_reference_y[2];
 
-typedef void (* tile_render_function)(u32 layer_number, u32 start, u32 end,
+typedef void (* tile_render_function)(uint32_t layer_number, uint32_t start, uint32_t end,
  void *dest_ptr);
-typedef void (* bitmap_render_function)(u32 start, u32 end, void *dest_ptr);
+typedef void (* bitmap_render_function)(uint32_t start, uint32_t end, void *dest_ptr);
 
 typedef struct
 {

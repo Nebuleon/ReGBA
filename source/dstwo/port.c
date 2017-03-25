@@ -17,156 +17,138 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include <ds2/pm.h>
 #include "common.h"
 #include <stdarg.h>
 
 void ReGBA_Trace(const char* Format, ...)
 {
-	{
-		char timestamp[14];
-		unsigned int Now = getSysTime();
-		sprintf(timestamp, "%6u.%03u", Now / 23437, (Now % 23437) * 16 / 375);
-		serial_puts(timestamp);
-	}
-	serial_putc(':');
-	serial_putc(' ');
+	clock_t now = clock();
+	printf("%6u.%03u: ", now / CLOCKS_PER_SEC, (now % CLOCKS_PER_SEC) * 1000 / CLOCKS_PER_SEC);
 
-	char* line = malloc(82);
 	va_list args;
-	int linelen;
-
 	va_start(args, Format);
-	if ((linelen = vsnprintf(line, 82, Format, args)) >= 82)
-	{
-		va_end(args);
-		va_start(args, Format);
-		free(line);
-		line = malloc(linelen + 1);
-		vsnprintf(line, linelen + 1, Format, args);
-	}
-	serial_puts(line);
+	vfprintf(stdout, Format, args);
 	va_end(args);
-	free(line);
-	serial_putc('\r');
-	serial_putc('\n');
+
+	putc('\n', stdout);
 }
 
-void ReGBA_BadJump(u32 SourcePC, u32 TargetPC)
+void ReGBA_BadJump(uint32_t SourcePC, uint32_t TargetPC)
 {
-	ds2_clearScreen(gba_screen_num, COLOR16(15, 0, 0));
-	ds2_flipScreen(gba_screen_num, 2);
+	DS2_FillScreen(DS_ENGINE_MAIN, BGR555(0, 0, 15));
 	char Line[512];
 
-	draw_string_vcenter(*gba_screen_addr_ptr, 0, 0, 256, COLOR_WHITE, "Guru Meditation");
-	sprintf(Line, "Jump to unmapped address %08X", TargetPC);
-	BDF_render_mix(*gba_screen_addr_ptr, NDS_SCREEN_WIDTH, 0, 32, 0, COLOR_TRANS, COLOR_WHITE, Line);
+	draw_string_vcenter(DS2_GetMainScreen(), 0, 0, 256, COLOR_WHITE, "Guru Meditation");
+	sprintf(Line, "Jump to unmapped address %08" PRIX32, TargetPC);
+	BDF_render_mix(DS2_GetMainScreen(), DS_SCREEN_WIDTH, 0, 32, COLOR_TRANS, COLOR_WHITE, Line);
 
-	sprintf(Line, "at address %08X", SourcePC);
-	BDF_render_mix(*gba_screen_addr_ptr, NDS_SCREEN_WIDTH, 0, 48, 0, COLOR_TRANS, COLOR_WHITE, Line);
+	sprintf(Line, "at address %08" PRIX32, SourcePC);
+	BDF_render_mix(DS2_GetMainScreen(), DS_SCREEN_WIDTH, 0, 48, COLOR_TRANS, COLOR_WHITE, Line);
 
-	draw_string_vcenter(*gba_screen_addr_ptr, 0, 80, 256, COLOR_WHITE, "The game has encountered an unrecoverable error. Please restart the emulator to load another game.");
-	ds2_flipScreen(gba_screen_num, 2);
+	draw_string_vcenter(DS2_GetMainScreen(), 0, 80, 256, COLOR_WHITE, "The game has encountered an unrecoverable error. Please restart the emulator to load another game.");
+	DS2_FlipMainScreen();
 
-	while (1)
-		pm_idle(); // This is goodbye...
+	while (1) {
+		DS2_AwaitInterrupt();
+	}
 }
 
-void ReGBA_MaxBlockExitsReached(u32 BlockStartPC, u32 BlockEndPC, u32 Exits)
+void ReGBA_MaxBlockExitsReached(uint32_t BlockStartPC, uint32_t BlockEndPC, uint32_t Exits)
 {
-	ds2_clearScreen(gba_screen_num, COLOR16(0, 0, 15));
-	ds2_flipScreen(gba_screen_num, 2);
+	DS2_FillScreen(DS_ENGINE_MAIN, BGR555(15, 0, 0));
 	char Line[512];
 
-	draw_string_vcenter(*gba_screen_addr_ptr, 0, 0, 256, COLOR_WHITE, "Guru Meditation");
-	sprintf(Line, "Native code exit limit reached (%u)", Exits);
-	BDF_render_mix(*gba_screen_addr_ptr, NDS_SCREEN_WIDTH, 0, 32, 0, COLOR_TRANS, COLOR_WHITE, Line);
+	draw_string_vcenter(DS2_GetMainScreen(), 0, 0, 256, COLOR_WHITE, "Guru Meditation");
+	sprintf(Line, "Native code exit limit reached (%" PRIu32 ")", Exits);
+	BDF_render_mix(DS2_GetMainScreen(), DS_SCREEN_WIDTH, 0, 32, COLOR_TRANS, COLOR_WHITE, Line);
 
-	sprintf(Line, "at addresses %08X .. %08X", BlockStartPC, BlockEndPC);
-	BDF_render_mix(*gba_screen_addr_ptr, NDS_SCREEN_WIDTH, 0, 48, 0, COLOR_TRANS, COLOR_WHITE, Line);
+	sprintf(Line, "at addresses %08" PRIX32 " .. %08" PRIX32, BlockStartPC, BlockEndPC);
+	BDF_render_mix(DS2_GetMainScreen(), DS_SCREEN_WIDTH, 0, 48, COLOR_TRANS, COLOR_WHITE, Line);
 
-	draw_string_vcenter(*gba_screen_addr_ptr, 0, 80, 256, COLOR_WHITE, "The game has encountered a recoverable error. It has not crashed, but due to this, it soon may.");
-	ds2_flipScreen(gba_screen_num, 2);
+	draw_string_vcenter(DS2_GetMainScreen(), 0, 80, 256, COLOR_WHITE, "The game has encountered a recoverable error. It has not crashed, but due to this, it soon may.");
+	DS2_FlipMainScreen();
+	UpdateBorder();
 
-	wait_Anykey_press(0);
-	wait_Allkey_release(0);
+	DS2_AwaitAnyButtons();
+	DS2_AwaitNoButtons();
 }
 
-void ReGBA_MaxBlockSizeReached(u32 BlockStartPC, u32 BlockEndPC, u32 BlockSize)
+void ReGBA_MaxBlockSizeReached(uint32_t BlockStartPC, uint32_t BlockEndPC, uint32_t BlockSize)
 {
-	ds2_clearScreen(gba_screen_num, COLOR16(0, 0, 15));
-	ds2_flipScreen(gba_screen_num, 2);
+	DS2_FillScreen(DS_ENGINE_MAIN, BGR555(15, 0, 0));
 	char Line[512];
 
-	draw_string_vcenter(*gba_screen_addr_ptr, 0, 0, 256, COLOR_WHITE, "Guru Meditation");
-	sprintf(Line, "Native code block size reached (%u)", BlockSize);
-	BDF_render_mix(*gba_screen_addr_ptr, NDS_SCREEN_WIDTH, 0, 32, 0, COLOR_TRANS, COLOR_WHITE, Line);
+	draw_string_vcenter(DS2_GetMainScreen(), 0, 0, 256, COLOR_WHITE, "Guru Meditation");
+	sprintf(Line, "Native code block size reached (%" PRIu32 ")", BlockSize);
+	BDF_render_mix(DS2_GetMainScreen(), DS_SCREEN_WIDTH, 0, 32, COLOR_TRANS, COLOR_WHITE, Line);
 
-	sprintf(Line, "at addresses %08X .. %08X", BlockStartPC, BlockEndPC);
-	BDF_render_mix(*gba_screen_addr_ptr, NDS_SCREEN_WIDTH, 0, 48, 0, COLOR_TRANS, COLOR_WHITE, Line);
+	sprintf(Line, "at addresses %08" PRIX32 " .. %08" PRIX32, BlockStartPC, BlockEndPC);
+	BDF_render_mix(DS2_GetMainScreen(), DS_SCREEN_WIDTH, 0, 48, COLOR_TRANS, COLOR_WHITE, Line);
 
-	draw_string_vcenter(*gba_screen_addr_ptr, 0, 80, 256, COLOR_WHITE, "The game has encountered a recoverable error. It has not crashed, but due to this, it soon may.");
-	ds2_flipScreen(gba_screen_num, 2);
+	draw_string_vcenter(DS2_GetMainScreen(), 0, 80, 256, COLOR_WHITE, "The game has encountered a recoverable error. It has not crashed, but due to this, it soon may.");
+	DS2_FlipMainScreen();
+	UpdateBorder();
 
-	wait_Anykey_press(0);
-	wait_Allkey_release(0);
+	DS2_AwaitAnyButtons();
+	DS2_AwaitNoButtons();
 }
 
 void ReGBA_DisplayFPS(void)
 {
-	u32 Visible = gpsp_persistent_config.DisplayFPS;
-	if (Visible)
-	{
-		unsigned int Now = getSysTime(), Duration = Now - Stats.LastFPSCalculationTime;
-		if (Duration >= 23437 /* 1 second */)
-		{
-			Stats.RenderedFPS = Stats.RenderedFrames * 23437 / Duration;
+	uint32_t Visible = gpsp_persistent_config.DisplayFPS;
+	if (Visible) {
+		clock_t now = clock(), duration = now - Stats.LastFPSCalculationTime;
+		if (duration >= CLOCKS_PER_SEC /* 1 second */) {
+			Stats.RenderedFPS = Stats.RenderedFrames * CLOCKS_PER_SEC / duration;
 			Stats.RenderedFrames = 0;
-			Stats.EmulatedFPS = Stats.EmulatedFrames * 23437 / Duration;
+			Stats.EmulatedFPS = Stats.EmulatedFrames * CLOCKS_PER_SEC / duration;
 			Stats.EmulatedFrames = 0;
-			Stats.LastFPSCalculationTime = Now;
-		}
-		else
+			Stats.LastFPSCalculationTime = now;
+			UpdateBorder();
+		} else
 			Visible = Stats.RenderedFPS != -1 && Stats.EmulatedFPS != -1;
 	}
 
 	// Blacken the bottom bar
-	memset((u16*) *gba_screen_addr_ptr + 177 * 256, 0, 15 * 256 * sizeof(u16));
-	if (Visible)
-	{
+	memset(DS2_GetMainScreen() + DS_SCREEN_WIDTH * 177, 0, DS_SCREEN_WIDTH * 15 * sizeof(uint16_t));
+	if (Visible) {
 		char line[512];
 		sprintf(line, msg[FMT_STATUS_FRAMES_PER_SECOND], Stats.RenderedFPS, Stats.EmulatedFPS);
-		PRINT_STRING_BG_UTF8(*gba_screen_addr_ptr, line, 0x7FFF, 0x0000, 1, 177);
+		PRINT_STRING_BG(DS2_GetMainScreen(), line, COLOR_WHITE, COLOR_BLACK, 1, 177);
 	}
 }
 
 void ReGBA_OnGameLoaded(const char* GamePath)
 {
-    char tempPath[MAX_PATH];
-    strcpy(tempPath, GamePath);
+	char tempPath[PATH_MAX];
+	strcpy(tempPath, GamePath);
 
-    char *dirEnd = strrchr(tempPath, '/');
+	char *dirEnd = strrchr(tempPath, '/');
 
-    if(!dirEnd)
-      return;
+	if(!dirEnd)
+		return;
 
-    //then strip filename from directory path and set it
-    *dirEnd = '\0';
-    strcpy(g_default_rom_dir, tempPath);
+	//then strip filename from directory path and set it
+	*dirEnd = '\0';
+	strcpy(g_default_rom_dir, tempPath);
 }
 
 void ReGBA_LoadRTCTime(struct ReGBA_RTC* RTCData)
 {
-	struct rtc Time;
-	ds2_getTime(&Time);
+	time_t rawtime = time(NULL);
+	struct tm* tm = localtime(&rawtime);
 
-	RTCData->year = Time.year;
-	RTCData->month = Time.month;
-	RTCData->day = Time.day;
+	// struct tm's year base is 1900; ReGBA_RTC's is 2000.
+	RTCData->year = tm->tm_year - 100;
+	// struct tm uses 0-based months; ReGBA_RTC uses 1-based months.
+	RTCData->month = tm->tm_mon + 1;
+	RTCData->day = tm->tm_mday;
 	// Weekday conforms to the expectations (0 = Sunday, 6 = Saturday).
-	RTCData->weekday = Time.weekday;
-	RTCData->hours = Time.hours;
-	RTCData->minutes = Time.minutes;
-	RTCData->seconds = Time.seconds;
+	RTCData->weekday = tm->tm_wday;
+	RTCData->hours = tm->tm_hour;
+	RTCData->minutes = tm->tm_min;
+	RTCData->seconds = tm->tm_sec;
 }
 
 bool ReGBA_IsRenderingNextFrame()
@@ -198,9 +180,9 @@ void GetFileNameNoExtension(char* Result, const char* Path)
 
 bool ReGBA_GetBackupFilename(char* Result, const char* GamePath)
 {
-	char FileNameNoExt[MAX_PATH + 1];
+	char FileNameNoExt[PATH_MAX];
 	GetFileNameNoExtension(FileNameNoExt, GamePath);
-	if (strlen(DEFAULT_SAVE_DIR) + strlen(FileNameNoExt) + 5 /* / .sav */ > MAX_PATH)
+	if (strlen(DEFAULT_SAVE_DIR) + strlen(FileNameNoExt) + 5 /* / .sav */ > PATH_MAX)
 		return false;
 	sprintf(Result, "%s/%s.sav", DEFAULT_SAVE_DIR, FileNameNoExt);
 	return true;
@@ -208,12 +190,12 @@ bool ReGBA_GetBackupFilename(char* Result, const char* GamePath)
 
 bool ReGBA_GetSavedStateFilename(char* Result, const char* GamePath, uint32_t SlotNumber)
 {
-	char FileNameNoExt[MAX_PATH + 1];
+	char FileNameNoExt[PATH_MAX];
 	char SlotNumberString[11];
 	GetFileNameNoExtension(FileNameNoExt, GamePath);
-	sprintf(SlotNumberString, "%u", SlotNumber + 1);
+	sprintf(SlotNumberString, "%" PRIu32, (uint32_t) (SlotNumber + 1));
 	
-	if (strlen(DEFAULT_SAVE_DIR) + strlen(FileNameNoExt) + strlen(SlotNumberString) + 6 /* / _ .rts */ > MAX_PATH)
+	if (strlen(DEFAULT_SAVE_DIR) + strlen(FileNameNoExt) + strlen(SlotNumberString) + 6 /* / _ .rts */ > PATH_MAX)
 		return false;
 	sprintf(Result, "%s/%s_%s.rts", DEFAULT_SAVE_DIR, FileNameNoExt, SlotNumberString);
 	return true;
@@ -226,11 +208,11 @@ bool ReGBA_GetBundledGameConfig(char* Result)
 
 size_t FILE_LENGTH(FILE_TAG_TYPE File)
 {
-  u32 pos, size;
-  pos = ftell(File);
-  fseek(File, 0, SEEK_END);
-  size = ftell(File);
-  fseek(File, pos, SEEK_SET);
+	size_t pos, size;
+	pos = ftell(File);
+	fseek(File, 0, SEEK_END);
+	size = ftell(File);
+	fseek(File, pos, SEEK_SET);
 
-  return size;
+	return size;
 }

@@ -21,7 +21,7 @@
 #ifndef CPU_COMMON_H
 #define CPU_COMMON_H
 
-extern const u8 bit_count[256];
-extern const u32 psr_masks[16];
+extern const uint8_t bit_count[256];
+extern const uint32_t psr_masks[16];
 
 #endif

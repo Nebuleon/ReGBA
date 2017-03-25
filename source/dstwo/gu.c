@@ -22,90 +22,103 @@
 #include "common.h"
 #include "gui.h"
 
-void** gba_screen_addr_ptr = &up_screen_addr;
-u32 gba_screen_num = UP_SCREEN;
+uint16_t* GBAScreen;
+uint32_t  GBAScreenPitch = 256;
 
-u16* GBAScreen;
-u32  GBAScreenPitch = 256;
+static uint8_t BorderUpdateCount;
+
+static void set_gba_screen()
+{
+	GBAScreen = DS2_GetMainScreen()
+		+ (DS_SCREEN_HEIGHT - GBA_SCREEN_HEIGHT) / 2 * DS_SCREEN_WIDTH
+		+ (DS_SCREEN_WIDTH - GBA_SCREEN_WIDTH) / 2;
+}
 
 void init_video()
 {
-	u8* ptr = (u8*) up_screen_addr;
-	memset(ptr, 0, 256 * 192 * sizeof(u16));
-
-	ds2_flipScreen(UP_SCREEN, UP_SCREEN_UPDATE_METHOD);
-
-	GBAScreen = (u16*) *gba_screen_addr_ptr + (16 * 256 + 8);
+	set_gba_screen();
 }
 
 void flip_screen(void)
 {
-	ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
+	DS2_UpdateScreen(DS_ENGINE_SUB);
 }
 
 void ReGBA_RenderScreen(void)
 {
-	if (ReGBA_IsRenderingNextFrame())
-	{
+	if (ReGBA_IsRenderingNextFrame()) {
 		Stats.TotalRenderedFrames++;
 		Stats.RenderedFrames++;
 		ReGBA_DisplayFPS();
-		ds2_flipScreen(gba_screen_num, UP_SCREEN_UPDATE_METHOD);
+		if (BorderUpdateCount != 0) {
+			BorderUpdateCount--;
+			DS2_FlipMainScreen();
+			DS2_FillScreen(DS_ENGINE_MAIN, COLOR_BLACK);
+		} else {
+			DS2_FlipMainScreenPart((DS_SCREEN_HEIGHT - GBA_SCREEN_HEIGHT) / 2,
+				(DS_SCREEN_HEIGHT - GBA_SCREEN_HEIGHT) / 2 + GBA_SCREEN_HEIGHT);
+		}
 
 		// Update screen address each flip otherwise flickering occurs
-		GBAScreen = (u16*) *gba_screen_addr_ptr + (16 * 256 + 8);
+		set_gba_screen();
 		to_skip = 0;
-	}
-	else
+	} else
 		to_skip++;
 
 	skip_next_frame_flag = to_skip < SKIP_RATE;
 }
 
-void clear_screen(u16 color)
+void UpdateBorder(void)
 {
-	ds2_clearScreen(DOWN_SCREEN, color);
+	/* This flips the whole screen with the wrong border once, but then fills
+	 * 3 screens with black. */
+	BorderUpdateCount = 4;
 }
 
-void clear_gba_screen(u16 color)
+void clear_screen(uint16_t color)
 {
-	ds2_clearScreen(gba_screen_num, color);
-	ds2_flipScreen(gba_screen_num, UP_SCREEN_UPDATE_METHOD);
-
-	// Update screen address each flip otherwise flickering occurs
-	GBAScreen = (u16*) *gba_screen_addr_ptr + (16 * 256 + 8);
+	DS2_FillScreen(DS_ENGINE_SUB, color);
 }
 
-void copy_screen(u16 *buffer)
+void clear_gba_screen(uint16_t color)
 {
-	u32  y;
-	u16* ptr;
+	DS2_FillScreen(DS_ENGINE_MAIN, color);
+	DS2_FlipMainScreen();
+
+	set_gba_screen();
+}
+
+void copy_screen(uint16_t *buffer)
+{
+	uint32_t  y;
+	uint16_t* ptr;
 
 	for (y = 0; y < GBA_SCREEN_HEIGHT; y++)
 	{
-		ptr= (u16*) *gba_screen_addr_ptr + (y + 16) * 256 + 8;
-		memcpy(buffer, ptr, GBA_SCREEN_WIDTH * sizeof(u16));
+		ptr = DS2_GetMainScreen()
+			+ (y + (DS_SCREEN_HEIGHT - GBA_SCREEN_HEIGHT) / 2) * DS_SCREEN_WIDTH
+			+ (DS_SCREEN_WIDTH - GBA_SCREEN_WIDTH) / 2;
+		memcpy(buffer, ptr, GBA_SCREEN_WIDTH * sizeof(uint16_t));
 		buffer += GBA_SCREEN_WIDTH;
 	}
 }
 
-void blit_to_screen(u16 *src, u32 w, u32 h, u32 dest_x, u32 dest_y)
+void blit_to_screen(const uint16_t *src, uint32_t w, uint32_t h, int32_t dest_x, int32_t dest_y)
 {
-	u32 y;
-	u16* dst;
+	uint32_t y;
+	uint16_t* dst;
 
-	if(w > NDS_SCREEN_WIDTH) w = NDS_SCREEN_WIDTH;
-	if(h > NDS_SCREEN_HEIGHT) h = NDS_SCREEN_HEIGHT;
-	if(dest_x == -1)    //align center
-		dest_x = (NDS_SCREEN_WIDTH - w) / 2;
-	if(dest_y == -1)
-		dest_y = (NDS_SCREEN_HEIGHT - h) / 2;
+	if (w > DS_SCREEN_WIDTH) w = DS_SCREEN_WIDTH;
+	if (h > DS_SCREEN_HEIGHT) h = DS_SCREEN_HEIGHT;
+	if (dest_x == -1)    //align center
+		dest_x = (DS_SCREEN_WIDTH - w) / 2;
+	if (dest_y == -1)
+		dest_y = (DS_SCREEN_HEIGHT - h) / 2;
 
-	u16* screenp = *gba_screen_addr_ptr;
-	for (y = 0; y < h; y++)
-	{
-		dst= screenp + (y + dest_y) * 256 + dest_x;
-		memcpy(dst, src, w * sizeof(u16));
+	uint16_t* screenp = DS2_GetMainScreen();
+	for (y = 0; y < h; y++) {
+		dst = screenp + (y + (uint32_t) dest_y) * DS_SCREEN_WIDTH + (uint32_t) dest_x;
+		memcpy(dst, src, w * sizeof(uint16_t));
 		src += GBA_SCREEN_WIDTH;
 	}
 }

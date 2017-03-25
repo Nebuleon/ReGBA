@@ -27,30 +27,28 @@
 /******************************************************************************
  * macro definition
  ******************************************************************************/
-#define progress_sx (screen_width2 - SCREEN_WIDTH / 3)  // Center -160/-80
-#define progress_ex (screen_width2 + SCREEN_WIDTH / 3)  // Center +160/+80
+#define progress_sx (screen_width2 - DS_SCREEN_WIDTH / 3)  // Center -160/-80
+#define progress_ex (screen_width2 + DS_SCREEN_WIDTH / 3)  // Center +160/+80
 #define progress_sy (screen_height2 + 3)                // Center +3
 #define progress_ey (screen_height2 + 13)               // Center +13
-#define yesno_sx    (screen_width2 - SCREEN_WIDTH / 3)  // Center -160/-80
-#define yesno_ex    (screen_width2 + SCREEN_WIDTH / 3)  // Center +160/+80
+#define yesno_sx    (screen_width2 - DS_SCREEN_WIDTH / 3)  // Center -160/-80
+#define yesno_ex    (screen_width2 + DS_SCREEN_WIDTH / 3)  // Center +160/+80
 #define yesno_sy    (screen_height2 + 3)                // Center +3
 #define yesno_ey    (screen_height2 + 13)               // Center +13
-#define progress_color COLOR16(15,15,15)
+#define progress_color BGR555(15,15,15)
 
 //#define progress_wait (0.5 * 1000 * 1000)
 #define progress_wait (OS_TICKS_PER_SEC/2)				//0.5S
 
-#define FONTS_HEIGHT    14
-
 #define SCREEN_PITCH	256
 
-#define VRAM_POS(screen, x, y)  ((unsigned short*)screen + (x + (y) * SCREEN_PITCH))
+#define VRAM_POS(screen, x, y)  (screen + (x + (y) * SCREEN_PITCH))
 
 #define BOOTLOGO "SYSTEM/GUI/boot.bmp"
 #define GUI_SOURCE_PATH "SYSTEM/GUI"
-#define GUI_PIC_BUFSIZE 1024*512
+#define GUI_PIC_BUFSIZE (1024*512)
 
-char gui_picture[GUI_PIC_BUFSIZE];
+uint16_t gui_picture[GUI_PIC_BUFSIZE];
 
 struct gui_iconlist gui_icon_list[]= {
     //file system
@@ -98,61 +96,61 @@ struct gui_iconlist gui_icon_list[]= {
 	/* 34 */ {"sbutto", 76, 16, NULL}
                         };
 
-u16 COLOR_BG            = COLOR16( 0,  0,  0);
-u16 COLOR_INACTIVE_ITEM = COLOR16( 0,  0,  0);
-u16 COLOR_ACTIVE_ITEM   = COLOR16(31, 31, 31);
-u16 COLOR_MSSG          = COLOR16( 0,  0,  0);
-u16 COLOR_INACTIVE_MAIN = COLOR16(31, 31, 31);
-u16 COLOR_ACTIVE_MAIN   = COLOR16(31, 31, 31);
+uint16_t COLOR_BG            = BGR555( 0,  0,  0);
+uint16_t COLOR_INACTIVE_ITEM = BGR555( 0,  0,  0);
+uint16_t COLOR_ACTIVE_ITEM   = BGR555(31, 31, 31);
+uint16_t COLOR_MSSG          = BGR555( 0,  0,  0);
+uint16_t COLOR_INACTIVE_MAIN = BGR555(31, 31, 31);
+uint16_t COLOR_ACTIVE_MAIN   = BGR555(31, 31, 31);
 
 
 /*
 *	Drawing string aroud center
 */
-void print_string_center(void* screen_addr, u32 sy, u32 color, u32 bg_color, char *str)
+void print_string_center(uint16_t* screen, uint32_t sy, uint32_t color, uint32_t bg_color, char *str)
 {
 	int width = 0;//fbm_getwidth(str);
-	u32 sx = (SCREEN_WIDTH - width) / 2;
+	uint32_t sx = (DS_SCREEN_WIDTH - width) / 2;
 
-	PRINT_STRING_BG(screen_addr, str, color, bg_color, sx, sy);
+	PRINT_STRING_BG(screen, str, color, bg_color, sx, sy);
 }
 
 /*
 *	Drawing string with shadow around center
 */
-void print_string_shadow_center(void* screen_addr, u32 sy, u32 color, char *str)
+void print_string_shadow_center(uint16_t* screen, uint32_t sy, uint32_t color, char *str)
 {
 	int width = 0;//fbm_getwidth(str);
-	u32 sx = (SCREEN_WIDTH - width) / 2;
+	uint32_t sx = (DS_SCREEN_WIDTH - width) / 2;
 
-	PRINT_STRING_SHADOW(screen_addr, str, color, sx, sy);
+	PRINT_STRING_SHADOW(screen, str, color, sx, sy);
 }
 
 /*
 *	Drawing horizontal line
 */
-void drawhline(void* screen_addr, u32 sx, u32 ex, u32 y, u32 color)
+void drawhline(uint16_t* screen, uint32_t sx, uint32_t ex, uint32_t y, uint32_t color)
 {
-	u32 x;
-	u32 width  = (ex - sx) + 1;
-	u16 *dst = VRAM_POS(screen_addr, sx, y);
+	uint32_t x;
+	uint32_t width  = (ex - sx) + 1;
+	uint16_t *dst = VRAM_POS(screen, sx, y);
 
 	for (x = 0; x < width; x++)
-		*dst++ = (u16)color;
+		*dst++ = (uint16_t)color;
 }
 
 /*
 *	Drawing vertical line
 */
-void drawvline(void* screen_addr, u32 x, u32 sy, u32 ey, u32 color)
+void drawvline(uint16_t* screen, uint32_t x, uint32_t sy, uint32_t ey, uint32_t color)
 {
 	int y;
 	int height = (ey - sy) + 1;
-	u16 *dst = VRAM_POS(screen_addr, x, sy);
+	uint16_t *dst = VRAM_POS(screen, x, sy);
 
 	for (y = 0; y < height; y++)
 	{
-		*dst = (u16)color;
+		*dst = (uint16_t)color;
 		dst += SCREEN_PITCH;
 	}
 }
@@ -160,29 +158,29 @@ void drawvline(void* screen_addr, u32 x, u32 sy, u32 ey, u32 color)
 /*
 *	Drawing rectangle
 */
-void drawbox(void* screen_addr, u32 sx, u32 sy, u32 ex, u32 ey, u32 color)
+void drawbox(uint16_t* screen, uint32_t sx, uint32_t sy, uint32_t ex, uint32_t ey, uint32_t color)
 {
-	drawhline(screen_addr, sx, ex - 1, sy, color);
-	drawvline(screen_addr, ex, sy, ey - 1, color);
-	drawhline(screen_addr, sx + 1, ex, ey, color);
-	drawvline(screen_addr, sx, sy + 1, ey, color);
+	drawhline(screen, sx, ex - 1, sy, color);
+	drawvline(screen, ex, sy, ey - 1, color);
+	drawhline(screen, sx + 1, ex, ey, color);
+	drawvline(screen, sx, sy + 1, ey, color);
 }
 
 /*
 *	Filling a rectangle
 */
-void drawboxfill(void* screen_addr, u32 sx, u32 sy, u32 ex, u32 ey, u32 color)
+void drawboxfill(uint16_t* screen, uint32_t sx, uint32_t sy, uint32_t ex, uint32_t ey, uint32_t color)
 {
-	u32 x, y;
-	u32 width  = (ex - sx) + 1;
-	u32 height = (ey - sy) + 1;
-	u16 *dst = VRAM_POS(screen_addr, sx, sy);
+	uint32_t x, y;
+	uint32_t width  = (ex - sx) + 1;
+	uint32_t height = (ey - sy) + 1;
+	uint16_t *dst = VRAM_POS(screen, sx, sy);
 
 	for (y = 0; y < height; y++)
 	{
 		for (x = 0; x < width; x++)
 		{
-			dst[x + y * SCREEN_PITCH] = (u16)color;
+			dst[x + y * SCREEN_PITCH] = (uint16_t)color;
 		}
 	}
 }
@@ -197,316 +195,221 @@ void drawboxfill(void* screen_addr, u32 sx, u32 sy, u32 ex, u32 ey, u32 color)
 -           1 Green
 -           2 Blue
 ------------------------------------------------------*/
-void draw_selitem(void* screen_addr, u32 x, u32 y, u32 color, u32 active)
+void draw_selitem(uint16_t* screen, uint32_t x, uint32_t y, uint32_t color, uint32_t active)
 {
-    u32 size;
-    u32 color0, color1, color2, color3;
+	uint32_t size;
+	uint32_t color0, color1, color2, color3;
 
-    size= 10;
+	size = 10;
 
-    switch(active)
-    {
-        case 1:
-            color0 = COLOR16(12, 12, 12);
-            color1 = COLOR16(2, 2, 2);
-            color2 = COLOR16(7, 7, 7);
-            color3 = COLOR16(22, 22, 22);
-          break;
-        case 2:
-            switch(color)
-            {
-                case 0: //Red
-                    color0 = COLOR16(12, 12, 12);
-                    color1 = COLOR16(8, 0, 0);
-                    color2 = COLOR16(16, 0, 0);
-                    color3 = COLOR16(24, 0, 0);
-                  break;
-                case 1: //Green
-                    color0 = COLOR16(12, 12, 12);
-                    color1 = COLOR16(0, 8, 0);
-                    color2 = COLOR16(0, 16, 0);
-                    color3 = COLOR16(0, 24, 0);
-                  break;
-                case 2: //Blue
-                    color0 = COLOR16(12, 12, 12);
-                    color1 = COLOR16(0, 0, 8);
-                    color2 = COLOR16(0, 0, 16);
-                    color3 = COLOR16(0, 0, 24);
-                  break;
-                default:
-                    color0 = COLOR16(12, 12, 12);
-                    color1 = COLOR16(0, 8, 0);
-                    color2 = COLOR16(0, 16, 0);
-                    color3 = COLOR16(0, 24, 0);
-                  break;
-            }
-          break;
-        case 3:
-            switch(color)
-            {
-                case 0: //Red
-                    color0 = COLOR16(31, 31, 31);
-                    color1 = COLOR16(16, 0, 0);
-                    color2 = COLOR16(22, 0, 0);
-                    color3 = COLOR16(31, 0, 0);
-                  break;
-                case 1: //Green
-                    color0 = COLOR16(31, 31, 31);
-                    color1 = COLOR16(0, 16, 0);
-                    color2 = COLOR16(0, 22, 0);
-                    color3 = COLOR16(0, 31, 0);
-                  break;
-                case 2: //Blue
-                    color0 = COLOR16(31, 31, 31);
-                    color1 = COLOR16(0, 0, 16);
-                    color2 = COLOR16(0, 0, 22);
-                    color3 = COLOR16(0, 0, 31);
-                  break;
-                default:
-                    color0 = COLOR16(31, 31, 31);
-                    color1 = COLOR16(0, 16, 0);
-                    color2 = COLOR16(0, 22, 0);
-                    color3 = COLOR16(0, 31, 0);
-                  break;
-            }
-          break;
-        default:
-            color0= COLOR16(18, 18, 18);
-            color1= color2= color3= COLOR16(18, 18, 18);
-          break;
-    }
+	switch (active) {
+	case 1:
+		color0 = BGR555(12, 12, 12);
+		color1 = BGR555(2, 2, 2);
+		color2 = BGR555(7, 7, 7);
+		color3 = BGR555(22, 22, 22);
+		break;
+	case 2:
+		switch (color) {
+		case 0:  // Red
+			color0 = BGR555(12, 12, 12);
+			color1 = BGR555(0, 0, 8);
+			color2 = BGR555(0, 0, 16);
+			color3 = BGR555(0, 0, 24);
+			break;
+		default:
+		case 1:  // Green
+			color0 = BGR555(12, 12, 12);
+			color1 = BGR555(0, 8, 0);
+			color2 = BGR555(0, 16, 0);
+			color3 = BGR555(0, 24, 0);
+			break;
+		case 2:  // Blue
+			color0 = BGR555(12, 12, 12);
+			color1 = BGR555(8, 0, 0);
+			color2 = BGR555(16, 0, 0);
+			color3 = BGR555(24, 0, 0);
+			break;
+		}
+		break;
+	case 3:
+		switch (color) {
+		case 0:  // Red
+			color0 = BGR555(31, 31, 31);
+			color1 = BGR555(0, 0, 16);
+			color2 = BGR555(0, 0, 22);
+			color3 = BGR555(0, 0, 31);
+			break;
+		default:
+		case 1:  // Green
+			color0 = BGR555(31, 31, 31);
+			color1 = BGR555(0, 16, 0);
+			color2 = BGR555(0, 22, 0);
+			color3 = BGR555(0, 31, 0);
+			break;
+		case 2:  // Blue
+			color0 = BGR555(31, 31, 31);
+			color1 = BGR555(16, 0, 0);
+			color2 = BGR555(22, 0, 0);
+			color3 = BGR555(31, 0, 0);
+			break;
+		}
+		break;
+	default:
+		color0 = BGR555(18, 18, 18);
+		color1 = color2 = color3 = BGR555(18, 18, 18);
+		break;
+	}
 
-    drawbox(screen_addr, x, y, x+size-1, y+size-1, color0);
+	drawbox(screen, x, y, x+size-1, y+size-1, color0);
 
-    if(active >0)
-    {
-        drawbox(screen_addr, x+1, y+1, x+size-2, y+size-2, color1);
-        drawbox(screen_addr, x+2, y+2, x+size-3, y+size-3, color2);
-        drawboxfill(screen_addr, x+3, y+3, x+size-4, y+size-4, color3);
-    }
+	if (active > 0) {
+		drawbox(screen, x + 1, y + 1, x + size - 2, y + size - 2, color1);
+		drawbox(screen, x + 2, y + 2, x + size - 3, y + size - 3, color2);
+		drawboxfill(screen, x + 3, y + 3, x + size - 4, y + size - 4, color3);
+	}
 }
 
 /*
 *	Drawing message box
-*	Note if color_fg is transparent, screen_bg can't be transparent
+*	Note if fg_color is transparent, screen_bg can't be transparent
 */
-void draw_message(void* screen_addr, u16 *screen_bg, u32 sx, u32 sy, u32 ex, u32 ey,
-        u32 color_fg)
+void draw_message_box(uint16_t* screen)
 {
-    if(!(color_fg & 0x8000))
-    {
-//        drawbox(screen_addr, sx, sy, ex, ey, COLOR16(12, 12, 12));
-//        drawboxfill(screen_addr, sx+1, sy+1, ex-1, ey-1, color_fg);
-		show_icon(screen_addr, &ICON_MSG, (NDS_SCREEN_WIDTH - ICON_MSG.x) / 2, (NDS_SCREEN_HEIGHT - ICON_MSG.y) / 2);
-    }
-    else
-    {
-        u16 *screenp, *screenp1;
-        u32 width, height, i, k;
-        u32 tmp, tmp1, tmp2;
-        u32 r, g, b;
-
-        width= ex-sx;
-        height= ey-sy;
-        r= ((color_fg >> 10) & 0x1F) * 6/7;
-        g= ((color_fg >> 5) & 0x1F) * 6/7;
-        b= (color_fg & 0x1F) * 6/7;
-        for(k= 0; k < height; k++)
-        {
-            screenp = VRAM_POS(screen_addr, sx, sy+k);
-            screenp1 = screen_bg + sx + (sy + k) * SCREEN_PITCH;
-            for(i= 0; i < width; i++)
-            {
-                tmp = *screenp1++;
-                tmp1 = ((tmp >> 10) & 0x1F) *1/7 + r;
-                tmp2 = (tmp1 > 31) ? 31 : tmp1;
-                tmp1 = ((tmp >> 5) & 0x1F) *1/7 + g;
-                tmp2 = (tmp2 << 5) | ((tmp1 > 31) ? 31 : tmp1);
-                tmp1 = (tmp & 0x1F) *1/7 + b;
-                tmp2 = (tmp2 << 5) | ((tmp1 > 31) ? 31 : tmp1);
-                *screenp++ = tmp2;
-            }
-        }
-    }
+	show_icon(screen, &ICON_MSG, (DS_SCREEN_WIDTH - ICON_MSG.x) / 2, (DS_SCREEN_HEIGHT - ICON_MSG.y) / 2);
 }
 
 /*
 *	Drawing string horizontal center aligned
 */
-void draw_string_vcenter(void* screen_addr, u32 sx, u32 sy, u32 width, u32 color_fg, char *string)
+void draw_string_vcenter(uint16_t* screen, uint32_t sx, uint32_t sy, uint32_t width, uint32_t fg_color, const char* string)
 {
-    u32 x, num, i, m;
-    u16 *screenp;
-    u16 unicode[256];
+	uint32_t num = 0, i = 0;
+	uint16_t *screenp = VRAM_POS(screen, sx, sy);
+	uint16_t unicode[strlen(string)];
 
-    num= 0;
-    while(*string)
-    {
-        string= utf8decode(string, unicode+num);
-        num++;
-    }
+	num = 0;
+	while (*string) {
+		string = utf8decode(string, unicode + num);
+		num++;
+	}
 
-    if(num== 0) return;
-
-    screenp = (unsigned short*)screen_addr + sx + sy*SCREEN_WIDTH;
-    i= 0;
-    while(i < num)
-    {
-        m= BDF_cut_unicode(&unicode[i], num-i, width, 1);
-        x= (width - BDF_cut_unicode(&unicode[i], m, 0, 3)) / 2;
-        while(m--)
-        {
-            x += BDF_render16_ucs(screenp+x, SCREEN_WIDTH, 0, COLOR_TRANS, 
-                color_fg, unicode[i++]);
-        }
-        if (i < num && (unicode[i] == 0x0D || unicode[i] == 0x0A))
-            i++;
-	else {
-            while (i < num && (unicode[i] == ' ')) i++;
-        }
-        screenp += FONTS_HEIGHT * SCREEN_WIDTH;
-    }
+	i = 0;
+	while (i < num) {
+		uint32_t m, x;
+		m = BDF_cut_unicode(&unicode[i], num - i, width, 1);
+		x = (width - BDF_cut_unicode(&unicode[i], m, 0, 3)) / 2;
+		while (m--) {
+			x += BDF_render16_ucs(screenp + x, DS_SCREEN_WIDTH, COLOR_TRANS,
+				fg_color, unicode[i++]);
+		}
+		if (i < num && (unicode[i] == 0x0D || unicode[i] == 0x0A))
+			i++;
+		else {
+			while (i < num && (unicode[i] == ' ')) i++;
+		}
+		screenp += BDF_GetFontHeight() * DS_SCREEN_WIDTH;
+	}
 }
 
-/*------------------------------------------------------
-	Drawing a scroll string
-------------------------------------------------------*/
-//limited
-// < 256 Unicodes
-// width < 256+128
-//#define MAX_SCROLL_STRING   8
-
-/*------------------------------------------------------
-- scroll_val    < 0     scroll toward left
--               > 0     scroll toward right
-------------------------------------------------------*/
-struct scroll_string_info{
-    u16     *screenp;
-    u32     sx;
-    u32     sy;
-    u32     width;
-    u32     height;
-    u16     *unicode;
-    u32     color_bg;
-    u32     color_fg;
-    u16     *buff_fonts;
-    u32     buff_width;
-    u16     *buff_bg;
-    s32     pos_pixel;
-    u32     str_start;
-    u32     str_end;
-    u32     str_len;
+struct scroll_string_info {
+	uint16_t *screenp;
+	uint32_t sx;
+	uint32_t sy;
+	uint32_t width;
+	uint32_t height;
+	uint16_t bg_color;
+	uint16_t *buff_fonts;
+	uint32_t buff_width;
+	uint32_t pos_pixel;
 };
-
-static struct scroll_string_info    scroll_strinfo[MAX_SCROLL_STRING];
-static u32  scroll_string_num= 0;
 
 /*
  * Initialises a text scroller to display a certain string.
- * Input assertions: sx + width < NDS_SCREEN_WIDTH &&
- *   sy + [text height] < NDS_SCREEN_HEIGHT && string != NULL &&
- *   screen_addr != NULL.
- * Input: 'screen_addr', the address of the upper-left corner of the screen.
+ * Input assertions: sx + width < DS_SCREEN_WIDTH &&
+ *   sy + [text height] < DS_SCREEN_HEIGHT && string != NULL &&
+ *   screen != NULL.
+ * Input: 'screen', the address of the upper-left corner of the screen.
  *        'sx' and 'sy', the X and Y coordinates of the upper-left corner of
  *          the text.
  *        'width', the width of the scroller's viewport.
- *        'color_bg', the RGB15 color of the background around the text, or
+ *        'bg_color', the BGR555 color of the background around the text, or
  *          COLOR_TRANS for transparency.
- *        'color_fg', the RGB15 color of the text.
+ *        'fg_color', the BGR555 color of the text.
  *        'string', the text to be scrolled, encoded as UTF-8.
  * Output: the scroller's handle, to be used to scroll the text in
  *   draw_hscroll.
  */
-u32 hscroll_init(void* screen_addr, u32 sx, u32 sy, u32 width, 
-        u32 color_bg, u32 color_fg, char *string)
+void* hscroll_init(uint16_t* screen, uint32_t sx, uint32_t sy, uint32_t width,
+        uint16_t bg_color, uint16_t fg_color, const char* string)
 {
-    u32 index, x, textWidth, num, len, i;
-    u16 *unicode, *screenp;
+	size_t i;
+	uint32_t x = 0, textWidth = 0, height = BDF_GetFontHeight(), num = 0;
+	uint16_t *unicode, *buff_fonts;
+	struct scroll_string_info* result;
 
-    // 1. Which scroller should we use for this request?
-    for(i= 0; i < MAX_SCROLL_STRING; i++)
-    {
-        if(scroll_strinfo[i].screenp == NULL)
-            break;
-    }
+	result = malloc(sizeof(struct scroll_string_info));
+	if (result == NULL)
+		goto exit;
 
-    if(i >= MAX_SCROLL_STRING)
-        return -1;
+	unicode = malloc(strlen(string) * sizeof(uint16_t));
+	if (unicode == NULL)
+		goto fail_with_scroller;
 
-    index= i;
+	while (*string) {
+		string = utf8decode(string, &unicode[num]);
+		if (unicode[num] != 0x0D && unicode[num] != 0x0A) {
+			textWidth += BDF_WidthUCS2(unicode[num]);
+			num++;
+		}
+	}
+	if (textWidth < width)
+		textWidth = width;
 
-    // 2. Convert to Unicode while calculating the width of the text.
-    unicode= (u16*)malloc(strlen(string)*sizeof(u16));
-    if(unicode == NULL)
-    {
-        scroll_strinfo[index].str_len = 0;
-        return -3;
-    }
+	buff_fonts = malloc(textWidth * height * sizeof(uint16_t));
+	if (buff_fonts == NULL)
+		goto fail_with_unicode;
 
-    num= 0;
-    textWidth = 0;
-    while(*string)
-    {
-        string= utf8decode(string, unicode+num);
-        if(unicode[num] != 0x0D && unicode[num] != 0x0A) {
-            textWidth += BDF_width16_ucs(unicode[num]);
-            num++;
-        }
-    }
-    if (textWidth < width)
-        textWidth = width;
+	if (bg_color == COLOR_TRANS)
+		memset(buff_fonts, 0, textWidth * height * sizeof(uint16_t));
 
-    // 3. Allocate a rectangle of pixels for drawing the entire text into.
-    screenp= (u16*)malloc(textWidth*FONTS_HEIGHT*sizeof(u16));
-    if(screenp == NULL)
-    {
-        scroll_strinfo[index].str_len = 0;
-        free((void*)unicode);
-        return -2;
-    }
+	for (i = 0; i < num; i++) {
+		uint16_t ucs2 = unicode[i];
+		if (ucs2 != 0x0D && ucs2 != 0x0A) {
+			x += BDF_render16_ucs(buff_fonts + x, textWidth, bg_color, fg_color, ucs2);
+		}
+	}
 
-    if(color_bg == COLOR_TRANS)
-        memset(screenp, 0, textWidth*FONTS_HEIGHT*sizeof(u16));
+	result->screenp = screen;
+	result->sx = sx;
+	result->sy = sy;
+	result->bg_color = bg_color;
+	result->width = width;
+	result->height = height;
+	result->buff_fonts = buff_fonts;
+	result->buff_width = textWidth;
+	result->pos_pixel = 0;
 
-    scroll_string_num += 1;
-    scroll_strinfo[index].screenp = (unsigned short*)screen_addr;
-    scroll_strinfo[index].sx= sx;
-    scroll_strinfo[index].sy= sy;
-    scroll_strinfo[index].color_bg= color_bg;
-    scroll_strinfo[index].color_fg= color_fg;
-    scroll_strinfo[index].width= width;
-    scroll_strinfo[index].height= FONTS_HEIGHT;
-    scroll_strinfo[index].unicode= unicode;
-    scroll_strinfo[index].buff_fonts= screenp;
-    scroll_strinfo[index].buff_bg= 0;
-    scroll_strinfo[index].buff_width= textWidth;
-    scroll_strinfo[index].pos_pixel= 0;
-    scroll_strinfo[index].str_start= 0;
-    scroll_strinfo[index].str_end= len-1;
+	free(unicode);
+	return result;
 
-    scroll_strinfo[index].str_len= num;
-    if(num == 0)
-        return index; // (1. Which scroller?)
-
-    // 4. Render text into the allocation.
-    i= 0;
-    x= 0;
-    while(i < num)
-    {
-        x += BDF_render16_ucs(screenp + x, textWidth, 0, color_bg, color_fg, unicode[i++]);
-    }
-
-    return index; // (1. Which scroller?)
+fail_with_unicode:
+	free(unicode);
+fail_with_scroller:
+	free(result);
+exit:
+	return result;
 }
 
-u32 draw_hscroll_init(void* screen_addr, u32 sx, u32 sy, u32 width, 
-        u32 color_bg, u32 color_fg, char *string)
+void* draw_hscroll_init(uint16_t* screen, uint32_t sx, uint32_t sy, uint32_t width,
+        uint16_t bg_color, uint16_t fg_color, const char* string)
 {
-	u32 ret = hscroll_init(screen_addr, sx, sy, width, color_bg, color_fg, string);
+	void* result = hscroll_init(screen, sx, sy, width, bg_color, fg_color, string);
 
-	draw_hscroll(ret, 0 /* stay on the left */);
+	if (result != NULL)
+		draw_hscroll(result, 0 /* stay on the left */);
 
-	return ret;
+	return result;
 }
 
 /*
@@ -515,7 +418,7 @@ u32 draw_hscroll_init(void* screen_addr, u32 sx, u32 sy, u32 width,
  * scrolling to the left, or to go past the end when scrolling to the right.
  * Input assertions: index was returned by a previous call to
  *   draw_hscroll_init and not used in a call to draw_hscroll_over.
- * Input: 'index', the scroller's handle.
+ * Input: 'handle', the scroller's handle.
  *        'scroll_val', the number of pixels to scroll. The sign affects the
  *          direction. If scroll_val > 0, the scroller's viewport is moved to
  *          the left; if < 0, the scroller's viewport is moved to the right.
@@ -529,135 +432,100 @@ u32 draw_hscroll_init(void* screen_addr, u32 sx, u32 sy, u32 width,
  * val  3 -> xxxxxxx[ngthy text shown in a scrol]  | -> to left,  returns 7
  * val  3 -> xxxx[ lengthy text shown in a sc]     | -> to left,  returns 4
  */
-u32 draw_hscroll(u32 index, s32 scroll_val)
+uint32_t draw_hscroll(void* handle, int32_t scroll_val)
 {
-    u32 color_bg, color_fg, i, width, height;
-    s32 xoff;
+	uint16_t bg_color;
+	uint32_t i, width, height;
+	struct scroll_string_info* scroller;
 
-    if(index >= MAX_SCROLL_STRING) return -1;
-    if(scroll_strinfo[index].screenp == NULL) return -2;
-    if(scroll_strinfo[index].str_len == 0) return 0;
-    
-    width= scroll_strinfo[index].width;
-    height= scroll_strinfo[index].height;
-    color_bg= scroll_strinfo[index].color_bg;
-    color_fg= scroll_strinfo[index].color_fg;
+	if (handle == NULL)
+		return 0;
+	scroller = (struct scroll_string_info*) handle;
 
-    // 1. Shift the scroller.
-    scroll_strinfo[index].pos_pixel -= scroll_val;
-    if (scroll_strinfo[index].pos_pixel < 0) // Reached the beginning
-        scroll_strinfo[index].pos_pixel = 0;
-    else if (scroll_strinfo[index].pos_pixel > scroll_strinfo[index].buff_width - width) // Reached the end
-        scroll_strinfo[index].pos_pixel = scroll_strinfo[index].buff_width - width;
+	if (scroller->buff_fonts == NULL || scroller->screenp == NULL
+	 || scroller->buff_width < scroller->width)
+		return 0;
 
-    // 2. Draw the scroller's text at its new position.
-    u32 x, sx, sy, pixel;
-    u16 *screenp, *screenp1;
+	width = scroller->width;
+	height = scroller->height;
+	bg_color = scroller->bg_color;
 
-    sx= scroll_strinfo[index].sx;
-    sy= scroll_strinfo[index].sy;
+	// 1. Shift the scroller.
+	if (scroll_val > 0 && scroller->pos_pixel < (uint32_t) scroll_val)
+		// Reached the beginning
+		scroller->pos_pixel = 0;
+	else {
+		scroller->pos_pixel -= scroll_val;
+		if (scroller->pos_pixel > scroller->buff_width - width)
+			// Reached the end
+			scroller->pos_pixel = scroller->buff_width - width;
+	}
 
-    if(color_bg == COLOR_TRANS)
-    {
-        for(i= 0; i < height; i++)
-        {
-            screenp= scroll_strinfo[index].screenp + sx + (sy + i) * SCREEN_WIDTH;
-            screenp1= scroll_strinfo[index].buff_fonts + scroll_strinfo[index].pos_pixel + i*scroll_strinfo[index].buff_width;
-            for(x= 0; x < width; x++)
-            {
-                pixel= *screenp1++;
-				if(pixel) *screenp = pixel;
-				screenp ++;
-            }
-        }
-    }
-    else
-    {
-        for(i= 0; i < height; i++)
-        {
-            screenp= scroll_strinfo[index].screenp + sx + (sy + i) * SCREEN_WIDTH;
-            screenp1= scroll_strinfo[index].buff_fonts + scroll_strinfo[index].pos_pixel + i*scroll_strinfo[index].buff_width;
-            for(x= 0; x < width; x++)
-                *screenp++ = *screenp1++;
-        }
-    }
+	// 2. Draw the scroller's text at its new position.
+	uint32_t x, sx, sy;
+	uint16_t pixel;
+	const uint16_t* src;
+	uint16_t* dst;
 
-    // 3. Return how many more pixels we can scroll in the same direction.
-    if(scroll_val > 0)
-        // Scrolling to the left: Return the number of pixels we can still go
-        // to the left.
-        return scroll_strinfo[index].pos_pixel;
-    else
-        // Scrolling to the right: Return the number of pixels we can still go
-        // to the right.
-        return scroll_strinfo[index].buff_width - scroll_strinfo[index].pos_pixel - width;
+	sx = scroller->sx;
+	sy = scroller->sy;
+
+	if (bg_color == COLOR_TRANS) {
+		for (i = 0; i < height; i++) {
+			dst = scroller->screenp + sx + (sy + i) * DS_SCREEN_WIDTH;
+			src = scroller->buff_fonts + scroller->pos_pixel + i * scroller->buff_width;
+			for (x = 0; x < width; x++) {
+				pixel = *src++;
+				if (pixel) *dst = pixel;
+				dst++;
+			}
+		}
+	} else {
+		for (i = 0; i < height; i++) {
+			dst = scroller->screenp + sx + (sy + i) * DS_SCREEN_WIDTH;
+			src = scroller->buff_fonts + scroller->pos_pixel + i * scroller->buff_width;
+			memcpy(dst, src, width * sizeof(uint16_t));
+		}
+	}
+
+	// 3. Return how many more pixels we can scroll in the same direction.
+	if (scroll_val > 0)
+		// Scrolling to the left: Return the number of pixels we can still go
+		// to the left.
+		return scroller->pos_pixel;
+	else if (scroll_val < 0)
+		// Scrolling to the right: Return the number of pixels we can still go
+		// to the right.
+		return scroller->buff_width - scroller->pos_pixel - width;
+	else
+		return 0;
 }
 
-void draw_hscroll_over(u32 index)
+void draw_hscroll_over(void* handle)
 {
-    if(scroll_strinfo[index].screenp== NULL)
-        return;
+	struct scroll_string_info* scroller;
 
-    if(index < MAX_SCROLL_STRING && scroll_string_num > 0)
-    {
-        if(scroll_strinfo[index].unicode)
-        {
-            free((void*)scroll_strinfo[index].unicode);
-            scroll_strinfo[index].unicode= NULL;
-        }
-        if(scroll_strinfo[index].buff_fonts)
-        {
-            free((void*)scroll_strinfo[index].buff_fonts);
-            scroll_strinfo[index].buff_fonts= NULL;
-        }
-        scroll_strinfo[index].screenp= NULL;
-        scroll_strinfo[index].str_len= 0;
-    
-        scroll_string_num -=1;
-    }
+	if (handle == NULL)
+		return;
+	scroller = (struct scroll_string_info*) handle;
+
+	if (scroller->buff_fonts) {
+		free(scroller->buff_fonts);
+		scroller->buff_fonts = NULL;
+	}
+
+	free(scroller);
 }
-
-/*
-*	Drawing dialog
-*/
-/*
-void draw_dialog(void* screen_addr, u32 sx, u32 sy, u32 ex, u32 ey)
-{
-	drawboxfill(screen_addr, sx + 5, sy + 5, ex + 5, ey + 5, COLOR_DIALOG_SHADOW);
-
-	drawhline(screen_addr, sx, ex - 1, sy, COLOR_FRAME);
-	drawvline(screen_addr, ex, sy, ey - 1, COLOR_FRAME);
-	drawhline(screen_addr, sx + 1, ex, ey, COLOR_FRAME);
-	drawvline(screen_addr, sx, sy + 1, ey, COLOR_FRAME);
-
-	sx++;
-	ex--;
-	sy++;
-	ey--;
-
-	drawhline(screen_addr, sx, ex - 1, sy, COLOR_FRAME);
-	drawvline(screen_addr, ex, sy, ey - 1, COLOR_FRAME);
-	drawhline(screen_addr, sx + 1, ex, ey, COLOR_FRAME);
-	drawvline(screen_addr, sx, sy + 1, ey, COLOR_FRAME);
-
-	sx++;
-	ex--;
-	sy++;
-	ey--;
-
-	drawboxfill(screen_addr, sx, sy, ex, ey, COLOR_DIALOG);
-}
-*/
 
 /*
 *	Draw yes or no dialog
 */
-u32 draw_yesno_dialog(enum SCREEN_ID screen, u32 sy, char *yes, char *no)
+uint32_t draw_yesno_dialog(enum DS_Engine engine, uint32_t sy, const char* yes, const char* no)
 {
-    u16 unicode[8];
-    u32 len, width, box_width, i;
-    char *string;
-	void* screen_addr;
+    uint16_t unicode[strlen(yes) > strlen(no) ? strlen(yes) : strlen(no)];
+    uint32_t len, width, box_width, i;
+    const char* string;
+	uint16_t* screen = DS2_GetScreen(engine);
 
     len= 0;
     string= yes;
@@ -666,8 +534,7 @@ u32 draw_yesno_dialog(enum SCREEN_ID screen, u32 sy, char *yes, char *no)
         string= utf8decode(string, &unicode[len]);
         if(unicode[len] != 0x0D && unicode[len] != 0x0A)
         {
-            if(len < 8) len++;
-            else break;
+            len++;
         }
     }
     width= BDF_cut_unicode(unicode, len, 0, 3);
@@ -679,8 +546,7 @@ u32 draw_yesno_dialog(enum SCREEN_ID screen, u32 sy, char *yes, char *no)
         string= utf8decode(string, &unicode[len]);
         if(unicode[len] != 0x0D && unicode[len] != 0x0A)
         {
-            if(len < 8) len++;
-            else    break;
+            len++;
         }
     }
     i= BDF_cut_unicode(unicode, len, 0, 3);
@@ -689,23 +555,18 @@ u32 draw_yesno_dialog(enum SCREEN_ID screen, u32 sy, char *yes, char *no)
     box_width= 64;
     if(box_width < (width +6)) box_width = width +6;
 
-	if(screen & UP_MASK)
-		screen_addr = up_screen_addr;
-	else
-		screen_addr = down_screen_addr;
+	sy = (DS_SCREEN_HEIGHT + ICON_MSG.y) / 2 - 8 - ICON_BUTTON.y;
 
-	sy = (NDS_SCREEN_HEIGHT + ICON_MSG.y) / 2 - 8 - ICON_BUTTON.y;
+	uint32_t left_sx = DS_SCREEN_WIDTH / 2 - 8 - ICON_BUTTON.x,
+	    right_sx = DS_SCREEN_WIDTH / 2 + 8;
 
-	u32 left_sx = NDS_SCREEN_WIDTH / 2 - 8 - ICON_BUTTON.x,
-	    right_sx = NDS_SCREEN_WIDTH / 2 + 8;
+	show_icon(screen, &ICON_BUTTON, left_sx, sy);
+    draw_string_vcenter(screen, left_sx + 2, sy, ICON_BUTTON.x - 4, COLOR_WHITE, yes);
 
-	show_icon((unsigned short*)screen_addr, &ICON_BUTTON, left_sx, sy);
-    draw_string_vcenter((unsigned short*)screen_addr, left_sx + 2, sy, ICON_BUTTON.x - 4, COLOR_WHITE, yes);
+	show_icon(screen, &ICON_BUTTON, right_sx, sy);
+    draw_string_vcenter(screen, right_sx + 2, sy, ICON_BUTTON.x - 4, COLOR_WHITE, no);
 
-	show_icon((unsigned short*)screen_addr, &ICON_BUTTON, right_sx, sy);
-    draw_string_vcenter((unsigned short*)screen_addr, right_sx + 2, sy, ICON_BUTTON.x - 4, COLOR_WHITE, no);
-
-	ds2_flipScreen(screen, 2);
+	DS2_UpdateScreen(engine);
 
     gui_action_type gui_action = CURSOR_NONE;
     while((gui_action != CURSOR_SELECT)  && (gui_action != CURSOR_BACK))
@@ -713,18 +574,18 @@ u32 draw_yesno_dialog(enum SCREEN_ID screen, u32 sy, char *yes, char *no)
         gui_action = get_gui_input();
 	if (gui_action == CURSOR_TOUCH)
 	{
-		struct key_buf inputdata;
-		ds2_getrawInput(&inputdata);
+		struct DS_InputState inputdata;
+		DS2_GetInputState(&inputdata);
 		// Turn it into a SELECT (A) or BACK (B) if the button is touched.
-		if (inputdata.y >= sy && inputdata.y < sy + ICON_BUTTON.y)
+		if (inputdata.touch_y >= sy && inputdata.touch_y < sy + ICON_BUTTON.y)
 		{
-			if (inputdata.x >= left_sx && inputdata.x < left_sx + ICON_BUTTON.x)
+			if (inputdata.touch_x >= left_sx && inputdata.touch_x < left_sx + ICON_BUTTON.x)
 				gui_action = CURSOR_SELECT;
-			else if (inputdata.x >= right_sx && inputdata.x < right_sx + ICON_BUTTON.x)
+			else if (inputdata.touch_x >= right_sx && inputdata.touch_x < right_sx + ICON_BUTTON.x)
 				gui_action = CURSOR_BACK;
 		}
 	}
-	mdelay(16);
+	usleep(16667);  // TODO Replace this with waiting for interrupts
     }
 
     if (gui_action == CURSOR_SELECT)
@@ -737,12 +598,13 @@ u32 draw_yesno_dialog(enum SCREEN_ID screen, u32 sy, char *yes, char *no)
 *	Draw hotkey dialog
 *	Returns DS keys pressed, as in ds2io.h.
 */
-u32 draw_hotkey_dialog(enum SCREEN_ID screen, u32 sy, char *clear, char *cancel)
+uint32_t draw_hotkey_dialog(enum DS_Engine engine, uint32_t sy, const char* clear, const char* cancel)
 {
-    u16 unicode[8];
-    u32 len, width, box_width, i;
-    char *string;
-	void* screen_addr;
+    uint16_t unicode[strlen(clear) > strlen(cancel) ? strlen(clear) : strlen(cancel)];
+    uint32_t len, width, box_width, i;
+    const char* string;
+	uint16_t* screen = DS2_GetScreen(engine);
+	struct DS_InputState inputdata;
 
     len= 0;
     string= clear;
@@ -751,8 +613,7 @@ u32 draw_hotkey_dialog(enum SCREEN_ID screen, u32 sy, char *clear, char *cancel)
         string= utf8decode(string, &unicode[len]);
         if(unicode[len] != 0x0D && unicode[len] != 0x0A)
         {
-            if(len < 8) len++;
-            else break;
+            len++;
         }
     }
     width= BDF_cut_unicode(unicode, len, 0, 3);
@@ -764,8 +625,7 @@ u32 draw_hotkey_dialog(enum SCREEN_ID screen, u32 sy, char *clear, char *cancel)
         string= utf8decode(string, &unicode[len]);
         if(unicode[len] != 0x0D && unicode[len] != 0x0A)
         {
-            if(len < 8) len++;
-            else    break;
+            len++;
         }
     }
     i= BDF_cut_unicode(unicode, len, 0, 3);
@@ -774,56 +634,47 @@ u32 draw_hotkey_dialog(enum SCREEN_ID screen, u32 sy, char *clear, char *cancel)
     box_width= 64;
     if(box_width < (width +6)) box_width = width +6;
 
-	if(screen & UP_MASK)
-		screen_addr = up_screen_addr;
-	else
-		screen_addr = down_screen_addr;
+    i= DS_SCREEN_WIDTH/2 - box_width - 2;
+	show_icon(screen, &ICON_BUTTON, 49, 128);
+    draw_string_vcenter(screen, 51, 130, 73, COLOR_WHITE, clear);
 
-    i= SCREEN_WIDTH/2 - box_width - 2;
-	show_icon((unsigned short*)screen_addr, &ICON_BUTTON, 49, 128);
-    draw_string_vcenter((unsigned short*)screen_addr, 51, 130, 73, COLOR_WHITE, clear);
+    i= DS_SCREEN_WIDTH/2 + 3;
+	show_icon(screen, &ICON_BUTTON, 136, 128);
+    draw_string_vcenter(screen, 138, 130, 73, COLOR_WHITE, cancel);
 
-    i= SCREEN_WIDTH/2 + 3;
-	show_icon((unsigned short*)screen_addr, &ICON_BUTTON, 136, 128);
-    draw_string_vcenter((unsigned short*)screen_addr, 138, 130, 73, COLOR_WHITE, cancel);
-
-	ds2_flipScreen(screen, DOWN_SCREEN_UPDATE_METHOD);
+	DS2_UpdateScreen(engine);
 
 	// This function has been started by a key press. Wait for it to end.
-	struct key_buf inputdata;
-	do {
-		mdelay(1);
-		ds2_getrawInput(&inputdata);
-	} while (inputdata.key != 0);
+	DS2_AwaitNoButtons();
 
 	// While there are no keys pressed, wait for keys.
-	do {
-		mdelay(1);
-		ds2_getrawInput(&inputdata);
-	} while (inputdata.key == 0);
+	DS2_AwaitInputChange(&inputdata);
 
 	// Now, while there are keys pressed, keep a tally of keys that have
 	// been pressed. (IGNORE TOUCH AND LID! Otherwise, closing the lid or
 	// touching to get to the menu will do stuff the user doesn't expect.)
-	u32 TotalKeys = 0;
+	uint32_t TotalKeys = 0;
 
-	do {
-		TotalKeys |= inputdata.key & ~(KEY_TOUCH | KEY_LID);
+	while (true) {
+		TotalKeys |= inputdata.buttons & ~(DS_BUTTON_TOUCH | DS_BUTTON_LID);
 		// If there's a touch on either button, turn it into a
 		// clear (A) or cancel (B) request.
-		if (inputdata.key & KEY_TOUCH)
+		if (inputdata.buttons & DS_BUTTON_TOUCH)
 		{
-			if (inputdata.y >= 128 && inputdata.y < 128 + ICON_BUTTON.y)
+			if (inputdata.touch_y >= 128 && inputdata.touch_y < 128 + ICON_BUTTON.y)
 			{
-				if (inputdata.x >= 49 && inputdata.x < 49 + ICON_BUTTON.x)
-					return KEY_A;
-				else if (inputdata.x >= 136 && inputdata.x < 136 + ICON_BUTTON.x)
-					return KEY_B;
+				if (inputdata.touch_x >= 49 && inputdata.touch_x < 49 + ICON_BUTTON.x)
+					return DS_BUTTON_A;
+				else if (inputdata.touch_x >= 136 && inputdata.touch_x < 136 + ICON_BUTTON.x)
+					return DS_BUTTON_B;
 			}
 		}
-		mdelay(1);
-		ds2_getrawInput(&inputdata);
-	} while (inputdata.key != 0 || TotalKeys == 0);
+
+		if (inputdata.buttons == 0 && TotalKeys != 0)
+			break;
+
+		DS2_AwaitInputChange(&inputdata);
+	}
 
 	return TotalKeys;
 }
@@ -831,289 +682,100 @@ u32 draw_hotkey_dialog(enum SCREEN_ID screen, u32 sy, char *clear, char *cancel)
 /*
 *	Drawing scroll bar
 */
-#define SCROLLBAR_COLOR1 COLOR16( 0, 2, 8)
-#define SCROLLBAR_COLOR2 COLOR16(15,15,15)
+#define SCROLLBAR_COLOR1 BGR555( 8,  2,  0)
+#define SCROLLBAR_COLOR2 BGR555(15, 15, 15)
 
-void scrollbar(void* screen_addr, u32 sx, u32 sy, u32 ex, u32 ey, u32 all, u32 view, u32 now)
+void scrollbar(uint16_t* screen, uint32_t sx, uint32_t sy, uint32_t ex, uint32_t ey, uint32_t all, uint32_t view, uint32_t now)
 {
-	u32 scrollbar_sy;
-	u32 scrollbar_ey;
-	u32 len;
+	uint32_t scrollbar_sy;
+	uint32_t scrollbar_ey;
+	uint32_t len;
 
 	len = ey - sy - 2;
 
 	if ((all != 0) && (all > now))
-		scrollbar_sy = (u32)((float)len * (float)now / (float)all) +sy + 1;
+		scrollbar_sy = (uint32_t)((float)len * (float)now / (float)all) +sy + 1;
 	else
 		scrollbar_sy = sy + 1;
 
 	if ((all > (now + view)) && (all != 0))
-		scrollbar_ey = (u32)((float)len * (float)(now + view) / (float)all ) + sy + 1;
+		scrollbar_ey = (uint32_t)((float)len * (float)(now + view) / (float)all ) + sy + 1;
 	else
 		scrollbar_ey = len + sy + 1;
 
-	drawbox(screen_addr, sx, sy, ex, ey, COLOR_BLACK);
-	drawboxfill(screen_addr, sx + 1, sy + 1, ex - 1, ey - 1, SCROLLBAR_COLOR1);
-	drawboxfill(screen_addr, sx + 1, scrollbar_sy, ex - 1, scrollbar_ey, SCROLLBAR_COLOR2);
+	drawbox(screen, sx, sy, ex, ey, COLOR_BLACK);
+	drawboxfill(screen, sx + 1, sy + 1, ex - 1, ey - 1, SCROLLBAR_COLOR1);
+	drawboxfill(screen, sx + 1, scrollbar_sy, ex - 1, scrollbar_ey, SCROLLBAR_COLOR2);
 }
-
-#if 0
-static struct background back_ground = {{0}, {0}};
-
-int show_background(void *screen, char *bgname)
-{
-    int ret;
-
-    if(strcasecmp(bgname, back_ground.bgname))
-    {
-        char *buff, *src;
-        int x, y;        
-        unsigned short *dst;
-		unsigned int type;
-
-        buff= (char*)malloc(256*192*4);
-
-        ret= BMP_read(bgname, buff, 256, 192, &type);
-        if(ret != BMP_OK)
-        {
-            free((int)buff);
-            return(-1);
-        }
-
-        src = buff;
-
-		if(type ==2)		//2 bytes per pixel
-		{
-			unsigned short *pt;
-			pt = (unsigned short*)buff;
-//			memcpy((char*)back_ground.bgbuffer, buff, 256*192*2);
-			dst=(unsigned short*)back_ground.bgbuffer;
-	        for(y= 0; y< 192; y++)
-	        {
-    	        for(x= 0; x< 256; x++)
-    	        {
-    	            *dst++= RGB16_15(pt);
-    	            pt += 1;
-    	        }
-    	    }
-		}
-		else if(type ==3)	//3 bytes per pixel
-		{
-			dst=(unsigned short*)back_ground.bgbuffer;
-	        for(y= 0; y< 192; y++)
-	        {
-    	        for(x= 0; x< 256; x++)
-    	        {
-    	            *dst++= RGB24_15(buff);
-    	            buff += 3;
-    	        }
-    	    }
-		}
-		else
-		{
-            free((int)buff);
-            return(-1);
-		}
-
-        free((int)src);
-        strcpy(back_ground.bgname, bgname);
-    }
-
-    memcpy((char*)screen, back_ground.bgbuffer, 256*192*2);
-
-    return 0;    
-}
-#endif
 
 /*
-*	change GUI icon
+* Loads GUI icons corresponding to the given language_id.
+*
+* In:
+*   language_id: The sequence number of the language to load language-specific
+*     icons for.
+* Returns:
+*   0 on success.
+*   1 if there is insufficient space in gui_picture for all image data
+*   (this is an internal error).
+*   -(n + 1) if an error occurred while loading any icon, with 'n' being the
+*   index of the first icon for which an error occurred.
 */
-int gui_change_icon(u32 language_id)
+int gui_change_icon(uint32_t language_id)
 {
-    char path[128];
-    char fpath[8];
-    u32  i, item;
-    int err, ret; 
-    char *buff, *src;
-    u32 x, y;
-    char *icondst;
-	unsigned int type;
+	char path[MAX_PATH];
+	char suffix[15];
+	size_t i, item_count = sizeof(gui_icon_list) / sizeof(gui_icon_list[0]);
+	int err, ret = 0;
+	uint16_t *icondst = gui_picture;
 
-    item= sizeof(gui_icon_list)/16;
-    buff= (char*)malloc(256*192*4);
-    if(buff == NULL)
-        return -1;
+	sprintf(suffix, "%" PRIu32 ".bmp", language_id);
+	for (i = 0; i < item_count; i++) {
+		sprintf(path, "%s/%s/%s%s", main_path, GUI_SOURCE_PATH, gui_icon_list[i].iconname, suffix);
 
-    ret= 0;
-    icondst= gui_picture;
-
-    sprintf(fpath, "%d.bmp", language_id);
-    for(i= 0; i< item; i++)
-    {
-        sprintf(path, "%s/%s/%s%s", main_path, GUI_SOURCE_PATH, gui_icon_list[i].iconname, fpath);
-
-	    src= buff; 
-        err= BMP_read(path, src, gui_icon_list[i].x, gui_icon_list[i].y, &type);
-        if(err != BMP_OK)
-        {
-            sprintf(path, "%s/%s/%s%s", main_path, GUI_SOURCE_PATH, gui_icon_list[i].iconname, ".bmp");
-            err= BMP_read(path, src, gui_icon_list[i].x, gui_icon_list[i].y, &type);
-        }
-
-		if(type < 2)	//< 1 byte per pixels, not surpport now
-		{
-            if(!ret) ret = -(i+1);
-            gui_icon_list[i].iconbuff= NULL;
-			continue;
+		if (icondst + gui_icon_list[i].x * gui_icon_list[i].y
+		 >= &gui_picture[GUI_PIC_BUFSIZE]) {
+			ret = 1;
+			break;
 		}
 
-        if(err == BMP_OK)
-        {
-            unsigned short *dst;
+		gui_icon_list[i].iconbuff = NULL;
+		err = BMP_Read(path, icondst, gui_icon_list[i].x, gui_icon_list[i].y);
+		if (err != BMP_OK) {
+			sprintf(path, "%s/%s/%s%s", main_path, GUI_SOURCE_PATH, gui_icon_list[i].iconname, ".bmp");
+			err = BMP_Read(path, icondst, gui_icon_list[i].x, gui_icon_list[i].y);
+		}
 
-            if(icondst >= gui_picture + GUI_PIC_BUFSIZE -1)
-            {
-                ret = 1;
-                break;
-            }
+		if (err == BMP_OK) {
+			gui_icon_list[i].iconbuff = icondst;
+			icondst += gui_icon_list[i].x * gui_icon_list[i].y;
+		} else {
+			if (ret == 0) ret = -(i+1);
+		}
+	}
 
-			if(type == 2)
-			{
-				unsigned short *pt;
-				pt = (unsigned short*)src;
-//				memcpy((char*)icondst, src, 256*192*2);
-				dst = (unsigned short*)icondst;
-    	        for(y= 0; y< gui_icon_list[i].y; y++)
-    	        {
-    	            for(x= 0; x < gui_icon_list[i].x; x++)
-    	            {
-    	                *dst++ = RGB16_15(pt);
-    	                pt += 1;
-    	            }
-	            }
-			}
-
-			if(type == 3)
-			{
-				dst = (unsigned short*)icondst;
-    	        for(y= 0; y< gui_icon_list[i].y; y++)
-    	        {
-    	            for(x= 0; x < gui_icon_list[i].x; x++)
-    	            {
-    	                *dst++ = RGB24_15(src);
-    	                src += 3;
-    	            }
-	            }
-            }
-
-            gui_icon_list[i].iconbuff= icondst;
-            icondst += gui_icon_list[i].x*gui_icon_list[i].y*2;
-        }
-        else
-        {
-            if(!ret) ret = -(i+1);
-            gui_icon_list[i].iconbuff= NULL;
-        }
-    }
-
-    free((void*)buff);
-//printf("icon_buf: %08x\n", icondst - gui_picture );
-    return ret;
+	return ret;
 }
 
 /*************************************************************/
-int icon_init(u32 language_id)
+int icon_init(uint32_t language_id)
 {
-    u32  i;
-    int ret;
-
-//Initial draw_scroll_string function
-    scroll_string_num = 0;
-    for(i= 0; i < MAX_SCROLL_STRING; i++)
-    {
-        scroll_strinfo[i].unicode= NULL;
-        scroll_strinfo[i].buff_fonts= NULL;
-        scroll_strinfo[i].screenp = NULL;
-        scroll_strinfo[i].str_len = 0;
-    }
-
-    ret= gui_change_icon(language_id);
-
-//#define GUI_INIT_DEBUG
-#if 0
-    item= sizeof(gui_icon_list)/12;
-    buff= (char*)malloc(256*192*4);
-    src= buff;
-    ret= 0;
-    icondst= gui_picture;
-
-    for(i= 0; i< item; i++)
-    {
-        sprintf(path, "%s\\%s", GUI_SOURCE_PATH, gui_icon_list[i].iconname);
-        
-        err= BMP_read(path, buff, gui_icon_list[i].x, gui_icon_list[i].y);
-        if(err == BMP_OK)
-        {
-            unsigned short *dst;
-            
-            if(icondst >= gui_picture + GUI_PIC_BUFSIZE -1)
-            {
-                ret = 1;
-#ifdef GUI_INIT_DEBUG
-                printf("GUI Initial overflow\n");
-#endif
-                break;
-            }
-
-            for(y= 0; y< gui_icon_list[i].y; y++)
-            {
-                dst= (unsigned short*)(icondst + (gui_icon_list[i].y - y -1)*gui_icon_list[i].x*2);
-                for(x= 0; x < gui_icon_list[i].x; x++)
-                {
-                    *dst++ = RGB24_15(buff);
-                    buff += 4;
-                }
-            }                
-            
-            gui_icon_list[i].iconname= icondst;
-            icondst += gui_icon_list[i].x*gui_icon_list[i].y*2;
-        }
-        else
-        if(!ret)
-        {
-            ret = -(i+1);
-            gui_icon_list[i].iconname= NULL;
-#ifdef GUI_INIT_DEBUG
-            printf("GUI Initial: %s not open\n", path);
-#endif
-        }
-    }
-
-#ifdef GUI_INIT_DEBUG
-    printf("GUI buff %d\n", icondst - gui_picture);
-#endif
-
-    free((int)src);
-#endif
-
-    return ret;
+	return gui_change_icon(language_id);
 }
 
 int color_init()
 {
 	char path[MAX_PATH];
 	char current_line[256];
-        sprintf(path, "%s/%s/%s", main_path, GUI_SOURCE_PATH, "uicolors.txt");
+
+	sprintf(path, "%s/%s/%s", main_path, GUI_SOURCE_PATH, "uicolors.txt");
 	FILE* fp = fopen(path, "r");
-	if (fp != NULL)
-	{
-		while(fgets(current_line, 256, fp))
-		{
+	if (fp != NULL) {
+		while (fgets(current_line, 256, fp)) {
 			char* colon = strchr(current_line, ':');
-			if (colon)
-			{
+			if (colon) {
 				*colon = '\0';
-				u16* color = NULL;
+				uint16_t* color = NULL;
 				if (strcasecmp(current_line, "Background") == 0)
 					color = &COLOR_BG;
 				else if (strcasecmp(current_line, "ActiveItem") == 0)
@@ -1127,27 +789,27 @@ int color_init()
 				else if (strcasecmp(current_line, "InactiveMain") == 0)
 					color = &COLOR_INACTIVE_MAIN;
 
-				if (color != NULL)
-				{
-					char* end = strchr(colon + 1, '\0') - 1;
+				if (color != NULL) {
+					char* ptr = colon + 1;
+					char* end = strchr(ptr, '\0') - 1;
 					while (*end && (*end == '\r' || *end == '\n'))
 						*end-- = '\0';
-					char* ptr = colon + 1;
 					while (*ptr && *ptr == ' ')
 						ptr++;
-					u32 color32;
-					u8  r, g, b;
+					uint32_t color32;
+					uint8_t  r, g, b;
 					if (strlen(ptr) == 7 && *ptr == '#')
 					{
 						color32 = strtol(ptr + 1, NULL, 16);
 						r = (color32 >> 16) & 0xFF;
 						g = (color32 >>  8) & 0xFF;
 						b =  color32        & 0xFF;
-						*color = COLOR16(r >> 3, g >> 3, b >> 3);
+						*color = BGR555(b >> 3, g >> 3, r >> 3);
 					}
 				}
 			}
 		}
+
 		fclose(fp);
 		return 0;
 	}
@@ -1156,107 +818,51 @@ int color_init()
 }
 
 /*************************************************************/
-void show_icon(void* screen, struct gui_iconlist* icon, u32 x, u32 y)
+void show_icon(uint16_t* screen, struct gui_iconlist* icon, uint32_t x, uint32_t y)
 {
-    u32 i, k;
-    unsigned short *src, *dst;
+	uint32_t i, k;
+	uint16_t *src = icon->iconbuff, *dst = VRAM_POS(screen, x, y);
 
-    src= (unsigned short*)icon->iconbuff;
-    dst = (unsigned short*)screen + y*NDS_SCREEN_WIDTH + x;
-	if(NULL == src) return;	//The icon may initialized failure
+	if (!src) return;  /* The icon failed to load */
 
-	if (icon->x == NDS_SCREEN_WIDTH && icon->y == NDS_SCREEN_HEIGHT && x == 0 && y == 0)
-	{
+	if (icon->x == DS_SCREEN_WIDTH && icon->y == DS_SCREEN_HEIGHT && x == 0 && y == 0) {
 		// Don't support transparency for a background.
-		memcpy(dst, src, NDS_SCREEN_WIDTH * NDS_SCREEN_HEIGHT * sizeof(u16));
-	}
-	else
-	{
-		for(i= 0; i < icon->y; i++)
-		{
-			for(k= 0; k < icon->x; k++)
-			{
-				if(0x03E0 != *src) dst[k]= *src;
+		memcpy(dst, src, DS_SCREEN_WIDTH * DS_SCREEN_HEIGHT * sizeof(uint16_t));
+	} else {
+		for (i = 0; i < icon->y; i++) {
+			for (k = 0; k < icon->x; k++) {
+				if (*src != 0x03E0) dst[k] = *src;
 				src++;
 			}
 
-			dst += NDS_SCREEN_WIDTH;
+			dst += DS_SCREEN_WIDTH;
 		}
 	}
 }
 
 /*************************************************************/
-void show_Vscrollbar(char *screen, u32 x, u32 y, u32 part, u32 total)
+void show_Vscrollbar(uint16_t* screen, uint32_t x, uint32_t y, uint32_t part, uint32_t total)
 {
-//    show_icon((u16*)screen, ICON_VSCROL_UPAROW, x+235, y+55);
-//    show_icon((u16*)screen, ICON_VSCROL_DWAROW, x+235, y+167);
-//    show_icon((u16*)screen, ICON_VSCROL_SLIDER, x+239, y+64);
+//    show_icon(screen, ICON_VSCROL_UPAROW, x+235, y+55);
+//    show_icon(screen, ICON_VSCROL_DWAROW, x+235, y+167);
+//    show_icon(screen, ICON_VSCROL_SLIDER, x+239, y+64);
 //    if(total <= 1)
-//        show_icon((u16*)screen, ICON_VSCROL_BAR, x+236, y+64);
+//        show_icon(screen, ICON_VSCROL_BAR, x+236, y+64);
 //    else
-//        show_icon((u16*)screen, ICON_VSCROL_BAR, x+236, y+64+(part*90)/(total-1));
+//        show_icon(screen, ICON_VSCROL_BAR, x+236, y+64+(part*90)/(total-1));
 }
 
 /*
-*	display a log
+* Displays the boot logo. No error is returned if the logo is not present;
+* the screen is simply not overwritten.
 */
-void show_log(void* screen_addr)
+void show_log()
 {
-    char tmp_path[MAX_PATH];
-	char *buff;
-	int x, y;        
-	unsigned short *dst;
-	unsigned int type;
-	int ret;
+	char tmp_path[MAX_PATH];
 
-    sprintf(tmp_path, "%s/%s", main_path, BOOTLOGO);
-	buff= (char*)malloc(256*192*4);
+	sprintf(tmp_path, "%s/%s", main_path, BOOTLOGO);
 
-	ret= BMP_read(tmp_path, buff, 256, 192, &type);
-	if(ret != BMP_OK)
-	{
-		free((void*)buff);
-		return;
-	}
-
-	if(type ==2)		//2 bytes per pixel
-	{
-		unsigned short *pt;
-		pt = (unsigned short*)buff;
-		dst=(unsigned short*)screen_addr;
-		for(y= 0; y< 192; y++)
-		{
-			for(x= 0; x< 256; x++)
-			{
-				*dst++= RGB16_15(pt);
-				pt += 1;
-			}
-		}
-	}
-	else if(type ==3)	//3 bytes per pixel
-	{
-		unsigned char *pt;
-		pt = (unsigned char*)buff;
-		dst=(unsigned short*)screen_addr;
-		for(y= 0; y< 192; y++)
-		{
-			for(x= 0; x< 256; x++)
-			{
-				*dst++= RGB24_15(pt);
-				pt += 3;
-			}
-		}
-	}
-
-	free((void*)buff);
-}
-
-/*************************************************************/
-void err_msg(enum SCREEN_ID screen, char *msg)
-{
-	// A wild console appeared!
-	ConsoleInit(RGB15(31, 31, 31), RGB15(0, 0, 0), UP_SCREEN, 2);
-	printf(msg);
+	BMP_Read(tmp_path, DS2_GetSubScreen(), DS_SCREEN_WIDTH, DS_SCREEN_HEIGHT);
 }
 
 void ReGBA_ProgressInitialise(enum ReGBA_FileAction Action)

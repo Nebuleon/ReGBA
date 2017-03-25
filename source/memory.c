@@ -21,19 +21,19 @@
 #include "common.h" 
 
 // TODO:PSP-1000はフレームバッファは256KBあれば足りるので、VRAMを使用する
-u8 savestate_write_buffer[SAVESTATE_SIZE];
-u8 *g_state_buffer_ptr;
+uint8_t savestate_write_buffer[SAVESTATE_SIZE];
+uint8_t *g_state_buffer_ptr;
 
 #define SAVESTATE_REWIND_SIZE (SAVESTATE_REWIND_LEN*SAVESTATE_REWIND_NUM)	//~5MB
 #define SAVESTATE_REWIND_LEN (0x69040)
 #define SAVESTATE_REWIND_NUM (10)
-u8 SAVESTATE_REWIND_MEM[ SAVESTATE_REWIND_SIZE ] __attribute__ ((aligned (4))) ;
+uint8_t SAVESTATE_REWIND_MEM[ SAVESTATE_REWIND_SIZE ] __attribute__ ((aligned (4))) ;
 
-const u8 SVS_HEADER_E[SVS_HEADER_SIZE] = {'N', 'G', 'B', 'A', 'R', 'T', 'S',
+const uint8_t SVS_HEADER_E[SVS_HEADER_SIZE] = {'N', 'G', 'B', 'A', 'R', 'T', 'S',
   '1', '.', '0', 'e'}; // 1.0e is written with sound frequency-dependent
   // variables precalculated with SOUND_FREQUENCY = 65536. 1.0f is written
   // with sound frequency-dependent variables precalculated with it at 88200.
-const u8 SVS_HEADER_F[SVS_HEADER_SIZE] = {'N', 'G', 'B', 'A', 'R', 'T', 'S',
+const uint8_t SVS_HEADER_F[SVS_HEADER_SIZE] = {'N', 'G', 'B', 'A', 'R', 'T', 'S',
   '1', '.', '0', 'f'};
 
 typedef enum
@@ -58,28 +58,28 @@ typedef enum
 
 void memory_read_mem_savestate();
 void memory_write_mem_savestate();
-u8 read_backup(u32 address);
-void write_eeprom(u32 address, u32 value);
-u32 read_eeprom();
-CPU_ALERT_TYPE write_io_register8(u32 address, u32 value);
-CPU_ALERT_TYPE write_io_register16(u32 address, u32 value);
-CPU_ALERT_TYPE write_io_register32(u32 address, u32 value);
-void write_backup(u32 address, u32 value);
-u32 encode_bcd(u8 value);
-void write_rtc(u32 address, u32 value);
-u32 save_backup();
-s32 parse_config_line(char *current_line, char *current_variable, char *current_value);
-s32 load_game_config(char *gamepak_title, char *gamepak_code, char *gamepak_maker);
+uint8_t read_backup(uint32_t address);
+void write_eeprom(uint32_t address, uint32_t value);
+uint32_t read_eeprom();
+CPU_ALERT_TYPE write_io_register8(uint32_t address, uint32_t value);
+CPU_ALERT_TYPE write_io_register16(uint32_t address, uint32_t value);
+CPU_ALERT_TYPE write_io_register32(uint32_t address, uint32_t value);
+void write_backup(uint32_t address, uint32_t value);
+uint32_t encode_bcd(uint8_t value);
+void write_rtc(uint32_t address, uint32_t value);
+uint32_t save_backup();
+int32_t parse_config_line(char *current_line, char *current_variable, char *current_value);
+int32_t load_game_config(char *gamepak_title, char *gamepak_code, char *gamepak_maker);
 char *skip_spaces(char *line_ptr);
-static s32 load_gamepak_raw(char *name);
-u32 evict_gamepak_page();
+static int32_t load_gamepak_raw(const char* name);
+uint32_t evict_gamepak_page();
 void init_memory_gamepak();
 
 // SIO
-u32 get_sio_mode(u16 io1, u16 io2);
-u32 send_adhoc_multi();
+uint32_t get_sio_mode(uint16_t io1, uint16_t io2);
+uint32_t send_adhoc_multi();
 
-u32 g_multi_mode;
+uint32_t g_multi_mode;
 
 
 #define SIO_NORMAL8     0
@@ -91,7 +91,7 @@ u32 g_multi_mode;
 
 // This table is configured for sequential access on system defaults
 #ifdef OLD_COUNT
-u32 waitstate_cycles_sequential[16][3] =
+uint32_t waitstate_cycles_sequential[16][3] =
 {
   { 1, 1, 1 }, // BIOS
   { 1, 1, 1 }, // Invalid
@@ -109,7 +109,7 @@ u32 waitstate_cycles_sequential[16][3] =
   { 9, 9, 17 }  // Gamepak (wait 2)
 };
 
-u32 gamepak_waitstate_sequential[2][3][3] =
+uint32_t gamepak_waitstate_sequential[2][3][3] =
 {
   {
     { 3, 3, 6 },
@@ -123,14 +123,14 @@ u32 gamepak_waitstate_sequential[2][3][3] =
   }
 };
 #else
-u8 waitstate_cycles_seq[2][16] =
+uint8_t waitstate_cycles_seq[2][16] =
 {
  /* 0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F */
   { 1, 1, 3, 1, 1, 1, 1, 1, 3, 3, 5, 5, 9, 9, 5, 1 }, /* 8,16bit */
   { 1, 1, 6, 1, 1, 2, 2, 1, 5, 5, 9, 9,17,17, 1, 1 }  /* 32bit */
 };
 
-u8 waitstate_cycles_non_seq[2][16] =
+uint8_t waitstate_cycles_non_seq[2][16] =
 {
  /* 0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F */
   { 1, 1, 3, 1, 1, 1, 1, 1, 5, 5, 5, 5, 5, 5, 5, 1 }, /* 8,16bit */
@@ -139,13 +139,13 @@ u8 waitstate_cycles_non_seq[2][16] =
 
 // Different settings for gamepak ws0-2 sequential (2nd) access
 
-u8 gamepak_waitstate_seq[2][2][3] =
+uint8_t gamepak_waitstate_seq[2][2][3] =
 {
   {{ 3, 5, 9 }, { 5, 9,17 }},
   {{ 2, 2, 2 }, { 3, 3, 3 }}
 };
 
-u8 cpu_waitstate_cycles_seq[2][16] =
+uint8_t cpu_waitstate_cycles_seq[2][16] =
 {
  /* 0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F */
   { 1, 1, 3, 1, 1, 1, 1, 1, 3, 3, 5, 5, 9, 9, 5, 1 }, /* 8,16bit */
@@ -153,22 +153,22 @@ u8 cpu_waitstate_cycles_seq[2][16] =
 };
 #endif
 
-u32 prescale_table[] = { 0, 6, 8, 10 };
+uint32_t prescale_table[] = { 0, 6, 8, 10 };
 
 bool IsNintendoBIOS = false;
 
 // GBA memory areas.
 
-u16 palette_ram   [  0x200]; // Palette RAM             (05000000h)      1 KiB
-u16 oam_ram       [  0x200]; // Object Attribute Memory (07000000h)      1 KiB
-u16 io_registers  [ 0x4000]; // I/O Registers           (04000000h)     32 KiB
-u8  ewram_data    [0x40000]; // External Working RAM    (02000000h)    256 KiB
-u8  iwram_data    [ 0x8000]; // Internal Working RAM    (03000000h)     32 KiB
-u8  vram          [0x18000]; // Video RAM               (06000000h)     96 KiB
-struct BIOS_DATA bios;       // BIOS ROM and code tags  (00000000h)     48 KiB
-u8  gamepak_backup[0x20000]; // Backup flash/EEPROM...  (0E000000h)    128 KiB
-                             // ----------------------------------------------
-                             // Total                                  594 KiB
+uint16_t palette_ram   [  0x200]; // Palette RAM             (05000000h)      1 KiB
+uint16_t oam_ram       [  0x200]; // Object Attribute Memory (07000000h)      1 KiB
+uint16_t io_registers  [ 0x4000]; // I/O Registers           (04000000h)     32 KiB
+uint8_t  ewram_data    [0x40000]; // External Working RAM    (02000000h)    256 KiB
+uint8_t  iwram_data    [ 0x8000]; // Internal Working RAM    (03000000h)     32 KiB
+uint8_t  vram          [0x18000]; // Video RAM               (06000000h)     96 KiB
+struct BIOS_DATA bios;            // BIOS ROM and code tags  (00000000h)     48 KiB
+uint8_t  gamepak_backup[0x20000]; // Backup flash/EEPROM...  (0E000000h)    128 KiB
+                                  // ----------------------------------------------
+                                  // Total                                  594 KiB
 
 #ifndef USE_C_CORE
 /*
@@ -177,20 +177,20 @@ u8  gamepak_backup[0x20000]; // Backup flash/EEPROM...  (0E000000h)    128 KiB
  * Data Word in that Data Area. For more information about these, see
  * "doc/partial flushing of RAM code.txt" in your source tree.
  */
-u16 iwram_metadata[ 0x8000]; // Internal Working RAM code metadata      64 KiB
-u16 ewram_metadata[0x40000]; // External Working RAM code metadata     512 KiB
-u16 vram_metadata [0x18000]; // Video RAM code metadata                192 KiB
-                             // ----------------------------------------------
-                             // Total                                  768 KiB
+uint16_t iwram_metadata[ 0x8000]; // Internal Working RAM code metadata      64 KiB
+uint16_t ewram_metadata[0x40000]; // External Working RAM code metadata     512 KiB
+uint16_t vram_metadata [0x18000]; // Video RAM code metadata                192 KiB
+                                  // ----------------------------------------------
+                                  // Total                                  768 KiB
 #endif
 
-u32 flash_bank_offset = 0;
+uint32_t flash_bank_offset = 0;
 
-u32 bios_read_protect;
+uint32_t bios_read_protect;
 
 // Keeps us knowing how much we have left.
-u8 *gamepak_rom = NULL;
-u32 gamepak_size;
+uint8_t *gamepak_rom = NULL;
+uint32_t gamepak_size;
 
 /******************************************************************************
  * 全局变量定义
@@ -198,18 +198,18 @@ u32 gamepak_size;
 TIMER_TYPE timer[4];                              // 定时器
 
 #ifdef USE_EXT_MEM
-u8 *gamepak_rom_resume;
+uint8_t *gamepak_rom_resume;
 #endif
 
 DMA_TRANSFER_TYPE dma[4];
 
-u8 *memory_regions[16];
-u32 memory_limits[16];
+uint8_t *memory_regions[16];
+uint32_t memory_limits[16];
 
-u32 gamepak_next_swap;
+uint32_t gamepak_next_swap;
 
-u32 gamepak_ram_buffer_size;
-u32 gamepak_ram_pages;
+uint32_t gamepak_ram_buffer_size;
+uint32_t gamepak_ram_pages;
 
 char gamepak_title[13];
 char gamepak_code[5];
@@ -219,10 +219,10 @@ bool IsGameLoaded = false;
 bool IsZippedROM = false; // true if the current ROM came directly from a
                           // zip file (false if it was extracted to temp)
 
-u32 mem_save_flag;
+uint32_t mem_save_flag;
 
 // Enough to map the gamepak RAM space.
-u16 gamepak_memory_map[1024];
+uint16_t gamepak_memory_map[1024];
 
 // This is global so that it can be kept open for large ROMs to swap
 // pages from, so there's no slowdown with opening and closing the file
@@ -236,20 +236,20 @@ char main_path[MAX_PATH + 1];
 // so the related subsystem may react to it.
 
 // If OAM is written to:
-u32 oam_update = 1;
+uint32_t oam_update = 1;
 
 // If GBC audio is written to:
-u32 gbc_sound_update = 0;
+uint32_t gbc_sound_update = 0;
 
 // If the GBC audio waveform is modified:
-u32 gbc_sound_wave_update = 0;
+uint32_t gbc_sound_wave_update = 0;
 
 // If the backup space is written (only update once this hits 0)
-u32 backup_update = 0;
+uint32_t backup_update = 0;
 
 // Write out backup file this many cycles after the most recent
 // backup write.
-const u32 write_backup_delay = 10;
+const uint32_t write_backup_delay = 10;
 
 typedef enum
 {
@@ -286,7 +286,7 @@ typedef enum
 } flash_size_type;
 
 flash_mode_type flash_mode = FLASH_BASE_MODE;
-u32 flash_command_position = 0;
+uint32_t flash_command_position = 0;
 
 FLASH_DEVICE_ID_TYPE flash_device_id = FLASH_DEVICE_MACRONIX_64KB;
 FLASH_MANUFACTURER_ID_TYPE flash_manufacturer_id =
@@ -295,12 +295,12 @@ flash_size_type flash_size = FLASH_SIZE_64KB;
 
 // Tilt sensor on the GBA side. It's mapped... somewhere... in the GBA address
 // space. See the read_backup function in memory.c for more information.
-u32 tilt_sensor_x;
-u32 tilt_sensor_y;
+uint32_t tilt_sensor_x;
+uint32_t tilt_sensor_y;
 
-u8 read_backup(u32 address)
+uint8_t read_backup(uint32_t address)
 {
-  u8 value = 0;
+  uint8_t value = 0;
 
   if(backup_type == BACKUP_EEPROM)
   {
@@ -383,13 +383,13 @@ typedef enum
 
 eeprom_size_type eeprom_size = EEPROM_512_BYTE;
 eeprom_mode_type eeprom_mode = EEPROM_BASE_MODE;
-u32 eeprom_address_length;
-u32 eeprom_address = 0;
-s32 eeprom_counter = 0;
-u8 eeprom_buffer[8];
+uint32_t eeprom_address_length;
+uint32_t eeprom_address = 0;
+int32_t eeprom_counter = 0;
+uint8_t eeprom_buffer[8];
 
 
-void write_eeprom(u32 address, u32 value)
+void write_eeprom(uint32_t address, uint32_t value)
 {
   if(gamepak_size > 0x1FFFF00) // eeprom_v126 ?
   {                            // ROM is restricted to 8000000h-9FFFeFFh
@@ -435,14 +435,14 @@ void write_eeprom(u32 address, u32 value)
         if(eeprom_size == EEPROM_512_BYTE)
         {
           // Little endian access
-          eeprom_address = (((u32)eeprom_buffer[0] >> 2) |
-           ((u32)eeprom_buffer[1] << 6)) * 8;
+          eeprom_address = (((uint32_t)eeprom_buffer[0] >> 2) |
+           ((uint32_t)eeprom_buffer[1] << 6)) * 8;
         }
         else
         {
           // Big endian access
-          eeprom_address = (((u32)eeprom_buffer[1] >> 2) |
-           ((u32)eeprom_buffer[0] << 6)) * 8;
+          eeprom_address = (((uint32_t)eeprom_buffer[1] >> 2) |
+           ((uint32_t)eeprom_buffer[0] << 6)) * 8;
         }
 
         eeprom_buffer[0] = eeprom_buffer[1] = 0;
@@ -490,8 +490,8 @@ void write_eeprom(u32 address, u32 value)
 }
 
 #define read_memory_gamepak(type)                                             \
-  u32 gamepak_index = address >> 15;                                          \
-  u8 *map = memory_map_read[gamepak_index];                                   \
+  uint32_t gamepak_index = address >> 15;                                     \
+  uint8_t *map = memory_map_read[gamepak_index];                              \
                                                                               \
   if(map == NULL)                                                             \
     map = load_gamepak_page(gamepak_index & 0x3FF);                           \
@@ -513,7 +513,7 @@ void write_eeprom(u32 address, u32 value)
 #define read_open32()                                                         \
   if(reg[REG_CPSR] & 0x20)                                                    \
   {                                                                           \
-    u32 current_instruction = read_memory16(reg[REG_PC] + 2);                 \
+    uint32_t current_instruction = read_memory16(reg[REG_PC] + 2);            \
     value = current_instruction | (current_instruction << 16);                \
   }                                                                           \
   else                                                                        \
@@ -521,9 +521,9 @@ void write_eeprom(u32 address, u32 value)
     value = read_memory32(reg[REG_PC] + 4);                                   \
   }                                                                           \
 
-u32 read_eeprom()
+uint32_t read_eeprom()
 {
-  u32 value;
+  uint32_t value;
 
   switch(eeprom_mode)
   {
@@ -667,9 +667,9 @@ u32 read_eeprom()
   {                                                                           \
     if(dma[dma_number].start_type == DMA_INACTIVE)                            \
     {                                                                         \
-      u32 start_type = (value >> 12) & 0x03;                                  \
-      u32 dest_address = ADDRESS32(io_registers, ((dma_number) * 12) + 0xB4) &\
-       0xFFFFFFF;                                                             \
+      uint32_t start_type = (value >> 12) & 0x03;                             \
+      uint32_t dest_address = ADDRESS32(io_registers,                         \
+       ((dma_number) * 12) + 0xB4) & 0xFFFFFFF;                               \
                                                                               \
       dma[dma_number].dma_channel = dma_number;                               \
       dma[dma_number].source_address =                                        \
@@ -694,7 +694,7 @@ u32 read_eeprom()
       }                                                                       \
       else                                                                    \
       {                                                                       \
-        u32 length =                                                          \
+        uint32_t length =                                                     \
          ADDRESS16(io_registers, ((dma_number) * 12) + 0xB8);                 \
                                                                               \
         if(((dma_number) == 3) && ((dest_address >> 24) == 0x0D) &&           \
@@ -744,7 +744,7 @@ u32 read_eeprom()
   timer[timer_number].reload = 0x10000 - value;                               \
   if(timer_number < 2)                                                        \
   {                                                                           \
-    u32 timer_reload =                                                        \
+    uint32_t timer_reload =                                                   \
      timer[timer_number].reload;              \
     SOUND_UPDATE_FREQUENCY_STEP(timer_number);                                \
   }                                                                           \
@@ -760,7 +760,7 @@ u32 read_eeprom()
       /* 各種設定をして、タイマー作動 */                                      \
                                                                               \
       /* リロード値を読み込む */                                              \
-      u32 timer_reload = timer[timer_number].reload;                          \
+      uint32_t timer_reload = timer[timer_number].reload;                     \
                                                                               \
       /* カスケードモードか判別(タイマー0以外)*/                              \
       if(((value >> 2) & 0x01) && ((timer_number) != 0))                      \
@@ -774,7 +774,7 @@ u32 read_eeprom()
       {                                                                       \
         /* プリスケールモード */                                              \
         timer[timer_number].status = TIMER_PRESCALE;                          \
-        u32 prescale = prescale_table[value & 0x03];                          \
+        uint32_t prescale = prescale_table[value & 0x03];                     \
         /* プリスケールの設定 */                                              \
         timer[timer_number].prescale = prescale;                              \
       }                                                                       \
@@ -811,8 +811,8 @@ u32 read_eeprom()
 // configure game pak access timings
 #define waitstate_control()                                                   \
 {                                                                             \
-  u8 i;                                                                       \
-  u8 waitstate_table[4] = { 5, 4, 3, 9 };                                     \
+  uint8_t i;                                                                  \
+  uint8_t waitstate_table[4] = { 5, 4, 3, 9 };                                \
                                                                               \
   waitstate_cycles_non_seq[0][0x0e] = waitstate_cycles_seq[0][0x0e]           \
    = waitstate_table[value & 0x03];                                           \
@@ -880,13 +880,13 @@ u32 read_eeprom()
 #define access_register16_low(address)                                        \
   value = ((ADDRESS16(io_registers, address + 2)) << 16) | value              \
 
-CPU_ALERT_TYPE write_io_register8(u32 address, u32 value)
+CPU_ALERT_TYPE write_io_register8(uint32_t address, uint32_t value)
 {
   switch(address)
   {
     case 0x00:
       {
-        u32 dispcnt = io_registers[REG_DISPCNT];
+        uint32_t dispcnt = io_registers[REG_DISPCNT];
 
         if((value & 0x07) != (dispcnt & 0x07))
           oam_update = 1;
@@ -910,28 +910,28 @@ CPU_ALERT_TYPE write_io_register8(u32 address, u32 value)
     case 0x28:
       access_register8_low(0x28);
       access_register16_low(0x28);
-      affine_reference_x[0] = (s32)(value << 4) >> 4;
+      affine_reference_x[0] = (int32_t)(value << 4) >> 4;
       ADDRESS32(io_registers, 0x28) = value;
       break;
 
     case 0x29:
       access_register8_high(0x28);
       access_register16_low(0x28);
-      affine_reference_x[0] = (s32)(value << 4) >> 4;
+      affine_reference_x[0] = (int32_t)(value << 4) >> 4;
       ADDRESS32(io_registers, 0x28) = value;
       break;
 
     case 0x2A:
       access_register8_low(0x2A);
       access_register16_high(0x28);
-      affine_reference_x[0] = (s32)(value << 4) >> 4;
+      affine_reference_x[0] = (int32_t)(value << 4) >> 4;
       ADDRESS32(io_registers, 0x28) = value;
       break;
 
     case 0x2B:
       access_register8_high(0x2A);
       access_register16_high(0x28);
-      affine_reference_x[0] = (s32)(value << 4) >> 4;
+      affine_reference_x[0] = (int32_t)(value << 4) >> 4;
       ADDRESS32(io_registers, 0x28) = value;
       break;
 
@@ -939,28 +939,28 @@ CPU_ALERT_TYPE write_io_register8(u32 address, u32 value)
     case 0x2C:
       access_register8_low(0x2C);
       access_register16_low(0x2C);
-      affine_reference_y[0] = (s32)(value << 4) >> 4;
+      affine_reference_y[0] = (int32_t)(value << 4) >> 4;
       ADDRESS32(io_registers, 0x2C) = value;
       break;
 
     case 0x2D:
       access_register8_high(0x2C);
       access_register16_low(0x2C);
-      affine_reference_y[0] = (s32)(value << 4) >> 4;
+      affine_reference_y[0] = (int32_t)(value << 4) >> 4;
       ADDRESS32(io_registers, 0x2C) = value;
       break;
 
     case 0x2E:
       access_register8_low(0x2E);
       access_register16_high(0x2C);
-      affine_reference_y[0] = (s32)(value << 4) >> 4;
+      affine_reference_y[0] = (int32_t)(value << 4) >> 4;
       ADDRESS32(io_registers, 0x2C) = value;
       break;
 
     case 0x2F:
       access_register8_high(0x2E);
       access_register16_high(0x2C);
-      affine_reference_y[0] = (s32)(value << 4) >> 4;
+      affine_reference_y[0] = (int32_t)(value << 4) >> 4;
       ADDRESS32(io_registers, 0x2C) = value;
       break;
 
@@ -968,28 +968,28 @@ CPU_ALERT_TYPE write_io_register8(u32 address, u32 value)
     case 0x38:
       access_register8_low(0x38);
       access_register16_low(0x38);
-      affine_reference_x[1] = (s32)(value << 4) >> 4;
+      affine_reference_x[1] = (int32_t)(value << 4) >> 4;
       ADDRESS32(io_registers, 0x38) = value;
       break;
 
     case 0x39:
       access_register8_high(0x38);
       access_register16_low(0x38);
-      affine_reference_x[1] = (s32)(value << 4) >> 4;
+      affine_reference_x[1] = (int32_t)(value << 4) >> 4;
       ADDRESS32(io_registers, 0x38) = value;
       break;
 
     case 0x3A:
       access_register8_low(0x3A);
       access_register16_high(0x38);
-      affine_reference_x[1] = (s32)(value << 4) >> 4;
+      affine_reference_x[1] = (int32_t)(value << 4) >> 4;
       ADDRESS32(io_registers, 0x38) = value;
       break;
 
     case 0x3B:
       access_register8_high(0x3A);
       access_register16_high(0x38);
-      affine_reference_x[1] = (s32)(value << 4) >> 4;
+      affine_reference_x[1] = (int32_t)(value << 4) >> 4;
       ADDRESS32(io_registers, 0x38) = value;
       break;
 
@@ -997,28 +997,28 @@ CPU_ALERT_TYPE write_io_register8(u32 address, u32 value)
     case 0x3C:
       access_register8_low(0x3C);
       access_register16_low(0x3C);
-      affine_reference_y[1] = (s32)(value << 4) >> 4;
+      affine_reference_y[1] = (int32_t)(value << 4) >> 4;
       ADDRESS32(io_registers, 0x3C) = value;
       break;
 
     case 0x3D:
       access_register8_high(0x3C);
       access_register16_low(0x3C);
-      affine_reference_y[1] = (s32)(value << 4) >> 4;
+      affine_reference_y[1] = (int32_t)(value << 4) >> 4;
       ADDRESS32(io_registers, 0x3C) = value;
       break;
 
     case 0x3E:
       access_register8_low(0x3E);
       access_register16_high(0x3C);
-      affine_reference_y[1] = (s32)(value << 4) >> 4;
+      affine_reference_y[1] = (int32_t)(value << 4) >> 4;
       ADDRESS32(io_registers, 0x3C) = value;
       break;
 
     case 0x3F:
       access_register8_high(0x3E);
       access_register16_high(0x3C);
-      affine_reference_y[1] = (s32)(value << 4) >> 4;
+      affine_reference_y[1] = (int32_t)(value << 4) >> 4;
       ADDRESS32(io_registers, 0x3C) = value;
       break;
 
@@ -1301,13 +1301,13 @@ CPU_ALERT_TYPE write_io_register8(u32 address, u32 value)
   return CPU_ALERT_NONE;
 }
 
-CPU_ALERT_TYPE write_io_register16(u32 address, u32 value)
+CPU_ALERT_TYPE write_io_register16(uint32_t address, uint32_t value)
 {
   switch(address)
   {
     case 0x00:
     {
-      u32 dispcnt = io_registers[REG_DISPCNT];
+      uint32_t dispcnt = io_registers[REG_DISPCNT];
       if((value & 0x07) != (dispcnt & 0x07))
         oam_update = 1;
 
@@ -1328,26 +1328,26 @@ CPU_ALERT_TYPE write_io_register16(u32 address, u32 value)
     // BG2 reference X
     case 0x28:
       access_register16_low(0x28);
-      affine_reference_x[0] = (s32)(value << 4) >> 4;
+      affine_reference_x[0] = (int32_t)(value << 4) >> 4;
       ADDRESS32(io_registers, 0x28) = value;
       break;
 
     case 0x2A:
       access_register16_high(0x28);
-      affine_reference_x[0] = (s32)(value << 4) >> 4;
+      affine_reference_x[0] = (int32_t)(value << 4) >> 4;
       ADDRESS32(io_registers, 0x28) = value;
       break;
 
     // BG2 reference Y
     case 0x2C:
       access_register16_low(0x2C);
-      affine_reference_y[0] = (s32)(value << 4) >> 4;
+      affine_reference_y[0] = (int32_t)(value << 4) >> 4;
       ADDRESS32(io_registers, 0x2C) = value;
       break;
 
     case 0x2E:
       access_register16_high(0x2C);
-      affine_reference_y[0] = (s32)(value << 4) >> 4;
+      affine_reference_y[0] = (int32_t)(value << 4) >> 4;
       ADDRESS32(io_registers, 0x2C) = value;
       break;
 
@@ -1355,26 +1355,26 @@ CPU_ALERT_TYPE write_io_register16(u32 address, u32 value)
 
     case 0x38:
       access_register16_low(0x38);
-      affine_reference_x[1] = (s32)(value << 4) >> 4;
+      affine_reference_x[1] = (int32_t)(value << 4) >> 4;
       ADDRESS32(io_registers, 0x38) = value;
       break;
 
     case 0x3A:
       access_register16_high(0x38);
-      affine_reference_x[1] = (s32)(value << 4) >> 4;
+      affine_reference_x[1] = (int32_t)(value << 4) >> 4;
       ADDRESS32(io_registers, 0x38) = value;
       break;
 
     // BG3 reference Y
     case 0x3C:
       access_register16_low(0x3C);
-      affine_reference_y[1] = (s32)(value << 4) >> 4;
+      affine_reference_y[1] = (int32_t)(value << 4) >> 4;
       ADDRESS32(io_registers, 0x3C) = value;
       break;
 
     case 0x3E:
       access_register16_high(0x3C);
-      affine_reference_y[1] = (s32)(value << 4) >> 4;
+      affine_reference_y[1] = (int32_t)(value << 4) >> 4;
       ADDRESS32(io_registers, 0x3C) = value;
       break;
 
@@ -1611,31 +1611,31 @@ CPU_ALERT_TYPE write_io_register16(u32 address, u32 value)
 }
 
 
-CPU_ALERT_TYPE write_io_register32(u32 address, u32 value)
+CPU_ALERT_TYPE write_io_register32(uint32_t address, uint32_t value)
 {
   switch(address)
   {
     // BG2 reference X
     case 0x28:
-      affine_reference_x[0] = (s32)(value << 4) >> 4;
+      affine_reference_x[0] = (int32_t)(value << 4) >> 4;
       ADDRESS32(io_registers, 0x28) = value;
       break;
 
     // BG2 reference Y
     case 0x2C:
-      affine_reference_y[0] = (s32)(value << 4) >> 4;
+      affine_reference_y[0] = (int32_t)(value << 4) >> 4;
       ADDRESS32(io_registers, 0x2C) = value;
       break;
 
     // BG3 reference X
     case 0x38:
-      affine_reference_x[1] = (s32)(value << 4) >> 4;
+      affine_reference_x[1] = (int32_t)(value << 4) >> 4;
       ADDRESS32(io_registers, 0x38) = value;
       break;
 
     // BG3 reference Y
     case 0x3C:
-      affine_reference_y[1] = (s32)(value << 4) >> 4;
+      affine_reference_y[1] = (int32_t)(value << 4) >> 4;
       ADDRESS32(io_registers, 0x3C) = value;
       break;
 
@@ -1679,7 +1679,7 @@ CPU_ALERT_TYPE write_io_register32(u32 address, u32 value)
   ADDRESS32(palette_ram, address) = value                                     \
 
 
-void write_backup(u32 address, u32 value)
+void write_backup(uint32_t address, uint32_t value)
 {
   value &= 0xFF;
 
@@ -1872,14 +1872,14 @@ typedef enum
 
 rtc_state_type rtc_state = RTC_DISABLED;
 rtc_write_mode_type rtc_write_mode;
-u8 rtc_registers[3];
-u32 rtc_command;
-u32 rtc_data[12];
-u32 rtc_status = 0x40;
-u32 rtc_data_bytes;
-s32 rtc_bit_count;
+uint8_t rtc_registers[3];
+uint32_t rtc_command;
+uint32_t rtc_data[12];
+uint32_t rtc_status = 0x40;
+uint32_t rtc_data_bytes;
+int32_t rtc_bit_count;
 
-u32 encode_bcd(u8 value)
+uint32_t encode_bcd(uint8_t value)
 {
   return ((value / 10) << 4) | (value % 10);
 }
@@ -1895,11 +1895,11 @@ u32 encode_bcd(u8 value)
                                                                               \
   ADDRESS16(map, update_address & 0x7FFF) = _value                            \
 
-void write_rtc(u32 address, u32 value)
+void write_rtc(uint32_t address, uint32_t value)
 {
-  u32 rtc_page_index;
-  u32 update_address;
-  u8 *map;
+  uint32_t rtc_page_index;
+  uint32_t update_address;
+  uint8_t *map;
 
   value &= 0xFFFF;
 
@@ -2047,7 +2047,7 @@ void write_rtc(u32 address, u32 value)
                 // Write next bit to output, on bit 1 of parameter B
                 if(!(value & 0x01))
                 {
-                  u8 current_output_byte = rtc_registers[2];
+                  uint8_t current_output_byte = rtc_registers[2];
 
                   current_output_byte =
                    (current_output_byte & ~0x02) |
@@ -2158,20 +2158,20 @@ void write_rtc(u32 address, u32 value)
       break;                                                                  \
   }                                                                           \
 
-u8 read_memory8(u32 address)
+uint8_t read_memory8(uint32_t address)
 {
-  u8 value;
+  uint8_t value;
   read_memory(8);
   return value;
 }
 
-u16 read_memory16_signed(u32 address)
+uint16_t read_memory16_signed(uint32_t address)
 {
-  u16 value;
+  uint16_t value;
 
   if(address & 0x01)
   {
-    return (s8)read_memory8(address);
+    return (int8_t)read_memory8(address);
   }
   else
   {
@@ -2183,9 +2183,9 @@ u16 read_memory16_signed(u32 address)
 
 // unaligned reads are actually 32bit
 
-u32 read_memory16(u32 address)
+uint32_t read_memory16(uint32_t address)
 {
-  u32 value;
+  uint32_t value;
 
   if(address & 0x01)
   {
@@ -2202,12 +2202,12 @@ u32 read_memory16(u32 address)
 }
 
 
-u32 read_memory32(u32 address)
+uint32_t read_memory32(uint32_t address)
 {
-  u32 value;
+  uint32_t value;
   if(address & 0x03)
   {
-    u32 rotate = (address & 0x03) * 8;
+    uint32_t rotate = (address & 0x03) * 8;
     address &= ~0x03;
     read_memory(32);
     ROR(value, value, rotate);
@@ -2220,19 +2220,19 @@ u32 read_memory32(u32 address)
   return value;
 }
 
-CPU_ALERT_TYPE write_memory8(u32 address, u8 value)
+CPU_ALERT_TYPE write_memory8(uint32_t address, uint8_t value)
 {
   write_memory(8);
   return CPU_ALERT_NONE;
 }
 
-CPU_ALERT_TYPE write_memory16(u32 address, u16 value)
+CPU_ALERT_TYPE write_memory16(uint32_t address, uint16_t value)
 {
   write_memory(16);
   return CPU_ALERT_NONE;
 }
 
-CPU_ALERT_TYPE write_memory32(u32 address, u32 value)
+CPU_ALERT_TYPE write_memory32(uint32_t address, uint32_t value)
 {
   write_memory(32);
   return CPU_ALERT_NONE;
@@ -2240,7 +2240,7 @@ CPU_ALERT_TYPE write_memory32(u32 address, u32 value)
 
 char backup_filename[MAX_FILE];
 
-u32 load_backup()
+uint32_t load_backup()
 {
 	char BackupFilename[MAX_PATH + 1];
 	if (!ReGBA_GetBackupFilename(BackupFilename, CurrentGamePath))
@@ -2256,7 +2256,7 @@ u32 load_backup()
 
   if(FILE_CHECK_VALID(backup_file))
   {
-    u32 backup_size = FILE_LENGTH(backup_file);
+    uint32_t backup_size = FILE_LENGTH(backup_file);
 
     FILE_READ(backup_file, gamepak_backup, backup_size);
     FILE_CLOSE(backup_file);
@@ -2304,7 +2304,7 @@ u32 load_backup()
   return 0;
 }
 
-u32 save_backup()
+uint32_t save_backup()
 {
 	char BackupFilename[MAX_PATH + 1];
 	if (!ReGBA_GetBackupFilename(BackupFilename, CurrentGamePath))
@@ -2322,7 +2322,7 @@ u32 save_backup()
 
     if(FILE_CHECK_VALID(backup_file))
     {
-      u32 backup_size = 0x8000;
+      uint32_t backup_size = 0x8000;
 
       switch(backup_type)
       {
@@ -2388,7 +2388,7 @@ char *skip_spaces(char *line_ptr)
   return line_ptr;
 }
 
-s32 parse_config_line(char *current_line, char *current_variable, char *current_value)
+int32_t parse_config_line(char *current_line, char *current_variable, char *current_value)
 {
   char *line_ptr = current_line;
   char *line_ptr_new;
@@ -2424,7 +2424,7 @@ s32 parse_config_line(char *current_line, char *current_variable, char *current_
 
 static bool lookup_game_config(char *gamepak_title, char *gamepak_code, char *gamepak_maker, FILE_TAG_TYPE config_file);
 
-s32 load_game_config(char *gamepak_title, char *gamepak_code, char *gamepak_maker)
+int32_t load_game_config(char *gamepak_title, char *gamepak_code, char *gamepak_maker)
 {
 	char config_path[MAX_PATH];
 	FILE_TAG_TYPE config_file;
@@ -2569,7 +2569,7 @@ static bool lookup_game_config(char *gamepak_title, char *gamepak_code, char *ga
 
 #define LOAD_ON_MEMORY FILE_TAG_INVALID
 
-static ssize_t load_gamepak_raw(char *name_path)
+static ssize_t load_gamepak_raw(const char* name_path)
 {
 	FILE_TAG_TYPE gamepak_file;
 
@@ -2604,10 +2604,10 @@ static ssize_t load_gamepak_raw(char *name_path)
  * Loads a GBA ROM from a file whose full path is in the first parameter.
  * Returns 0 on success and -1 on failure.
  */
-ssize_t load_gamepak(char *file_path)
+ssize_t load_gamepak(const char* file_path)
 {
 	errno = 0;
-	u8 magicbit[4];
+	uint8_t magicbit[4];
 	FILE_TAG_TYPE fd;
 	if (IsGameLoaded) {
 		update_backup_force();
@@ -2713,13 +2713,12 @@ uint8_t nintendo_bios_sha1[] = {
 	0xd8, 0xc4, 0x36, 0xf7, 0xf1, 0x86, 0xd2, 0x5d, 0x34, 0x92,
 };
 
-s32 load_bios(char *name)
+int32_t load_bios(const char* name)
 {
 	FILE_TAG_TYPE bios_file;
 	FILE_OPEN(bios_file, name, READ);
 
-	if(FILE_CHECK_VALID(bios_file))
-	{
+	if(FILE_CHECK_VALID(bios_file)) {
 		FILE_READ(bios_file, bios.rom, 0x4000);
 		FILE_CLOSE(bios_file);
 
@@ -2810,7 +2809,7 @@ static void dma_adjust_reg_reload(DMA_TRANSFER_TYPE* DMA, uint32_t GBAAddress)
 #define dma_smc_vars_src()                                                    \
 
 #define dma_smc_vars_dest()                                                   \
-  u32 smc_trigger = 0                                                         \
+  uint32_t smc_trigger = 0                                                    \
 
 #define dma_vars_iwram(type)                                                  \
   dma_smc_vars_##type()                                                       \
@@ -2837,9 +2836,9 @@ static void dma_adjust_reg_reload(DMA_TRANSFER_TYPE* DMA, uint32_t GBAAddress)
   memory_map_write[dest_current_region]                                       \
 
 #define dma_vars_gamepak(type)                                                \
-  u32 type##_new_region;                                                      \
-  u32 type##_current_region = type##_ptr >> 15;                               \
-  u8 *type##_address_block = dma_segmented_load_##type();                     \
+  uint32_t type##_new_region;                                                 \
+  uint32_t type##_current_region = type##_ptr >> 15;                          \
+  uint8_t *type##_address_block = dma_segmented_load_##type();                \
   if(type##_address_block == NULL)                                            \
   {                                                                           \
     if((type##_ptr & 0x1FFFFFF) >= gamepak_size)                              \
@@ -2906,7 +2905,7 @@ static void dma_adjust_reg_reload(DMA_TRANSFER_TYPE* DMA, uint32_t GBAAddress)
   {                                                                           \
     /* Get the Metadata Entry's [3], bits 0-1, to see if there's code at this \
      * location. See "doc/partial flushing of RAM code.txt" for more info. */ \
-    u16 smc = iwram_metadata[(type##_ptr & 0x7FFC) | 3] & 0x3;                \
+    uint16_t smc = iwram_metadata[(type##_ptr & 0x7FFC) | 3] & 0x3;           \
     if (smc) {                                                                \
       partial_clear_metadata(type##_ptr);                                     \
     }                                                                         \
@@ -2921,7 +2920,7 @@ static void dma_adjust_reg_reload(DMA_TRANSFER_TYPE* DMA, uint32_t GBAAddress)
   {                                                                           \
     /* Get the Metadata Entry's [3], bits 0-1, to see if there's code at this \
      * location. See "doc/partial flushing of RAM code.txt" for more info. */ \
-    u16 smc;                                                                  \
+    uint16_t smc;                                                             \
     if (type##_ptr & 0x10000)                                                 \
       smc = vram_metadata[(type##_ptr & 0x17FFC) | 3] & 0x3;                  \
     else                                                                      \
@@ -2949,7 +2948,7 @@ static void dma_adjust_reg_reload(DMA_TRANSFER_TYPE* DMA, uint32_t GBAAddress)
   {                                                                           \
     /* Get the Metadata Entry's [3], bits 0-1, to see if there's code at this \
      * location. See "doc/partial flushing of RAM code.txt" for more info. */ \
-    u16 smc = ewram_metadata[(type##_ptr & 0x3FFFC) | 3] & 0x3;               \
+    uint16_t smc = ewram_metadata[(type##_ptr & 0x3FFFC) | 3] & 0x3;          \
     if (smc) {                                                                \
       partial_clear_metadata(type##_ptr);                                     \
     }                                                                         \
@@ -3029,149 +3028,149 @@ static CPU_ALERT_TYPE dma_transfer_##src_region_type##_##dest_region_type##_##tr
 }                                                                             \
 
 // To IWRAM
-dma_transfer_loop_region_builder(bios, iwram, 16);
-dma_transfer_loop_region_builder(bios, iwram, 32);
-dma_transfer_loop_region_builder(iwram, iwram, 16);
-dma_transfer_loop_region_builder(iwram, iwram, 32);
-dma_transfer_loop_region_builder(ewram, iwram, 16);
-dma_transfer_loop_region_builder(ewram, iwram, 32);
-dma_transfer_loop_region_builder(vram, iwram, 16);
-dma_transfer_loop_region_builder(vram, iwram, 32);
-dma_transfer_loop_region_builder(palette_ram, iwram, 16);
-dma_transfer_loop_region_builder(palette_ram, iwram, 32);
-dma_transfer_loop_region_builder(oam_ram, iwram, 16);
-dma_transfer_loop_region_builder(oam_ram, iwram, 32);
-dma_transfer_loop_region_builder(io, iwram, 16);
-dma_transfer_loop_region_builder(io, iwram, 32);
-dma_transfer_loop_region_builder(gamepak, iwram, 16);
-dma_transfer_loop_region_builder(gamepak, iwram, 32);
-dma_transfer_loop_region_builder(ext, iwram, 16);
-dma_transfer_loop_region_builder(ext, iwram, 32);
+dma_transfer_loop_region_builder(bios, iwram, 16)
+dma_transfer_loop_region_builder(bios, iwram, 32)
+dma_transfer_loop_region_builder(iwram, iwram, 16)
+dma_transfer_loop_region_builder(iwram, iwram, 32)
+dma_transfer_loop_region_builder(ewram, iwram, 16)
+dma_transfer_loop_region_builder(ewram, iwram, 32)
+dma_transfer_loop_region_builder(vram, iwram, 16)
+dma_transfer_loop_region_builder(vram, iwram, 32)
+dma_transfer_loop_region_builder(palette_ram, iwram, 16)
+dma_transfer_loop_region_builder(palette_ram, iwram, 32)
+dma_transfer_loop_region_builder(oam_ram, iwram, 16)
+dma_transfer_loop_region_builder(oam_ram, iwram, 32)
+dma_transfer_loop_region_builder(io, iwram, 16)
+dma_transfer_loop_region_builder(io, iwram, 32)
+dma_transfer_loop_region_builder(gamepak, iwram, 16)
+dma_transfer_loop_region_builder(gamepak, iwram, 32)
+dma_transfer_loop_region_builder(ext, iwram, 16)
+dma_transfer_loop_region_builder(ext, iwram, 32)
 
 // To EWRAM
-dma_transfer_loop_region_builder(bios, ewram, 16);
-dma_transfer_loop_region_builder(bios, ewram, 32);
-dma_transfer_loop_region_builder(iwram, ewram, 16);
-dma_transfer_loop_region_builder(iwram, ewram, 32);
-dma_transfer_loop_region_builder(ewram, ewram, 16);
-dma_transfer_loop_region_builder(ewram, ewram, 32);
-dma_transfer_loop_region_builder(vram, ewram, 16);
-dma_transfer_loop_region_builder(vram, ewram, 32);
-dma_transfer_loop_region_builder(palette_ram, ewram, 16);
-dma_transfer_loop_region_builder(palette_ram, ewram, 32);
-dma_transfer_loop_region_builder(oam_ram, ewram, 16);
-dma_transfer_loop_region_builder(oam_ram, ewram, 32);
-dma_transfer_loop_region_builder(io, ewram, 16);
-dma_transfer_loop_region_builder(io, ewram, 32);
-dma_transfer_loop_region_builder(gamepak, ewram, 16);
-dma_transfer_loop_region_builder(gamepak, ewram, 32);
-dma_transfer_loop_region_builder(ext, ewram, 16);
-dma_transfer_loop_region_builder(ext, ewram, 32);
+dma_transfer_loop_region_builder(bios, ewram, 16)
+dma_transfer_loop_region_builder(bios, ewram, 32)
+dma_transfer_loop_region_builder(iwram, ewram, 16)
+dma_transfer_loop_region_builder(iwram, ewram, 32)
+dma_transfer_loop_region_builder(ewram, ewram, 16)
+dma_transfer_loop_region_builder(ewram, ewram, 32)
+dma_transfer_loop_region_builder(vram, ewram, 16)
+dma_transfer_loop_region_builder(vram, ewram, 32)
+dma_transfer_loop_region_builder(palette_ram, ewram, 16)
+dma_transfer_loop_region_builder(palette_ram, ewram, 32)
+dma_transfer_loop_region_builder(oam_ram, ewram, 16)
+dma_transfer_loop_region_builder(oam_ram, ewram, 32)
+dma_transfer_loop_region_builder(io, ewram, 16)
+dma_transfer_loop_region_builder(io, ewram, 32)
+dma_transfer_loop_region_builder(gamepak, ewram, 16)
+dma_transfer_loop_region_builder(gamepak, ewram, 32)
+dma_transfer_loop_region_builder(ext, ewram, 16)
+dma_transfer_loop_region_builder(ext, ewram, 32)
 
 // To VRAM
-dma_transfer_loop_region_builder(bios, vram, 16);
-dma_transfer_loop_region_builder(bios, vram, 32);
-dma_transfer_loop_region_builder(iwram, vram, 16);
-dma_transfer_loop_region_builder(iwram, vram, 32);
-dma_transfer_loop_region_builder(ewram, vram, 16);
-dma_transfer_loop_region_builder(ewram, vram, 32);
-dma_transfer_loop_region_builder(vram, vram, 16);
-dma_transfer_loop_region_builder(vram, vram, 32);
-dma_transfer_loop_region_builder(palette_ram, vram, 16);
-dma_transfer_loop_region_builder(palette_ram, vram, 32);
-dma_transfer_loop_region_builder(oam_ram, vram, 16);
-dma_transfer_loop_region_builder(oam_ram, vram, 32);
-dma_transfer_loop_region_builder(io, vram, 16);
-dma_transfer_loop_region_builder(io, vram, 32);
-dma_transfer_loop_region_builder(gamepak, vram, 16);
-dma_transfer_loop_region_builder(gamepak, vram, 32);
-dma_transfer_loop_region_builder(ext, vram, 16);
-dma_transfer_loop_region_builder(ext, vram, 32);
+dma_transfer_loop_region_builder(bios, vram, 16)
+dma_transfer_loop_region_builder(bios, vram, 32)
+dma_transfer_loop_region_builder(iwram, vram, 16)
+dma_transfer_loop_region_builder(iwram, vram, 32)
+dma_transfer_loop_region_builder(ewram, vram, 16)
+dma_transfer_loop_region_builder(ewram, vram, 32)
+dma_transfer_loop_region_builder(vram, vram, 16)
+dma_transfer_loop_region_builder(vram, vram, 32)
+dma_transfer_loop_region_builder(palette_ram, vram, 16)
+dma_transfer_loop_region_builder(palette_ram, vram, 32)
+dma_transfer_loop_region_builder(oam_ram, vram, 16)
+dma_transfer_loop_region_builder(oam_ram, vram, 32)
+dma_transfer_loop_region_builder(io, vram, 16)
+dma_transfer_loop_region_builder(io, vram, 32)
+dma_transfer_loop_region_builder(gamepak, vram, 16)
+dma_transfer_loop_region_builder(gamepak, vram, 32)
+dma_transfer_loop_region_builder(ext, vram, 16)
+dma_transfer_loop_region_builder(ext, vram, 32)
 
 // To Palette RAM
-dma_transfer_loop_region_builder(bios, palette_ram, 16);
-dma_transfer_loop_region_builder(bios, palette_ram, 32);
-dma_transfer_loop_region_builder(iwram, palette_ram, 16);
-dma_transfer_loop_region_builder(iwram, palette_ram, 32);
-dma_transfer_loop_region_builder(ewram, palette_ram, 16);
-dma_transfer_loop_region_builder(ewram, palette_ram, 32);
-dma_transfer_loop_region_builder(vram, palette_ram, 16);
-dma_transfer_loop_region_builder(vram, palette_ram, 32);
-dma_transfer_loop_region_builder(palette_ram, palette_ram, 16);
-dma_transfer_loop_region_builder(palette_ram, palette_ram, 32);
-dma_transfer_loop_region_builder(oam_ram, palette_ram, 16);
-dma_transfer_loop_region_builder(oam_ram, palette_ram, 32);
-dma_transfer_loop_region_builder(io, palette_ram, 16);
-dma_transfer_loop_region_builder(io, palette_ram, 32);
-dma_transfer_loop_region_builder(gamepak, palette_ram, 16);
-dma_transfer_loop_region_builder(gamepak, palette_ram, 32);
-dma_transfer_loop_region_builder(ext, palette_ram, 16);
-dma_transfer_loop_region_builder(ext, palette_ram, 32);
+dma_transfer_loop_region_builder(bios, palette_ram, 16)
+dma_transfer_loop_region_builder(bios, palette_ram, 32)
+dma_transfer_loop_region_builder(iwram, palette_ram, 16)
+dma_transfer_loop_region_builder(iwram, palette_ram, 32)
+dma_transfer_loop_region_builder(ewram, palette_ram, 16)
+dma_transfer_loop_region_builder(ewram, palette_ram, 32)
+dma_transfer_loop_region_builder(vram, palette_ram, 16)
+dma_transfer_loop_region_builder(vram, palette_ram, 32)
+dma_transfer_loop_region_builder(palette_ram, palette_ram, 16)
+dma_transfer_loop_region_builder(palette_ram, palette_ram, 32)
+dma_transfer_loop_region_builder(oam_ram, palette_ram, 16)
+dma_transfer_loop_region_builder(oam_ram, palette_ram, 32)
+dma_transfer_loop_region_builder(io, palette_ram, 16)
+dma_transfer_loop_region_builder(io, palette_ram, 32)
+dma_transfer_loop_region_builder(gamepak, palette_ram, 16)
+dma_transfer_loop_region_builder(gamepak, palette_ram, 32)
+dma_transfer_loop_region_builder(ext, palette_ram, 16)
+dma_transfer_loop_region_builder(ext, palette_ram, 32)
 
 // To OAM RAM
-dma_transfer_loop_region_builder(bios, oam_ram, 16);
-dma_transfer_loop_region_builder(bios, oam_ram, 32);
-dma_transfer_loop_region_builder(iwram, oam_ram, 16);
-dma_transfer_loop_region_builder(iwram, oam_ram, 32);
-dma_transfer_loop_region_builder(ewram, oam_ram, 16);
-dma_transfer_loop_region_builder(ewram, oam_ram, 32);
-dma_transfer_loop_region_builder(vram, oam_ram, 16);
-dma_transfer_loop_region_builder(vram, oam_ram, 32);
-dma_transfer_loop_region_builder(palette_ram, oam_ram, 16);
-dma_transfer_loop_region_builder(palette_ram, oam_ram, 32);
-dma_transfer_loop_region_builder(oam_ram, oam_ram, 16);
-dma_transfer_loop_region_builder(oam_ram, oam_ram, 32);
-dma_transfer_loop_region_builder(io, oam_ram, 16);
-dma_transfer_loop_region_builder(io, oam_ram, 32);
-dma_transfer_loop_region_builder(gamepak, oam_ram, 16);
-dma_transfer_loop_region_builder(gamepak, oam_ram, 32);
-dma_transfer_loop_region_builder(ext, oam_ram, 16);
-dma_transfer_loop_region_builder(ext, oam_ram, 32);
+dma_transfer_loop_region_builder(bios, oam_ram, 16)
+dma_transfer_loop_region_builder(bios, oam_ram, 32)
+dma_transfer_loop_region_builder(iwram, oam_ram, 16)
+dma_transfer_loop_region_builder(iwram, oam_ram, 32)
+dma_transfer_loop_region_builder(ewram, oam_ram, 16)
+dma_transfer_loop_region_builder(ewram, oam_ram, 32)
+dma_transfer_loop_region_builder(vram, oam_ram, 16)
+dma_transfer_loop_region_builder(vram, oam_ram, 32)
+dma_transfer_loop_region_builder(palette_ram, oam_ram, 16)
+dma_transfer_loop_region_builder(palette_ram, oam_ram, 32)
+dma_transfer_loop_region_builder(oam_ram, oam_ram, 16)
+dma_transfer_loop_region_builder(oam_ram, oam_ram, 32)
+dma_transfer_loop_region_builder(io, oam_ram, 16)
+dma_transfer_loop_region_builder(io, oam_ram, 32)
+dma_transfer_loop_region_builder(gamepak, oam_ram, 16)
+dma_transfer_loop_region_builder(gamepak, oam_ram, 32)
+dma_transfer_loop_region_builder(ext, oam_ram, 16)
+dma_transfer_loop_region_builder(ext, oam_ram, 32)
 
 // To I/O RAM
-dma_transfer_loop_region_builder(bios, io, 16);
-dma_transfer_loop_region_builder(bios, io, 32);
-dma_transfer_loop_region_builder(iwram, io, 16);
-dma_transfer_loop_region_builder(iwram, io, 32);
-dma_transfer_loop_region_builder(ewram, io, 16);
-dma_transfer_loop_region_builder(ewram, io, 32);
-dma_transfer_loop_region_builder(vram, io, 16);
-dma_transfer_loop_region_builder(vram, io, 32);
-dma_transfer_loop_region_builder(palette_ram, io, 16);
-dma_transfer_loop_region_builder(palette_ram, io, 32);
-dma_transfer_loop_region_builder(oam_ram, io, 16);
-dma_transfer_loop_region_builder(oam_ram, io, 32);
-dma_transfer_loop_region_builder(io, io, 16);
-dma_transfer_loop_region_builder(io, io, 32);
-dma_transfer_loop_region_builder(gamepak, io, 16);
-dma_transfer_loop_region_builder(gamepak, io, 32);
-dma_transfer_loop_region_builder(ext, io, 16);
-dma_transfer_loop_region_builder(ext, io, 32);
+dma_transfer_loop_region_builder(bios, io, 16)
+dma_transfer_loop_region_builder(bios, io, 32)
+dma_transfer_loop_region_builder(iwram, io, 16)
+dma_transfer_loop_region_builder(iwram, io, 32)
+dma_transfer_loop_region_builder(ewram, io, 16)
+dma_transfer_loop_region_builder(ewram, io, 32)
+dma_transfer_loop_region_builder(vram, io, 16)
+dma_transfer_loop_region_builder(vram, io, 32)
+dma_transfer_loop_region_builder(palette_ram, io, 16)
+dma_transfer_loop_region_builder(palette_ram, io, 32)
+dma_transfer_loop_region_builder(oam_ram, io, 16)
+dma_transfer_loop_region_builder(oam_ram, io, 32)
+dma_transfer_loop_region_builder(io, io, 16)
+dma_transfer_loop_region_builder(io, io, 32)
+dma_transfer_loop_region_builder(gamepak, io, 16)
+dma_transfer_loop_region_builder(gamepak, io, 32)
+dma_transfer_loop_region_builder(ext, io, 16)
+dma_transfer_loop_region_builder(ext, io, 32)
 
 // To extended RAM
-dma_transfer_loop_region_builder(bios, ext, 16);
-dma_transfer_loop_region_builder(bios, ext, 32);
-dma_transfer_loop_region_builder(iwram, ext, 16);
-dma_transfer_loop_region_builder(iwram, ext, 32);
-dma_transfer_loop_region_builder(ewram, ext, 16);
-dma_transfer_loop_region_builder(ewram, ext, 32);
-dma_transfer_loop_region_builder(vram, ext, 16);
-dma_transfer_loop_region_builder(vram, ext, 32);
-dma_transfer_loop_region_builder(palette_ram, ext, 16);
-dma_transfer_loop_region_builder(palette_ram, ext, 32);
-dma_transfer_loop_region_builder(oam_ram, ext, 16);
-dma_transfer_loop_region_builder(oam_ram, ext, 32);
-dma_transfer_loop_region_builder(io, ext, 16);
-dma_transfer_loop_region_builder(io, ext, 32);
-dma_transfer_loop_region_builder(gamepak, ext, 16);
-dma_transfer_loop_region_builder(gamepak, ext, 32);
-dma_transfer_loop_region_builder(ext, ext, 16);
-dma_transfer_loop_region_builder(ext, ext, 32);
+dma_transfer_loop_region_builder(bios, ext, 16)
+dma_transfer_loop_region_builder(bios, ext, 32)
+dma_transfer_loop_region_builder(iwram, ext, 16)
+dma_transfer_loop_region_builder(iwram, ext, 32)
+dma_transfer_loop_region_builder(ewram, ext, 16)
+dma_transfer_loop_region_builder(ewram, ext, 32)
+dma_transfer_loop_region_builder(vram, ext, 16)
+dma_transfer_loop_region_builder(vram, ext, 32)
+dma_transfer_loop_region_builder(palette_ram, ext, 16)
+dma_transfer_loop_region_builder(palette_ram, ext, 32)
+dma_transfer_loop_region_builder(oam_ram, ext, 16)
+dma_transfer_loop_region_builder(oam_ram, ext, 32)
+dma_transfer_loop_region_builder(io, ext, 16)
+dma_transfer_loop_region_builder(io, ext, 32)
+dma_transfer_loop_region_builder(gamepak, ext, 16)
+dma_transfer_loop_region_builder(gamepak, ext, 32)
+dma_transfer_loop_region_builder(ext, ext, 16)
+dma_transfer_loop_region_builder(ext, ext, 32)
 
 #define dma_transfer_loop(src_op, dest_op, transfer_size, wb)                 \
 {                                                                             \
-  u32 src_region = src_ptr >> 24;                                             \
-  u32 dest_region = dest_ptr >> 24;                                           \
+  uint32_t src_region = src_ptr >> 24;                                        \
+  uint32_t dest_region = dest_ptr >> 24;                                      \
   dma_region_type src_region_type = dma_region_map[src_region];               \
   dma_region_type dest_region_type = dma_region_map[dest_region];             \
                                                                               \
@@ -3477,11 +3476,9 @@ dma_transfer_loop_region_builder(ext, ext, 32);
 
 CPU_ALERT_TYPE dma_transfer(DMA_TRANSFER_TYPE *dma)
 {
-  u32 i;
-  u32 length = dma->length;
-  u32 read_value;
-  u32 src_ptr = dma->source_address;
-  u32 dest_ptr = dma->dest_address;
+  uint32_t length = dma->length;
+  uint32_t src_ptr = dma->source_address;
+  uint32_t dest_ptr = dma->dest_address;
   CPU_ALERT_TYPE return_value = CPU_ALERT_NONE;
 
   // Technically this should be done for source and destination, but
@@ -3489,8 +3486,8 @@ CPU_ALERT_TYPE dma_transfer(DMA_TRANSFER_TYPE *dma)
   // The only game I know of that requires this is Lucky Luke.
   if((dest_ptr >> 24) != ((dest_ptr + length - 1) >> 24))
   {
-    u32 first_length = ((dest_ptr & 0xFF000000) + 0x1000000) - dest_ptr;
-    u32 second_length = length - first_length;
+    uint32_t first_length = ((dest_ptr & 0xFF000000) + 0x1000000) - dest_ptr;
+    uint32_t second_length = length - first_length;
     dma->length = first_length;
 
     dma_transfer(dma);
@@ -3538,7 +3535,7 @@ CPU_ALERT_TYPE dma_transfer(DMA_TRANSFER_TYPE *dma)
    ((end) / 0x8000); map_offset++)                                            \
   {                                                                           \
     memory_map_##type[map_offset] =                                           \
-     ((u8 *)region) + ((map_offset % mirror_blocks) * 0x8000);                \
+     ((uint8_t *)region) + ((map_offset % mirror_blocks) * 0x8000);           \
   }                                                                           \
 
 #define map_null(type, start, end)                                            \
@@ -3553,7 +3550,7 @@ CPU_ALERT_TYPE dma_transfer(DMA_TRANSFER_TYPE *dma)
    ((end) / 0x8000); map_offset++)                                            \
   {                                                                           \
     memory_map_##type[map_offset] =                                           \
-     ((u8 *)region) + ((map_offset % mirror_blocks) * 0x10000) + 0x8000;      \
+     ((uint8_t *)region) + ((map_offset % mirror_blocks) * 0x10000) + 0x8000; \
   }                                                                           \
 
 #define map_vram(type)                                                        \
@@ -3566,15 +3563,15 @@ CPU_ALERT_TYPE dma_transfer(DMA_TRANSFER_TYPE *dma)
     memory_map_##type[map_offset + 3] = vram + (0x8000 * 2);                  \
   }                                                                           \
 
-u32 evict_gamepak_page()
+uint32_t evict_gamepak_page()
 {
 	// We will evict the page with index gamepak_next_swap, a bit like a ring
 	// buffer.
-	u32 page_index = gamepak_next_swap;
+	uint32_t page_index = gamepak_next_swap;
 	gamepak_next_swap++;
 	if (gamepak_next_swap >= gamepak_ram_pages)
 		gamepak_next_swap = 0;
-	u16 physical_index = gamepak_memory_map[page_index];
+	uint16_t physical_index = gamepak_memory_map[page_index];
 
 	memory_map_read[(0x8000000 / (32 * 1024)) + physical_index] = NULL;
 	memory_map_read[(0xA000000 / (32 * 1024)) + physical_index] = NULL;
@@ -3587,7 +3584,7 @@ u32 evict_gamepak_page()
 	return page_index;
 }
 
-u8 *load_gamepak_page(u16 physical_index)
+uint8_t *load_gamepak_page(uint16_t physical_index)
 {
 	if (memory_map_read[(0x08000000 / (32 * 1024)) + (uint32_t) physical_index] != NULL)
 	{
@@ -3602,9 +3599,9 @@ u8 *load_gamepak_page(u16 physical_index)
 	if((uint32_t) physical_index >= (gamepak_size >> 15))
 		return gamepak_rom;
 
-	u16 page_index = evict_gamepak_page();
-	u32 page_offset = (uint32_t) page_index * (32 * 1024);
-	u8 *swap_location = gamepak_rom + page_offset;
+	uint16_t page_index = evict_gamepak_page();
+	uint32_t page_offset = (uint32_t) page_index * (32 * 1024);
+	uint8_t *swap_location = gamepak_rom + page_offset;
 
 	gamepak_memory_map[page_index] = physical_index;
 
@@ -3626,7 +3623,7 @@ u8 *load_gamepak_page(u16 physical_index)
 
 void init_memory_gamepak()
 {
-  u32 map_offset = 0;
+  uint32_t map_offset = 0;
 
   if (FILE_CHECK_VALID(gamepak_file_large))
   {
@@ -3652,23 +3649,23 @@ void init_memory_gamepak()
 
 void init_memory()
 {
-  u32 map_offset = 0;
+  uint32_t map_offset = 0;
 
-  memory_regions[0x00] = (u8 *)bios.rom;
-  memory_regions[0x01] = (u8 *)bios.rom;
-  memory_regions[0x02] = (u8 *)ewram_data;
-  memory_regions[0x03] = (u8 *)iwram_data;
-  memory_regions[0x04] = (u8 *)io_registers;
-  memory_regions[0x05] = (u8 *)palette_ram;
-  memory_regions[0x06] = (u8 *)vram;
-  memory_regions[0x07] = (u8 *)oam_ram;
-  memory_regions[0x08] = (u8 *)gamepak_rom;
-  memory_regions[0x09] = (u8 *)(gamepak_rom + 0xFFFFFF);
-  memory_regions[0x0A] = (u8 *)gamepak_rom;
-  memory_regions[0x0B] = (u8 *)(gamepak_rom + 0xFFFFFF);
-  memory_regions[0x0C] = (u8 *)gamepak_rom;
-  memory_regions[0x0D] = (u8 *)(gamepak_rom + 0xFFFFFF);
-  memory_regions[0x0E] = (u8 *)gamepak_backup;
+  memory_regions[0x00] = (uint8_t *)bios.rom;
+  memory_regions[0x01] = (uint8_t *)bios.rom;
+  memory_regions[0x02] = (uint8_t *)ewram_data;
+  memory_regions[0x03] = (uint8_t *)iwram_data;
+  memory_regions[0x04] = (uint8_t *)io_registers;
+  memory_regions[0x05] = (uint8_t *)palette_ram;
+  memory_regions[0x06] = (uint8_t *)vram;
+  memory_regions[0x07] = (uint8_t *)oam_ram;
+  memory_regions[0x08] = (uint8_t *)gamepak_rom;
+  memory_regions[0x09] = (uint8_t *)(gamepak_rom + 0xFFFFFF);
+  memory_regions[0x0A] = (uint8_t *)gamepak_rom;
+  memory_regions[0x0B] = (uint8_t *)(gamepak_rom + 0xFFFFFF);
+  memory_regions[0x0C] = (uint8_t *)gamepak_rom;
+  memory_regions[0x0D] = (uint8_t *)(gamepak_rom + 0xFFFFFF);
+  memory_regions[0x0E] = (uint8_t *)gamepak_backup;
 
   memory_limits[0x00] = 0x3FFF;
   memory_limits[0x01] = 0x3FFF;
@@ -3829,7 +3826,7 @@ void loadstate_rewind(void)
  * Loads a saved state, given its slot number.
  * Returns 0 on success, non-zero on failure.
  */
-u32 load_state(uint32_t SlotNumber)
+uint32_t load_state(uint32_t SlotNumber)
 {
 	FILE_TAG_TYPE savestate_file;
 	size_t i;
@@ -3846,7 +3843,7 @@ u32 load_state(uint32_t SlotNumber)
 	FILE_OPEN(savestate_file, SavedStateFilename, READ);
 	if(FILE_CHECK_VALID(savestate_file))
     {
-		u8 header[SVS_HEADER_SIZE];
+		uint8_t header[SVS_HEADER_SIZE];
 		errno = 0;
 		i = FILE_READ(savestate_file, header, SVS_HEADER_SIZE);
 		ReGBA_ProgressUpdate(SVS_HEADER_SIZE, SAVESTATE_SIZE);
@@ -3871,7 +3868,7 @@ u32 load_state(uint32_t SlotNumber)
 		if (i < SAVESTATE_SIZE)
 			return 1; // Failed to fully read the file
 
-		g_state_buffer_ptr = savestate_write_buffer + sizeof(struct ReGBA_RTC) + (240 * 160 * sizeof(u16)) + 2;
+		g_state_buffer_ptr = savestate_write_buffer + sizeof(struct ReGBA_RTC) + (240 * 160 * sizeof(uint16_t)) + 2;
 
 		savestate_block(read_mem);
 
@@ -3920,19 +3917,17 @@ u32 load_state(uint32_t SlotNumber)
 /*--------------------------------------------------------
   保存即时存档
   input
-    u32 SlotNumber           存档槽
-    u16 *screen_capture      存档索引画面
+    uint32_t SlotNumber           存档槽
+    uint16_t *screen_capture      存档索引画面
   return
     0 失败
     1 成功
 --------------------------------------------------------*/
-u32 save_state(uint32_t SlotNumber, u16 *screen_capture)
+uint32_t save_state(uint32_t SlotNumber, const uint16_t *screen_capture)
 {
-  char savestate_path[MAX_PATH];
   FILE_TAG_TYPE savestate_file;
-//  char buf[256];
   struct ReGBA_RTC Time;
-  u32 ret = 1;
+  uint32_t ret = 1;
 
 	char SavedStateFilename[MAX_PATH + 1];
 	if (!ReGBA_GetSavedStateFilename(SavedStateFilename, CurrentGamePath, SlotNumber))
@@ -3992,7 +3987,7 @@ fail:
 
 #define memory_savestate_body(type)                                           \
 {                                                                             \
-  u32 i;                                                                      \
+  uint32_t i;                                                                 \
   char fullname[512];                                                         \
   memset(fullname, 0, sizeof(fullname));                                      \
                                                                               \
@@ -4030,12 +4025,12 @@ fail:
 }                                                                             \
 
 void memory_read_mem_savestate()
-memory_savestate_body(READ_MEM);
+memory_savestate_body(READ_MEM)
 
 void memory_write_mem_savestate()
-memory_savestate_body(WRITE_MEM);
+memory_savestate_body(WRITE_MEM)
 
-u32 get_sio_mode(u16 io1, u16 io2)
+uint32_t get_sio_mode(uint16_t io1, uint16_t io2)
 {
   if(!(io2 & 0x8000))
   {
@@ -4059,7 +4054,7 @@ u32 get_sio_mode(u16 io1, u16 io2)
 }
 
 // multiモードのデータを送る
-u32 send_adhoc_multi()
+uint32_t send_adhoc_multi()
 {
   return 0;
 }

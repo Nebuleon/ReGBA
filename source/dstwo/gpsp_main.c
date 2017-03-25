@@ -34,38 +34,38 @@
  * 全局变量定义
  ******************************************************************************/
 
-u32 global_cycles_per_instruction = 1;
+uint32_t global_cycles_per_instruction = 1;
 //u64 frame_count_initial_timestamp = 0;
 //u64 last_frame_interval_timestamp;
-u32 psp_fps_debug = 0;
-u32 skip_next_frame_flag = 0;
-u32 frameskip_0_hack_flag = 0;
-//u32 frameskip_counter = 0;
+uint32_t psp_fps_debug = 0;
+uint32_t skip_next_frame_flag = 0;
+uint32_t frameskip_0_hack_flag = 0;
+//uint32_t frameskip_counter = 0;
 
-u32 cpu_ticks = 0;
-u32 frame_ticks = 0;
+uint32_t cpu_ticks = 0;
+uint32_t frame_ticks = 0;
 
-u32 execute_cycles = 960;
-s32 video_count = 960;
-//u32 ticks;
+uint32_t execute_cycles = 960;
+int32_t video_count = 960;
+//uint32_t ticks;
 
-//u32 arm_frame = 0;
-//u32 thumb_frame = 0;
-u32 last_frame = 0;
+//uint32_t arm_frame = 0;
+//uint32_t thumb_frame = 0;
+uint32_t last_frame = 0;
 
-u32 synchronize_flag = 1;
+uint32_t synchronize_flag = 1;
 
-//vu32 quit_flag;
-vu32 power_flag;
+//volatile uint32_t quit_flag;
+volatile uint32_t power_flag;
 
-vu32 real_frame_count = 0;
-u32 virtual_frame_count = 0;
-vu32 vblank_count = 0;
-u32 num_skipped_frames = 0;
-u32 frames;
+volatile uint32_t real_frame_count = 0;
+uint32_t virtual_frame_count = 0;
+volatile uint32_t vblank_count = 0;
+uint32_t num_skipped_frames = 0;
+uint32_t frames;
 
 unsigned int pen = 0;
-unsigned int frame_interval = 60; // For in-memory saved states used in rewinding
+uint32_t frame_interval = 60; // For in-memory saved states used in rewinding
 
 int date_format= 2;
 
@@ -136,17 +136,17 @@ char *file_ext[] = { ".gba", ".bin", ".zip", NULL };
   }                                                                           \
 
 // 局部函数声明
-void vblank_interrupt_handler(u32 sub, u32 *parg);
+void vblank_interrupt_handler(uint32_t sub, uint32_t *parg);
 void init_main();
 int main(int argc, char *argv[]);
-void print_memory_stats(u32 *counter, u32 *region_stats, u8 *stats_str);
-u32 into_suspend();
+void print_memory_stats(uint32_t *counter, uint32_t *region_stats, uint8_t *stats_str);
+uint32_t into_suspend();
 
-static u8 caches_inited = 0;
+static uint8_t caches_inited = 0;
 
 void init_main()
 {
-  u32 i;
+  uint32_t i;
 
   skip_next_frame_flag = 0;
   frameskip_0_hack_flag = 0;
@@ -191,7 +191,7 @@ void init_main()
 void quit(void)
 {
 /*
-  u32 reg_ra;
+  uint32_t reg_ra;
 
   __asm__ __volatile__("or %0, $0, $ra"
                         : "=r" (reg_ra)
@@ -204,8 +204,7 @@ void quit(void)
 	fclose(g_dbg_file);
 #endif
 
-	ds2_plug_exit();
-	while(1);
+	exit(EXIT_SUCCESS);
 }
 
 /*
@@ -238,18 +237,16 @@ int gpsp_main(int argc, char *argv[])
 	// BIOS的读入
 	char bios_filename[MAX_FILE];
 	sprintf(bios_filename, "%s/%s", main_path, "gba_bios.bin");
-	u32 bios_ret = load_bios(bios_filename);
+	int32_t bios_ret = load_bios(bios_filename);
 	if(bios_ret == -1) // 当读取失败
 	{
-		err_msg(DOWN_SCREEN, "The GBA BIOS is not present\nPlease see README.md for\nmore information\n\nLe BIOS GBA n'est pas present\nLisez README.md pour plus\nd'information (en anglais)");
-		ds2_flipScreen(DOWN_SCREEN, DOWN_SCREEN_UPDATE_METHOD);
-		wait_Anykey_press(0);
-		quit();
+		fprintf(stderr, "The GBA BIOS is not present\nPlease see README.md for\nmore information\n\nLe BIOS GBA n'est pas present\nLisez README.md pour plus\nd'information (en anglais)");
+		DS2_AwaitAnyButtons();
+		exit(EXIT_FAILURE);
 	}
 
 	init_cpu(gpsp_persistent_config.BootFromBIOS);
 	init_memory();
-	reset_sound();
 
 	ReGBA_Menu(REGBA_MENU_ENTRY_REASON_NO_ROM);
 
@@ -274,7 +271,7 @@ int gpsp_main(int argc, char *argv[])
 	return 0;
 }
 
-u32 sync_flag = 0;
+uint32_t sync_flag = 0;
 
 #define V_BLANK   (0x01)
 #define H_BLANK   (0x02)
@@ -282,10 +279,10 @@ u32 sync_flag = 0;
 
 // video_count的初始值是960(行显示时钟周期)
 //#define SKIP_RATE 2
-//u32 SKIP_RATE= 2;
-u32 to_skip= 0;
+//uint32_t SKIP_RATE= 2;
+uint32_t to_skip= 0;
 
-u32 update_gba()
+uint32_t update_gba()
 {
   // TODO このあたりのログをとる必要があるかも
   IRQ_TYPE irq_raised = IRQ_NONE;
@@ -312,8 +309,8 @@ u32 update_gba()
 
     if(video_count <= 0)
     { // 状態移行の発生
-      u32 vcount = io_registers[REG_VCOUNT];
-      u32 dispstat = io_registers[REG_DISPSTAT];
+      uint32_t vcount = io_registers[REG_VCOUNT];
+      uint32_t dispstat = io_registers[REG_DISPSTAT];
 
       if(!(dispstat & H_BLANK))
       { // 非 H BLANK
@@ -355,10 +352,10 @@ u32 update_gba()
           if(dispstat & 0x8)
             irq_raised |= IRQ_VBLANK;
 
-          affine_reference_x[0] = (s32)(ADDRESS32(io_registers, 0x28) << 4) >> 4;
-          affine_reference_y[0] = (s32)(ADDRESS32(io_registers, 0x2C) << 4) >> 4;
-          affine_reference_x[1] = (s32)(ADDRESS32(io_registers, 0x38) << 4) >> 4;
-          affine_reference_y[1] = (s32)(ADDRESS32(io_registers, 0x3C) << 4) >> 4;
+          affine_reference_x[0] = (int32_t)(ADDRESS32(io_registers, 0x28) << 4) >> 4;
+          affine_reference_y[0] = (int32_t)(ADDRESS32(io_registers, 0x2C) << 4) >> 4;
+          affine_reference_x[1] = (int32_t)(ADDRESS32(io_registers, 0x38) << 4) >> 4;
+          affine_reference_y[1] = (int32_t)(ADDRESS32(io_registers, 0x3C) << 4) >> 4;
 
           if(dma[0].start_type == DMA_START_VBLANK)
             dma_transfer(dma);
@@ -393,7 +390,7 @@ u32 update_gba()
 						if(frame_ticks > 3)
 						{
 							if(pen)
-								mdelay(500);
+								usleep(500000);
 
 							loadstate_rewind();
 							pen = 1;
@@ -403,15 +400,9 @@ u32 update_gba()
 					}
 					else if(frame_ticks > 3)
 					{
-						u32 HotkeyRewind = game_persistent_config.HotkeyRewind != 0 ? game_persistent_config.HotkeyRewind : gpsp_persistent_config.HotkeyRewind;
+						uint32_t HotkeyRewind = game_persistent_config.HotkeyRewind != 0 ? game_persistent_config.HotkeyRewind : gpsp_persistent_config.HotkeyRewind;
 
-						struct key_buf inputdata;
-						ds2_getrawInput(&inputdata);
-
-						while (inputdata.key & HotkeyRewind)
-						{
-							ds2_getrawInput(&inputdata);
-						}
+						DS2_AwaitNotAllButtonsIn(HotkeyRewind);
 					}
 				}
 				else if(frame_ticks ==0)
@@ -426,7 +417,9 @@ u32 update_gba()
 
           update_backup();
 
+#if 0
           process_cheats();
+#endif
 
           update_gbc_sound(cpu_ticks);
 
@@ -486,7 +479,7 @@ u32 update_gba()
   return execute_cycles;
 }
 
-void vblank_interrupt_handler(u32 sub, u32 *parg)
+void vblank_interrupt_handler(uint32_t sub, uint32_t *parg)
 {
   real_frame_count++;
   vblank_count++;
@@ -520,10 +513,10 @@ void change_ext(char *src, char *buffer, char *extension)
 }                                                                             \
 
 void main_read_mem_savestate()
-MAIN_SAVESTATE_BODY(READ_MEM);
+MAIN_SAVESTATE_BODY(READ_MEM)
 
 void main_write_mem_savestate()
-MAIN_SAVESTATE_BODY(WRITE_MEM);
+MAIN_SAVESTATE_BODY(WRITE_MEM)
 
 void error_msg(char *text)
 {

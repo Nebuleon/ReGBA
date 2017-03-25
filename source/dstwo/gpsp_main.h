@@ -43,28 +43,28 @@ typedef enum
 /******************************************************************************
  * グローバル変数の宣言
  ******************************************************************************/
-extern u32 execute_cycles;
-extern u32 to_skip;
-extern u32 global_cycles_per_instruction;
-extern u32 synchronize_flag;
-extern u32 skip_next_frame_flag;
-extern u32 prescale_table[];
-extern volatile u32 real_frame_count;
-extern u32 virtual_frame_count;
+extern uint32_t execute_cycles;
+extern uint32_t to_skip;
+extern uint32_t global_cycles_per_instruction;
+extern uint32_t synchronize_flag;
+extern uint32_t skip_next_frame_flag;
+extern uint32_t prescale_table[];
+extern volatile uint32_t real_frame_count;
+extern uint32_t virtual_frame_count;
 extern int date_format;
-extern u32 frame_ticks;
-extern unsigned int frame_interval; // For in-memory saved states used in rewinding
+extern uint32_t frame_ticks;
+extern uint32_t frame_interval; // For in-memory saved states used in rewinding
 
-extern u32 fast_backward;
+extern uint32_t fast_backward;
 /******************************************************************************
  * グローバル関数の宣言
  ******************************************************************************/
-void set_cpu_clock(u32 clock);
-u32 update_gba();
+void set_cpu_clock(uint32_t clock);
+uint32_t update_gba();
 void reset_gba();
 void synchronize();
 void quit();
-void game_name_ext(u8 *src, u8 *buffer, u8 *extension);
+void game_name_ext(uint8_t *src, uint8_t *buffer, uint8_t *extension);
 void main_read_mem_savestate();
 void main_write_mem_savestate();
 void error_msg(char *text);

@@ -22,11 +22,18 @@
 #ifndef _DS2SOUND_H_
 #define _DS2SOUND_H_
 
-#define AUDIO_LEN 1536
-
 // OUTPUT_SOUND_FREQUENCY should be a power-of-2 fraction of SOUND_FREQUENCY;
 // if not, ds2sound.c's ReGBA_AudioUpdate() needs to resample the output.
 #define OUTPUT_SOUND_FREQUENCY 44100
+
+/* These are in units of OUTPUT_SOUND_FREQUENCY. */
+#define OUTPUT_SOUND_LEN 4096
+#define OUTPUT_SOUND_LOW_LEN 1024
+#define OUTPUT_SOUND_HIGH_LEN 3072
+#define OUTPUT_SOUND_FFWD_LEN 2048
+
+/* At least this many samples must be submitted at once to the Nintendo DS. */
+#define SOUND_SEND_LEN 32
 
 #define OUTPUT_FREQUENCY_DIVISOR ((int) (SOUND_FREQUENCY) / (OUTPUT_SOUND_FREQUENCY))
 

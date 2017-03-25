@@ -53,14 +53,14 @@ enum ReGBA_MenuEntryReason
 	REGBA_MENU_ENTRY_REASON_SUSPENDED,
 };
 
-u32 update_input();
+uint32_t update_input();
 void input_read_mem_savestate();
 void input_write_mem_savestate();
 
 // Tilt sensor on the GBA side. It's mapped... somewhere... in the GBA address
 // space. See the read_backup function in memory.c for more information.
-extern u32 tilt_sensor_x;
-extern u32 tilt_sensor_y;
+extern uint32_t tilt_sensor_x;
+extern uint32_t tilt_sensor_y;
 
 #endif
 

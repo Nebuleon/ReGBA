@@ -53,47 +53,47 @@ typedef enum
 
 typedef struct
 {
-  s8 fifo[32];
-  u32 fifo_base;
-  u32 fifo_top;
+  int8_t fifo[32];
+  uint32_t fifo_base;
+  uint32_t fifo_top;
   FIXED16_16 fifo_fractional;
   // The + 1 is to give some extra room for linear interpolation
   // when wrapping around.
-  u32 buffer_index;
+  uint32_t buffer_index;
   DIRECT_SOUND_STATUS_TYPE status;
   DIRECT_SOUND_VOLUME_TYPE volume;
-  u32 last_cpu_ticks;
+  uint32_t last_cpu_ticks;
 } DIRECT_SOUND_STRUCT;
 
 typedef struct
 {
-  u32 rate;
+  uint32_t rate;
   FIXED16_16 frequency_step;
   FIXED16_16 sample_index;
   FIXED16_16 tick_counter;
-  u32 total_volume;
-  u32 envelope_initial_volume;
-  u32 envelope_volume;
-  u32 envelope_direction;
-  u32 envelope_status;
-  u32 envelope_step;
-  u32 envelope_ticks;
-  u32 envelope_initial_ticks;
-  u32 sweep_status;
-  u32 sweep_direction;
-  u32 sweep_ticks;
-  u32 sweep_initial_ticks;
-  u32 sweep_shift;
-  u32 length_status;
-  u32 length_ticks;
-  u32 noise_type;
-  u32 wave_type;
-  u32 wave_bank;
-  u32 wave_volume;
+  uint32_t total_volume;
+  uint32_t envelope_initial_volume;
+  uint32_t envelope_volume;
+  uint32_t envelope_direction;
+  uint32_t envelope_status;
+  uint32_t envelope_step;
+  uint32_t envelope_ticks;
+  uint32_t envelope_initial_ticks;
+  uint32_t sweep_status;
+  uint32_t sweep_direction;
+  uint32_t sweep_ticks;
+  uint32_t sweep_initial_ticks;
+  uint32_t sweep_shift;
+  uint32_t length_status;
+  uint32_t length_ticks;
+  uint32_t noise_type;
+  uint32_t wave_type;
+  uint32_t wave_bank;
+  uint32_t wave_volume;
   GBC_SOUND_STATUS_TYPE status;
-  u32 active_flag;
-  u32 master_enable;
-  s8 *sample_data;
+  uint32_t active_flag;
+  uint32_t master_enable;
+  int8_t *sample_data;
 } GBC_SOUND_STRUCT;
 
 #define BUFFER_SIZE (0x10000)
@@ -108,8 +108,8 @@ typedef struct
 
 #define GBC_SOUND_TONE_CONTROL_LOW(channel, address)                          \
 {                                                                             \
-  u32 initial_volume = (value >> 12) & 0x0F;                                  \
-  u32 envelope_ticks = ((value >> 8) & 0x07) * 4;                             \
+  uint32_t initial_volume = (value >> 12) & 0x0F;                             \
+  uint32_t envelope_ticks = ((value >> 8) & 0x07) * 4;                        \
   gbc_sound_channel[channel].length_ticks = 64 - (value & 0x3F);              \
   gbc_sound_channel[channel].sample_data =                                    \
    square_pattern_duty[(value >> 6) & 0x03];                                  \
@@ -126,7 +126,7 @@ typedef struct
 
 #define GBC_SOUND_TONE_CONTROL_HIGH(channel, address)                         \
 {                                                                             \
-  u32 rate = value & 0x7FF;                                                   \
+  uint32_t rate = value & 0x7FF;                                              \
   gbc_sound_channel[channel].rate = rate;                                     \
   gbc_sound_channel[channel].frequency_step = FLOAT_TO_FP16_16((1048576.0f / SOUND_FREQUENCY) / (2048 - rate));  \
   gbc_sound_channel[channel].length_status = (value >> 14) & 0x01;            \
@@ -148,7 +148,7 @@ typedef struct
 
 #define GBC_SOUND_TONE_CONTROL_SWEEP()                                        \
 {                                                                             \
-  u32 sweep_ticks = ((value >> 4) & 0x07) * 2;                                \
+  uint32_t sweep_ticks = ((value >> 4) & 0x07) * 2;                           \
   gbc_sound_channel[0].sweep_shift = value & 0x07;                            \
   gbc_sound_channel[0].sweep_direction = (value >> 3) & 0x01;                 \
   gbc_sound_channel[0].sweep_status = (value != 8);                           \
@@ -193,7 +193,7 @@ typedef struct
 
 #define GBC_SOUND_TONE_CONTROL_HIGH_WAVE()                                    \
 {                                                                             \
-  u32 rate = value & 0x7FF;                                                   \
+  uint32_t rate = value & 0x7FF;                                              \
   gbc_sound_channel[2].rate = rate;                                           \
   gbc_sound_channel[2].frequency_step = FLOAT_TO_FP16_16((2097152.0f / SOUND_FREQUENCY) / (2048 - rate));         \
   gbc_sound_channel[2].length_status = (value >> 14) & 0x01;                  \
@@ -208,8 +208,8 @@ typedef struct
 
 #define GBC_SOUND_NOISE_CONTROL()                                             \
 {                                                                             \
-  u32 dividing_ratio = value & 0x07;                                          \
-  u32 frequency_shift = (value >> 4) & 0x0F;                                  \
+  uint32_t dividing_ratio = value & 0x07;                                     \
+  uint32_t frequency_shift = (value >> 4) & 0x0F;                             \
   if(dividing_ratio == 0)                                                     \
   {                                                                           \
     gbc_sound_channel[3].frequency_step =                                     \
@@ -278,7 +278,7 @@ typedef struct
     sound_on = 1;                                                           \
   else                                                                        \
   {                                                                           \
-    u32 i;                                                                    \
+    uint32_t i;                                                               \
     for(i = 0; i < 4; i++)                                                    \
     {                                                                         \
       gbc_sound_channel[i].active_flag = 0;                                   \
@@ -305,22 +305,22 @@ typedef struct
  ******************************************************************************/
 extern DIRECT_SOUND_STRUCT direct_sound_channel[2];
 extern GBC_SOUND_STRUCT gbc_sound_channel[4];
-extern s8 square_pattern_duty[4][8];
-extern u32 gbc_sound_master_volume_left;
-extern u32 gbc_sound_master_volume_right;
-extern u32 gbc_sound_master_volume;
+extern int8_t square_pattern_duty[4][8];
+extern uint32_t gbc_sound_master_volume_left;
+extern uint32_t gbc_sound_master_volume_right;
+extern uint32_t gbc_sound_master_volume;
 
-extern u32 sound_on;
+extern uint32_t sound_on;
 
-extern u32 gbc_sound_wave_volume[4];
+extern uint32_t gbc_sound_wave_volume[4];
 
-extern u32 gbc_sound_buffer_index;
-extern u32 gbc_sound_partial_ticks;
+extern uint32_t gbc_sound_buffer_index;
+extern uint32_t gbc_sound_partial_ticks;
 
-void sound_timer_queue32(u8 channel);
-void sound_timer(FIXED16_16 frequency_step, u32 channel);
-void sound_reset_fifo(u32 channel);
-void update_gbc_sound(u32 cpu_ticks);
+void sound_timer_queue32(uint8_t channel);
+void sound_timer(FIXED16_16 frequency_step, uint32_t channel);
+void sound_reset_fifo(uint32_t channel);
+void update_gbc_sound(uint32_t cpu_ticks);
 void init_sound();
 void sound_read_mem_savestate();
 void sound_write_mem_savestate();
@@ -339,7 +339,7 @@ void reset_sound();
  *   available; that is, the number of times ReGBA_LoadNextAudioSample can be
  *   called with Left and Right without it returning zero.
  */
-u32 ReGBA_GetAudioSamplesAvailable(void);
+uint32_t ReGBA_GetAudioSamplesAvailable(void);
 
 /*
  * Loads and consumes the next audio sample from the core's audio buffer.
@@ -356,7 +356,7 @@ u32 ReGBA_GetAudioSamplesAvailable(void);
  *   audio buffer.
  *   If zero is returned, neither variable is written to.
  */
-u32 ReGBA_LoadNextAudioSample(s16* Left, s16* Right);
+uint32_t ReGBA_LoadNextAudioSample(int16_t* Left, int16_t* Right);
 
 /*
  * Discards the requested number of samples from the core's audio buffer.
@@ -367,6 +367,6 @@ u32 ReGBA_LoadNextAudioSample(s16* Left, s16* Right);
  *   The number of samples that were actually discarded, which may be Count
  *   or fewer.
  */
-u32 ReGBA_DiscardAudioSamples(u32 Count);
+uint32_t ReGBA_DiscardAudioSamples(uint32_t Count);
 
 #endif /* SOUND_H */

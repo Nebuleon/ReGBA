@@ -18,55 +18,25 @@
  */
 
 #include "common.h"
-#include <stdio.h>
-#include "console.h"
-#include "fs_api.h"
-#include "ds2io.h"
-#include "ds2_cpu.h"
-#include "ds2_timer.h"
-#include "ds2_malloc.h"
-#include "gui.h"
-#include "sound.h"
+#include <ds2/io.h>
 
-#define BLACK_COLOR		RGB15(0, 0, 0)
-#define WHITE_COLOR		RGB15(31, 31, 31)
-
-extern int gpsp_main (int argc, char **argv);
-
-#if 0
-void ddump_mem(unsigned char* addr, unsigned int len)
+int ds2_main(void)
 {
-	unsigned int i;
-
-	for(i= 0; i < len; i++)
-	{
-		if(i%16 == 0) cprintf("\n%08x: ", i);
-		cprintf("%02x ", addr[i]);
-	}
-}
-#endif
-
-void ds2_main(void)
-{
-	int err;
 	HighFrequencyCPU();
 
-	// Initialise the UART for serial output
-	serial_init();
-	serial_puts("TempGBA: Serial port initialised\r\n");
+	if (!DS2_InitFS())
+		goto _failure;
 
-	//Initial video and audio and other input and output
-	err = ds2io_initb((int) (AUDIO_LEN / OUTPUT_FREQUENCY_DIVISOR), OUTPUT_SOUND_FREQUENCY, 0, 0);
-	if(err) goto _failure;
+	DS2_SetPixelFormat(DS_ENGINE_BOTH, DS2_PIXEL_FORMAT_BGR555);
+	DS2_SetScreenSwap(true);
 
-	//Initial file system
-	err = fat_init();
-	if(err) goto _failure;
+	if (DS2_StartAudio(OUTPUT_SOUND_FREQUENCY, OUTPUT_SOUND_LEN, true, true) != 0)
+		goto _failure;
 
-	//go to user main funtion
 	gpsp_main (0, 0);
 
-_failure:
-	ds2_plug_exit();
-}
+	return EXIT_SUCCESS;
 
+_failure:
+	return EXIT_FAILURE;
+}

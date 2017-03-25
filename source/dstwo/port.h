@@ -20,8 +20,10 @@
 #ifndef __GPSP_PORT_H__
 #define __GPSP_PORT_H__
 
-#include "ds2_types.h"
-#include "ds2_malloc.h"
+#include <stdint.h>
+#include <stdlib.h>
+#include <strings.h>
+#include <time.h>
 
 #include "draw.h"
 #include "bdf_font.h"
@@ -29,17 +31,17 @@
 #include "gui.h"
 #include "gu.h"
 
-#define MAX_PATH 512
-#define MAX_FILE 512
+#define MAX_PATH PATH_MAX
+#define MAX_FILE PATH_MAX
 
 typedef FILE* FILE_TAG_TYPE;
 
-typedef u32 timespec;
+typedef clock_t timespec;
 
-int errno;
+#include <errno.h>
 
-#include "fs_api.h"
-#include "ds2_unistd.h"
+#include <stdio.h>
+#include <unistd.h>
 
 #include "message.h"
 #include "gpsp_main.h"
@@ -87,8 +89,6 @@ int errno;
 
 #define FILE_TELL(filename_tag)                                             \
   ftell(filename_tag)                                                       \
-
-extern u32 frameskip_0_hack_flag; // described in ds2sound.c:ReGBA_AudioUpdate()
 
 extern const char* GetFileName(const char* Path);
 extern void RemoveExtension(char* Result, const char* FileName);

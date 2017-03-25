@@ -150,51 +150,51 @@ typedef enum {
 #define MAX_TAG_EWRAM (0xFFFE)
 #define MAX_TAG_VRAM  (0xFFFE)
 
-u32 execute_load_u8(u32 address);
-u32 execute_load_u16(u32 address);
-u32 execute_load_u32(u32 address);
-u32 execute_load_s8(u32 address);
-u32 execute_load_s16(u32 address);
-void execute_store_u8(u32 address, u32 source);
-void execute_store_u16(u32 address, u32 source);
-void execute_store_u32(u32 address, u32 source);
-void execute_arm_translate(u32 cycles);
-void execute_arm(u32 cycles);
+uint32_t execute_load_u8(uint32_t address);
+uint32_t execute_load_u16(uint32_t address);
+uint32_t execute_load_u32(uint32_t address);
+uint32_t execute_load_s8(uint32_t address);
+uint32_t execute_load_s16(uint32_t address);
+void execute_store_u8(uint32_t address, uint32_t source);
+void execute_store_u16(uint32_t address, uint32_t source);
+void execute_store_u32(uint32_t address, uint32_t source);
+void execute_arm_translate(uint32_t cycles);
+void execute_arm(uint32_t cycles);
 
 void init_translater();
 void cpu_read_mem_savestate();
 void cpu_write_mem_savestate();
 
-u8* block_lookup_address_arm(u32 pc);
-u8* block_lookup_address_thumb(u32 pc);
-u8* block_lookup_address_dual(u32 pc);
-u8* translate_block_arm(u32 pc);
-u8* translate_block_thumb(u32 pc);
+uint8_t* block_lookup_address_arm(uint32_t pc);
+uint8_t* block_lookup_address_thumb(uint32_t pc);
+uint8_t* block_lookup_address_dual(uint32_t pc);
+uint8_t* translate_block_arm(uint32_t pc);
+uint8_t* translate_block_thumb(uint32_t pc);
 
-extern u8  readonly_code_cache[READONLY_CODE_CACHE_SIZE];
-extern u8* readonly_next_code;
-extern u8  writable_code_cache[WRITABLE_CODE_CACHE_SIZE];
-extern u8* writable_next_code;
+extern uint8_t  readonly_code_cache[READONLY_CODE_CACHE_SIZE];
+extern uint8_t* readonly_next_code;
+extern uint8_t  writable_code_cache[WRITABLE_CODE_CACHE_SIZE];
+extern uint8_t* writable_next_code;
 
 #define MAX_IDLE_LOOPS 8
 
-extern u32 idle_loop_targets;
-extern u32 idle_loop_target_pc[MAX_IDLE_LOOPS];
-extern u32 force_pc_update_target;
-extern u32 iwram_stack_optimize;
-//extern u32 allow_smc_ram_u8;
-//extern u32 allow_smc_ram_u16;
-//extern u32 allow_smc_ram_u32;
-extern u32 direct_map_vram;
+extern uint32_t idle_loop_targets;
+extern uint32_t idle_loop_target_pc[MAX_IDLE_LOOPS];
+extern uint32_t force_pc_update_target;
+extern uint32_t iwram_stack_optimize;
+//extern uint32_t allow_smc_ram_u8;
+//extern uint32_t allow_smc_ram_u16;
+//extern uint32_t allow_smc_ram_u32;
+extern uint32_t direct_map_vram;
 
-extern u32 in_interrupt;
+extern uint32_t in_interrupt;
 
-// extern u32 bios_mode;
+// extern uint32_t bios_mode;
 
 #define ROM_BRANCH_HASH_SIZE 65536 /* Must be a power of 2, 2 <= n <= 65536 */
 #define WRITABLE_HASH_SIZE 65536 /* Must be a power of 2, 2 <= n <= 65536 */
 
-void partial_clear_metadata(u32 address);
+void partial_clear_metadata(uint32_t address);
 void flush_translation_cache(TRANSLATION_REGION_TYPE translation_region,
   CACHE_FLUSH_REASON_TYPE flush_reason);
 void clear_metadata_area(METADATA_AREA_TYPE metadata_area,
@@ -204,11 +204,11 @@ void dump_translation_cache();
 void set_cpu_mode(CPU_MODE_TYPE new_mode);
 void raise_interrupt(IRQ_TYPE irq_raised);
 
-extern u32 reg_mode[7][7];
-extern u32 spsr[6];
+extern uint32_t reg_mode[7][7];
+extern uint32_t spsr[6];
 
-extern const u8 cpu_modes[32];
+extern const uint8_t cpu_modes[32];
 
-void init_cpu(u32 BootFromBIOS);
+void init_cpu(uint32_t BootFromBIOS);
 
 #endif

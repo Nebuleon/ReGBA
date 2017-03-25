@@ -27,28 +27,28 @@
 
 struct SZIPFileDataDescriptor
 {
-  s32 CRC32;
-  s32 CompressedSize;
-  s32 UncompressedSize;
+  int32_t CRC32;
+  int32_t CompressedSize;
+  int32_t UncompressedSize;
 } __attribute__((packed));
 
 struct SZIPFileHeader
 {
-  char Sig[4]; // EDIT: Used to be s32 Sig;
-  s16 VersionToExtract;
-  s16 GeneralBitFlag;
-  s16 CompressionMethod;
-  s16 LastModFileTime;
-  s16 LastModFileDate;
+  uint8_t Sig[4]; // EDIT: Used to be s32 Sig;
+  int16_t VersionToExtract;
+  int16_t GeneralBitFlag;
+  int16_t CompressionMethod;
+  int16_t LastModFileTime;
+  int16_t LastModFileDate;
   struct SZIPFileDataDescriptor DataDescriptor;
-  s16 FilenameLength;
-  s16 ExtraFieldLength;
+  int16_t FilenameLength;
+  int16_t ExtraFieldLength;
 }  __attribute__((packed));
 
 
 void* zip_malloc_func(void* opaque, unsigned int items, unsigned int size)
 {
-    return((void*)calloc(size, items));
+    return calloc(size, items);
 }
 
 void zip_free_func(void* opaque, void* address)
@@ -63,7 +63,7 @@ void zip_free_func(void* opaque, void* address)
 // TODO Support big-endian systems.
 // The ZIP file header contains little-endian fields, and byte swapping is
 // needed on big-endian systems.
-ssize_t load_file_zip(char *filename, uint8_t** ROMBuffer)
+ssize_t load_file_zip(const char *filename, uint8_t** ROMBuffer)
 {
 	struct SZIPFileHeader data;
 	char tmp[MAX_PATH];
@@ -159,7 +159,7 @@ ssize_t load_file_zip(char *filename, uint8_t** ROMBuffer)
 				case 8: // Deflate compression
 				{
 					z_stream stream = {0};
-					s32 err;
+					int32_t err;
 
 					/*
 					 * z.next_in   = Input pointer
@@ -169,13 +169,13 @@ ssize_t load_file_zip(char *filename, uint8_t** ROMBuffer)
 					 */
 
 					stream.next_in = (Bytef*) cbuffer;
-					stream.avail_in = (u32) ZIP_BUFFER_SIZE;
+					stream.avail_in = (uint32_t) ZIP_BUFFER_SIZE;
 					stream.next_out = (Bytef*) Buffer;
 
 					if (!WriteExternalFile)
 					{
 						stream.avail_out = data.DataDescriptor.UncompressedSize;
-						retval = (u32)data.DataDescriptor.UncompressedSize;
+						retval = (uint32_t)data.DataDescriptor.UncompressedSize;
 					}
 					else
 					{
@@ -185,8 +185,8 @@ ssize_t load_file_zip(char *filename, uint8_t** ROMBuffer)
 
 					stream.opaque = (voidpf) 0;
 
-					stream.zalloc = (alloc_func) zip_malloc_func;
-					stream.zfree = (free_func) zip_free_func;
+					stream.zalloc = zip_malloc_func;
+					stream.zfree = zip_free_func;
 
 					err = inflateInit2(&stream, -MAX_WBITS);
 
@@ -201,7 +201,7 @@ ssize_t load_file_zip(char *filename, uint8_t** ROMBuffer)
 							err = inflate(&stream, Z_SYNC_FLUSH);
 							if (err == Z_BUF_ERROR)
 							{
-								stream.avail_in = (u32) ZIP_BUFFER_SIZE;
+								stream.avail_in = (uint32_t) ZIP_BUFFER_SIZE;
 								stream.next_in = (Bytef*) cbuffer;
 								FILE_READ(fd, cbuffer, ZIP_BUFFER_SIZE);
 							}

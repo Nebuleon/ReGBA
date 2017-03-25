@@ -79,11 +79,11 @@
 #define UPDATE_TONE_SWEEP()                                                   \
   if(gs->sweep_status)                                                        \
   {                                                                           \
-    u32 sweep_ticks = gs->sweep_ticks - 1;                                    \
+    uint32_t sweep_ticks = gs->sweep_ticks - 1;                               \
                                                                               \
     if(sweep_ticks == 0)                                                      \
     {                                                                         \
-      u32 rate = gs->rate;                                                    \
+      uint32_t rate = gs->rate;                                               \
                                                                               \
       if(gs->sweep_direction)                                                 \
         rate = rate - (rate >> gs->sweep_shift);                              \
@@ -112,7 +112,7 @@
 #define UPDATE_TONE_ENVELOPE()                                                \
   if(gs->envelope_status)                                                     \
   {                                                                           \
-    u32 envelope_ticks = gs->envelope_ticks - 1;                              \
+    uint32_t envelope_ticks = gs->envelope_ticks - 1;                         \
     envelope_volume = gs->envelope_volume;                                    \
                                                                               \
     if(envelope_ticks == 0)                                                   \
@@ -148,7 +148,7 @@
     tick_counter &= 0xFFFF;                                                   \
     if(gs->length_status)                                                     \
     {                                                                         \
-      u32 length_ticks = gs->length_ticks - 1;                                \
+      uint32_t length_ticks = gs->length_ticks - 1;                           \
       gs->length_ticks = length_ticks;                                        \
                                                                               \
       if(length_ticks == 0)                                                   \
@@ -272,33 +272,33 @@
  ******************************************************************************/
 DIRECT_SOUND_STRUCT direct_sound_channel[2];
 GBC_SOUND_STRUCT gbc_sound_channel[4];
-u32 sound_on = 0;
-u32 gbc_sound_wave_volume[4] = { 0, 16384, 8192, 4096 };
-// u32 left_buffer;
+uint32_t sound_on = 0;
+uint32_t gbc_sound_wave_volume[4] = { 0, 16384, 8192, 4096 };
+// uint32_t left_buffer;
 
 /******************************************************************************
  * 局部变量定义
  ******************************************************************************/
-static s16 sound_buffer[BUFFER_SIZE];       // 音频缓冲区 2n = Left / 2n+1 = Right
-static u32 sound_read_offset = 0;  // 音频缓冲区读指针
-static u32 sound_last_cpu_ticks = 0;
+static int16_t sound_buffer[BUFFER_SIZE];       // 音频缓冲区 2n = Left / 2n+1 = Right
+static uint32_t sound_read_offset = 0;  // 音频缓冲区读指针
+static uint32_t sound_last_cpu_ticks = 0;
 static FIXED16_16 gbc_sound_tick_step;
 
 /******************************************************************************
  * 本地函数声明
  ******************************************************************************/
-static void init_noise_table(s32 *table, u32 period, u32 bit_length);
+static void init_noise_table(int32_t *table, uint32_t period, uint32_t bit_length);
 
 /******************************************************************************
  * 全局函数定义
  ******************************************************************************/
 // Queue 1, 2, or 4 samples to the top of the DS FIFO, wrap around circularly
 // マジカルバケーションの不具合修正
-void sound_timer_queue32(u8 channel)
+void sound_timer_queue32(uint8_t channel)
   {
     DIRECT_SOUND_STRUCT *ds = direct_sound_channel + channel;
-    u8 offset = channel * 4;
-    u8 i;
+    uint8_t offset = channel * 4;
+    uint8_t i;
 
     for (i = 0xA0; i <= 0xA3; i++)
     {
@@ -307,13 +307,13 @@ void sound_timer_queue32(u8 channel)
     }
   }
 
-void sound_timer(FIXED16_16 frequency_step, u32 channel)
+void sound_timer(FIXED16_16 frequency_step, uint32_t channel)
   {
     DIRECT_SOUND_STRUCT *ds = direct_sound_channel + channel;
 
     FIXED16_16 fifo_fractional = ds->fifo_fractional;
-    u32 sound_write_offset = ds->buffer_index;
-    s16 current_sample, next_sample, dest_sample;
+    uint32_t sound_write_offset = ds->buffer_index;
+    int16_t current_sample, next_sample, dest_sample;
 
     current_sample = ds->fifo[ds->fifo_base] << 4;
     ds->fifo_base = (ds->fifo_base + 1) % 32;
@@ -355,7 +355,7 @@ void sound_timer(FIXED16_16 frequency_step, u32 channel)
     ds->fifo_fractional = FP16_16_FRACTIONAL_PART(fifo_fractional);
 
     // マジカルバケーションで動作が遅くなるのが改善される
-    u8 fifo_length;
+    uint8_t fifo_length;
 
     if (ds->fifo_top > ds->fifo_base)
       fifo_length = ds->fifo_top - ds->fifo_base;
@@ -372,7 +372,7 @@ void sound_timer(FIXED16_16 frequency_step, u32 channel)
       }
   }
 
-void sound_reset_fifo(u32 channel)
+void sound_reset_fifo(uint32_t channel)
   {
     DIRECT_SOUND_STRUCT *ds = direct_sound_channel + channel;
     memset(ds->fifo, 0, 32);
@@ -388,22 +388,22 @@ void sound_reset_fifo(u32 channel)
 
 // Square waves range from -8 (low) to 7 (high)
 
-s8 square_pattern_duty[4][8] =
+int8_t square_pattern_duty[4][8] =
   {
-    { 0xF8, 0xF8, 0xF8, 0xF8, 0x07, 0xF8, 0xF8, 0xF8 },
-    { 0xF8, 0xF8, 0xF8, 0xF8, 0x07, 0x07, 0xF8, 0xF8 },
-    { 0xF8, 0xF8, 0x07, 0x07, 0x07, 0x07, 0xF8, 0xF8 },
-    { 0x07, 0x07, 0x07, 0x07, 0xF8, 0xF8, 0x07, 0x07 },
+    { -8, -8, -8, -8, +7, -8, -8, -8 },
+    { -8, -8, -8, -8, +7, +7, -8, -8 },
+    { -8, -8, +7, +7, +7, +7, -8, -8 },
+    { +7, +7, +7, +7, -8, -8, +7, +7 },
   };
 
-s8 wave_samples[64];
+int8_t wave_samples[64];
 
-s32 noise_table15[1024];
-s32 noise_table7[4];
+int32_t noise_table15[1024];
+int32_t noise_table7[4];
 
-u32 gbc_sound_master_volume_table[4] = { 1, 2, 4, 0 };
+uint32_t gbc_sound_master_volume_table[4] = { 1, 2, 4, 0 };
 
-u32 gbc_sound_channel_volume_table[8] =
+uint32_t gbc_sound_channel_volume_table[8] =
   { FIXED_DIV(0, 7, 12),
     FIXED_DIV(1, 7, 12),
     FIXED_DIV(2, 7, 12),
@@ -414,7 +414,7 @@ u32 gbc_sound_channel_volume_table[8] =
     FIXED_DIV(7, 7, 12)
   };
 
-u32 gbc_sound_envelope_volume_table[16] =
+uint32_t gbc_sound_envelope_volume_table[16] =
   { FIXED_DIV(0, 15, 14),
     FIXED_DIV(1, 15, 14),
     FIXED_DIV(2, 15, 14),
@@ -432,31 +432,31 @@ u32 gbc_sound_envelope_volume_table[16] =
     FIXED_DIV(14, 15, 14),
     FIXED_DIV(15, 15, 14) };
 
-u32 gbc_sound_buffer_index = 0;
+uint32_t gbc_sound_buffer_index = 0;
 
-u32 gbc_sound_last_cpu_ticks = 0;
-u32 gbc_sound_partial_ticks = 0;
+uint32_t gbc_sound_last_cpu_ticks = 0;
+uint32_t gbc_sound_partial_ticks = 0;
 
-u32 gbc_sound_master_volume_left;
-u32 gbc_sound_master_volume_right;
-u32 gbc_sound_master_volume;
+uint32_t gbc_sound_master_volume_left;
+uint32_t gbc_sound_master_volume_right;
+uint32_t gbc_sound_master_volume;
 
-void update_gbc_sound(u32 cpu_ticks)
+void update_gbc_sound(uint32_t cpu_ticks)
   {
     // TODO 実数部のビット数を多くした方がいい？
     FIXED16_16 buffer_ticks= FLOAT_TO_FP16_16((cpu_ticks - gbc_sound_last_cpu_ticks) * (SOUND_FREQUENCY / SYS_CLOCK));
-    u32 i, i2;
+    uint32_t i, i2;
     GBC_SOUND_STRUCT *gs = gbc_sound_channel;
     FIXED16_16 sample_index, frequency_step;
     FIXED16_16 tick_counter;
-    u32 sound_write_offset;
-    s32 volume_left, volume_right;
-    u32 envelope_volume;
-    s32 current_sample;
-    u32 sound_status= ADDRESS16(io_registers, 0x84) & 0xFFF0;
-    s8 *sample_data;
-    s8 *wave_bank;
-    u8 *wave_ram = ((u8 *)io_registers) + 0x90;
+    uint32_t sound_write_offset;
+    int32_t volume_left, volume_right;
+    uint32_t envelope_volume;
+    int32_t current_sample;
+    uint32_t sound_status= ADDRESS16(io_registers, 0x84) & 0xFFF0;
+    int8_t *sample_data;
+    int8_t *wave_bank;
+    uint8_t *wave_ram = ((uint8_t *)io_registers) + 0x90;
 
     gbc_sound_partial_ticks += FP16_16_FRACTIONAL_PART(buffer_ticks);
     buffer_ticks = FP16_16_TO_U32(buffer_ticks);
@@ -555,7 +555,7 @@ void update_gbc_sound(u32 cpu_ticks)
 			ReGBA_Trace("I: Direct Sound channel %u write offset %u -> %u", i, direct_sound_channel[i].buffer_index, gbc_sound_buffer_index);
 #endif
 			// Clear the future sound so the present sound won't add to it.
-			memset(&sound_buffer[gbc_sound_buffer_index], 0, (direct_sound_channel[i].buffer_index - gbc_sound_buffer_index) * sizeof(s16));
+			memset(&sound_buffer[gbc_sound_buffer_index], 0, (direct_sound_channel[i].buffer_index - gbc_sound_buffer_index) * sizeof(int16_t));
 			direct_sound_channel[i].buffer_index = gbc_sound_buffer_index;
 		}
 	}
@@ -576,7 +576,7 @@ void reset_sound()
   {
     DIRECT_SOUND_STRUCT *ds = direct_sound_channel;
     GBC_SOUND_STRUCT *gs = gbc_sound_channel;
-    u32 i;
+    uint32_t i;
 
     sound_on = 0;
     memset(sound_buffer, 0, sizeof(sound_buffer));
@@ -613,17 +613,17 @@ void reset_sound()
   }
 
 void sound_read_mem_savestate()
-  sound_savestate_body(READ_MEM);
+  sound_savestate_body(READ_MEM)
 
 void sound_write_mem_savestate()
-  sound_savestate_body(WRITE_MEM);
+  sound_savestate_body(WRITE_MEM)
 
-u32 ReGBA_GetAudioSamplesAvailable()
+uint32_t ReGBA_GetAudioSamplesAvailable()
 {
 	return ((gbc_sound_buffer_index - sound_read_offset) & BUFFER_SIZE_MASK) / 2;
 }
 
-u32 ReGBA_LoadNextAudioSample(s16* Left, s16* Right)
+uint32_t ReGBA_LoadNextAudioSample(int16_t* Left, int16_t* Right)
 {
 	if (sound_read_offset == gbc_sound_buffer_index)
 		return 0;
@@ -636,20 +636,20 @@ u32 ReGBA_LoadNextAudioSample(s16* Left, s16* Right)
 	return 1;
 }
 
-u32 ReGBA_DiscardAudioSamples(u32 Count)
+uint32_t ReGBA_DiscardAudioSamples(uint32_t Count)
 {
-	u32 Available = ReGBA_GetAudioSamplesAvailable();
+	uint32_t Available = ReGBA_GetAudioSamplesAvailable();
 	if (Count > Available)
 		Count = Available;
 	if (sound_read_offset + Count * 2 > BUFFER_SIZE)
 	{
 		// Requested samples wrap around. Split the clearing.
-		memset(&sound_buffer[sound_read_offset], 0, (BUFFER_SIZE - sound_read_offset) * sizeof(s16));
-		memset(sound_buffer, 0, ((sound_read_offset + Count * 2) & BUFFER_SIZE_MASK) * sizeof(s16));
+		memset(&sound_buffer[sound_read_offset], 0, (BUFFER_SIZE - sound_read_offset) * sizeof(int16_t));
+		memset(sound_buffer, 0, ((sound_read_offset + Count * 2) & BUFFER_SIZE_MASK) * sizeof(int16_t));
 	}
 	else
 	{
-		memset(&sound_buffer[sound_read_offset], 0, Count * 2 * sizeof(s16));
+		memset(&sound_buffer[sound_read_offset], 0, Count * 2 * sizeof(int16_t));
 	}
 	sound_read_offset = (sound_read_offset + Count * 2) & BUFFER_SIZE_MASK;
 	return Count;
@@ -661,13 +661,13 @@ u32 ReGBA_DiscardAudioSamples(u32 Count)
   // angeneraldiscussion&Number=2069&page=0&view=expanded&mode=threaded&sb=4
   // Hope you don't mind me borrowing it ^_-
 
-void init_noise_table(s32 *table, u32 period, u32 bit_length)
+void init_noise_table(int32_t *table, uint32_t period, uint32_t bit_length)
   {
-    u32 shift_register = 0xFF;
-    s32 mask = ~(1 << bit_length);
-    s32 table_pos, bit_pos;
-    s32 current_entry;
-    u32 table_period = (period + 31) / 32;
+    uint32_t shift_register = 0xFF;
+    int32_t mask = ~(1 << bit_length);
+    int32_t table_pos, bit_pos;
+    int32_t current_entry;
+    uint32_t table_period = (period + 31) / 32;
 
     // Bits are stored in reverse  order so they can be more easily moved to
     // bit 31, for sign extended shift down.

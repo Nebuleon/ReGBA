@@ -21,23 +21,21 @@
 #ifndef GU_H
 #define GU_H
 
-#define FONT_WIDTH  6
-#define FONT_HEIGHT 10
-
 //16bit per/pixel
 #define GBA_SCREEN_BUFF_SIZE (GBA_SCREEN_WIDTH * GBA_SCREEN_HEIGHT)
 
-#define NDS_SCREEN_WIDTH 256
-#define NDS_SCREEN_HEIGHT 192
+void init_video(void);
+void video_resolution(uint32_t mode);
+void clear_screen(uint16_t color);
+void clear_gba_screen(uint16_t color);
+void blit_to_screen(const uint16_t *src, uint32_t w, uint32_t h, int32_t x, int32_t y);
+void copy_screen(uint16_t *buffer);
 
-void init_video();
-void video_resolution(u32 mode);
-void clear_screen(u16 color);
-void clear_gba_screen(u16 color);
-void blit_to_screen(u16 *src, u32 w, u32 h, u32 x, u32 y);
-void copy_screen(u16 *buffer);
-
-extern void** gba_screen_addr_ptr;
-extern u32 gba_screen_num;
+/*
+ * Called by the GUI to tell the renderer that 3 frames need to be sent fully
+ * to the Nintendo DS before returning to sending the usual 160 rows of pixel
+ * data.
+ */
+extern void UpdateBorder(void);
 
 #endif

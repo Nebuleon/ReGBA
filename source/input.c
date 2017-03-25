@@ -21,15 +21,15 @@
 
 #include "common.h"
 
-void trigger_key(u32 key);
+void trigger_key(uint32_t key);
 
-void trigger_key(u32 key)
+void trigger_key(uint32_t key)
 {
-  u32 p1_cnt = io_registers[REG_P1CNT];
+  uint32_t p1_cnt = io_registers[REG_P1CNT];
 
   if((p1_cnt >> 14) & 0x01)
   {
-    u32 key_intersection = (p1_cnt & key) & 0x3FF;
+    uint32_t key_intersection = (p1_cnt & key) & 0x3FF;
 
     if(p1_cnt >> 15)
     {
@@ -46,12 +46,12 @@ void trigger_key(u32 key)
 
 // These are the last keys pressed, in the GBA bitfield format.
 // They are stored in saved states.
-u32 key = 0;
+uint32_t key = 0;
 
-u32 rapidfire_flag = 1;
+uint32_t rapidfire_flag = 1;
 // 仿真过程输入
 
-u32 update_input()
+uint32_t update_input()
 {
 	enum ReGBA_Buttons new_key = ReGBA_GetPressedButtons();
 	
@@ -99,7 +99,7 @@ u32 update_input()
 }                                                                             \
 
 void input_read_mem_savestate()
-input_savestate_body(READ_MEM);
+input_savestate_body(READ_MEM)
 
 void input_write_mem_savestate()
-input_savestate_body(WRITE_MEM);
+input_savestate_body(WRITE_MEM)

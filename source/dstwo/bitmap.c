@@ -18,96 +18,216 @@
  */
 //v1.1
 
-#include "fs_api.h"
+#include <stdbool.h>
+#include <stdio.h>
 #include "bitmap.h"
-#include "ds2_malloc.h"
+#include <stdlib.h>
+#include <string.h>
 
-int BMP_read(char* filename, char *buf, unsigned int width, unsigned int height, unsigned int* type)
+typedef struct _pixelmapheader {
+	uint32_t imHeadsize;  //Bitmap information header size
+	uint32_t imBitmapW;   //bitmap width in pixel
+	int32_t  imBitmapH;   //bitmap height in pixel
+	uint16_t imPlanes;    //bitmap planes numbers, must be set to 1
+	uint16_t imBitpixel;  //bits per pixel
+	uint32_t imCompess;   //compress method
+	uint32_t imImgsize;   //image size, times of 4-byte
+	uint32_t imHres;      //horizontal resolution, pixel/metel
+	uint32_t imVres;      //vertical resolution, pixel/metel
+	uint32_t imColnum;    //number of colors in color palette, 0 to exp(2)
+	uint32_t imImcolnum;  //important colors numbers used
+} IMAGEHEADER;
+
+typedef struct _bitmapfileheader {
+	uint16_t bfType;       //BMP file types
+	uint32_t bfSize;       //BMP file size(Not the pixel image size)
+	uint16_t bfReserved0;  //reserved area0
+	uint16_t bfReserved1;  //reserved area1
+	uint32_t bfImgoffst;   //pixel data area offset
+	IMAGEHEADER bfImghead;
+} BMPHEADER;
+
+//compression method
+/* Value  Identified by  Compression method  Comments
+*      0  BI_RGB         none                Most common
+*      1  BI_RLE8        RLE 8-bit/pixel     Can be used only with 8-bit/pixel bitmaps
+*      2  BI_RLE4        RLE 4-bit/pixel     Can be used only with 4-bit/pixel bitmaps
+*      3  BI_BITFIELDS   Bit field           Can be used only with 16 and 32-bit/pixel bitmaps
+*      4  BI_JPEG        JPEG                The bitmap contains a JPEG image
+*      5  BI_PNG         PNG                 The bitmap contains a PNG image
+*/
+#define BI_RGB       0
+#define BI_RLE8      1
+#define BI_RLE4      2
+#define BI_BITFIELDS 3
+#define BI_JPEG      4
+#define BI_PNG       5
+
+#define RGB888_BGR555(pix_ptr) \
+	( ((uint16_t) (*(pix_ptr) & 0xF8) << 7) \
+	| ((uint16_t) (*((pix_ptr) + 1) & 0xF8) << 2) \
+	| ((uint16_t) (*((pix_ptr) + 2) & 0xF8) >> 3) )
+
+int BMP_Read(const char* filename, uint16_t* buf, uint32_t width, uint32_t height)
 {
 	FILE* fp;
 	BMPHEADER bmp_header;
-	int	flag;
-	u32 bytepixel;
-	u32	x, y, sx, sy, m;
-	unsigned char *dest;
-	s32	fpos;
-	unsigned short st[54/2];
+	uint32_t bytepixel;
+	uint32_t x = width, y = height, sx, ix, iy;
+	int32_t sy;
+	uint16_t masks[3];
+	size_t shifts[3];
+	bool top_down = false;
 
-	fp= fopen(filename, "rb");
-    if(fp == NULL)
-		return BMP_ERR_OPENFAILURE;
+	fp = fopen(filename, "rb");
+	if (fp == NULL)
+		return BMP_ERR_OPEN;
 
-	flag= fread(st, sizeof(st), 1, fp);
-	if(!flag) {
-		fclose(fp);
-		return BMP_ERR_FORMATE;
+	{
+		uint16_t st[27];
+		if (fread(st, sizeof(st), 1, fp) == 0) {
+			fclose(fp);
+			return BMP_ERR_FORMAT;
+		}
+
+		bmp_header.bfType = st[0];
+		bmp_header.bfSize = st[1] | (st[2] << 16);
+		bmp_header.bfReserved0 = st[3];
+		bmp_header.bfReserved1 = st[4];
+		bmp_header.bfImgoffst = st[5] | (st[6] << 16);
+		bmp_header.bfImghead.imHeadsize = st[7] | (st[8] << 16);
+		bmp_header.bfImghead.imBitmapW = st[9] | (st[10] << 16);
+		bmp_header.bfImghead.imBitmapH = st[11] | (st[12] << 16);
+		bmp_header.bfImghead.imPlanes = st[13];
+		bmp_header.bfImghead.imBitpixel = st[14];
+		bmp_header.bfImghead.imCompess = st[15] | (st[16] << 16);
+		bmp_header.bfImghead.imImgsize = st[17] | (st[18] << 16);
+		bmp_header.bfImghead.imHres = st[19] | (st[20] << 16);
+		bmp_header.bfImghead.imVres = st[21] | (st[22] << 16);
+		bmp_header.bfImghead.imColnum = st[23] | (st[24] << 16);
+		bmp_header.bfImghead.imImcolnum = st[25] | (st[26] << 16);
 	}
 
-	bmp_header.bfType= st[0];
-    bmp_header.bfSize= st[1] | (st[2]<<16);
-    bmp_header.bfReserved0= st[3];
-    bmp_header.bfReserved1= st[4];
-    bmp_header.bfImgoffst= st[5] | (st[6]<<16);
-    bmp_header.bfImghead.imHeadsize= st[7] | (st[8]<<16);
-	bmp_header.bfImghead.imBitmapW= st[9] | (st[10]<<16);
-	bmp_header.bfImghead.imBitmapH= st[11] | (st[12]<<16);
-	bmp_header.bfImghead.imPlanes= st[13];
-	bmp_header.bfImghead.imBitpixel= st[14];
-	bmp_header.bfImghead.imCompess= st[15] | (st[16]<<16);
-	bmp_header.bfImghead.imImgsize= st[17] | (st[18]<<16);
-	bmp_header.bfImghead.imHres= st[19] | (st[20]<<16);
-	bmp_header.bfImghead.imVres= st[21] | (st[22]<<16);
-	bmp_header.bfImghead.imColnum= st[23] | (st[24]<<16);
-	bmp_header.bfImghead.imImcolnum= st[25] | (st[26]<<16);
-
-	if(bmp_header.bfType != 0x4D42) {	//"BM"
+	if (bmp_header.bfType != 0x4D42) {  // "BM"
 		fclose(fp);
-		return BMP_ERR_FORMATE;
+		return BMP_ERR_FORMAT;
 	}
 
-	if(bmp_header.bfImghead.imCompess != BI_RGB && 
-		bmp_header.bfImghead.imCompess != BI_BITFIELDS) {
+	if (bmp_header.bfImghead.imBitpixel < 16
+	 || bmp_header.bfImghead.imBitpixel > 24
+	 || bmp_header.bfImghead.imBitpixel % 8 != 0
+	 || (bmp_header.bfImghead.imBitpixel == 16
+	  && !(bmp_header.bfImghead.imCompess == BI_RGB
+	    || bmp_header.bfImghead.imCompess == BI_BITFIELDS))
+	 || (bmp_header.bfImghead.imBitpixel == 24
+	  && bmp_header.bfImghead.imCompess != BI_RGB)) {
 		fclose(fp);
-		return BMP_ERR_NEED_GO_ON;		//This funciton now not support...
+		return BMP_ERR_UNSUPPORTED;
+	}
+	bytepixel = bmp_header.bfImghead.imBitpixel / 8;
+
+	if (bytepixel == 2) {
+		if (bmp_header.bfImghead.imCompess == BI_BITFIELDS) {
+			uint32_t file_masks[3];
+			size_t i;
+			if (fread(file_masks, sizeof(file_masks), 1, fp) == 0) {
+				fclose(fp);
+				return BMP_ERR_FORMAT;
+			}
+			for (i = 0; i < 3; i++) {
+				size_t shift = 0, bits = 0;
+				uint16_t mask = file_masks[i];
+				if (mask == 0) {
+					fclose(fp);
+					return BMP_ERR_FORMAT;
+				}
+				while (!(mask & 1)) {
+					mask >>= 1;
+					shift++;
+				}
+				while (mask & 1) {
+					mask >>= 1;
+					bits++;
+				}
+				if (mask != 0) {
+					fclose(fp);
+					return BMP_ERR_FORMAT;
+				}
+				shift += bits - 5;
+				masks[i] = file_masks[i];
+				shifts[i] = shift;
+			}
+		} else if (bmp_header.bfImghead.imCompess == BI_RGB) {
+			/* Default masks for 16-bit bitmaps make up RGB555. */
+			masks[0] = UINT16_C(0x7C00);
+			masks[1] = UINT16_C(0x03E0);
+			masks[2] = UINT16_C(0x001F);
+			shifts[0] = 10;
+			shifts[1] = 5;
+			shifts[2] = 0;
+		}
 	}
 
-	bytepixel= bmp_header.bfImghead.imBitpixel >> 3;
-	if(bytepixel < 2) {				//byte per pixel >= 2
-		fclose(fp);
-		return BMP_ERR_NEED_GO_ON;		//This funciton now not support...
+	sx = bmp_header.bfImghead.imBitmapW;
+	sy = bmp_header.bfImghead.imBitmapH;
+	if (sy < 0) {  /* This is a top-down bitmap: row 0 is stored first. */
+		top_down = true;
+		sy = -sy;
 	}
+	if (x > sx)
+		x = sx;
+	if (y > (uint32_t) sy)
+		y = sy;
 
-	*type = bytepixel;
-
-	x= width;
-	y= height;
-	sx= bmp_header.bfImghead.imBitmapW;
-	sy= bmp_header.bfImghead.imBitmapH;
-	if(x > sx)
-		x= sx;
-	if(y > sy)
-		y= sy;
-
-	// Expect a certain amount of bytes and read them all at once.
-	unsigned int BytesPerLine = (sx * bytepixel + 3) & ~3;
-	char* FileBuffer = (char*) malloc(BytesPerLine * (sy - 1) + sx * bytepixel);
+	// Expect a certain number of bytes and read them all at once.
+	size_t BytesPerLine = (sx * bytepixel + 3) & ~3;  /* with alignment */
+	uint8_t* FileBuffer = malloc(BytesPerLine * ((uint32_t) sy - 1) + sx * bytepixel);
 	if (FileBuffer == NULL) {
 		fclose(fp);
-		return BMP_ERR_NEED_GO_ON; // Memory allocation error
+		return BMP_ERR_MEM;
 	}
 
-	fseek(fp, (s32) bmp_header.bfImgoffst, SEEK_SET);
-	m = fread(FileBuffer, 1, BytesPerLine * (sy - 1) + sx * bytepixel, fp);
+	fseek(fp, bmp_header.bfImgoffst, SEEK_SET);
 
-	if (m < BytesPerLine * (sy - 1) + sx * bytepixel) {
+	if (fread(FileBuffer, BytesPerLine * ((uint32_t) sy - 1) + sx * bytepixel, 1, fp) == 0) {
 		free(FileBuffer);
 		fclose(fp);
-		return BMP_ERR_FORMATE; // incomplete file
+		return BMP_ERR_FORMAT;  /* Incomplete file */
 	}
 
-	// Reorder all the bytes, because scanlines are from bottom to top.
-	for (m = 0; m < y; m++) {
-		memcpy(buf + m * x * bytepixel, FileBuffer + (sy - m - 1) * BytesPerLine, x * bytepixel);
+	// Convert all the bytes while possibly reordering the scanlines.
+	switch (bytepixel) {
+	case 2:
+		for (iy = 0; iy < y; iy++) {
+			uint16_t* dst = &buf[iy * width];
+			uint16_t* src = (uint16_t*) &FileBuffer[BytesPerLine * (top_down ? iy : sy - 1 - iy)];
+			for (ix = 0; ix < x; ix++) {
+				*dst++ =  ((*src & masks[0]) >> shifts[0])        /* Red */
+				       | (((*src & masks[1]) >> shifts[1]) <<  5) /* Green */
+				       | (((*src & masks[2]) >> shifts[2]) << 10) /* Blue */;
+				src++;
+			}
+		}
+		break;
+	case 3:
+		for (iy = 0; iy < y; iy++) {
+			uint16_t* dst = &buf[iy * width];
+			uint8_t* src = &FileBuffer[BytesPerLine * (top_down ? iy : sy - 1 - iy)];
+			for (ix = 0; ix < x; ix++) {
+				*dst++ = RGB888_BGR555(src);
+				src += 3;
+			}
+		}
+		break;
+	}
+
+	if (x < width) {
+		for (iy = 0; iy < y; iy++) {
+			memset(&buf[y * width + x], 0, (width - x) * sizeof(uint16_t));
+		}
+	}
+	if (y < height) {
+		memset(&buf[y * width], 0, (height - y) * width * sizeof(uint16_t));
 	}
 
 	free(FileBuffer);
@@ -115,110 +235,3 @@ int BMP_read(char* filename, char *buf, unsigned int width, unsigned int height,
 
 	return BMP_OK;
 }
-
-/*
-*	open BMP file
-*/
-int openBMP(BMPINFO* bmpInfo, const char* file)
-{
-	FILE* fp;
-	unsigned short st[54/2];
-	int len;
-
-	bmpInfo->fp = NULL;
-
-	fp = fopen(file, "r");
-	if(NULL == fp)
-		return BMP_ERR_OPENFAILURE;
-
-	len = fread((void*)st, 1, sizeof(BMPHEADER), fp);
-	if(len < sizeof(BMPHEADER)) {
-		fclose(fp);
-		return BMP_ERR_FORMATE;
-	}
-
-	bmpInfo->bmpHead.bfType= st[0];
-    bmpInfo->bmpHead.bfSize= st[1] | (st[2]<<16);
-    bmpInfo->bmpHead.bfReserved0= st[3];
-    bmpInfo->bmpHead.bfReserved1= st[4];
-    bmpInfo->bmpHead.bfImgoffst= st[5] | (st[6]<<16);
-    bmpInfo->bmpHead.bfImghead.imHeadsize= st[7] | (st[8]<<16);
-	bmpInfo->bmpHead.bfImghead.imBitmapW= st[9] | (st[10]<<16);
-	bmpInfo->bmpHead.bfImghead.imBitmapH= st[11] | (st[12]<<16);
-	bmpInfo->bmpHead.bfImghead.imPlanes= st[13];
-	bmpInfo->bmpHead.bfImghead.imBitpixel= st[14];
-	bmpInfo->bmpHead.bfImghead.imCompess= st[15] | (st[16]<<16);
-	bmpInfo->bmpHead.bfImghead.imImgsize= st[17] | (st[18]<<16);
-	bmpInfo->bmpHead.bfImghead.imHres= st[19] | (st[20]<<16);
-	bmpInfo->bmpHead.bfImghead.imVres= st[21] | (st[22]<<16);
-	bmpInfo->bmpHead.bfImghead.imColnum= st[23] | (st[24]<<16);
-	bmpInfo->bmpHead.bfImghead.imImcolnum= st[25] | (st[26]<<16);
-
-	if(bmpInfo->bmpHead.bfType != 0x4D42)	//"BM"
-	{
-		fclose(fp);
-		return BMP_ERR_FORMATE;
-	}
-
-	if(bmpInfo->bmpHead.bfImghead.imCompess != BI_RGB &&
-		bmpInfo->bmpHead.bfImghead.imCompess != BI_BITFIELDS)
-	{
-		fclose(fp);
-		return BMP_ERR_NEED_GO_ON;		//This funciton now not support...
-	}
-
-	bmpInfo->fp = fp;
-
-	return BMP_OK;
-}
-
-/*
-*	read pixel form BMP file
-*/
-int readBMP(BMPINFO* bmpInfo, unsigned int start_x, unsigned int start_y, 
-		unsigned int width, unsigned int height, void* buffer)
-{
-	unsigned int m, n;
-	unsigned int bmp_w, bmp_h;
-	int fpos;
-	unsigned char* dst;
-	unsigned int bytepixel;
-
-	bytepixel = bmpInfo->bmpHead.bfImghead.imBitpixel >> 3;
-	if(bytepixel < 2)	//Not support <2 bytes per pixel now
-		return -1;
-
-	//BMP scan from down to up
-	bmp_w = bmpInfo->bmpHead.bfImghead.imBitmapW;
-	bmp_h = bmpInfo->bmpHead.bfImghead.imBitmapH;
-	if(((start_x +1) > bmp_w) || ((start_y+1) > bmp_h)) return -1;
-	n = bmp_w - start_x;
-	if(n > width) n = width;			//start_x + width < bmp_w
-	m = bmp_h - start_y;
-	if(m > height) m = height;			//start_y + height < bmp_h
-
-	fpos = (int)bmpInfo->bmpHead.bfImgoffst;
-
-	fpos += (((bmp_w*bytepixel+3)>>2)<<2)*(bmp_h - start_y -1) + start_x*bytepixel;
-	dst = (unsigned char*)buffer;
-	n *= bytepixel;
-	while(m--) {
-		fseek(bmpInfo->fp, fpos, SEEK_SET);
-		fread(dst, 1, n, bmpInfo->fp);
-		fpos -= ((bmp_w*bytepixel+3)>>2)<<2;
-		dst += width*bytepixel;
-	}
-
-	return 0;
-}
-
-/*
-*	close BMP file
-*/
-void closeBMP(BMPINFO* bmpInfo)
-{
-	if(NULL != bmpInfo->fp)
-		fclose(bmpInfo->fp);
-}
-
-

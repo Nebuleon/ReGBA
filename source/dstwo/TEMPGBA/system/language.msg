@@ -52,36 +52,36 @@ Exit
 Loading...
 #MSG_FILE_MENU_SORTING_LIST
 Sorting...
-#FMT_VIDEO_AUDIO_FLUIDITY_PREFERENCE
-Fluidity                %s
+#MSG_VIDEO_AUDIO_FLUIDITY_PREFERENCE
+Fluidity
 #MSG_VIDEO_AUDIO_FLUIDITY_PREFER_VIDEO
 Prefer fluid video
 #MSG_VIDEO_AUDIO_FLUIDITY_PREFER_AUDIO
 Prefer fluid audio
-#FMT_VIDEO_ASPECT_RATIO
-Aspect ratio       %s
-#FMT_VIDEO_FAST_FORWARD
-Fast-forward     %s
-#FMT_VIDEO_FRAME_SKIPPING
-Frame skipping    %s
-#FMT_VIDEO_FRAMES_PER_SECOND_COUNTER
-FPS counter        %s
-#FMT_AUDIO_SOUND
-Sound                  %s
-#FMT_VIDEO_REWINDING
-Rewinding       %s
-#FMT_VIDEO_BOOT_MODE
-Boot into            %s
-#FMT_VIDEO_GAME_SCREEN
-Game screen      %s
-#FMT_SAVED_STATE_CREATE
-Create saved state      %d
-#FMT_SAVED_STATE_LOAD
-Load saved state          %d
+#MSG_VIDEO_ASPECT_RATIO
+Aspect ratio
+#MSG_VIDEO_FAST_FORWARD
+Fast-forward
+#MSG_VIDEO_FRAME_SKIPPING
+Frame skipping
+#MSG_VIDEO_FRAMES_PER_SECOND_COUNTER
+FPS counter
+#MSG_AUDIO_SOUND
+Sound
+#MSG_VIDEO_REWINDING
+Rewinding
+#MSG_VIDEO_BOOT_MODE
+Boot into
+#MSG_VIDEO_GAME_SCREEN
+Game screen
+#MSG_SAVED_STATE_CREATE
+Create saved state
+#MSG_SAVED_STATE_LOAD
+Load saved state
 #MSG_SAVED_STATE_DELETE_GENERAL
 Delete saved states...
-#FMT_CHEAT_PAGE
-Cheat code page %d
+#MSG_CHEAT_PAGE
+Cheat code page
 #MSG_CHEAT_LOAD_FROM_FILE
 Load cheat file
 #MSG_TOOLS_SCREENSHOT_GENERAL
@@ -96,10 +96,10 @@ Global button mappings...
 Game-specific button mappings...
 #MSG_TOOLS_DEBUG_MENU_ENGLISH
 Debugging...
-#FMT_OPTIONS_LANGUAGE
-Language                          %s
-#FMT_OPTIONS_CPU_FREQUENCY
-CPU frequency                 %s
+#MSG_OPTIONS_LANGUAGE
+Language
+#MSG_OPTIONS_CPU_FREQUENCY
+CPU frequency
 #MSG_OPTIONS_CPU_FREQUENCY_0
 [0] 240 MHz
 #MSG_OPTIONS_CPU_FREQUENCY_1
@@ -266,8 +266,8 @@ OK!
 FPS: %d rendered, %d/60 emulated
 #MSG_SAVED_STATE_DELETE_ALL
 Delete all saved states
-#FMT_SAVED_STATE_DELETE_ONE
-Delete saved state %d
+#MSG_SAVED_STATE_DELETE_ONE
+Delete saved state
 #MSG_DIALOG_SAVE_STATE_DELETE_ALL
 Really delete all saved states?
 #FMT_DIALOG_SAVED_STATE_DELETE_ONE
@@ -329,36 +329,36 @@ STARTCHINESESIM
 装载...
 #MSG_FILE_MENU_SORTING_LIST
 列表进行排序...
-#FMT_VIDEO_AUDIO_FLUIDITY_PREFERENCE
-流畅度                     %s
+#MSG_VIDEO_AUDIO_FLUIDITY_PREFERENCE
+流畅度
 #MSG_VIDEO_AUDIO_FLUIDITY_PREFER_VIDEO
 视频优先
 #MSG_VIDEO_AUDIO_FLUIDITY_PREFER_AUDIO
 音频优先
-#FMT_VIDEO_ASPECT_RATIO
-画面                         %s
-#FMT_VIDEO_FAST_FORWARD
-游戏快进                 %s
-#FMT_VIDEO_FRAME_SKIPPING
-跳帧方式                 %s
-#FMT_VIDEO_FRAMES_PER_SECOND_COUNTER
-FPS 计数器               %s
-#FMT_AUDIO_SOUND
-声音开关                 %s
-#FMT_VIDEO_REWINDING
-倒退                     %s
-#FMT_VIDEO_BOOT_MODE
-启动进入                 %s
-#FMT_VIDEO_GAME_SCREEN
-游戏屏幕                 %s
-#FMT_SAVED_STATE_CREATE
-写入存档                 %d
-#FMT_SAVED_STATE_LOAD
-读取存档                 %d
+#MSG_VIDEO_ASPECT_RATIO
+画面
+#MSG_VIDEO_FAST_FORWARD
+游戏快进
+#MSG_VIDEO_FRAME_SKIPPING
+跳帧方式
+#MSG_VIDEO_FRAMES_PER_SECOND_COUNTER
+FPS 计数器
+#MSG_AUDIO_SOUND
+声音开关
+#MSG_VIDEO_REWINDING
+倒退
+#MSG_VIDEO_BOOT_MODE
+启动进入
+#MSG_VIDEO_GAME_SCREEN
+游戏屏幕
+#MSG_SAVED_STATE_CREATE
+写入存档
+#MSG_SAVED_STATE_LOAD
+读取存档
 #MSG_SAVED_STATE_DELETE_GENERAL
 删除存档
-#FMT_CHEAT_PAGE
-作弊代码页   %d
+#MSG_CHEAT_PAGE
+作弊代码页
 #MSG_CHEAT_LOAD_FROM_FILE
 加载作弊代码文件
 #MSG_TOOLS_SCREENSHOT_GENERAL
@@ -373,10 +373,10 @@ FPS 计数器               %s
 特定游戏按键映射...
 #MSG_TOOLS_DEBUG_MENU_ENGLISH
 调试 (英文)...
-#FMT_OPTIONS_LANGUAGE
-语言                                %s
-#FMT_OPTIONS_CPU_FREQUENCY
-CPU 主频                         %s
+#MSG_OPTIONS_LANGUAGE
+语言
+#MSG_OPTIONS_CPU_FREQUENCY
+CPU 主频
 #MSG_OPTIONS_CPU_FREQUENCY_0
 [0] 240 MHz
 #MSG_OPTIONS_CPU_FREQUENCY_1
@@ -543,8 +543,8 @@ GBA 图标
 FPS:绘制 %d ,模拟 %d/60
 #MSG_SAVED_STATE_DELETE_ALL
 删除当前游戏的所有存档
-#FMT_SAVED_STATE_DELETE_ONE
-删除当前游戏的一个存档         %d
+#MSG_SAVED_STATE_DELETE_ONE
+删除当前游戏的一个存档
 #MSG_DIALOG_SAVED_STATE_DELETE_ALL
 确定要删除所有存档吗？
 #FMT_DIALOG_SAVED_STATE_DELETE_ONE
@@ -606,36 +606,36 @@ Quitter
 Chargement...
 #MSG_FILE_MENU_SORTING_LIST
 Tri...
-#FMT_VIDEO_AUDIO_FLUIDITY_PREFERENCE
-Fluidité                   %s
+#MSG_VIDEO_AUDIO_FLUIDITY_PREFERENCE
+Fluidité
 #MSG_VIDEO_AUDIO_FLUIDITY_PREFER_VIDEO
 Préférer la vidéo fluide
 #MSG_VIDEO_AUDIO_FLUIDITY_PREFER_AUDIO
 Préférer l'audio fluide
-#FMT_VIDEO_ASPECT_RATIO
-Format d'image     %s
-#FMT_VIDEO_FAST_FORWARD
-Avance rapide       %s
-#FMT_VIDEO_FRAME_SKIPPING
-Omission d'images  %s
-#FMT_VIDEO_FRAMES_PER_SECOND_COUNTER
-Afficher images/s  %s
-#FMT_AUDIO_SOUND
-Son                         %s
-#FMT_VIDEO_REWINDING
-Rembobinage       %s
-#FMT_VIDEO_BOOT_MODE
-Démarrage             %s
-#FMT_VIDEO_GAME_SCREEN
-Écran de jeu          %s
-#FMT_SAVED_STATE_CREATE
-Créer la sauvegarde       %d
-#FMT_SAVED_STATE_LOAD
-Charger la sauvegarde   %d
+#MSG_VIDEO_ASPECT_RATIO
+Format d'image
+#MSG_VIDEO_FAST_FORWARD
+Avance rapide
+#MSG_VIDEO_FRAME_SKIPPING
+Omission d'images
+#MSG_VIDEO_FRAMES_PER_SECOND_COUNTER
+Afficher images/s
+#MSG_AUDIO_SOUND
+Son
+#MSG_VIDEO_REWINDING
+Rembobinage
+#MSG_VIDEO_BOOT_MODE
+Démarrage
+#MSG_VIDEO_GAME_SCREEN
+Écran de jeu
+#MSG_SAVED_STATE_CREATE
+Créer la sauvegarde
+#MSG_SAVED_STATE_LOAD
+Charger la sauvegarde
 #MSG_SAVED_STATE_DELETE_GENERAL
 Supprimer une/des sauvegardes...
-#FMT_CHEAT_PAGE
-Page de codes de triche : %d
+#MSG_CHEAT_PAGE
+Page de codes de triche
 #MSG_CHEAT_LOAD_FROM_FILE
 Charger un fichier de triche
 #MSG_TOOLS_SCREENSHOT_GENERAL
@@ -650,10 +650,10 @@ Affectations de boutons globales...
 Affectations de boutons pour ce jeu...
 #MSG_TOOLS_DEBUG_MENU_ENGLISH
 Débogage (en anglais)...
-#FMT_OPTIONS_LANGUAGE
-Langue                              %s
-#FMT_OPTIONS_CPU_FREQUENCY
-Fréquence CPU                  %s
+#MSG_OPTIONS_LANGUAGE
+Langue
+#MSG_OPTIONS_CPU_FREQUENCY
+Fréquence CPU
 #MSG_OPTIONS_CPU_FREQUENCY_0
 [0] 240 MHz
 #MSG_OPTIONS_CPU_FREQUENCY_1
@@ -820,8 +820,8 @@ Terminé!
 Images/s: %d affichées, %d/60 émulées
 #MSG_SAVED_STATE_DELETE_ALL
 Supprimer toutes les sauvegardes
-#FMT_SAVED_STATE_DELETE_ONE
-Supprimer l'emplacement %d
+#MSG_SAVED_STATE_DELETE_ONE
+Supprimer l'emplacement
 #MSG_DIALOG_SAVE_STATE_DELETE_ALL
 Supprimer toutes les sauvegardes?
 #FMT_DIALOG_SAVED_STATE_DELETE_ONE
@@ -859,7 +859,7 @@ Remettre tous les paramètres à zéro?
 Veuillez patienter...
 
 ENDFRENCH
- 
+
 STARTGERMAN
 
 #MSG_MAIN_MENU_NEW_GAME
@@ -884,36 +884,36 @@ Beenden
 Laden...
 #MSG_FILE_MENU_SORTING_LIST
 Sortieren...
-#FMT_VIDEO_AUDIO_FLUIDITY_PREFERENCE
-Flüssigkeit          %s
+#MSG_VIDEO_AUDIO_FLUIDITY_PREFERENCE
+Flüssigkeit
 #MSG_VIDEO_AUDIO_FLUIDITY_PREFER_VIDEO
 Bevorzuge flüssiges Video
 #MSG_VIDEO_AUDIO_FLUIDITY_PREFER_AUDIO
 Bevorzuge flüssiges Audio
-#FMT_VIDEO_ASPECT_RATIO
-Bildformat          %s
-#FMT_VIDEO_FAST_FORWARD
-Schnellvorlauf   %s
-#FMT_VIDEO_FRAME_SKIPPING
-Frames übersp.  %s
-#FMT_VIDEO_FRAMES_PER_SECOND_COUNTER
-FPS Zähler          %s
-#FMT_AUDIO_SOUND
-Ton                     %s
-#FMT_VIDEO_REWINDING
-Zurückspulen       %s
-#FMT_VIDEO_BOOT_MODE
-Starten in           %s
-#FMT_VIDEO_GAME_SCREEN
-Bildschirm           %s
-#FMT_SAVED_STATE_CREATE
-Speicherstand erstellen      %d
-#FMT_SAVED_STATE_LOAD
-Speicherstand laden            %d
+#MSG_VIDEO_ASPECT_RATIO
+Bildformat
+#MSG_VIDEO_FAST_FORWARD
+Schnellvorlauf
+#MSG_VIDEO_FRAME_SKIPPING
+Frames übersp.
+#MSG_VIDEO_FRAMES_PER_SECOND_COUNTER
+FPS Zähler
+#MSG_AUDIO_SOUND
+Ton
+#MSG_VIDEO_REWINDING
+Zurückspulen
+#MSG_VIDEO_BOOT_MODE
+Starten in
+#MSG_VIDEO_GAME_SCREEN
+Bildschirm
+#MSG_SAVED_STATE_CREATE
+Speicherstand erstellen
+#MSG_SAVED_STATE_LOAD
+Speicherstand laden
 #MSG_SAVED_STATE_DELETE_GENERAL
 Speicherstände löschen...
-#FMT_CHEAT_PAGE
-Cheatseite %d
+#MSG_CHEAT_PAGE
+Cheatseite
 #MSG_CHEAT_LOAD_FROM_FILE
 Cheatdatei laden
 #MSG_TOOLS_SCREENSHOT_GENERAL
@@ -928,10 +928,10 @@ Globale Tastenbelegung...
 Spielspezifische Tastenbelegung...
 #MSG_TOOLS_DEBUG_MENU_ENGLISH
 Debug (in Englisch)...
-#FMT_OPTIONS_LANGUAGE
-Sprache                          %s
-#FMT_OPTIONS_CPU_FREQUENCY
-CPU Frequenz                 %s
+#MSG_OPTIONS_LANGUAGE
+Sprache
+#MSG_OPTIONS_CPU_FREQUENCY
+CPU Frequenz
 #MSG_OPTIONS_CPU_FREQUENCY_0
 [0] 240 MHz
 #MSG_OPTIONS_CPU_FREQUENCY_1
@@ -1098,8 +1098,8 @@ OK!
 FPS: %d gerendert, %d/60 emuliert
 #MSG_SAVED_STATE_DELETE_ALL
 Alle Speicherstände löschen
-#FMT_SAVED_STATE_DELETE_ONE
-Lösche Speicherstand %d
+#MSG_SAVED_STATE_DELETE_ONE
+Lösche Speicherstand
 #MSG_DIALOG_SAVE_STATE_DELETE_ALL
 Wirklich alle Speicherstände löschen?
 #FMT_DIALOG_SAVED_STATE_DELETE_ONE
@@ -1135,7 +1135,7 @@ Version
 Alle Einstellungen zurücksetzen?
 #MSG_PROGRESS_RESETTING
 Bitte warten...
- 
+
 ENDGERMAN
 
 STARTDUTCH
@@ -1162,36 +1162,36 @@ Afsluiten
 Laden...
 #MSG_FILE_MENU_SORTING_LIST
 Sorteren...
-#FMT_VIDEO_AUDIO_FLUIDITY_PREFERENCE
-Fluïditeit               %s
+#MSG_VIDEO_AUDIO_FLUIDITY_PREFERENCE
+Fluïditeit
 #MSG_VIDEO_AUDIO_FLUIDITY_PREFER_VIDEO
 Prefereer fluïde video
 #MSG_VIDEO_AUDIO_FLUIDITY_PREFER_AUDIO
 Prefereer fluïde audio
-#FMT_VIDEO_ASPECT_RATIO
-Beeldverhouding  %s
-#FMT_VIDEO_FAST_FORWARD
-Vooruitspoelen     %s
-#FMT_VIDEO_FRAME_SKIPPING
-Beeld overslaan   %s
-#FMT_VIDEO_FRAMES_PER_SECOND_COUNTER
-FPS-teller             %s
-#FMT_AUDIO_SOUND
-Geluid                    %s
-#FMT_VIDEO_REWINDING
-Terugspoelen       %s
-#FMT_VIDEO_BOOT_MODE
-Opstarten in         %s
-#FMT_VIDEO_GAME_SCREEN
-Spelscherm           %s
-#FMT_SAVED_STATE_CREATE
-Creëer spelstaat       %d
-#FMT_SAVED_STATE_LOAD
-Laad spelstaat          %d
+#MSG_VIDEO_ASPECT_RATIO
+Beeldverhouding
+#MSG_VIDEO_FAST_FORWARD
+Vooruitspoelen
+#MSG_VIDEO_FRAME_SKIPPING
+Beeld overslaan
+#MSG_VIDEO_FRAMES_PER_SECOND_COUNTER
+FPS-teller
+#MSG_AUDIO_SOUND
+Geluid
+#MSG_VIDEO_REWINDING
+Terugspoelen
+#MSG_VIDEO_BOOT_MODE
+Opstarten in
+#MSG_VIDEO_GAME_SCREEN
+Spelscherm
+#MSG_SAVED_STATE_CREATE
+Creëer spelstaat
+#MSG_SAVED_STATE_LOAD
+Laad spelstaat
 #MSG_SAVED_STATE_DELETE_GENERAL
 Verwijder spelstaten...
-#FMT_CHEAT_PAGE
-Valsspeelpagina %d
+#MSG_CHEAT_PAGE
+Valsspeelpagina
 #MSG_CHEAT_LOAD_FROM_FILE
 Laad valsspeelbestand
 #MSG_TOOLS_SCREENSHOT_GENERAL
@@ -1206,10 +1206,10 @@ Knoppen herconfigureren...
 Spel-specifiek knoppen herconfigureren...
 #MSG_TOOLS_DEBUG_MENU_ENGLISH
 Debuggen (in het Engels)...
-#FMT_OPTIONS_LANGUAGE
-Taal                                  %s
-#FMT_OPTIONS_CPU_FREQUENCY
-CPU frequentie                 %s
+#MSG_OPTIONS_LANGUAGE
+Taal
+#MSG_OPTIONS_CPU_FREQUENCY
+CPU frequentie
 #MSG_OPTIONS_CPU_FREQUENCY_0
 [0] 240 MHz
 #MSG_OPTIONS_CPU_FREQUENCY_1
@@ -1376,8 +1376,8 @@ Laden geslaagd!
 FPS: %d gerenderd, %d/60 geëmuleerd
 #MSG_SAVED_STATE_DELETE_ALL
 Verwijder alle spelstaten
-#FMT_SAVED_STATE_DELETE_ONE
-Verwijder spelstaat %d
+#MSG_SAVED_STATE_DELETE_ONE
+Verwijder spelstaat
 #MSG_DIALOG_SAVE_STATE_DELETE_ALL
 Werkelijk alle spelstaten verwijderen?
 #FMT_DIALOG_SAVED_STATE_DELETE_ONE
@@ -1440,36 +1440,36 @@ Salir
 Cargando...
 #MSG_FILE_MENU_SORTING_LIST
 Ordenando...
-#FMT_VIDEO_AUDIO_FLUIDITY_PREFERENCE
-Fluidez                        %s
+#MSG_VIDEO_AUDIO_FLUIDITY_PREFERENCE
+Fluidez
 #MSG_VIDEO_AUDIO_FLUIDITY_PREFER_VIDEO
 Vídeo fluido
 #MSG_VIDEO_AUDIO_FLUIDITY_PREFER_AUDIO
 Audio fluido
-#FMT_VIDEO_ASPECT_RATIO
-Modo de pantalla        %s
-#FMT_VIDEO_FAST_FORWARD
-Modo avance rápido   %s
-#FMT_VIDEO_FRAME_SKIPPING
-Salto de fotogramas  %s
-#FMT_VIDEO_FRAMES_PER_SECOND_COUNTER
-Contador de FPS         %s
-#FMT_AUDIO_SOUND
-Sonido                         %s
-#FMT_VIDEO_REWINDING
-Retroceso                              %s
-#FMT_VIDEO_BOOT_MODE
-Iniciar con                   %s
-#FMT_VIDEO_GAME_SCREEN
-Pantalla de juego       %s
-#FMT_SAVED_STATE_CREATE
-Grabar partida  %d
-#FMT_SAVED_STATE_LOAD
-Cargar partida  %d
+#MSG_VIDEO_ASPECT_RATIO
+Modo de pantalla
+#MSG_VIDEO_FAST_FORWARD
+Modo avance rápido
+#MSG_VIDEO_FRAME_SKIPPING
+Salto de fotogramas
+#MSG_VIDEO_FRAMES_PER_SECOND_COUNTER
+Contador de FPS
+#MSG_AUDIO_SOUND
+Sonido
+#MSG_VIDEO_REWINDING
+Retroceso
+#MSG_VIDEO_BOOT_MODE
+Iniciar con
+#MSG_VIDEO_GAME_SCREEN
+Pantalla de juego
+#MSG_SAVED_STATE_CREATE
+Grabar partida
+#MSG_SAVED_STATE_LOAD
+Cargar partida
 #MSG_SAVED_STATE_DELETE_GENERAL
 Borrar partidas...
-#FMT_CHEAT_PAGE
-Página de trucos %d
+#MSG_CHEAT_PAGE
+Página de trucos
 #MSG_CHEAT_LOAD_FROM_FILE
 Cargar archivo de trucos
 #MSG_TOOLS_SCREENSHOT_GENERAL
@@ -1484,10 +1484,10 @@ Teclas globales...
 Teclas para el juego...
 #MSG_TOOLS_DEBUG_MENU_ENGLISH
 Depuración (en inglés)...
-#FMT_OPTIONS_LANGUAGE
-Idioma                                %s
-#FMT_OPTIONS_CPU_FREQUENCY
-Frecuencia CPU                 %s
+#MSG_OPTIONS_LANGUAGE
+Idioma
+#MSG_OPTIONS_CPU_FREQUENCY
+Frecuencia CPU
 #MSG_OPTIONS_CPU_FREQUENCY_0
 [0] 240 MHz
 #MSG_OPTIONS_CPU_FREQUENCY_1
@@ -1654,8 +1654,8 @@ Cargando...
 FPS: %d reproducidos, %d/60 emulados
 #MSG_SAVED_STATE_DELETE_ALL
 Borrar todas las partidas
-#FMT_SAVED_STATE_DELETE_ONE
-Borrar partida  %d
+#MSG_SAVED_STATE_DELETE_ONE
+Borrar partida
 #MSG_DELETE_ALL_SAVESTATE_WARING
 ¿Borrar todas las partidas?
 #FMT_DIALOG_SAVED_STATE_DELETE_ONE
@@ -1717,36 +1717,36 @@ Uscita
 Caricando...
 #MSG_FILE_MENU_SORTING_LIST
 Ordinamento...
-#FMT_VIDEO_AUDIO_FLUIDITY_PREFERENCE
-Fluidità                    %s
+#MSG_VIDEO_AUDIO_FLUIDITY_PREFERENCE
+Fluidità
 #MSG_VIDEO_AUDIO_FLUIDITY_PREFER_VIDEO
 Fluidità video
 #MSG_VIDEO_AUDIO_FLUIDITY_PREFER_AUDIO
 Fluidità audio
-#FMT_VIDEO_ASPECT_RATIO
-Modalità video    %s
-#FMT_VIDEO_FAST_FORWARD
-Avanzamento rapido   %s
-#FMT_VIDEO_FRAME_SKIPPING
-Salto fotogrammi %s
-#FMT_VIDEO_FRAMES_PER_SECOND_COUNTER
-FPS counter        %s
-#FMT_AUDIO_SOUND
-Audio                       %s
-#FMT_VIDEO_REWINDING
-Rewinding       %s
-#FMT_VIDEO_BOOT_MODE
-Boot into              %s
-#FMT_VIDEO_GAME_SCREEN
-Game screen        %s
-#FMT_SAVED_STATE_CREATE
-Crea salvataggio      %d
-#FMT_SAVED_STATE_LOAD
-Carica salvataggio    %d
+#MSG_VIDEO_ASPECT_RATIO
+Modalità video
+#MSG_VIDEO_FAST_FORWARD
+Avanzamento rapido
+#MSG_VIDEO_FRAME_SKIPPING
+Salto fotogrammi
+#MSG_VIDEO_FRAMES_PER_SECOND_COUNTER
+FPS counter
+#MSG_AUDIO_SOUND
+Audio
+#MSG_VIDEO_REWINDING
+Rewinding
+#MSG_VIDEO_BOOT_MODE
+Boot into
+#MSG_VIDEO_GAME_SCREEN
+Game screen
+#MSG_SAVED_STATE_CREATE
+Crea salvataggio
+#MSG_SAVED_STATE_LOAD
+Carica salvataggio
 #MSG_SAVED_STATE_DELETE_GENERAL
 Cancella salvataggio...
-#FMT_CHEAT_PAGE
-Pagina dei trucchi %d
+#MSG_CHEAT_PAGE
+Pagina dei trucchi
 #MSG_CHEAT_LOAD_FROM_FILE
 Carica file del trucco
 #MSG_TOOLS_SCREENSHOT_GENERAL
@@ -1761,10 +1761,10 @@ Global button mappings...
 Game-specific button mappings...
 #MSG_TOOLS_DEBUG_MENU_ENGLISH
 Debugging (in English)...
-#FMT_OPTIONS_LANGUAGE
-Lingua                               %s
-#FMT_OPTIONS_CPU_FREQUENCY
-Frequenza CPU                 %s
+#MSG_OPTIONS_LANGUAGE
+Lingua
+#MSG_OPTIONS_CPU_FREQUENCY
+Frequenza CPU
 #MSG_OPTIONS_CPU_FREQUENCY_0
 [0] 240 MHz
 #MSG_OPTIONS_CPU_FREQUENCY_1
@@ -1931,8 +1931,8 @@ OK!
 FPS: %d rendered, %d/60 emulated
 #MSG_SAVED_STATE_DELETE_ALL
 Cancella tutti i salvataggi
-#FMT_SAVED_STATE_DELETE_ONE
-Cancella il salvataggio %d
+#MSG_SAVED_STATE_DELETE_ONE
+Cancella il salvataggio
 #MSG_DELETE_ALL_SAVESTATE_WARING
 Sicuro di voler cancellare tutti i salvataggi?
 #FMT_DIALOG_SAVED_STATE_DELETE_ONE
@@ -1994,36 +1994,36 @@ Sair
 Carregando...
 #MSG_FILE_MENU_SORTING_LIST
 Classificando...
-#FMT_VIDEO_AUDIO_FLUIDITY_PREFERENCE
-Fluidez                  %s
+#MSG_VIDEO_AUDIO_FLUIDITY_PREFERENCE
+Fluidez
 #MSG_VIDEO_AUDIO_FLUIDITY_PREFER_VIDEO
 Preferir vídeo fluído
 #MSG_VIDEO_AUDIO_FLUIDITY_PREFER_AUDIO
 Preferir áudio fluído
-#FMT_VIDEO_ASPECT_RATIO
-Proporção            %s
-#FMT_VIDEO_FAST_FORWARD
-Avanço de quadro  %s
-#FMT_VIDEO_FRAME_SKIPPING
-Pulo de quadros     %s
-#FMT_VIDEO_FRAMES_PER_SECOND_COUNTER
-Contador de FPS     %s
-#FMT_AUDIO_SOUND
-Som                         %s
-#FMT_VIDEO_REWINDING
-Retroceder     %s
-#FMT_VIDEO_BOOT_MODE
-Iniciar em                %s
-#FMT_VIDEO_GAME_SCREEN
-Tela de jogo           %s
-#FMT_SAVED_STATE_CREATE
-Criar estado         %d
-#FMT_SAVED_STATE_LOAD
-Carregar estado  %d
+#MSG_VIDEO_ASPECT_RATIO
+Proporção
+#MSG_VIDEO_FAST_FORWARD
+Avanço de quadro
+#MSG_VIDEO_FRAME_SKIPPING
+Pulo de quadros
+#MSG_VIDEO_FRAMES_PER_SECOND_COUNTER
+Contador de FPS
+#MSG_AUDIO_SOUND
+Som
+#MSG_VIDEO_REWINDING
+Retroceder
+#MSG_VIDEO_BOOT_MODE
+Iniciar em
+#MSG_VIDEO_GAME_SCREEN
+Tela de jogo
+#MSG_SAVED_STATE_CREATE
+Criar estado
+#MSG_SAVED_STATE_LOAD
+Carregar estado
 #MSG_SAVED_STATE_DELETE_GENERAL
 Deletar estados...
-#FMT_CHEAT_PAGE
-Página de trapaça %d
+#MSG_CHEAT_PAGE
+Página de trapaça
 #MSG_CHEAT_LOAD_FROM_FILE
 Carregar arquivo de trapaça
 #MSG_TOOLS_SCREENSHOT_GENERAL
@@ -2038,10 +2038,10 @@ Mapeamentos de botões globais...
 Mapeamentos de botões do jogo atual...
 #MSG_TOOLS_DEBUG_MENU_ENGLISH
 Depuração (em inglês)...
-#FMT_OPTIONS_LANGUAGE
-Idioma                              %s
-#FMT_OPTIONS_CPU_FREQUENCY
-Frequência da CPU          %s
+#MSG_OPTIONS_LANGUAGE
+Idioma
+#MSG_OPTIONS_CPU_FREQUENCY
+Frequência da CPU
 #MSG_OPTIONS_CPU_FREQUENCY_0
 [0] 240 MHz
 #MSG_OPTIONS_CPU_FREQUENCY_1
@@ -2208,8 +2208,8 @@ OK!
 FPS: %d renderizado, %d/60 emulado
 #MSG_SAVED_STATE_DELETE_ALL
 Delete todos os estados salvos
-#FMT_SAVED_STATE_DELETE_ONE
-Delete o estado salvo %d
+#MSG_SAVED_STATE_DELETE_ONE
+Delete o estado salvo
 #MSG_DIALOG_SAVE_STATE_DELETE_ALL
 Deseja realmente deletear todos os estados?
 #FMT_DIALOG_SAVED_STATE_DELETE_ONE
@@ -2271,36 +2271,36 @@ STARTCHINESETRA
 裝載...
 #MSG_FILE_MENU_SORTING_LIST
 列表進行排序...
-#FMT_VIDEO_AUDIO_FLUIDITY_PREFERENCE
-流暢度                    %s
+#MSG_VIDEO_AUDIO_FLUIDITY_PREFERENCE
+流暢度
 #MSG_VIDEO_AUDIO_FLUIDITY_PREFER_VIDEO
 視頻優先
 #MSG_VIDEO_AUDIO_FLUIDITY_PREFER_AUDIO
 音頻優先
-#FMT_VIDEO_ASPECT_RATIO
-畫面                        %s
-#FMT_VIDEO_FAST_FORWARD
-遊戲快進                %s
-#FMT_VIDEO_FRAME_SKIPPING
-跳幀方式                %s
-#FMT_VIDEO_FRAMES_PER_SECOND_COUNTER
-FPS 計數器              %s
-#FMT_AUDIO_SOUND
-聲音開關                %s
-#FMT_VIDEO_REWINDING
-倒退                    %s
-#FMT_VIDEO_BOOT_MODE
-啟動進入                %s
-#FMT_VIDEO_GAME_SCREEN
-遊戲螢幕                %s
-#FMT_SAVED_STATE_CREATE
-寫入存檔                %d
-#FMT_SAVED_STATE_LOAD
-讀取存檔                %d
+#MSG_VIDEO_ASPECT_RATIO
+畫面
+#MSG_VIDEO_FAST_FORWARD
+遊戲快進
+#MSG_VIDEO_FRAME_SKIPPING
+跳幀方式
+#MSG_VIDEO_FRAMES_PER_SECOND_COUNTER
+FPS 計數器
+#MSG_AUDIO_SOUND
+聲音開關
+#MSG_VIDEO_REWINDING
+倒退
+#MSG_VIDEO_BOOT_MODE
+啟動進入
+#MSG_VIDEO_GAME_SCREEN
+遊戲螢幕
+#MSG_SAVED_STATE_CREATE
+寫入存檔
+#MSG_SAVED_STATE_LOAD
+讀取存檔
 #MSG_SAVED_STATE_DELETE_GENERAL
 刪除存檔
-#FMT_CHEAT_PAGE
-金手指代碼頁  %d
+#MSG_CHEAT_PAGE
+金手指代碼頁
 #MSG_CHEAT_LOAD_FROM_FILE
 加載金手指代碼文件
 #MSG_TOOLS_SCREENSHOT_GENERAL
@@ -2315,10 +2315,10 @@ FPS 計數器              %s
 特定遊戲按鍵映射...
 #MSG_TOOLS_DEBUG_MENU_ENGLISH
 調試 (英文)...
-#FMT_OPTIONS_LANGUAGE
-語言                                %s
-#FMT_OPTIONS_CPU_FREQUENCY
-CPU 主頻                        %s
+#MSG_OPTIONS_LANGUAGE
+語言
+#MSG_OPTIONS_CPU_FREQUENCY
+CPU 主頻
 #MSG_OPTIONS_CPU_FREQUENCY_0
 [0] 240 MHz
 #MSG_OPTIONS_CPU_FREQUENCY_1
@@ -2485,8 +2485,8 @@ GBA 圖標
 FPS:繪製 %d ,模擬 %d/60
 #MSG_SAVED_STATE_DELETE_ALL
 刪除當前遊戲的所有存檔
-#FMT_SAVED_STATE_DELETE_ONE
-刪除當前遊戲的一個存檔        %d
+#MSG_SAVED_STATE_DELETE_ONE
+刪除當前遊戲的一個存檔
 #MSG_DIALOG_SAVED_STATE_DELETE_ALL
 確定要刪除所有存檔嗎？
 #FMT_DIALOG_SAVED_STATE_DELETE_ONE

@@ -121,13 +121,13 @@ typedef uint32_t FIXED16_16;  // Q16.16 fixed-point
   ((((numerator) * (1 << (bits))) + ((denominator) / 2)) / (denominator))   \
 
 #define ADDRESS8(base, offset)                                              \
-  *((u8 *)(base) + (offset))                                                \
+  *((uint8_t *)(base) + (offset))                                           \
 
 #define ADDRESS16(base, offset)                                             \
-  *((u16 *)(base) + ((offset) / 2))                                         \
+  *((uint16_t *)(base) + ((offset) / 2))                                    \
 
 #define ADDRESS32(base, offset)                                             \
-  *((u32 *)(base) + ((offset) / 4))                                         \
+  *((uint32_t *)(base) + ((offset) / 4))                                    \
 
 #define USE_BIOS 0
 #define EMU_BIOS 1
@@ -154,13 +154,13 @@ typedef uint32_t FIXED16_16;  // Q16.16 fixed-point
  * A struct used in the GBA RTC code and in the saved state header.
  */
 struct ReGBA_RTC {
-	unsigned char year;        // Range: 0..99 (Add 2000 to get a 4-digit year)
-	unsigned char month;       // Range: 1..12
-	unsigned char day;         // Range: 1..31 (Varies by month)
-	unsigned char weekday;     // Range: 0..6 (0 is Sunday, 6 is Saturday)
-	unsigned char hours;       // Range: 0..23
-	unsigned char minutes;     // Range: 0..59
-	unsigned char seconds;     // Range: 0..59
+	uint8_t year;        // Range: 0..99 (Add 2000 to get a 4-digit year)
+	uint8_t month;       // Range: 1..12
+	uint8_t day;         // Range: 1..31 (Varies by month)
+	uint8_t weekday;     // Range: 0..6 (0 is Sunday, 6 is Saturday)
+	uint8_t hours;       // Range: 0..23
+	uint8_t minutes;     // Range: 0..59
+	uint8_t seconds;     // Range: 0..59
 };
 
 enum ReGBA_FileAction {
@@ -181,8 +181,8 @@ enum ReGBA_FileAction {
 };
 
 // - - - CROSS-PLATFORM VARIABLE DEFINITIONS - - -
-extern u16*     GBAScreen;
-extern uint32_t GBAScreenPitch;
+extern uint16_t* GBAScreen;
+extern uint32_t  GBAScreenPitch;
 
 // - - - CROSS-PLATFORM FUNCTION DEFINITIONS - - -
 
@@ -214,7 +214,7 @@ void ReGBA_Trace(const char* Format, ...);
  * processor automatically; in that case, the function is still required, but
  * shall be empty.
  */
-void ReGBA_MakeCodeVisible(void* Code, unsigned int CodeLength);
+void ReGBA_MakeCodeVisible(void* Code, size_t CodeLength);
 
 /*
  * Advises the user that the GBA game attempted to make an unsupported jump.
@@ -226,7 +226,7 @@ void ReGBA_MakeCodeVisible(void* Code, unsigned int CodeLength);
  * Output:
  *   Completes abnormally.
  */
-void ReGBA_BadJump(u32 SourcePC, u32 TargetPC);
+void ReGBA_BadJump(uint32_t SourcePC, uint32_t TargetPC);
 
 /*
  * Advises the user that the GBA code translator encountered a block with more
@@ -238,7 +238,7 @@ void ReGBA_BadJump(u32 SourcePC, u32 TargetPC);
  *   ending the code block.
  *   Exits: The number of exits encountered.
  */
-void ReGBA_MaxBlockExitsReached(u32 BlockStartPC, u32 BlockEndPC, u32 Exits);
+void ReGBA_MaxBlockExitsReached(uint32_t BlockStartPC, uint32_t BlockEndPC, uint32_t Exits);
 
 /*
  * Advises the user that the GBA code translator encountered a block with more
@@ -250,7 +250,7 @@ void ReGBA_MaxBlockExitsReached(u32 BlockStartPC, u32 BlockEndPC, u32 Exits);
  *   ending the code block.
  *   BlockSize: The number of instructions encountered.
  */
-void ReGBA_MaxBlockSizeReached(u32 BlockStartPC, u32 BlockEndPC, u32 BlockSize);
+void ReGBA_MaxBlockSizeReached(uint32_t BlockStartPC, uint32_t BlockEndPC, uint32_t BlockSize);
 
 /*
  * Renders the current contents of the GBA screen to the display of the device
@@ -392,7 +392,7 @@ signed int ReGBA_AudioUpdate();
  *   1 if the menu was exited in a way that interrupts the current game:
  *   restarting it, loading a new one, or loading a saved state.
  */
-u32 ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason);
+uint32_t ReGBA_Menu(enum ReGBA_MenuEntryReason EntryReason);
 
 /*
  * Retrieves the path to the battery-backed saved data file corresponding to

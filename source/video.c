@@ -23,70 +23,70 @@
 // This file outputs GBA frames in the BGR 555 pixel format, with the upper bit
 // unused (XBGR 1555). It is endian-neutral.
 
-#define render_scanline_dest_normal         u16
-#define render_scanline_dest_alpha          u32
-#define render_scanline_dest_alpha_obj      u32
-#define render_scanline_dest_color16        u16
-#define render_scanline_dest_color32        u32
-#define render_scanline_dest_partial_alpha  u32
-#define render_scanline_dest_copy_tile      u16
-#define render_scanline_dest_copy_bitmap    u16
+#define render_scanline_dest_normal         uint16_t
+#define render_scanline_dest_alpha          uint32_t
+#define render_scanline_dest_alpha_obj      uint32_t
+#define render_scanline_dest_color16        uint16_t
+#define render_scanline_dest_color32        uint32_t
+#define render_scanline_dest_partial_alpha  uint32_t
+#define render_scanline_dest_copy_tile      uint16_t
+#define render_scanline_dest_copy_bitmap    uint16_t
 
-void render_scanline_text_base_normal(u32 layer, u32 start, u32 end, void *scanline);
-void render_scanline_text_transparent_normal(u32 layer, u32 start, u32 end, void *scanline);
-void render_scanline_text_base_color16(u32 layer, u32 start, u32 end, void *scanline);
-void render_scanline_text_transparent_color16(u32 layer, u32 start, u32 end, void *scanline);
-void render_scanline_text_base_color32(u32 layer, u32 start, u32 end, void *scanline);
-void render_scanline_text_transparent_color32(u32 layer, u32 start, u32 end, void *scanline);
-void render_scanline_text_base_alpha(u32 layer, u32 start, u32 end, void *scanline);
-void render_scanline_text_transparent_alpha(u32 layer, u32 start, u32 end, void *scanline);
-void render_scanline_affine_base_normal(u32 layer, u32 start, u32 end, void *scanline);
-void render_scanline_affine_transparent_normal(u32 layer, u32 start, u32 end, void *scanline);
-void render_scanline_affine_base_color16(u32 layer, u32 start, u32 end, void *scanline);
-void render_scanline_affine_transparent_color16(u32 layer, u32 start, u32 end, void *scanline);
-void render_scanline_affine_base_color32(u32 layer, u32 start, u32 end, void *scanline);
-void render_scanline_affine_transparent_color32(u32 layer, u32 start, u32 end, void *scanline);
-void render_scanline_affine_base_alpha(u32 layer, u32 start, u32 end, void *scanline);
-void render_scanline_affine_transparent_alpha(u32 layer, u32 start, u32 end, void *scanline);
-void render_scanline_bitmap_mode3_normal(u32 start, u32 end, void *scanline);
-void render_scanline_bitmap_mode4_normal(u32 start, u32 end, void *scanline);
-void render_scanline_bitmap_mode5_normal(u32 start, u32 end, void *scanline);
-void render_scanline_obj_normal_1D(u32 priority, u32 start, u32 end, render_scanline_dest_normal *scanline);
-void render_scanline_obj_normal_2D(u32 priority, u32 start, u32 end, render_scanline_dest_normal *scanline);
-void render_scanline_obj_color16_1D(u32 priority, u32 start, u32 end, render_scanline_dest_color16 *scanline);
-void render_scanline_obj_color16_2D(u32 priority, u32 start, u32 end, render_scanline_dest_color16 *scanline);
-void render_scanline_obj_color32_1D(u32 priority, u32 start, u32 end, render_scanline_dest_color32 *scanline);
-void render_scanline_obj_color32_2D(u32 priority, u32 start, u32 end, render_scanline_dest_color32 *scanline);
-void render_scanline_obj_alpha_obj_1D(u32 priority, u32 start, u32 end, render_scanline_dest_alpha_obj *scanline);
-void render_scanline_obj_alpha_obj_2D(u32 priority, u32 start, u32 end, render_scanline_dest_alpha_obj *scanline);
-void render_scanline_obj_partial_alpha_1D(u32 priority, u32 start, u32 end, render_scanline_dest_partial_alpha *scanline);
-void render_scanline_obj_partial_alpha_2D(u32 priority, u32 start, u32 end, render_scanline_dest_partial_alpha *scanline);
-void render_scanline_obj_copy_tile_1D(u32 priority, u32 start, u32 end, render_scanline_dest_copy_tile *scanline);
-void render_scanline_obj_copy_tile_2D(u32 priority, u32 start, u32 end, render_scanline_dest_copy_tile *scanline);
-void render_scanline_obj_copy_bitmap_1D(u32 priority, u32 start, u32 end, render_scanline_dest_copy_bitmap *scanline);
-void render_scanline_obj_copy_bitmap_2D(u32 priority, u32 start, u32 end, render_scanline_dest_copy_bitmap *scanline);
-void order_obj(u32 video_mode);
-void order_layers(u8 layer_flags);
-void fill_line_normal(u16 color, render_scanline_dest_normal *dest_ptr, u32 start, u32 end);
-void fill_line_alpha(u16 color, render_scanline_dest_alpha *dest_ptr, u32 start, u32 end);
-void fill_line_color16(u16 color, render_scanline_dest_color16 *dest_ptr, u32 start, u32 end);
-void fill_line_color32(u16 color, render_scanline_dest_color32 *dest_ptr, u32 start, u32 end);
-void expand_blend(u32 *screen_src_ptr, u16 *screen_dest_ptr,u32 start, u32 end);
-void expand_darken(u16 *screen_src_ptr, u16 *screen_dest_ptr,u32 start, u32 end);
-void expand_brighten(u16 *screen_src_ptr, u16 *screen_dest_ptr, u32 start, u32 end);
-void expand_darken_partial_alpha(u32 *screen_src_ptr, u16 *screen_dest_ptr, u32 start, u32 end);
-void expand_brighten_partial_alpha(u32 *screen_src_ptr, u16 *screen_dest_ptr, u32 start, u32 end);
-void render_scanline_tile(u16 *scanline, u32 dispcnt);
-void render_scanline_bitmap(u16 *scanline, u32 dispcnt);
-void render_scanline_window_tile(u16 *scanline, u32 dispcnt);
-void render_scanline_window_bitmap(u16 *scanline, u32 dispcnt);
+void render_scanline_text_base_normal(uint32_t layer, uint32_t start, uint32_t end, void *scanline);
+void render_scanline_text_transparent_normal(uint32_t layer, uint32_t start, uint32_t end, void *scanline);
+void render_scanline_text_base_color16(uint32_t layer, uint32_t start, uint32_t end, void *scanline);
+void render_scanline_text_transparent_color16(uint32_t layer, uint32_t start, uint32_t end, void *scanline);
+void render_scanline_text_base_color32(uint32_t layer, uint32_t start, uint32_t end, void *scanline);
+void render_scanline_text_transparent_color32(uint32_t layer, uint32_t start, uint32_t end, void *scanline);
+void render_scanline_text_base_alpha(uint32_t layer, uint32_t start, uint32_t end, void *scanline);
+void render_scanline_text_transparent_alpha(uint32_t layer, uint32_t start, uint32_t end, void *scanline);
+void render_scanline_affine_base_normal(uint32_t layer, uint32_t start, uint32_t end, void *scanline);
+void render_scanline_affine_transparent_normal(uint32_t layer, uint32_t start, uint32_t end, void *scanline);
+void render_scanline_affine_base_color16(uint32_t layer, uint32_t start, uint32_t end, void *scanline);
+void render_scanline_affine_transparent_color16(uint32_t layer, uint32_t start, uint32_t end, void *scanline);
+void render_scanline_affine_base_color32(uint32_t layer, uint32_t start, uint32_t end, void *scanline);
+void render_scanline_affine_transparent_color32(uint32_t layer, uint32_t start, uint32_t end, void *scanline);
+void render_scanline_affine_base_alpha(uint32_t layer, uint32_t start, uint32_t end, void *scanline);
+void render_scanline_affine_transparent_alpha(uint32_t layer, uint32_t start, uint32_t end, void *scanline);
+void render_scanline_bitmap_mode3_normal(uint32_t start, uint32_t end, void *scanline);
+void render_scanline_bitmap_mode4_normal(uint32_t start, uint32_t end, void *scanline);
+void render_scanline_bitmap_mode5_normal(uint32_t start, uint32_t end, void *scanline);
+void render_scanline_obj_normal_1D(uint32_t priority, uint32_t start, uint32_t end, render_scanline_dest_normal *scanline);
+void render_scanline_obj_normal_2D(uint32_t priority, uint32_t start, uint32_t end, render_scanline_dest_normal *scanline);
+void render_scanline_obj_color16_1D(uint32_t priority, uint32_t start, uint32_t end, render_scanline_dest_color16 *scanline);
+void render_scanline_obj_color16_2D(uint32_t priority, uint32_t start, uint32_t end, render_scanline_dest_color16 *scanline);
+void render_scanline_obj_color32_1D(uint32_t priority, uint32_t start, uint32_t end, render_scanline_dest_color32 *scanline);
+void render_scanline_obj_color32_2D(uint32_t priority, uint32_t start, uint32_t end, render_scanline_dest_color32 *scanline);
+void render_scanline_obj_alpha_obj_1D(uint32_t priority, uint32_t start, uint32_t end, render_scanline_dest_alpha_obj *scanline);
+void render_scanline_obj_alpha_obj_2D(uint32_t priority, uint32_t start, uint32_t end, render_scanline_dest_alpha_obj *scanline);
+void render_scanline_obj_partial_alpha_1D(uint32_t priority, uint32_t start, uint32_t end, render_scanline_dest_partial_alpha *scanline);
+void render_scanline_obj_partial_alpha_2D(uint32_t priority, uint32_t start, uint32_t end, render_scanline_dest_partial_alpha *scanline);
+void render_scanline_obj_copy_tile_1D(uint32_t priority, uint32_t start, uint32_t end, render_scanline_dest_copy_tile *scanline);
+void render_scanline_obj_copy_tile_2D(uint32_t priority, uint32_t start, uint32_t end, render_scanline_dest_copy_tile *scanline);
+void render_scanline_obj_copy_bitmap_1D(uint32_t priority, uint32_t start, uint32_t end, render_scanline_dest_copy_bitmap *scanline);
+void render_scanline_obj_copy_bitmap_2D(uint32_t priority, uint32_t start, uint32_t end, render_scanline_dest_copy_bitmap *scanline);
+void order_obj(uint32_t video_mode);
+void order_layers(uint8_t layer_flags);
+void fill_line_normal(uint16_t color, render_scanline_dest_normal *dest_ptr, uint32_t start, uint32_t end);
+void fill_line_alpha(uint16_t color, render_scanline_dest_alpha *dest_ptr, uint32_t start, uint32_t end);
+void fill_line_color16(uint16_t color, render_scanline_dest_color16 *dest_ptr, uint32_t start, uint32_t end);
+void fill_line_color32(uint16_t color, render_scanline_dest_color32 *dest_ptr, uint32_t start, uint32_t end);
+void expand_blend(uint32_t *screen_src_ptr, uint16_t *screen_dest_ptr,uint32_t start, uint32_t end);
+void expand_darken(uint16_t *screen_src_ptr, uint16_t *screen_dest_ptr,uint32_t start, uint32_t end);
+void expand_brighten(uint16_t *screen_src_ptr, uint16_t *screen_dest_ptr, uint32_t start, uint32_t end);
+void expand_darken_partial_alpha(uint32_t *screen_src_ptr, uint16_t *screen_dest_ptr, uint32_t start, uint32_t end);
+void expand_brighten_partial_alpha(uint32_t *screen_src_ptr, uint16_t *screen_dest_ptr, uint32_t start, uint32_t end);
+void render_scanline_tile(uint16_t *scanline, uint32_t dispcnt);
+void render_scanline_bitmap(uint16_t *scanline, uint32_t dispcnt);
+void render_scanline_window_tile(uint16_t *scanline, uint32_t dispcnt);
+void render_scanline_window_bitmap(uint16_t *scanline, uint32_t dispcnt);
 
-void render_scanline_conditional_tile(u32 start, u32 end, u16 *scanline,
- u32 enable_flags, u32 dispcnt, u32 bldcnt, tile_layer_render_struct
+void render_scanline_conditional_tile(uint32_t start, uint32_t end, uint16_t *scanline,
+ uint32_t enable_flags, uint32_t dispcnt, uint32_t bldcnt, tile_layer_render_struct
  *layer_renderers);
 
-void render_scanline_conditional_bitmap(u32 start, u32 end, u16 *scanline,
- u32 enable_flags, u32 dispcnt, u32 bldcnt, bitmap_layer_render_struct
+void render_scanline_conditional_bitmap(uint32_t start, uint32_t end, uint16_t *scanline,
+ uint32_t enable_flags, uint32_t dispcnt, uint32_t bldcnt, bitmap_layer_render_struct
  *layer_renderers);
 
 #define no_op                                                                 \
@@ -306,16 +306,16 @@ void render_scanline_conditional_bitmap(u32 start, u32 end, u16 *scanline,
 #define partial_tile_right_noflip_8bpp(combine_op, alpha_op)                  \
   if(partial_tile_offset >= 4)                                                \
   {                                                                           \
-    current_pixels = *((u32 *)(tile_ptr + 4)) >>                              \
+    current_pixels = *((uint32_t *)(tile_ptr + 4)) >>                         \
      ((partial_tile_offset - 4) * 8);                                         \
     partial_tile_8bpp(combine_op, alpha_op);                                  \
   }                                                                           \
   else                                                                        \
   {                                                                           \
     partial_tile_run -= 4;                                                    \
-    current_pixels = *((u32 *)tile_ptr) >> (partial_tile_offset * 8);         \
+    current_pixels = *((uint32_t *)tile_ptr) >> (partial_tile_offset * 8);    \
     partial_tile_8bpp(combine_op, alpha_op);                                  \
-    current_pixels = *((u32 *)(tile_ptr + 4));                                \
+    current_pixels = *((uint32_t *)(tile_ptr + 4));                           \
     tile_8bpp_draw_four_##combine_op(0, alpha_op, noflip);                    \
     advance_dest_ptr_##combine_op(4);                                         \
   }                                                                           \
@@ -327,20 +327,20 @@ void render_scanline_conditional_bitmap(u32 start, u32 end, u16 *scanline,
 #define partial_tile_mid_noflip_8bpp(combine_op, alpha_op)                    \
   if(partial_tile_offset >= 4)                                                \
   {                                                                           \
-    current_pixels = *((u32 *)(tile_ptr + 4)) >>                              \
+    current_pixels = *((uint32_t *)(tile_ptr + 4)) >>                         \
      ((partial_tile_offset - 4) * 8);                                         \
     partial_tile_8bpp(combine_op, alpha_op);                                  \
   }                                                                           \
   else                                                                        \
   {                                                                           \
-    current_pixels = *((u32 *)tile_ptr) >> (partial_tile_offset * 8);         \
+    current_pixels = *((uint32_t *)tile_ptr) >> (partial_tile_offset * 8);    \
     if((partial_tile_offset + partial_tile_run) > 4)                          \
     {                                                                         \
-      u32 old_run = partial_tile_run;                                         \
+      uint32_t old_run = partial_tile_run;                                    \
       partial_tile_run = 4 - partial_tile_offset;                             \
       partial_tile_8bpp(combine_op, alpha_op);                                \
       partial_tile_run = old_run - partial_tile_run;                          \
-      current_pixels = *((u32 *)(tile_ptr + 4));                              \
+      current_pixels = *((uint32_t *)(tile_ptr + 4));                         \
       partial_tile_8bpp(combine_op, alpha_op);                                \
     }                                                                         \
     else                                                                      \
@@ -356,23 +356,23 @@ void render_scanline_conditional_bitmap(u32 start, u32 end, u16 *scanline,
 #define partial_tile_left_noflip_8bpp(combine_op, alpha_op)                   \
   if(partial_tile_run >= 4)                                                   \
   {                                                                           \
-    current_pixels = *((u32 *)tile_ptr);                                      \
+    current_pixels = *((uint32_t *)tile_ptr);                                 \
     tile_8bpp_draw_four_##combine_op(0, alpha_op, noflip);                    \
     advance_dest_ptr_##combine_op(4);                                         \
     tile_ptr += 4;                                                            \
     partial_tile_run -= 4;                                                    \
   }                                                                           \
                                                                               \
-  current_pixels = *((u32 *)(tile_ptr));                                      \
+  current_pixels = *((uint32_t *)(tile_ptr));                                 \
   partial_tile_8bpp(combine_op, alpha_op)                                     \
 
 
 // Draws a non-clipped (complete) 8bpp tile.
 
 #define tile_noflip_8bpp(combine_op, alpha_op)                                \
-  current_pixels = *((u32 *)tile_ptr);                                        \
+  current_pixels = *((uint32_t *)tile_ptr);                                   \
   tile_8bpp_draw_four_##combine_op(0, alpha_op, noflip);                      \
-  current_pixels = *((u32 *)(tile_ptr + 4));                                  \
+  current_pixels = *((uint32_t *)(tile_ptr + 4));                             \
   tile_8bpp_draw_four_##combine_op(4, alpha_op, noflip)                       \
 
 
@@ -389,16 +389,16 @@ void render_scanline_conditional_bitmap(u32 start, u32 end, u16 *scanline,
 #define partial_tile_right_flip_8bpp(combine_op, alpha_op)                    \
   if(partial_tile_offset >= 4)                                                \
   {                                                                           \
-    current_pixels = *((u32 *)tile_ptr) << ((partial_tile_offset - 4) * 8);   \
+    current_pixels = *((uint32_t *)tile_ptr) << ((partial_tile_offset - 4) * 8); \
     partial_tile_flip_8bpp(combine_op, alpha_op);                             \
   }                                                                           \
   else                                                                        \
   {                                                                           \
     partial_tile_run -= 4;                                                    \
-    current_pixels = *((u32 *)(tile_ptr + 4)) <<                              \
+    current_pixels = *((uint32_t *)(tile_ptr + 4)) <<                         \
      ((partial_tile_offset - 4) * 8);                                         \
     partial_tile_flip_8bpp(combine_op, alpha_op);                             \
-    current_pixels = *((u32 *)tile_ptr);                                      \
+    current_pixels = *((uint32_t *)tile_ptr);                                 \
     tile_8bpp_draw_four_##combine_op(0, alpha_op, flip);                      \
     advance_dest_ptr_##combine_op(4);                                         \
   }                                                                           \
@@ -406,21 +406,21 @@ void render_scanline_conditional_bitmap(u32 start, u32 end, u16 *scanline,
 #define partial_tile_mid_flip_8bpp(combine_op, alpha_op)                      \
   if(partial_tile_offset >= 4)                                                \
   {                                                                           \
-    current_pixels = *((u32 *)tile_ptr) << ((partial_tile_offset - 4) * 8);   \
+    current_pixels = *((uint32_t *)tile_ptr) << ((partial_tile_offset - 4) * 8); \
     partial_tile_flip_8bpp(combine_op, alpha_op);                             \
   }                                                                           \
   else                                                                        \
   {                                                                           \
-    current_pixels = *((u32 *)(tile_ptr + 4)) <<                              \
+    current_pixels = *((uint32_t *)(tile_ptr + 4)) <<                         \
      ((partial_tile_offset - 4) * 8);                                         \
                                                                               \
     if((partial_tile_offset + partial_tile_run) > 4)                          \
     {                                                                         \
-      u32 old_run = partial_tile_run;                                         \
+      uint32_t old_run = partial_tile_run;                                    \
       partial_tile_run = 4 - partial_tile_offset;                             \
       partial_tile_flip_8bpp(combine_op, alpha_op);                           \
       partial_tile_run = old_run - partial_tile_run;                          \
-      current_pixels = *((u32 *)(tile_ptr));                                  \
+      current_pixels = *((uint32_t *)(tile_ptr));                             \
       partial_tile_flip_8bpp(combine_op, alpha_op);                           \
     }                                                                         \
     else                                                                      \
@@ -432,20 +432,20 @@ void render_scanline_conditional_bitmap(u32 start, u32 end, u16 *scanline,
 #define partial_tile_left_flip_8bpp(combine_op, alpha_op)                     \
   if(partial_tile_run >= 4)                                                   \
   {                                                                           \
-    current_pixels = *((u32 *)(tile_ptr + 4));                                \
+    current_pixels = *((uint32_t *)(tile_ptr + 4));                           \
     tile_8bpp_draw_four_##combine_op(0, alpha_op, flip);                      \
     advance_dest_ptr_##combine_op(4);                                         \
     tile_ptr -= 4;                                                            \
     partial_tile_run -= 4;                                                    \
   }                                                                           \
                                                                               \
-  current_pixels = *((u32 *)(tile_ptr + 4));                                  \
+  current_pixels = *((uint32_t *)(tile_ptr + 4));                             \
   partial_tile_flip_8bpp(combine_op, alpha_op)                                \
 
 #define tile_flip_8bpp(combine_op, alpha_op)                                  \
-  current_pixels = *((u32 *)(tile_ptr + 4));                                  \
+  current_pixels = *((uint32_t *)(tile_ptr + 4));                             \
   tile_8bpp_draw_four_##combine_op(0, alpha_op, flip);                        \
-  current_pixels = *((u32 *)tile_ptr);                                        \
+  current_pixels = *((uint32_t *)tile_ptr);                                   \
   tile_8bpp_draw_four_##combine_op(4, alpha_op, flip)                         \
 
 
@@ -637,7 +637,7 @@ void render_scanline_conditional_bitmap(u32 start, u32 end, u16 *scanline,
 // how many to draw.
 
 #define partial_tile_right_noflip_4bpp(combine_op, alpha_op)                  \
-  current_pixels = *((u32 *)tile_ptr) >> (partial_tile_offset * 4);           \
+  current_pixels = *((uint32_t *)tile_ptr) >> (partial_tile_offset * 4);      \
   partial_tile_4bpp(combine_op, alpha_op)                                     \
 
 
@@ -651,13 +651,13 @@ void render_scanline_conditional_bitmap(u32 start, u32 end, u16 *scanline,
 // partial_tile_offset is how many to draw.
 
 #define partial_tile_left_noflip_4bpp(combine_op, alpha_op)                   \
-  current_pixels = *((u32 *)tile_ptr);                                        \
+  current_pixels = *((uint32_t *)tile_ptr);                                   \
   partial_tile_4bpp(combine_op, alpha_op)                                     \
 
 
 // Draws a complete 4bpp tile row (not clipped)
 #define tile_noflip_4bpp(combine_op, alpha_op)                                \
-  current_pixels = *((u32 *)tile_ptr);                                        \
+  current_pixels = *((uint32_t *)tile_ptr);                                   \
   tile_4bpp_draw_eight_##combine_op(alpha_op, noflip)                         \
 
 
@@ -672,18 +672,18 @@ void render_scanline_conditional_bitmap(u32 start, u32 end, u16 *scanline,
   }                                                                           \
 
 #define partial_tile_right_flip_4bpp(combine_op, alpha_op)                    \
-  current_pixels = *((u32 *)tile_ptr) << (partial_tile_offset * 4);           \
+  current_pixels = *((uint32_t *)tile_ptr) << (partial_tile_offset * 4);      \
   partial_tile_flip_4bpp(combine_op, alpha_op)                                \
 
 #define partial_tile_mid_flip_4bpp(combine_op, alpha_op)                      \
   partial_tile_right_flip_4bpp(combine_op, alpha_op)                          \
 
 #define partial_tile_left_flip_4bpp(combine_op, alpha_op)                     \
-  current_pixels = *((u32 *)tile_ptr);                                        \
+  current_pixels = *((uint32_t *)tile_ptr);                                   \
   partial_tile_flip_4bpp(combine_op, alpha_op)                                \
 
 #define tile_flip_4bpp(combine_op, alpha_op)                                  \
-  current_pixels = *((u32 *)tile_ptr);                                        \
+  current_pixels = *((uint32_t *)tile_ptr);                                   \
   tile_4bpp_draw_eight_##combine_op(alpha_op, flip)                           \
 
 
@@ -795,7 +795,7 @@ void render_scanline_conditional_bitmap(u32 start, u32 end, u16 *scanline,
 #define tile_extra_variables_8bpp()                                           \
 
 #define tile_extra_variables_4bpp()                                           \
-  u32 current_palette                                                         \
+  uint32_t current_palette                                                    \
 
 
 // Byte lengths of complete tiles and tile rows in 4bpp and 8bpp.
@@ -810,16 +810,16 @@ void render_scanline_conditional_bitmap(u32 start, u32 end, u16 *scanline,
 
 #define tile_render(color_depth, combine_op, alpha_op)                        \
 {                                                                             \
-  u32 vertical_pixel_offset = (vertical_offset % 8) *                         \
+  uint32_t vertical_pixel_offset = (vertical_offset % 8) *                    \
    tile_width_##color_depth;                                                  \
-  u32 vertical_pixel_flip =                                                   \
+  uint32_t vertical_pixel_flip =                                              \
    ((tile_size_##color_depth - tile_width_##color_depth) -                    \
    vertical_pixel_offset) - vertical_pixel_offset;                            \
   tile_extra_variables_##color_depth();                                       \
-  u8 *tile_base = vram + (((bg_control >> 2) & 0x03) * (1024 * 16)) +         \
+  uint8_t *tile_base = vram + (((bg_control >> 2) & 0x03) * (1024 * 16)) +    \
    vertical_pixel_offset;                                                     \
-  u32 pixel_run = 256 - (horizontal_offset % 256);                            \
-  u32 current_tile;                                                           \
+  uint32_t pixel_run = 256 - (horizontal_offset % 256);                       \
+  uint32_t current_tile;                                                      \
                                                                               \
   map_base += ((vertical_offset % 256) / 8) * 32;                             \
   partial_tile_offset = (horizontal_offset % 8);                              \
@@ -887,16 +887,16 @@ void render_scanline_conditional_bitmap(u32 start, u32 end, u16 *scanline,
   }                                                                           \
 
 #define render_scanline_extra_variables_base_normal(bg_type)                  \
-  u16 *palette = palette_ram                                                  \
+  uint16_t *palette = palette_ram                                             \
 
 #define render_scanline_extra_variables_base_alpha(bg_type)                   \
-  u32 bg_combine = color_combine_mask(5);                                     \
-  u32 pixel_combine = color_combine_mask(layer) | (bg_combine << 16);         \
+  uint32_t bg_combine = color_combine_mask(5);                                \
+  uint32_t pixel_combine = color_combine_mask(layer) | (bg_combine << 16);    \
   render_scanline_skip_alpha(bg_type, base)                                   \
 
 #define render_scanline_extra_variables_base_color()                          \
-  u32 bg_combine = color_combine_mask(5);                                     \
-  u32 pixel_combine = color_combine_mask(layer)                               \
+  uint32_t bg_combine = color_combine_mask(5);                                \
+  uint32_t pixel_combine = color_combine_mask(layer)                          \
 
 #define render_scanline_extra_variables_base_color16(bg_type)                 \
   render_scanline_extra_variables_base_color()                                \
@@ -909,11 +909,11 @@ void render_scanline_conditional_bitmap(u32 start, u32 end, u16 *scanline,
   render_scanline_extra_variables_base_normal(bg_type)                        \
 
 #define render_scanline_extra_variables_transparent_alpha(bg_type)            \
-  u32 pixel_combine = color_combine_mask(layer);                              \
+  uint32_t pixel_combine = color_combine_mask(layer);                         \
   render_scanline_skip_alpha(bg_type, transparent)                            \
 
 #define render_scanline_extra_variables_transparent_color()                   \
-  u32 pixel_combine = color_combine_mask(layer)                               \
+  uint32_t pixel_combine = color_combine_mask(layer)                          \
 
 #define render_scanline_extra_variables_transparent_color16(bg_type)          \
   render_scanline_extra_variables_transparent_color()                         \
@@ -927,34 +927,34 @@ void render_scanline_conditional_bitmap(u32 start, u32 end, u16 *scanline,
 
 // Map widths and heights
 
-const u16 map_widths[] = { 256, 512, 256, 512 };
+const uint16_t map_widths[] = { 256, 512, 256, 512 };
 
 // Build text scanline rendering functions.
 
 #define render_scanline_text_builder(combine_op, alpha_op)                    \
-void render_scanline_text_##combine_op##_##alpha_op(u32 layer,                \
- u32 start, u32 end, void *scanline)                                          \
+void render_scanline_text_##combine_op##_##alpha_op(uint32_t layer,           \
+ uint32_t start, uint32_t end, void *scanline)                                \
 {                                                                             \
   render_scanline_extra_variables_##combine_op##_##alpha_op(text);            \
-  u32 bg_control = io_registers[REG_BG0CNT + layer];                          \
-  u32 map_size = (bg_control >> 14) & 0x03;                                   \
-  u16 map_width = map_widths[map_size];                                       \
-  u32 horizontal_offset =                                                     \
+  uint32_t bg_control = io_registers[REG_BG0CNT + layer];                     \
+  uint32_t map_size = (bg_control >> 14) & 0x03;                              \
+  uint16_t map_width = map_widths[map_size];                                  \
+  uint32_t horizontal_offset =                                                \
    (io_registers[REG_BG0HOFS + (layer * 2)] + start) % 512;                   \
-  u32 vertical_offset = (io_registers[REG_VCOUNT] +                           \
+  uint32_t vertical_offset = (io_registers[REG_VCOUNT] +                      \
    io_registers[REG_BG0VOFS + (layer * 2)]) % 512;                            \
-  u32 current_pixel;                                                          \
-  u32 current_pixels;                                                         \
-  u32 partial_tile_run = 0;                                                   \
-  u32 partial_tile_offset;                                                    \
-  u32 tile_run;                                                               \
-  u32 i;                                                                      \
+  uint32_t current_pixel;                                                     \
+  uint32_t current_pixels;                                                    \
+  uint32_t partial_tile_run = 0;                                              \
+  uint32_t partial_tile_offset;                                               \
+  uint32_t tile_run;                                                          \
+  uint32_t i;                                                                 \
   render_scanline_dest_##alpha_op *dest_ptr =                                 \
    ((render_scanline_dest_##alpha_op *)scanline) + start;                     \
                                                                               \
-  u16 *map_base = (u16 *)(vram + ((bg_control >> 8) & 0x1F) * (1024 * 2));    \
-  u16 *map_ptr, *second_ptr;                                                  \
-  u8 *tile_ptr;                                                               \
+  uint16_t *map_base = (uint16_t *)(vram + ((bg_control >> 8) & 0x1F) * (1024 * 2)); \
+  uint16_t *map_ptr, *second_ptr;                                             \
+  uint8_t *tile_ptr;                                                          \
                                                                               \
   end -= start;                                                               \
                                                                               \
@@ -999,18 +999,18 @@ void render_scanline_text_##combine_op##_##alpha_op(u32 layer,                \
   }                                                                           \
 }                                                                             \
 
-render_scanline_text_builder(base, normal);
-render_scanline_text_builder(transparent, normal);
-render_scanline_text_builder(base, color16);
-render_scanline_text_builder(transparent, color16);
-render_scanline_text_builder(base, color32);
-render_scanline_text_builder(transparent, color32);
-render_scanline_text_builder(base, alpha);
-render_scanline_text_builder(transparent, alpha);
+render_scanline_text_builder(base, normal)
+render_scanline_text_builder(transparent, normal)
+render_scanline_text_builder(base, color16)
+render_scanline_text_builder(transparent, color16)
+render_scanline_text_builder(base, color32)
+render_scanline_text_builder(transparent, color32)
+render_scanline_text_builder(base, alpha)
+render_scanline_text_builder(transparent, alpha)
 
 
-s32 affine_reference_x[2];
-s32 affine_reference_y[2];
+int32_t affine_reference_x[2];
+int32_t affine_reference_y[2];
 
 #define affine_render_bg_pixel_normal()                                       \
   current_pixel = palette_ram[0]                                              \
@@ -1074,16 +1074,16 @@ s32 affine_reference_y[2];
 #define affine_render_scale(combine_op, alpha_op)                             \
 {                                                                             \
   pixel_y = source_y >> 8;                                                    \
-  u32 i = 0;                                                                  \
+  uint32_t i = 0;                                                             \
   affine_render_bg_pixel_##combine_op(alpha_op);                              \
-  if((u32)pixel_y < (u32)width_height)                                        \
+  if((uint32_t)pixel_y < (uint32_t)width_height)                              \
   {                                                                           \
     affine_render_scale_offset();                                             \
     for(; i < end; i++)                                                       \
     {                                                                         \
       pixel_x = source_x >> 8;                                                \
                                                                               \
-      if((u32)pixel_x < (u32)width_height)                                    \
+      if((uint32_t)pixel_x < (uint32_t)width_height)                          \
       {                                                                       \
         break;                                                                \
       }                                                                       \
@@ -1096,7 +1096,7 @@ s32 affine_reference_y[2];
     {                                                                         \
       pixel_x = source_x >> 8;                                                \
                                                                               \
-      if((u32)pixel_x >= (u32)width_height)                                   \
+      if((uint32_t)pixel_x >= (uint32_t)width_height)                         \
         break;                                                                \
                                                                               \
       affine_render_scale_pixel(combine_op, alpha_op);                        \
@@ -1107,9 +1107,9 @@ s32 affine_reference_y[2];
 
 #define affine_render_scale_wrap(combine_op, alpha_op)                        \
 {                                                                             \
-  u32 wrap_mask = width_height - 1;                                           \
+  uint32_t wrap_mask = width_height - 1;                                      \
   pixel_y = (source_y >> 8) & wrap_mask;                                      \
-  if((u32)pixel_y < (u32)width_height)                                        \
+  if((uint32_t)pixel_y < (uint32_t)width_height)                              \
   {                                                                           \
     affine_render_scale_offset();                                             \
     for(i = 0; i < end; i++)                                                  \
@@ -1141,8 +1141,8 @@ s32 affine_reference_y[2];
     pixel_x = source_x >> 8;                                                  \
     pixel_y = source_y >> 8;                                                  \
                                                                               \
-    if(((u32)pixel_x < (u32)width_height) &&                                  \
-     ((u32)pixel_y < (u32)width_height))                                      \
+    if(((uint32_t)pixel_x < (uint32_t)width_height) &&                        \
+     ((uint32_t)pixel_y < (uint32_t)width_height))                            \
     {                                                                         \
       break;                                                                  \
     }                                                                         \
@@ -1155,8 +1155,8 @@ s32 affine_reference_y[2];
     pixel_x = source_x >> 8;                                                  \
     pixel_y = source_y >> 8;                                                  \
                                                                               \
-    if(((u32)pixel_x >= (u32)width_height) ||                                 \
-     ((u32)pixel_y >= (u32)width_height))                                     \
+    if(((uint32_t)pixel_x >= (uint32_t)width_height) ||                       \
+     ((uint32_t)pixel_y >= (uint32_t)width_height))                           \
     {                                                                         \
       affine_render_bg_remainder_##combine_op(alpha_op);                      \
       break;                                                                  \
@@ -1168,7 +1168,7 @@ s32 affine_reference_y[2];
 
 #define affine_render_rotate_wrap(combine_op, alpha_op)                       \
 {                                                                             \
-  u32 wrap_mask = width_height - 1;                                           \
+  uint32_t wrap_mask = width_height - 1;                                      \
   for(i = 0; i < end; i++)                                                    \
   {                                                                           \
     pixel_x = (source_x >> 8) & wrap_mask;                                    \
@@ -1182,30 +1182,30 @@ s32 affine_reference_y[2];
 // Build affine background renderers.
 
 #define render_scanline_affine_builder(combine_op, alpha_op)                  \
-void render_scanline_affine_##combine_op##_##alpha_op(u32 layer,              \
- u32 start, u32 end, void *scanline)                                          \
+void render_scanline_affine_##combine_op##_##alpha_op(uint32_t layer,         \
+ uint32_t start, uint32_t end, void *scanline)                                \
 {                                                                             \
   render_scanline_extra_variables_##combine_op##_##alpha_op(affine);          \
-  u32 bg_control = io_registers[REG_BG0CNT + layer];                          \
-  u32 current_pixel;                                                          \
-  s32 source_x, source_y;                                                     \
-  /*u32 vcount = io_registers[REG_VCOUNT];*/                                      \
-  u32 pixel_x, pixel_y;                                                       \
-  u32 layer_offset = (layer - 2) * 8;                                         \
-  s32 dx, dy;                                                                 \
-  u32 map_size = (bg_control >> 14) & 0x03;                                   \
-  u32 width_height = 1 << (7 + map_size);                                     \
-  u32 map_pitch = map_size + 4;                                               \
-  u8 *map_base = vram + (((bg_control >> 8) & 0x1F) * (1024 * 2));            \
-  u8 *tile_base = vram + (((bg_control >> 2) & 0x03) * (1024 * 16));          \
-  u8 *tile_ptr = NULL;                                                        \
-  u32 map_offset, last_map_offset = (u32)-1;                                  \
-  u32 i;                                                                      \
+  uint32_t bg_control = io_registers[REG_BG0CNT + layer];                     \
+  uint32_t current_pixel;                                                     \
+  int32_t source_x, source_y;                                                 \
+  /*uint32_t vcount = io_registers[REG_VCOUNT];*/                             \
+  uint32_t pixel_x, pixel_y;                                                  \
+  uint32_t layer_offset = (layer - 2) * 8;                                    \
+  int32_t dx, dy;                                                             \
+  uint32_t map_size = (bg_control >> 14) & 0x03;                              \
+  uint32_t width_height = 1 << (7 + map_size);                                \
+  uint32_t map_pitch = map_size + 4;                                          \
+  uint8_t *map_base = vram + (((bg_control >> 8) & 0x1F) * (1024 * 2));       \
+  uint8_t *tile_base = vram + (((bg_control >> 2) & 0x03) * (1024 * 16));     \
+  uint8_t *tile_ptr = NULL;                                                   \
+  uint32_t map_offset, last_map_offset = (uint32_t)-1;                        \
+  uint32_t i;                                                                 \
   render_scanline_dest_##alpha_op *dest_ptr =                                 \
    ((render_scanline_dest_##alpha_op *)scanline) + start;                     \
                                                                               \
-  dx = (s16)io_registers[REG_BG2PA + layer_offset];                           \
-  dy = (s16)io_registers[REG_BG2PC + layer_offset];                           \
+  dx = (int16_t)io_registers[REG_BG2PA + layer_offset];                       \
+  dy = (int16_t)io_registers[REG_BG2PC + layer_offset];                       \
   source_x = affine_reference_x[layer - 2] + (start * dx);                    \
   source_y = affine_reference_y[layer - 2] + (start * dy);                    \
                                                                               \
@@ -1231,14 +1231,14 @@ void render_scanline_affine_##combine_op##_##alpha_op(u32 layer,              \
   }                                                                           \
 }                                                                             \
 
-render_scanline_affine_builder(base, normal);
-render_scanline_affine_builder(transparent, normal);
-render_scanline_affine_builder(base, color16);
-render_scanline_affine_builder(transparent, color16);
-render_scanline_affine_builder(base, color32);
-render_scanline_affine_builder(transparent, color32);
-render_scanline_affine_builder(base, alpha);
-render_scanline_affine_builder(transparent, alpha);
+render_scanline_affine_builder(base, normal)
+render_scanline_affine_builder(transparent, normal)
+render_scanline_affine_builder(base, color16)
+render_scanline_affine_builder(transparent, color16)
+render_scanline_affine_builder(base, color32)
+render_scanline_affine_builder(transparent, color32)
+render_scanline_affine_builder(base, alpha)
+render_scanline_affine_builder(transparent, alpha)
 
 
 #define bitmap_render_pixel_mode3(alpha_op)                                   \
@@ -1253,7 +1253,7 @@ render_scanline_affine_builder(transparent, alpha);
 
 #define bitmap_render_scale(type, alpha_op, width, height)                    \
   pixel_y = (source_y >> 8);                                                  \
-  if((u32)pixel_y < (u32)height)                                              \
+  if((uint32_t)pixel_y < (uint32_t)height)                                    \
   {                                                                           \
     pixel_x = (source_x >> 8);                                                \
     src_ptr += (pixel_y * width);                                             \
@@ -1275,7 +1275,7 @@ render_scanline_affine_builder(transparent, alpha);
       if((pixel_x + end) >= width)                                            \
         end = (width - pixel_x);                                              \
                                                                               \
-      for(i = 0; (s32)i < (s32)end; i++)                                      \
+      for(i = 0; (int32_t)i < (int32_t)end; i++)                              \
       {                                                                       \
         current_pixel = *src_ptr;                                             \
         bitmap_render_pixel_##type(alpha_op);                                 \
@@ -1285,13 +1285,13 @@ render_scanline_affine_builder(transparent, alpha);
     }                                                                         \
     else                                                                      \
     {                                                                         \
-      if((u32)(source_y >> 8) < (u32)height)                                  \
+      if((uint32_t)(source_y >> 8) < (uint32_t)height)                        \
       {                                                                       \
         for(i = 0; i < end; i++)                                              \
         {                                                                     \
           pixel_x = (source_x >> 8);                                          \
                                                                               \
-          if((u32)pixel_x < (u32)width)                                       \
+          if((uint32_t)pixel_x < (uint32_t)width)                             \
             break;                                                            \
                                                                               \
           source_x += dx;                                                     \
@@ -1302,7 +1302,7 @@ render_scanline_affine_builder(transparent, alpha);
         {                                                                     \
           pixel_x = (source_x >> 8);                                          \
                                                                               \
-          if((u32)pixel_x >= (u32)width)                                      \
+          if((uint32_t)pixel_x >= (uint32_t)width)                            \
             break;                                                            \
                                                                               \
           current_pixel = src_ptr[pixel_x];                                   \
@@ -1321,7 +1321,8 @@ render_scanline_affine_builder(transparent, alpha);
     pixel_x = source_x >> 8;                                                  \
     pixel_y = source_y >> 8;                                                  \
                                                                               \
-    if(((u32)pixel_x < (u32)width) && ((u32)pixel_y < (u32)height))           \
+    if(((uint32_t)pixel_x < (uint32_t)width) &&                               \
+     ((uint32_t)pixel_y < (uint32_t)height))                                  \
       break;                                                                  \
                                                                               \
     source_x += dx;                                                           \
@@ -1334,7 +1335,8 @@ render_scanline_affine_builder(transparent, alpha);
     pixel_x = (source_x >> 8);                                                \
     pixel_y = (source_y >> 8);                                                \
                                                                               \
-    if(((u32)pixel_x >= (u32)width) || ((u32)pixel_y >= (u32)height))         \
+    if(((uint32_t)pixel_x >= (uint32_t)width) ||                              \
+     ((uint32_t)pixel_y >= (uint32_t)height))                                 \
       break;                                                                  \
                                                                               \
     current_pixel = src_ptr[pixel_x + (pixel_y * width)];                     \
@@ -1347,37 +1349,37 @@ render_scanline_affine_builder(transparent, alpha);
 
 
 #define render_scanline_vram_setup_mode3()                                    \
-  u16 *src_ptr = (u16 *)vram                                                  \
+  uint16_t *src_ptr = (uint16_t *)vram                                        \
 
 #define render_scanline_vram_setup_mode5()                                    \
-  u16 *src_ptr;                                                               \
+  uint16_t *src_ptr;                                                          \
   if(io_registers[REG_DISPCNT] & 0x10)                                        \
-    src_ptr = (u16 *)(vram + 0xA000);                                         \
+    src_ptr = (uint16_t *)(vram + 0xA000);                                    \
   else                                                                        \
-    src_ptr = (u16 *)vram                                                     \
+    src_ptr = (uint16_t *)vram                                                \
 
 #define render_scanline_vram_setup_mode4()                                    \
-  u16 *palette = palette_ram;                                                 \
-  u8 *src_ptr;                                                                \
+  uint16_t *palette = palette_ram;                                            \
+  uint8_t *src_ptr;                                                           \
   if(io_registers[REG_DISPCNT] & 0x10)                                        \
-    src_ptr = (u8*)(vram + 0xA000);                                           \
+    src_ptr = (uint8_t*)(vram + 0xA000);                                      \
   else                                                                        \
-    src_ptr = (u8*)(vram)                                                     \
+    src_ptr = (uint8_t*)(vram)                                                \
 
 // Build bitmap scanline rendering functions.
 
 #define render_scanline_bitmap_builder(type, alpha_op, width, height)         \
-void render_scanline_bitmap_##type##_##alpha_op(u32 start, u32 end,           \
+void render_scanline_bitmap_##type##_##alpha_op(uint32_t start, uint32_t end, \
  void *scanline)                                                              \
 {                                                                             \
-  u32 current_pixel;                                                          \
-  s32 source_x, source_y;                                                     \
-  s32 pixel_x, pixel_y;                                                       \
+  uint32_t current_pixel;                                                     \
+  int32_t source_x, source_y;                                                 \
+  int32_t pixel_x, pixel_y;                                                   \
                                                                               \
-  s32 dx = (s16)io_registers[REG_BG2PA];                                      \
-  s32 dy = (s16)io_registers[REG_BG2PC];                                      \
+  int32_t dx = (int16_t)io_registers[REG_BG2PA];                              \
+  int32_t dy = (int16_t)io_registers[REG_BG2PC];                              \
                                                                               \
-  u32 i;                                                                      \
+  uint32_t i;                                                                 \
                                                                               \
   render_scanline_dest_##alpha_op *dest_ptr =                                 \
    ((render_scanline_dest_##alpha_op *)scanline) + start;                     \
@@ -1398,9 +1400,9 @@ void render_scanline_bitmap_##type##_##alpha_op(u32 start, u32 end,           \
   }                                                                           \
 }                                                                             \
 
-render_scanline_bitmap_builder(mode3, normal, 240, 160);
-render_scanline_bitmap_builder(mode4, normal, 240, 160);
-render_scanline_bitmap_builder(mode5, normal, 160, 128);
+render_scanline_bitmap_builder(mode3, normal, 240, 160)
+render_scanline_bitmap_builder(mode4, normal, 240, 160)
+render_scanline_bitmap_builder(mode5, normal, 160, 128)
 
 
 // Fill in the renderers for a layer based on the mode type,
@@ -1514,11 +1516,11 @@ bitmap_layer_render_struct bitmap_mode_renderers[3] =
   obj_get_palette_##color_depth();                                            \
   obj_tile_offset_##map_space(color_depth, flip_op);                          \
                                                                               \
-  if(obj_x < (s32)start)                                                      \
+  if(obj_x < (int32_t)start)                                                  \
   {                                                                           \
     dest_ptr = scanline + start;                                              \
     pixel_run = obj_width - (start - obj_x);                                  \
-    if((s32)pixel_run > 0)                                                    \
+    if((int32_t)pixel_run > 0)                                                \
     {                                                                         \
       if((obj_x + obj_width) >= end)                                          \
       {                                                                       \
@@ -1530,9 +1532,9 @@ bitmap_layer_render_struct bitmap_mode_renderers[3] =
         if(partial_tile_offset)                                               \
         {                                                                     \
           partial_tile_run = 8 - partial_tile_offset;                         \
-          if((s32)pixel_run < (s32)partial_tile_run)                          \
+          if((int32_t)pixel_run < (int32_t)partial_tile_run)                  \
           {                                                                   \
-            if((s32)pixel_run > 0)                                            \
+            if((int32_t)pixel_run > 0)                                        \
             {                                                                 \
               partial_tile_run = pixel_run;                                   \
               partial_tile_mid_obj(combine_op, color_depth, alpha_op,         \
@@ -1577,7 +1579,7 @@ bitmap_layer_render_struct bitmap_mode_renderers[3] =
   if((obj_x + obj_width) >= end)                                              \
   {                                                                           \
     pixel_run = end - obj_x;                                                  \
-    if((s32)pixel_run > 0)                                                    \
+    if((int32_t)pixel_run > 0)                                                \
     {                                                                         \
       dest_ptr = scanline + obj_x;                                            \
       tile_run = pixel_run / 8;                                               \
@@ -1629,10 +1631,10 @@ bitmap_layer_render_struct bitmap_mode_renderers[3] =
 
 #define obj_render_scale(combine_op, color_depth, alpha_op, map_space)        \
 {                                                                             \
-  u32 vertical_offset;                                                        \
+  uint32_t vertical_offset;                                                   \
   source_y += (y_delta * dmy);                                                \
   vertical_offset = (source_y >> 8);                                          \
-  if((u32)vertical_offset < (u32)max_y)                                       \
+  if((uint32_t)vertical_offset < (uint32_t)max_y)                             \
   {                                                                           \
     obj_scale_offset_##map_space(color_depth);                                \
     source_x += (y_delta * dmx) - (middle_x * dx);                            \
@@ -1641,7 +1643,7 @@ bitmap_layer_render_struct bitmap_mode_renderers[3] =
     {                                                                         \
       tile_x = (source_x >> 8);                                               \
                                                                               \
-      if((u32)tile_x < (u32)max_x)                                            \
+      if((uint32_t)tile_x < (uint32_t)max_x)                                  \
         break;                                                                \
                                                                               \
       source_x += dx;                                                         \
@@ -1652,7 +1654,7 @@ bitmap_layer_render_struct bitmap_mode_renderers[3] =
     {                                                                         \
       tile_x = (source_x >> 8);                                               \
                                                                               \
-      if((u32)tile_x >= (u32)max_x)                                           \
+      if((uint32_t)tile_x >= (uint32_t)max_x)                                 \
         break;                                                                \
                                                                               \
       tile_map_offset = (tile_x >> 3) * tile_size_##color_depth;              \
@@ -1703,7 +1705,8 @@ bitmap_layer_render_struct bitmap_mode_renderers[3] =
     tile_x = (source_x >> 8);                                                 \
     tile_y = (source_y >> 8);                                                 \
                                                                               \
-    if(((u32)tile_x < (u32)max_x) && ((u32)tile_y < (u32)max_y))              \
+    if(((uint32_t)tile_x < (uint32_t)max_x) &&                                \
+     ((uint32_t)tile_y < (uint32_t)max_y))                                    \
       break;                                                                  \
                                                                               \
     source_x += dx;                                                           \
@@ -1716,7 +1719,8 @@ bitmap_layer_render_struct bitmap_mode_renderers[3] =
     tile_x = (source_x >> 8);                                                 \
     tile_y = (source_y >> 8);                                                 \
                                                                               \
-    if(((u32)tile_x >= (u32)max_x) || ((u32)tile_y >= (u32)max_y))            \
+    if(((uint32_t)tile_x >= (uint32_t)max_x) ||                               \
+     ((uint32_t)tile_y >= (uint32_t)max_y))                                   \
       break;                                                                  \
                                                                               \
     tile_map_offset = ((tile_x >> 3) * tile_size_##color_depth) +             \
@@ -1733,22 +1737,22 @@ bitmap_layer_render_struct bitmap_mode_renderers[3] =
 
 #define obj_render_affine(combine_op, color_depth, alpha_op, map_space)       \
 {                                                                             \
-  s16 *params = (s16 *)(oam_ram + (((obj_attribute_1 >> 9) & 0x1F) * 16));             \
-  s32 dx = params[3];                                                         \
-  s32 dmx = params[7];                                                        \
-  s32 dy = params[11];                                                        \
-  s32 dmy = params[15];                                                       \
-  s32 source_x, source_y;                                                     \
-  s32 tile_x, tile_y;                                                         \
-  /*u32 tile_offset;*/                                                            \
-  u32 tile_map_offset;                                                        \
-  s32 middle_x;                                                               \
-  s32 middle_y;                                                               \
-  s32 max_x = obj_width;                                                      \
-  s32 max_y = obj_height;                                                     \
-  s32 y_delta;                                                                \
-  u32 obj_pitch = tile_width_##color_depth;                                   \
-  u32 obj_tile_pitch;                                                         \
+  int16_t *params = (int16_t *)(oam_ram + (((obj_attribute_1 >> 9) & 0x1F) * 16)); \
+  int32_t dx = params[3];                                                     \
+  int32_t dmx = params[7];                                                    \
+  int32_t dy = params[11];                                                    \
+  int32_t dmy = params[15];                                                   \
+  int32_t source_x, source_y;                                                 \
+  int32_t tile_x, tile_y;                                                     \
+  /*uint32_t tile_offset;*/                                                   \
+  uint32_t tile_map_offset;                                                   \
+  int32_t middle_x;                                                           \
+  int32_t middle_y;                                                           \
+  int32_t max_x = obj_width;                                                  \
+  int32_t max_y = obj_height;                                                 \
+  int32_t y_delta;                                                            \
+  uint32_t obj_pitch = tile_width_##color_depth;                              \
+  uint32_t obj_tile_pitch;                                                    \
                                                                               \
   middle_x = (obj_width / 2);                                                 \
   middle_y = (obj_height / 2);                                                \
@@ -1765,22 +1769,22 @@ bitmap_layer_render_struct bitmap_mode_renderers[3] =
     middle_y *= 2;                                                            \
   }                                                                           \
                                                                               \
-  if((s32)obj_x < (s32)start)                                                 \
+  if((int32_t)obj_x < (int32_t)start)                                         \
   {                                                                           \
-    u32 x_delta = start - obj_x;                                              \
+    uint32_t x_delta = start - obj_x;                                         \
     middle_x -= x_delta;                                                      \
     obj_width -= x_delta;                                                     \
     obj_x = start;                                                            \
                                                                               \
-    if((s32)obj_width <= 0)                                                   \
+    if((int32_t)obj_width <= 0)                                               \
       continue;                                                               \
   }                                                                           \
                                                                               \
-  if((s32)(obj_x + obj_width) >= (s32)end)                                    \
+  if((int32_t)(obj_x + obj_width) >= (int32_t)end)                            \
   {                                                                           \
     obj_width = end - obj_x;                                                  \
                                                                               \
-    if((s32)obj_width <= 0)                                                   \
+    if((int32_t)obj_width <= 0)                                               \
       continue;                                                               \
   }                                                                           \
   dest_ptr = scanline + obj_x;                                                \
@@ -1799,25 +1803,25 @@ bitmap_layer_render_struct bitmap_mode_renderers[3] =
   }                                                                           \
 }                                                                             \
 
-const u8 obj_width_table[12] = {  8, 16, 32, 64, 16, 32, 32, 64, 8, 8, 16, 32 };
-const u8 obj_height_table[12] = {  8, 16, 32, 64, 8, 8, 16, 32, 16, 32, 32, 64 };
+const uint8_t obj_width_table[12] = {  8, 16, 32, 64, 16, 32, 32, 64, 8, 8, 16, 32 };
+const uint8_t obj_height_table[12] = {  8, 16, 32, 64, 8, 8, 16, 32, 16, 32, 32, 64 };
 
-u8 obj_priority_list[5][160][128];
-u8 obj_priority_count[5][160];
-u8 obj_alpha_count[160];
+uint8_t obj_priority_list[5][160][128];
+uint8_t obj_priority_count[5][160];
+uint8_t obj_alpha_count[160];
 
 
 // Build obj rendering functions
 
 #define render_scanline_obj_extra_variables_normal(bg_type)                   \
-  u16 *palette = palette_ram + 256                                  \
+  uint16_t *palette = palette_ram + 256                                       \
 
 #define render_scanline_obj_extra_variables_color()                           \
-  u32 dest;                                                                   \
-  u32 pixel_combine = color_combine_mask(4) | (1 << 8)                        \
+  uint32_t dest;                                                              \
+  uint32_t pixel_combine = color_combine_mask(4) | (1 << 8)                   \
 
 #define render_scanline_obj_extra_variables_color2()                          \
-  u32 pixel_combine = color_combine_mask(4) | (1 << 8)                        \
+  uint32_t pixel_combine = color_combine_mask(4) | (1 << 8)                   \
 
 #define render_scanline_obj_extra_variables_alpha_obj(map_space)              \
   render_scanline_obj_extra_variables_color();                                \
@@ -1835,16 +1839,16 @@ u8 obj_alpha_count[160];
 
 #define render_scanline_obj_extra_variables_partial_alpha(map_space)          \
   render_scanline_obj_extra_variables_color();                                \
-  u32 base_pixel_combine = pixel_combine                                      \
+  uint32_t base_pixel_combine = pixel_combine                                 \
 
 #define render_scanline_obj_extra_variables_copy(type)                        \
-  u32 bldcnt = io_registers[REG_BLDCNT];                                      \
-  u32 dispcnt = io_registers[REG_DISPCNT];                                    \
-  u32 obj_enable = io_registers[REG_WINOUT] >> 8;                             \
+  uint32_t bldcnt = io_registers[REG_BLDCNT];                                 \
+  uint32_t dispcnt = io_registers[REG_DISPCNT];                               \
+  uint32_t obj_enable = io_registers[REG_WINOUT] >> 8;                        \
   render_scanline_layer_functions_##type();                                   \
-  u32 copy_start, copy_end;                                                   \
-  u16 copy_buffer[240];                                                       \
-  u16 *copy_ptr                                                               \
+  uint32_t copy_start, copy_end;                                              \
+  uint16_t copy_buffer[240];                                                  \
+  uint16_t *copy_ptr                                                          \
 
 #define render_scanline_obj_extra_variables_copy_tile(map_space)              \
   render_scanline_obj_extra_variables_copy(tile)                              \
@@ -1945,29 +1949,29 @@ u8 obj_alpha_count[160];
 
 #define render_scanline_obj_builder(combine_op, alpha_op, map_space,          \
  partial_alpha_op)                                                            \
-void render_scanline_obj_##alpha_op##_##map_space(u32 priority,               \
- u32 start, u32 end, render_scanline_dest_##alpha_op *scanline)               \
+void render_scanline_obj_##alpha_op##_##map_space(uint32_t priority,          \
+ uint32_t start, uint32_t end, render_scanline_dest_##alpha_op *scanline)     \
 {                                                                             \
   render_scanline_obj_extra_variables_##alpha_op(map_space);                  \
-  s32 obj_num, i;                                                             \
-  s32 obj_x, obj_y;                                                           \
-  s32 obj_size;                                                               \
-  s32 obj_width, obj_height;                                                  \
-  u32 obj_attribute_0, obj_attribute_1, obj_attribute_2;                      \
-  s32 vcount = io_registers[REG_VCOUNT];                                      \
-  u32 tile_run;                                                               \
-  u32 current_pixels;                                                         \
-  u32 current_pixel;                                                          \
-  u32 current_palette;                                                        \
-  u32 vertical_offset;                                                        \
-  u32 partial_tile_run, partial_tile_offset;                                  \
-  u32 pixel_run;                                                              \
-  u16 *oam_ptr;                                                               \
+  int32_t obj_num, i;                                                         \
+  int32_t obj_x, obj_y;                                                       \
+  int32_t obj_size;                                                           \
+  int32_t obj_width, obj_height;                                              \
+  uint32_t obj_attribute_0, obj_attribute_1, obj_attribute_2;                 \
+  int32_t vcount = io_registers[REG_VCOUNT];                                  \
+  uint32_t tile_run;                                                          \
+  uint32_t current_pixels;                                                    \
+  uint32_t current_pixel;                                                     \
+  uint32_t current_palette;                                                   \
+  uint32_t vertical_offset;                                                   \
+  uint32_t partial_tile_run, partial_tile_offset;                             \
+  uint32_t pixel_run;                                                         \
+  uint16_t *oam_ptr;                                                          \
   render_scanline_dest_##alpha_op *dest_ptr;                                  \
-  u8 *tile_base = vram + 0x10000;                                             \
-  u8 *tile_ptr;                                                               \
-  u32 obj_count = obj_priority_count[priority][vcount];                       \
-  u8 *obj_list = obj_priority_list[priority][vcount];                         \
+  uint8_t *tile_base = vram + 0x10000;                                        \
+  uint8_t *tile_ptr;                                                          \
+  uint32_t obj_count = obj_priority_count[priority][vcount];                  \
+  uint8_t *obj_list = obj_priority_list[priority][vcount];                    \
                                                                               \
   for(obj_num = 0; obj_num < obj_count; obj_num++)                            \
   {                                                                           \
@@ -1977,8 +1981,8 @@ void render_scanline_obj_##alpha_op##_##map_space(u32 priority,               \
     obj_attribute_2 = oam_ptr[2];                                             \
     obj_size = ((obj_attribute_0 >> 12) & 0x0C) | (obj_attribute_1 >> 14);    \
                                                                               \
-    obj_x = (s32)(obj_attribute_1 << 23) >> 23;                               \
-    obj_width = (s32)obj_width_table[obj_size];                                    \
+    obj_x = (int32_t)(obj_attribute_1 << 23) >> 23;                           \
+    obj_width = (int32_t)obj_width_table[obj_size];                           \
                                                                               \
     render_scanline_obj_prologue_##combine_op(alpha_op);                      \
                                                                               \
@@ -1992,35 +1996,35 @@ void render_scanline_obj_##alpha_op##_##map_space(u32 priority,               \
   }                                                                           \
 }                                                                             \
 
-render_scanline_obj_builder(transparent, normal, 1D, no_partial_alpha);
-render_scanline_obj_builder(transparent, normal, 2D, no_partial_alpha);
-render_scanline_obj_builder(transparent, color16, 1D, no_partial_alpha);
-render_scanline_obj_builder(transparent, color16, 2D, no_partial_alpha);
-render_scanline_obj_builder(transparent, color32, 1D, no_partial_alpha);
-render_scanline_obj_builder(transparent, color32, 2D, no_partial_alpha);
-render_scanline_obj_builder(transparent, alpha_obj, 1D, no_partial_alpha);
-render_scanline_obj_builder(transparent, alpha_obj, 2D, no_partial_alpha);
-render_scanline_obj_builder(transparent, partial_alpha, 1D, partial_alpha);
-render_scanline_obj_builder(transparent, partial_alpha, 2D, partial_alpha);
-render_scanline_obj_builder(copy, copy_tile, 1D, no_partial_alpha);
-render_scanline_obj_builder(copy, copy_tile, 2D, no_partial_alpha);
-render_scanline_obj_builder(copy, copy_bitmap, 1D, no_partial_alpha);
-render_scanline_obj_builder(copy, copy_bitmap, 2D, no_partial_alpha);
+render_scanline_obj_builder(transparent, normal, 1D, no_partial_alpha)
+render_scanline_obj_builder(transparent, normal, 2D, no_partial_alpha)
+render_scanline_obj_builder(transparent, color16, 1D, no_partial_alpha)
+render_scanline_obj_builder(transparent, color16, 2D, no_partial_alpha)
+render_scanline_obj_builder(transparent, color32, 1D, no_partial_alpha)
+render_scanline_obj_builder(transparent, color32, 2D, no_partial_alpha)
+render_scanline_obj_builder(transparent, alpha_obj, 1D, no_partial_alpha)
+render_scanline_obj_builder(transparent, alpha_obj, 2D, no_partial_alpha)
+render_scanline_obj_builder(transparent, partial_alpha, 1D, partial_alpha)
+render_scanline_obj_builder(transparent, partial_alpha, 2D, partial_alpha)
+render_scanline_obj_builder(copy, copy_tile, 1D, no_partial_alpha)
+render_scanline_obj_builder(copy, copy_tile, 2D, no_partial_alpha)
+render_scanline_obj_builder(copy, copy_bitmap, 1D, no_partial_alpha)
+render_scanline_obj_builder(copy, copy_bitmap, 2D, no_partial_alpha)
 
 // TODO 高速化
 // 前回のレジスタの内容と比較して、変更無し時は処理をスキップすれば高速化できるかも
 // オブジェクトを優先順位にあわせて並べ替える。
-void order_obj(u32 video_mode)
+void order_obj(uint32_t video_mode)
 {
-  s8  obj_num;
-  u8  row;
-  s16 obj_x, obj_y;
-  u16 obj_size;
-  u8  obj_mode;
-  u8  obj_width, obj_height;
-  u8  obj_priority;
-  u16 obj_attribute_0, obj_attribute_1, obj_attribute_2;
-  u16 *oam_ptr = oam_ram + 508;
+  int8_t   obj_num;
+  uint8_t  row;
+  int16_t  obj_x, obj_y;
+  uint16_t obj_size;
+  uint8_t  obj_mode;
+  uint8_t  obj_width, obj_height;
+  uint8_t  obj_priority;
+  uint16_t obj_attribute_0, obj_attribute_1, obj_attribute_2;
+  uint16_t *oam_ptr = oam_ram + 508;
 
   memset( obj_priority_count, 0, sizeof(obj_priority_count) );
   memset( obj_alpha_count, 0, sizeof(obj_alpha_count) );
@@ -2053,7 +2057,7 @@ void order_obj(u32 video_mode)
 
       if(((obj_y + obj_height) > 0) && (obj_y < 160))
       {
-        obj_x = (s32)(obj_attribute_1 << 23) >> 23;
+        obj_x = (int32_t)(obj_attribute_1 << 23) >> 23;
 
         if(((obj_x + obj_width) > 0) && (obj_x < 240))
         {
@@ -2068,7 +2072,7 @@ void order_obj(u32 video_mode)
             obj_height = 160 - obj_y;
           }
 
-          u32 temp = obj_y + obj_height;
+          uint32_t temp = obj_y + obj_height;
 
           switch (obj_mode)
           {
@@ -2095,13 +2099,13 @@ void order_obj(u32 video_mode)
   }
 }
 
-u8 layer_order[16];
-u8 layer_count;
+uint8_t layer_order[16];
+uint8_t layer_count;
 
 // レイヤーのソート
-void order_layers(u8 layer_flags)
+void order_layers(uint8_t layer_flags)
 {
-  s8 priority, layer_number;
+  int8_t priority, layer_number;
   layer_count = 0;
 
   for(priority = 3; priority >= 0; priority--)
@@ -2126,7 +2130,7 @@ void order_layers(u8 layer_flags)
 }
 
 #define fill_line(_start, _end)                                               \
-  u32 i;                                                                      \
+  uint32_t i;                                                                 \
                                                                               \
   for(i = _start; i < _end; i++)                                              \
   {                                                                           \
@@ -2144,17 +2148,17 @@ void order_layers(u8 layer_flags)
 #define fill_line_color_color32()                                             \
 
 #define fill_line_builder(type)                                               \
-void fill_line_##type(u16 color, render_scanline_dest_##type *dest_ptr,       \
- u32 start, u32 end)                                                          \
+void fill_line_##type(uint16_t color, render_scanline_dest_##type *dest_ptr,  \
+ uint32_t start, uint32_t end)                                                \
 {                                                                             \
   fill_line_color_##type();                                                   \
   fill_line(start, end);                                                      \
 }                                                                             \
 
-fill_line_builder(normal);
-fill_line_builder(alpha);
-fill_line_builder(color16);
-fill_line_builder(color32);
+fill_line_builder(normal)
+fill_line_builder(alpha)
+fill_line_builder(color16)
+fill_line_builder(color32)
 
 // Alpha blend two pixels (pixel_top and pixel_bottom).
 
@@ -2277,15 +2281,15 @@ fill_line_builder(color32);
 
 #define expand_normal(screen_ptr, start, end)
 
-void expand_blend(u32 *screen_src_ptr, u16 *screen_dest_ptr,
- u32 start, u32 end)
+void expand_blend(uint32_t *screen_src_ptr, uint16_t *screen_dest_ptr,
+ uint32_t start, uint32_t end)
 {
-  u32 pixel_pair;
-  u32 pixel_top, pixel_bottom;
-  u32 bldalpha = io_registers[REG_BLDALPHA];
-  u32 blend_a = bldalpha & 0x1F;
-  u32 blend_b = (bldalpha >> 8) & 0x1F;
-  u32 i;
+  uint32_t pixel_pair;
+  uint32_t pixel_top, pixel_bottom;
+  uint32_t bldalpha = io_registers[REG_BLDALPHA];
+  uint32_t blend_a = bldalpha & 0x1F;
+  uint32_t blend_b = (bldalpha >> 8) & 0x1F;
+  uint32_t i;
 
   if(blend_a > 16)
     blend_a = 16;
@@ -2307,12 +2311,12 @@ void expand_blend(u32 *screen_src_ptr, u16 *screen_dest_ptr,
 
 // Blend scanline with white.
 
-void expand_darken(u16 *screen_src_ptr, u16 *screen_dest_ptr,
- u32 start, u32 end)
+void expand_darken(uint16_t *screen_src_ptr, uint16_t *screen_dest_ptr,
+ uint32_t start, uint32_t end)
 {
-  u32 pixel_top;
-  s32 blend = 16 - (io_registers[REG_BLDY] & 0x1F);
-  u32 i;
+  uint32_t pixel_top;
+  int32_t blend = 16 - (io_registers[REG_BLDY] & 0x1F);
+  uint32_t i;
 
   if(blend < 0)
     blend = 0;
@@ -2323,13 +2327,13 @@ void expand_darken(u16 *screen_src_ptr, u16 *screen_dest_ptr,
 
 // Blend scanline with black.
 
-void expand_brighten(u16 *screen_src_ptr, u16 *screen_dest_ptr,
- u32 start, u32 end)
+void expand_brighten(uint16_t *screen_src_ptr, uint16_t *screen_dest_ptr,
+ uint32_t start, uint32_t end)
 {
-  u32 pixel_top;
-  u32 blend = io_registers[REG_BLDY] & 0x1F;
-  u32 upper;
-  u32 i;
+  uint32_t pixel_top;
+  uint32_t blend = io_registers[REG_BLDY] & 0x1F;
+  uint32_t upper;
+  uint32_t i;
 
   if(blend > 16)
     blend = 16;
@@ -2345,16 +2349,16 @@ void expand_brighten(u16 *screen_src_ptr, u16 *screen_dest_ptr,
 // Expand scanline such that if both top and bottom pass it's alpha,
 // if only top passes it's as specified, and if neither pass it's normal.
 
-void expand_darken_partial_alpha(u32 *screen_src_ptr, u16 *screen_dest_ptr,
- u32 start, u32 end)
+void expand_darken_partial_alpha(uint32_t *screen_src_ptr, uint16_t *screen_dest_ptr,
+ uint32_t start, uint32_t end)
 {
-  s32 blend = 16 - (io_registers[REG_BLDY] & 0x1F);
-  u32 pixel_pair;
-  u32 pixel_top, pixel_bottom;
-  u32 bldalpha = io_registers[REG_BLDALPHA];
-  u32 blend_a = bldalpha & 0x1F;
-  u32 blend_b = (bldalpha >> 8) & 0x1F;
-  u32 i;
+  int32_t blend = 16 - (io_registers[REG_BLDY] & 0x1F);
+  uint32_t pixel_pair;
+  uint32_t pixel_top, pixel_bottom;
+  uint32_t bldalpha = io_registers[REG_BLDALPHA];
+  uint32_t blend_a = bldalpha & 0x1F;
+  uint32_t blend_b = (bldalpha >> 8) & 0x1F;
+  uint32_t i;
 
   if(blend < 0)
     blend = 0;
@@ -2369,17 +2373,17 @@ void expand_darken_partial_alpha(u32 *screen_src_ptr, u16 *screen_dest_ptr,
 }
 
 
-void expand_brighten_partial_alpha(u32 *screen_src_ptr, u16 *screen_dest_ptr,
- u32 start, u32 end)
+void expand_brighten_partial_alpha(uint32_t *screen_src_ptr, uint16_t *screen_dest_ptr,
+ uint32_t start, uint32_t end)
 {
-  s32 blend = io_registers[REG_BLDY] & 0x1F;
-  u32 pixel_pair;
-  u32 pixel_top, pixel_bottom;
-  u32 bldalpha = io_registers[REG_BLDALPHA];
-  u32 blend_a = bldalpha & 0x1F;
-  u32 blend_b = (bldalpha >> 8) & 0x1F;
-  u32 upper;
-  u32 i;
+  int32_t blend = io_registers[REG_BLDY] & 0x1F;
+  uint32_t pixel_pair;
+  uint32_t pixel_top, pixel_bottom;
+  uint32_t bldalpha = io_registers[REG_BLDALPHA];
+  uint32_t blend_a = bldalpha & 0x1F;
+  uint32_t blend_b = (bldalpha >> 8) & 0x1F;
+  uint32_t upper;
+  uint32_t i;
 
   if(blend > 16)
     blend = 16;
@@ -2465,7 +2469,7 @@ void expand_brighten_partial_alpha(u32 *screen_src_ptr, u16 *screen_dest_ptr,
     if(obj_alpha_count[io_registers[REG_VCOUNT]] > 0)                         \
     {                                                                         \
       /* Render based on special effects mode. */                             \
-      u32 screen_buffer[240];                                                 \
+      uint32_t screen_buffer[240];                                            \
       switch((bldcnt >> 6) & 0x03)                                            \
       {                                                                       \
         /* Alpha blend */                                                     \
@@ -2520,7 +2524,7 @@ void expand_brighten_partial_alpha(u32 *screen_src_ptr, u16 *screen_dest_ptr,
         {                                                                     \
           if(alpha_condition)                                                 \
           {                                                                   \
-            u32 screen_buffer[240];                                           \
+            uint32_t screen_buffer[240];                                      \
             renderer(alpha, alpha_obj, screen_buffer);                        \
             expand_blend(screen_buffer, scanline, _start, _end);              \
             return;                                                           \
@@ -2559,7 +2563,7 @@ void expand_brighten_partial_alpha(u32 *screen_src_ptr, u16 *screen_dest_ptr,
   }                                                                           \
   else                                                                        \
   {                                                                           \
-    u32 pixel_top = palette_ram[0];                                 \
+    uint32_t pixel_top = palette_ram[0];                                      \
     switch((bldcnt >> 6) & 0x03)                                              \
     {                                                                         \
       /* Fade to white */                                                     \
@@ -2567,8 +2571,8 @@ void expand_brighten_partial_alpha(u32 *screen_src_ptr, u16 *screen_dest_ptr,
       {                                                                       \
         if(color_combine_mask_a(5))                                           \
         {                                                                     \
-          u32 blend = io_registers[REG_BLDY] & 0x1F;                          \
-          u32 upper;                                                          \
+          uint32_t blend = io_registers[REG_BLDY] & 0x1F;                     \
+          uint32_t upper;                                                     \
                                                                               \
           if(blend > 16)                                                      \
             blend = 16;                                                       \
@@ -2586,7 +2590,7 @@ void expand_brighten_partial_alpha(u32 *screen_src_ptr, u16 *screen_dest_ptr,
       {                                                                       \
         if(color_combine_mask_a(5))                                           \
         {                                                                     \
-          s32 blend = 16 - (io_registers[REG_BLDY] & 0x1F);                   \
+          int32_t blend = 16 - (io_registers[REG_BLDY] & 0x1F);               \
                                                                               \
           if(blend < 0)                                                       \
             blend = 0;                                                        \
@@ -2603,11 +2607,11 @@ void expand_brighten_partial_alpha(u32 *screen_src_ptr, u16 *screen_dest_ptr,
 
 // Renders an entire scanline from 0 to 240, based on current color mode.
 
-void render_scanline_tile(u16 *scanline, u32 dispcnt)
+void render_scanline_tile(uint16_t *scanline, uint32_t dispcnt)
 {
-  u8 current_layer;
-  u8 layer_order_pos;
-  u32 bldcnt = io_registers[REG_BLDCNT];
+  uint8_t current_layer;
+  uint8_t layer_order_pos;
+  uint32_t bldcnt = io_registers[REG_BLDCNT];
   render_scanline_layer_functions_tile();
 
   render_layers_color_effect(render_layers, layer_count,
@@ -2615,12 +2619,12 @@ void render_scanline_tile(u16 *scanline, u32 dispcnt)
 }
 
 // VIDEO MODE 3,4,5/非ウィンドウモード時の描画
-void render_scanline_bitmap(u16 *scanline, u32 dispcnt)
+void render_scanline_bitmap(uint16_t *scanline, uint32_t dispcnt)
 {
   // layer_renderersをVIDEO MODEより設定
   render_scanline_layer_functions_bitmap();
-  u8 current_layer;
-  u8 layer_order_pos;
+  uint8_t current_layer;
+  uint8_t layer_order_pos;
 
   fill_line_bg(normal, scanline, 0, 240);
 
@@ -2736,12 +2740,12 @@ void render_scanline_bitmap(u16 *scanline, u32 dispcnt)
 // Render all of the BG and OBJ in a tiled scanline from start to end ONLY if
 // enable_flag allows that layer/OBJ. Also conditionally render color effects.
 
-void render_scanline_conditional_tile(u32 start, u32 end, u16 *scanline,
- u32 enable_flags, u32 dispcnt, u32 bldcnt, tile_layer_render_struct
+void render_scanline_conditional_tile(uint32_t start, uint32_t end, uint16_t *scanline,
+ uint32_t enable_flags, uint32_t dispcnt, uint32_t bldcnt, tile_layer_render_struct
  *layer_renderers)
 {
-  u8 current_layer;
-  u8 layer_order_pos = 0;
+  uint8_t current_layer;
+  uint8_t layer_order_pos = 0;
 
   render_layers_color_effect(render_layers_conditional,
    (layer_count && (enable_flags & 0x1F)),
@@ -2753,12 +2757,12 @@ void render_scanline_conditional_tile(u32 start, u32 end, u16 *scanline,
 // Render the BG and OBJ in a bitmap scanline from start to end ONLY if
 // enable_flag allows that layer/OBJ. Also conditionally render color effects.
 
-void render_scanline_conditional_bitmap(u32 start, u32 end, u16 *scanline,
- u32 enable_flags, u32 dispcnt, u32 bldcnt, bitmap_layer_render_struct
+void render_scanline_conditional_bitmap(uint32_t start, uint32_t end, uint16_t *scanline,
+ uint32_t enable_flags, uint32_t dispcnt, uint32_t bldcnt, bitmap_layer_render_struct
  *layer_renderers)
 {
-  u8 current_layer;
-  u8 layer_order_pos;
+  uint8_t current_layer;
+  uint8_t layer_order_pos;
 
   fill_line_bg(normal, scanline, start, end);
 
@@ -2796,9 +2800,9 @@ void render_scanline_conditional_bitmap(u32 start, u32 end, u16 *scanline,
     window_##window_number##_x2 = 240                                         \
 
 #define window_coords(window_number)                                          \
-  u32 window_##window_number##_x1, window_##window_number##_x2;               \
-  u32 window_##window_number##_y1, window_##window_number##_y2;               \
-  u32 window_##window_number##_enable = 0;                                    \
+  uint32_t window_##window_number##_x1, window_##window_number##_x2;          \
+  uint32_t window_##window_number##_y1, window_##window_number##_y2;          \
+  uint32_t window_##window_number##_enable = 0;                               \
   window_##window_number##_y1 =                                               \
    io_registers[REG_WIN##window_number##V] >> 8;                              \
   window_##window_number##_y2 =                                               \
@@ -2971,7 +2975,7 @@ void render_scanline_conditional_bitmap(u32 start, u32 end, u16 *scanline,
   }                                                                           \
 
 #define render_window_single(type, window_number)                             \
-  u32 winin = io_registers[REG_WININ];                                        \
+  uint32_t winin = io_registers[REG_WININ];                                   \
   window_coords(window_number);                                               \
   if(window_##window_number##_x1 > window_##window_number##_x2)               \
   {                                                                           \
@@ -3007,12 +3011,12 @@ void render_scanline_conditional_bitmap(u32 start, u32 end, u16 *scanline,
   }                                                                           \
 
 #define render_scanline_window_builder(type)                                  \
-void render_scanline_window_##type(u16 *scanline, u32 dispcnt)                \
+void render_scanline_window_##type(uint16_t *scanline, uint32_t dispcnt)      \
 {                                                                             \
-  u32 vcount = io_registers[REG_VCOUNT];                                      \
-  u32 winout = io_registers[REG_WINOUT];                                      \
-  u32 bldcnt = io_registers[REG_BLDCNT];                                      \
-  u32 window_out_enable = winout & 0x3F;                                      \
+  uint32_t vcount = io_registers[REG_VCOUNT];                                 \
+  uint32_t winout = io_registers[REG_WINOUT];                                 \
+  uint32_t bldcnt = io_registers[REG_BLDCNT];                                 \
+  uint32_t window_out_enable = winout & 0x3F;                                 \
                                                                               \
   render_scanline_layer_functions_##type();                                   \
                                                                               \
@@ -3035,7 +3039,7 @@ void render_scanline_window_##type(u16 *scanline, u32 dispcnt)                \
     /* Windows 1 and 2 */                                                     \
     case 0x03:                                                                \
     {                                                                         \
-      u32 winin = io_registers[REG_WININ];                                    \
+      uint32_t winin = io_registers[REG_WININ];                               \
       window_coords(0);                                                       \
       window_coords(1);                                                       \
       render_window_multi(type, 0, 1);                                        \
@@ -3052,7 +3056,7 @@ void render_scanline_window_##type(u16 *scanline, u32 dispcnt)                \
     /* Window 0 and OBJ window */                                             \
     case 0x05:                                                                \
     {                                                                         \
-      u32 winin = io_registers[REG_WININ];                                    \
+      uint32_t winin = io_registers[REG_WININ];                               \
       window_coords(0);                                                       \
       render_window_multi(type, 0, obj);                                      \
       break;                                                                  \
@@ -3061,7 +3065,7 @@ void render_scanline_window_##type(u16 *scanline, u32 dispcnt)                \
     /* Window 1 and OBJ window */                                             \
     case 0x06:                                                                \
     {                                                                         \
-      u32 winin = io_registers[REG_WININ];                                    \
+      uint32_t winin = io_registers[REG_WININ];                               \
       window_coords(1);                                                       \
       render_window_multi(type, 1, obj);                                      \
       break;                                                                  \
@@ -3070,7 +3074,7 @@ void render_scanline_window_##type(u16 *scanline, u32 dispcnt)                \
     /* Window 0, 1, and OBJ window */                                         \
     case 0x07:                                                                \
     {                                                                         \
-      u32 winin = io_registers[REG_WININ];                                    \
+      uint32_t winin = io_registers[REG_WININ];                               \
       window_coords(0);                                                       \
       window_coords(1);                                                       \
       render_window_multi(type, 0, 1_obj);                                    \
@@ -3079,24 +3083,24 @@ void render_scanline_window_##type(u16 *scanline, u32 dispcnt)                \
   }                                                                           \
 }                                                                             \
 
-render_scanline_window_builder(tile);
-render_scanline_window_builder(bitmap);
+render_scanline_window_builder(tile)
+render_scanline_window_builder(bitmap)
 
 // VIDEO MODEごとの有効BG
-const u8 active_layers[6] = { 0x1F, 0x17, 0x1C, 0x14, 0x14, 0x14 };
+const uint8_t active_layers[6] = { 0x1F, 0x17, 0x1C, 0x14, 0x14, 0x14 };
 
-// u32 resolution_width, resolution_height;
+// uint32_t resolution_width, resolution_height;
 
 // 渲染一行图像
 void update_scanline()
 {
   if (!ReGBA_IsRenderingNextFrame())
     return;
-  u32  dispcnt = io_registers[REG_DISPCNT];
-  u32  vcount = io_registers[REG_VCOUNT];              // (0~277)
-  u32  video_mode = dispcnt & 0x07;                    // (0~5)
-  u32  pitch = GBAScreenPitch;
-  u16* screen_offset = GBAScreen + (vcount * pitch);
+  uint32_t  dispcnt = io_registers[REG_DISPCNT];
+  uint32_t  vcount = io_registers[REG_VCOUNT];              // (0~277)
+  uint32_t  video_mode = dispcnt & 0x07;                    // (0~5)
+  uint32_t  pitch = GBAScreenPitch;
+  uint16_t* screen_offset = GBAScreen + (vcount * pitch);
 
   // 如果 OAM 有变化，对其维护，排序
   if(oam_update)
@@ -3141,10 +3145,10 @@ void update_scanline()
     }
   }
 
-  affine_reference_x[0] += (s16)io_registers[REG_BG2PB];
-  affine_reference_y[0] += (s16)io_registers[REG_BG2PD];
-  affine_reference_x[1] += (s16)io_registers[REG_BG3PB];
-  affine_reference_y[1] += (s16)io_registers[REG_BG3PD];
+  affine_reference_x[0] += (int16_t)io_registers[REG_BG2PB];
+  affine_reference_y[0] += (int16_t)io_registers[REG_BG2PD];
+  affine_reference_x[1] += (int16_t)io_registers[REG_BG3PB];
+  affine_reference_y[1] += (int16_t)io_registers[REG_BG3PD];
 }
 
 #define video_savestate_body(type)                                            \
@@ -3154,7 +3158,7 @@ void update_scanline()
 }                                                                             \
 
 void video_read_mem_savestate()
-video_savestate_body(READ_MEM);
+video_savestate_body(READ_MEM)
 
 void video_write_mem_savestate()
-video_savestate_body(WRITE_MEM);
+video_savestate_body(WRITE_MEM)
