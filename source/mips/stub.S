@@ -48,9 +48,6 @@
 .global execute_lsr_flags_reg
 .global execute_asr_flags_reg
 .global execute_ror_flags_reg
-.global invalidate_icache_region
-.global invalidate_all_cache
-.global reg_check
 .global call_bios_hle
 
 .global memory_map_read

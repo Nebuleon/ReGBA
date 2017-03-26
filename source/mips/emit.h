@@ -49,10 +49,6 @@ uint32_t execute_ror_flags_reg(uint32_t value, uint32_t shift);
 void execute_aligned_store32(uint32_t address, uint32_t value);
 uint32_t execute_aligned_load32(uint32_t address);
 
-void reg_check();
-
-void printf_reg(uint32_t num);
-
 typedef enum
 {
   mips_reg_zero, // 0
