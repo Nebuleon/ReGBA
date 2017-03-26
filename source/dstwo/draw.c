@@ -48,7 +48,7 @@
 #define GUI_SOURCE_PATH "SYSTEM/GUI"
 #define GUI_PIC_BUFSIZE (1024*512)
 
-uint16_t gui_picture[GUI_PIC_BUFSIZE];
+uint16_t gui_picture[GUI_PIC_BUFSIZE] __attribute__((section(".noinit")));
 
 struct gui_iconlist gui_icon_list[]= {
     //file system

@@ -35,9 +35,6 @@ static const uint8_t ODF_SIGNATURE[] = { 'O', 'D', 'F', 0 };
 static const uint8_t ODF_VERSION[] = { '1', '.', '0', 0 };
 
 struct bdflibinfo bdflib_info[BDF_LIB_NUM];
-struct bdffont *bdf_font;           //ASCII charactor
-struct bdffont *bdf_nasci;          //non-ASCII charactor
-static uint32_t font_height;
 static uint32_t fonts_max_height;
 
 /*-----------------------------------------------------------------------------
@@ -516,8 +513,7 @@ int BDF_font_init(void)
 		return -1;
 	}
 #endif
-	bdf_font = bdflib_info[0].fonts;
-	fonts_max_height = font_height = bdflib_info[0].height;
+	fonts_max_height = bdflib_info[0].height;
 
 #ifdef DUMP_ODF
 	sprintf(tmp_path, "%s/%s", main_path, BDF_PICTOCHAT);
@@ -542,7 +538,6 @@ int BDF_font_init(void)
 		return -1;
 	}
 #endif
-	bdf_nasci = bdflib_info[1].fonts;
 	if (fonts_max_height < bdflib_info[1].height)
 		fonts_max_height = bdflib_info[1].height;
 
@@ -757,7 +752,7 @@ void BDF_render_mix(uint16_t* screen, size_t screen_w, uint32_t x, uint32_t y,
 		if (unicode == 0x0D)
 			continue;
 		else if (unicode == 0x0A) {
-			line += font_height;
+			line += fonts_max_height;
 			line_end = screen + line * screen_w;
 			/* Return to the original 'x' coordinate on a new line. */
 			screenp = line_end - screen_w + x;
@@ -769,7 +764,7 @@ void BDF_render_mix(uint16_t* screen, size_t screen_w, uint32_t x, uint32_t y,
 		cmp = BDF_WidthUCS2(unicode);
 
 		if (screenp + cmp >= line_end) {
-			line += font_height;
+			line += fonts_max_height;
 			line_end = screen + line * screen_w;
 			screenp = line_end - screen_w + x;
 		}

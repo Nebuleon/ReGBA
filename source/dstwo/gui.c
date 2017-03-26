@@ -50,7 +50,7 @@ const char *lang[LANG_END] = {
 };
 
 const char *msg[MSG_END + 1];
-char msg_data[32 * 1024];
+char msg_data[32 * 1024] __attribute__((section(".noinit")));
 
 /******************************************************************************
  * 宏定义
@@ -87,15 +87,15 @@ GPSP_CONFIG_FILE gpsp_persistent_config;
 #define GAME_CONFIG_HEADER_SIZE 7
 // #define GAME_CONFIG_HEADER_U32 0x67666367
 const uint32_t game_config_ver = 0x00010001;
-GAME_CONFIG game_config;
-GAME_CONFIG_FILE game_persistent_config;
+GAME_CONFIG game_config __attribute__((section(".noinit")));
+GAME_CONFIG_FILE game_persistent_config __attribute__((section(".noinit")));
 
 //save state file map
 #define RTS_TIMESTAMP_POS   SVS_HEADER_SIZE
 static uint32_t savestate_index; // current selection in the saved states menu
 static int32_t latest_save; // Slot number of the latest (in time) save for this game, or -1 if none
 static bool SavedStateExistenceCached[SAVE_STATE_SLOT_NUM]; // [I] == TRUE if Cache[I] is meaningful
-static bool SavedStateExistenceCache[SAVE_STATE_SLOT_NUM];
+static bool SavedStateExistenceCache[SAVE_STATE_SLOT_NUM] __attribute__((section(".noinit")));
 
 // These are U+05C8 and subsequent codepoints encoded in UTF-8.
 // They are null-terminated.
@@ -122,11 +122,11 @@ const char HOTKEY_DOWN_DISPLAY[] = "\xE2\x86\x93";
 /******************************************************************************
  * 定义全局变量
  ******************************************************************************/
-char g_default_rom_dir[PATH_MAX];
-char DEFAULT_SAVE_DIR[PATH_MAX];
-char DEFAULT_CFG_DIR[PATH_MAX];
-char DEFAULT_SS_DIR[PATH_MAX];
-char DEFAULT_CHEAT_DIR[PATH_MAX];
+char g_default_rom_dir[PATH_MAX] __attribute__((section(".noinit")));
+char DEFAULT_SAVE_DIR[PATH_MAX] __attribute__((section(".noinit")));
+char DEFAULT_CFG_DIR[PATH_MAX] __attribute__((section(".noinit")));
+char DEFAULT_SS_DIR[PATH_MAX] __attribute__((section(".noinit")));
+char DEFAULT_CHEAT_DIR[PATH_MAX] __attribute__((section(".noinit")));
 uint32_t game_fast_forward = 0;  // off
 uint32_t temporary_fast_forward = 0;  // also off, controlled by the hotkey
 
