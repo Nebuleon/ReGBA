@@ -21,13 +21,15 @@
 #include "common.h" 
 
 // TODO:PSP-1000はフレームバッファは256KBあれば足りるので、VRAMを使用する
-uint8_t savestate_write_buffer[SAVESTATE_SIZE];
+FULLY_UNINITIALIZED(uint8_t savestate_write_buffer[SAVESTATE_SIZE])
+  __attribute__ ((aligned (4)));
 uint8_t *g_state_buffer_ptr;
 
 #define SAVESTATE_REWIND_SIZE (SAVESTATE_REWIND_LEN*SAVESTATE_REWIND_NUM)	//~5MB
 #define SAVESTATE_REWIND_LEN (0x69040)
 #define SAVESTATE_REWIND_NUM (10)
-uint8_t SAVESTATE_REWIND_MEM[ SAVESTATE_REWIND_SIZE ] __attribute__ ((aligned (4))) ;
+FULLY_UNINITIALIZED(uint8_t SAVESTATE_REWIND_MEM[SAVESTATE_REWIND_SIZE])
+  __attribute__ ((aligned (4)));
 
 const uint8_t SVS_HEADER_E[SVS_HEADER_SIZE] = {'N', 'G', 'B', 'A', 'R', 'T', 'S',
   '1', '.', '0', 'e'}; // 1.0e is written with sound frequency-dependent
@@ -159,16 +161,24 @@ bool IsNintendoBIOS = false;
 
 // GBA memory areas.
 
-uint16_t palette_ram   [  0x200]; // Palette RAM             (05000000h)      1 KiB
-uint16_t oam_ram       [  0x200]; // Object Attribute Memory (07000000h)      1 KiB
-uint16_t io_registers  [ 0x4000]; // I/O Registers           (04000000h)     32 KiB
-uint8_t  ewram_data    [0x40000]; // External Working RAM    (02000000h)    256 KiB
-uint8_t  iwram_data    [ 0x8000]; // Internal Working RAM    (03000000h)     32 KiB
-uint8_t  vram          [0x18000]; // Video RAM               (06000000h)     96 KiB
-struct BIOS_DATA bios;            // BIOS ROM and code tags  (00000000h)     48 KiB
-uint8_t  gamepak_backup[0x20000]; // Backup flash/EEPROM...  (0E000000h)    128 KiB
-                                  // ----------------------------------------------
-                                  // Total                                  594 KiB
+// Palette RAM             (05000000h)      1 KiB
+FULLY_UNINITIALIZED(uint16_t palette_ram   [  0x200]);
+// Object Attribute Memory (07000000h)      1 KiB
+FULLY_UNINITIALIZED(uint16_t oam_ram       [  0x200]);
+// I/O Registers           (04000000h)     32 KiB
+FULLY_UNINITIALIZED(uint16_t io_registers  [ 0x4000]);
+// External Working RAM    (02000000h)    256 KiB
+FULLY_UNINITIALIZED(uint8_t  ewram_data    [0x40000]);
+// Internal Working RAM    (03000000h)     32 KiB
+FULLY_UNINITIALIZED(uint8_t  iwram_data    [ 0x8000]);
+// Video RAM               (06000000h)     96 KiB
+FULLY_UNINITIALIZED(uint8_t  vram          [0x18000]);
+// BIOS ROM and code tags  (00000000h)     48 KiB
+FULLY_UNINITIALIZED(struct BIOS_DATA bios);
+// Backup flash/EEPROM...  (0E000000h)    128 KiB
+uint8_t  gamepak_backup[0x20000];
+// ----------------------------------------------
+// Total                                  594 KiB
 
 #ifndef USE_C_CORE
 /*
@@ -177,11 +187,14 @@ uint8_t  gamepak_backup[0x20000]; // Backup flash/EEPROM...  (0E000000h)    128 
  * Data Word in that Data Area. For more information about these, see
  * "doc/partial flushing of RAM code.txt" in your source tree.
  */
-uint16_t iwram_metadata[ 0x8000]; // Internal Working RAM code metadata      64 KiB
-uint16_t ewram_metadata[0x40000]; // External Working RAM code metadata     512 KiB
-uint16_t vram_metadata [0x18000]; // Video RAM code metadata                192 KiB
-                                  // ----------------------------------------------
-                                  // Total                                  768 KiB
+// Internal Working RAM code metadata      64 KiB
+FULLY_UNINITIALIZED(uint16_t iwram_metadata[ 0x8000]);
+// External Working RAM code metadata     512 KiB
+FULLY_UNINITIALIZED(uint16_t ewram_metadata[0x40000]);
+// Video RAM code metadata                192 KiB
+FULLY_UNINITIALIZED(uint16_t vram_metadata [0x18000]);
+// ----------------------------------------------
+// Total                                  768 KiB
 #endif
 
 uint32_t flash_bank_offset = 0;

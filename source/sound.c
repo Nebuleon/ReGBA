@@ -398,8 +398,10 @@ int8_t square_pattern_duty[4][8] =
 
 int8_t wave_samples[64];
 
-int32_t noise_table15[1024];
-int32_t noise_table7[4];
+/* Zero-initialisation wasteful because init_noise_table is called before the
+ * data is read. */
+FULLY_UNINITIALIZED(int32_t noise_table15[1024]);
+FULLY_UNINITIALIZED(int32_t noise_table7[4]);
 
 uint32_t gbc_sound_master_volume_table[4] = { 1, 2, 4, 0 };
 

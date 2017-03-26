@@ -1806,7 +1806,7 @@ bitmap_layer_render_struct bitmap_mode_renderers[3] =
 const uint8_t obj_width_table[12] = {  8, 16, 32, 64, 16, 32, 32, 64, 8, 8, 16, 32 };
 const uint8_t obj_height_table[12] = {  8, 16, 32, 64, 8, 8, 16, 32, 16, 32, 32, 64 };
 
-uint8_t obj_priority_list[5][160][128];
+FULLY_UNINITIALIZED(uint8_t obj_priority_list[5][160][128]);
 uint8_t obj_priority_count[5][160];
 uint8_t obj_alpha_count[160];
 

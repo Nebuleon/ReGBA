@@ -78,26 +78,26 @@ struct ReuseHeader {
 };
 
 /* These represent code caches. */
-__attribute__((aligned(CODE_ALIGN_SIZE)))
-  uint8_t readonly_code_cache[READONLY_CODE_CACHE_SIZE];
+FULLY_UNINITIALIZED(uint8_t readonly_code_cache[READONLY_CODE_CACHE_SIZE])
+  __attribute__((aligned(CODE_ALIGN_SIZE)));
 uint8_t* readonly_next_code = readonly_code_cache;
 
-__attribute__((aligned(CODE_ALIGN_SIZE)))
-  uint8_t writable_code_cache[WRITABLE_CODE_CACHE_SIZE];
+FULLY_UNINITIALIZED(uint8_t writable_code_cache[WRITABLE_CODE_CACHE_SIZE])
+  __attribute__((aligned(CODE_ALIGN_SIZE)));
 uint8_t* writable_next_code = writable_code_cache;
 
 /* These represent Metadata Areas. */
-uint32_t *rom_branch_hash[ROM_BRANCH_HASH_SIZE];
-struct ReuseHeader* writable_checksum_hash[WRITABLE_HASH_SIZE];
+FULLY_UNINITIALIZED(uint32_t *rom_branch_hash[ROM_BRANCH_HASH_SIZE]);
+FULLY_UNINITIALIZED(struct ReuseHeader* writable_checksum_hash[WRITABLE_HASH_SIZE]);
 
-uint8_t *iwram_block_ptrs[MAX_TAG_IWRAM + 1];
+FULLY_UNINITIALIZED(uint8_t *iwram_block_ptrs[MAX_TAG_IWRAM + 1]);
 uint32_t iwram_block_tag_top = MIN_TAG;
-uint8_t *ewram_block_ptrs[MAX_TAG_EWRAM + 1];
+FULLY_UNINITIALIZED(uint8_t *ewram_block_ptrs[MAX_TAG_EWRAM + 1]);
 uint32_t ewram_block_tag_top = MIN_TAG;
-uint8_t *vram_block_ptrs[MAX_TAG_VRAM + 1];
+FULLY_UNINITIALIZED(uint8_t *vram_block_ptrs[MAX_TAG_VRAM + 1]);
 uint32_t vram_block_tag_top = MIN_TAG;
 
-uint8_t *bios_block_ptrs[MAX_TAG_BIOS + 1];
+FULLY_UNINITIALIZED(uint8_t *bios_block_ptrs[MAX_TAG_BIOS + 1]);
 uint32_t bios_block_tag_top = MIN_TAG;
 
 uint32_t iwram_code_min = 0xFFFFFFFF;
@@ -2853,8 +2853,8 @@ typedef union {
   uint16_t thumb[MAX_BLOCK_SIZE];
 } opcode_data_type;
 
-block_data_type block_data;
-opcode_data_type opcodes;
+FULLY_UNINITIALIZED(block_data_type block_data);
+FULLY_UNINITIALIZED(opcode_data_type opcodes);
 
 #define smc_write_arm_yes()                                                   \
   switch (block_end_pc >> 24)                                                 \
