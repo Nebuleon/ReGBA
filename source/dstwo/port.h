@@ -94,4 +94,7 @@ extern const char* GetFileName(const char* Path);
 extern void RemoveExtension(char* Result, const char* FileName);
 extern void GetFileNameNoExtension(char* Result, const char* Path);
 
+#define FULLY_UNINITIALIZED(declarator)                                     \
+  declarator __attribute__((section(".noinit")))
+
 #endif

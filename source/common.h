@@ -137,6 +137,12 @@ typedef uint32_t FIXED16_16;  // Q16.16 fixed-point
 
 #include "port.h"
 
+/* If the port didn't give a way to declare a variable as fully uninitialised
+ * (when zero-initialisation is wasteful), declare them normally. */
+#ifndef FULLY_UNINITIALIZED
+#  define FULLY_UNINITIALIZED(declarator) declarator
+#endif
+
 #include "cpu.h"
 #include "memory.h"
 #include "video.h"
