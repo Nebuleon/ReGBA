@@ -224,7 +224,7 @@ extern GAME_CONFIG_FILE game_persistent_config;
 /******************************************************************************
  * グローバル関数の宣言
  ******************************************************************************/
-int32_t load_file(char **wildcards, char *result, char *default_dir_name);
+int32_t load_file(const char **exts, char *result_name, char *dir);
 void load_game_config_file(void);
 int32_t load_config_file();
 int32_t save_game_config_file();
