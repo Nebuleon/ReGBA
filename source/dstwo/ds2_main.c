@@ -18,14 +18,10 @@
  */
 
 #include "common.h"
-#include <ds2/io.h>
 
 int ds2_main(void)
 {
 	HighFrequencyCPU();
-
-	if (!DS2_InitFS())
-		goto _failure;
 
 	DS2_SetPixelFormat(DS_ENGINE_BOTH, DS2_PIXEL_FORMAT_BGR555);
 	DS2_SetScreenSwap(true);
