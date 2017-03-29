@@ -19,7 +19,7 @@
 
 #include "common.h"
 
-int ds2_main(void)
+int main(int argc, char** argv)
 {
 	HighFrequencyCPU();
 
@@ -29,9 +29,7 @@ int ds2_main(void)
 	if (DS2_StartAudio(OUTPUT_SOUND_FREQUENCY, OUTPUT_SOUND_LEN, true, true) != 0)
 		goto _failure;
 
-	gpsp_main (0, 0);
-
-	return EXIT_SUCCESS;
+	return gpsp_main(argc, argv);
 
 _failure:
 	return EXIT_FAILURE;
