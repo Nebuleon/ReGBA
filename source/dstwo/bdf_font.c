@@ -572,7 +572,7 @@ void BDF_font_release(void)
 	}
 }
 
-uint32_t BDF_render16_ucs(uint16_t* screen, size_t screen_w, uint16_t bg_color, uint16_t fg_color, uint16_t ch)
+uint32_t BDF_RenderUCS2(uint16_t* screen, size_t screen_w, uint16_t bg_color, uint16_t fg_color, uint16_t ch)
 {
 	uint16_t *screenp;
 	uint_fast16_t width, x, y;
@@ -702,43 +702,8 @@ const char* utf8decode(const char *utf8, uint16_t *ucs)
 	return utf8;
 }
 
-unsigned char* skip_utf8_unit(unsigned char* utf8, size_t num)
-{
-	while(num--)
-	{
-	    unsigned char c = *utf8++;
-	    int tail = 0;
-	    if ((c <= 0x7f) || (c >= 0xc2)) {
-	        /* Start of new character. */
-	        if (c < 0x80) {        /* U-00000000 - U-0000007F, 1 byte */
-	        } else if (c < 0xe0) { /* U-00000080 - U-000007FF, 2 bytes */
-	            tail = 1;
-	        } else if (c < 0xf0) { /* U-00000800 - U-0000FFFF, 3 bytes */
-	            tail = 2;
-	        } else if (c < 0xf5) { /* U-00010000 - U-001FFFFF, 4 bytes */
-	            tail = 3;
-	        } else {			   /* Invalid size. */
-	        }
-
-	        while (tail-- && ((c = *utf8++) != 0)) {
-	            if ((c & 0xc0) != 0x80) {
-	                /* Invalid continuation char */
-	                utf8--;
-	                break;
-	            }
-	        }
-	    }
-	}
-
-    /* currently we don't support chars above U-FFFF */
-    return utf8;
-}
-
-/*-----------------------------------------------------------------------------
-// UTF8 Code String
-------------------------------------------------------------------------------*/
-void BDF_render_mix(uint16_t* screen, size_t screen_w, uint32_t x, uint32_t y,
-        uint16_t bg_color, uint16_t fg_color, const char* string)
+void BDF_RenderUTF8s(uint16_t* screen, size_t screen_w, uint32_t x, uint32_t y,
+	uint16_t bg_color, uint16_t fg_color, const char* string)
 {
 	const char* pt = string;
 	uint32_t line = y + 1, cmp;
@@ -769,7 +734,7 @@ void BDF_render_mix(uint16_t* screen, size_t screen_w, uint32_t x, uint32_t y,
 			screenp = line_end - screen_w + x;
 		}
 
-		screenp += BDF_render16_ucs(screenp, screen_w, bg_color, fg_color, unicode);
+		screenp += BDF_RenderUCS2(screenp, screen_w, bg_color, fg_color, unicode);
 	}
 }
 
@@ -817,37 +782,29 @@ uint32_t BDF_WidthUTF8s(const char* utf8)
 	return ret;
 }
 
-uint32_t BDF_cut_unicode(uint16_t *unicodes, size_t len, uint32_t width, uint32_t direction)
+size_t BDF_CutUCS2s(const uint16_t* ucs2s, size_t len, uint32_t width)
 {
-	uint32_t xw = 0;
-	ptrdiff_t i = 0, delta = (direction & 1) ? 1 : -1;
+	size_t saved_len = len, last_space = len;
+	uint32_t cut_width = 0;
 
-	if (direction & 2) {  /* Counting the width of 'len' characters */
-		while (len > 0) {
-			xw += BDF_WidthUCS2(unicodes[i]);
-			i += delta;
-			len--;
+	while (len > 0) {
+		if (*ucs2s == 0x0A)
+			return saved_len - len;
+		else if (*ucs2s == ' ')
+			last_space = len;
+
+		cut_width += BDF_WidthUCS2(*ucs2s);
+
+		if (cut_width > width) {
+			/* If there's no last space (e.g. in Chinese), cut here. */
+			return (last_space == len)
+			     ? saved_len - len - 1
+			     : saved_len - last_space;
 		}
 
-		return xw;
-	} else {  /* Counting the characters that fit in 'width' pixels */
-		size_t saved_len = len, last_space = 0;
+		ucs2s++;
+		len--;
+	}
 
-		while (len > 0) {
-			if (unicodes[i] == 0x0A)
-				return saved_len - len;
-			else if (unicodes[i] == ' ')
-				last_space = len;
-
-			xw += BDF_WidthUCS2(unicodes[i]);
-
-			if (xw > width)
-				return saved_len - last_space;
-
-			i += delta;
-			len--;
-		}
-
-		return saved_len;
-    }
+	return saved_len;
 }

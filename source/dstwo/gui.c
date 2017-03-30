@@ -634,7 +634,7 @@ int32_t load_file(const char **exts, char *result_name, char *dir)
 			// d) The icons.
 			for (i = first_entry; i <= last_entry; i++)
 			{
-				struct gui_iconlist* icon;
+				struct gui_icon* icon;
 				if (i == 0)
 					icon = &ICON_DOTDIR;
 				else if (entries[i].is_dir)
@@ -2117,7 +2117,7 @@ static void SaveState(struct Menu** ActiveMenu, uint32_t* ActiveEntryIndex)
 		if (SavedStateFileExists(savestate_index)) {
 			draw_message_box(DS2_GetSubScreen());
 			draw_string_vcenter(DS2_GetSubScreen(), MESSAGE_BOX_TEXT_X, MESSAGE_BOX_TEXT_Y, MESSAGE_BOX_TEXT_SX, COLOR_MSSG, msg[MSG_SAVESTATE_FULL]);
-			if (draw_yesno_dialog(DS_ENGINE_SUB, 115, msg[MSG_GENERAL_CONFIRM_WITH_A], msg[MSG_GENERAL_CANCEL_WITH_B]) == 0)
+			if (draw_yesno_dialog(DS_ENGINE_SUB, msg[MSG_GENERAL_CONFIRM_WITH_A], msg[MSG_GENERAL_CANCEL_WITH_B]) == 0)
 				return;
 
 			clear_savestate_slot(savestate_index);
@@ -2182,7 +2182,7 @@ static void DeleteState(struct Menu** ActiveMenu, uint32_t* ActiveEntryIndex)
 			sprintf(Text, msg[FMT_DIALOG_SAVED_STATE_DELETE_ONE], savestate_index + 1);
 			draw_string_vcenter(DS2_GetSubScreen(), MESSAGE_BOX_TEXT_X, MESSAGE_BOX_TEXT_Y, MESSAGE_BOX_TEXT_SX, COLOR_MSSG, Text);
 
-			if (draw_yesno_dialog(DS_ENGINE_SUB, 115, msg[MSG_GENERAL_CONFIRM_WITH_A], msg[MSG_GENERAL_CANCEL_WITH_B])) {
+			if (draw_yesno_dialog(DS_ENGINE_SUB, msg[MSG_GENERAL_CONFIRM_WITH_A], msg[MSG_GENERAL_CANCEL_WITH_B])) {
 				DS2_AwaitNoButtons();
 				clear_savestate_slot(savestate_index);
 				PostChangeSavedState();
@@ -2212,7 +2212,7 @@ static void DeleteAllStates()
 		}
 
 		if (AnyExists) {
-			if (draw_yesno_dialog(DS_ENGINE_SUB, 115, msg[MSG_GENERAL_CONFIRM_WITH_A], msg[MSG_GENERAL_CANCEL_WITH_B])) {
+			if (draw_yesno_dialog(DS_ENGINE_SUB, msg[MSG_GENERAL_CONFIRM_WITH_A], msg[MSG_GENERAL_CANCEL_WITH_B])) {
 				DS2_AwaitNoButtons();
 				for (i = 0; i < SAVE_STATE_SLOT_NUM; i++) {
 					clear_savestate_slot(i);
@@ -2474,7 +2474,7 @@ static void SetHotkey(struct Menu** ActiveMenu, uint32_t* ActiveEntryIndex)
 	draw_message_box(DS2_GetSubScreen());
 	draw_string_vcenter(DS2_GetSubScreen(), MESSAGE_BOX_TEXT_X, MESSAGE_BOX_TEXT_Y, MESSAGE_BOX_TEXT_SX, COLOR_MSSG, msg[MSG_PROGRESS_HOTKEY_WAITING_FOR_KEYS]);
 
-	uint32_t Keys = draw_hotkey_dialog(DS_ENGINE_SUB, 115, msg[MSG_HOTKEY_DELETE_WITH_A], msg[MSG_HOTKEY_CANCEL_WITH_B]);
+	uint16_t Keys = draw_hotkey_dialog(DS_ENGINE_SUB, msg[MSG_HOTKEY_DELETE_WITH_A], msg[MSG_HOTKEY_CANCEL_WITH_B]);
 	if (Keys == DS_BUTTON_B)
 		; // unmodified
 	else if (Keys == DS_BUTTON_A)
@@ -3046,7 +3046,7 @@ void LoadDefaults()
 	draw_message_box(DS2_GetSubScreen());
 	draw_string_vcenter(DS2_GetSubScreen(), MESSAGE_BOX_TEXT_X, MESSAGE_BOX_TEXT_Y, MESSAGE_BOX_TEXT_SX, COLOR_MSSG, msg[MSG_DIALOG_RESET]);
 
-	if (draw_yesno_dialog(DS_ENGINE_SUB, 115, msg[MSG_GENERAL_CONFIRM_WITH_A], msg[MSG_GENERAL_CANCEL_WITH_B])) {
+	if (draw_yesno_dialog(DS_ENGINE_SUB, msg[MSG_GENERAL_CONFIRM_WITH_A], msg[MSG_GENERAL_CANCEL_WITH_B])) {
 		char file[PATH_MAX];
 
 		DS2_AwaitNoButtons();
@@ -4233,7 +4233,7 @@ int gui_init(uint32_t lang_id)
 		}
 	}
 
-	show_log();
+	show_logo();
 	DS2_UpdateScreen(DS_ENGINE_SUB);
 
 	load_config_file();

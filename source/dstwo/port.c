@@ -41,10 +41,10 @@ void ReGBA_BadJump(uint32_t SourcePC, uint32_t TargetPC)
 
 	draw_string_vcenter(DS2_GetMainScreen(), 0, 0, 256, COLOR_WHITE, "Guru Meditation");
 	sprintf(Line, "Jump to unmapped address %08" PRIX32, TargetPC);
-	BDF_render_mix(DS2_GetMainScreen(), DS_SCREEN_WIDTH, 0, 32, COLOR_TRANS, COLOR_WHITE, Line);
+	BDF_RenderUTF8s(DS2_GetMainScreen(), DS_SCREEN_WIDTH, 0, 32, COLOR_TRANS, COLOR_WHITE, Line);
 
 	sprintf(Line, "at address %08" PRIX32, SourcePC);
-	BDF_render_mix(DS2_GetMainScreen(), DS_SCREEN_WIDTH, 0, 48, COLOR_TRANS, COLOR_WHITE, Line);
+	BDF_RenderUTF8s(DS2_GetMainScreen(), DS_SCREEN_WIDTH, 0, 48, COLOR_TRANS, COLOR_WHITE, Line);
 
 	draw_string_vcenter(DS2_GetMainScreen(), 0, 80, 256, COLOR_WHITE, "The game has encountered an unrecoverable error. Please restart the emulator to load another game.");
 	DS2_FlipMainScreen();
@@ -61,10 +61,10 @@ void ReGBA_MaxBlockExitsReached(uint32_t BlockStartPC, uint32_t BlockEndPC, uint
 
 	draw_string_vcenter(DS2_GetMainScreen(), 0, 0, 256, COLOR_WHITE, "Guru Meditation");
 	sprintf(Line, "Native code exit limit reached (%" PRIu32 ")", Exits);
-	BDF_render_mix(DS2_GetMainScreen(), DS_SCREEN_WIDTH, 0, 32, COLOR_TRANS, COLOR_WHITE, Line);
+	BDF_RenderUTF8s(DS2_GetMainScreen(), DS_SCREEN_WIDTH, 0, 32, COLOR_TRANS, COLOR_WHITE, Line);
 
 	sprintf(Line, "at addresses %08" PRIX32 " .. %08" PRIX32, BlockStartPC, BlockEndPC);
-	BDF_render_mix(DS2_GetMainScreen(), DS_SCREEN_WIDTH, 0, 48, COLOR_TRANS, COLOR_WHITE, Line);
+	BDF_RenderUTF8s(DS2_GetMainScreen(), DS_SCREEN_WIDTH, 0, 48, COLOR_TRANS, COLOR_WHITE, Line);
 
 	draw_string_vcenter(DS2_GetMainScreen(), 0, 80, 256, COLOR_WHITE, "The game has encountered a recoverable error. It has not crashed, but due to this, it soon may.");
 	DS2_FlipMainScreen();
@@ -81,10 +81,10 @@ void ReGBA_MaxBlockSizeReached(uint32_t BlockStartPC, uint32_t BlockEndPC, uint3
 
 	draw_string_vcenter(DS2_GetMainScreen(), 0, 0, 256, COLOR_WHITE, "Guru Meditation");
 	sprintf(Line, "Native code block size reached (%" PRIu32 ")", BlockSize);
-	BDF_render_mix(DS2_GetMainScreen(), DS_SCREEN_WIDTH, 0, 32, COLOR_TRANS, COLOR_WHITE, Line);
+	BDF_RenderUTF8s(DS2_GetMainScreen(), DS_SCREEN_WIDTH, 0, 32, COLOR_TRANS, COLOR_WHITE, Line);
 
 	sprintf(Line, "at addresses %08" PRIX32 " .. %08" PRIX32, BlockStartPC, BlockEndPC);
-	BDF_render_mix(DS2_GetMainScreen(), DS_SCREEN_WIDTH, 0, 48, COLOR_TRANS, COLOR_WHITE, Line);
+	BDF_RenderUTF8s(DS2_GetMainScreen(), DS_SCREEN_WIDTH, 0, 48, COLOR_TRANS, COLOR_WHITE, Line);
 
 	draw_string_vcenter(DS2_GetMainScreen(), 0, 80, 256, COLOR_WHITE, "The game has encountered a recoverable error. It has not crashed, but due to this, it soon may.");
 	DS2_FlipMainScreen();
