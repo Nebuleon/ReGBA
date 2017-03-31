@@ -29,48 +29,21 @@
 
 #define LANGUAGE_PACK   "SYSTEM/language.msg"
 
-/******************************************************************************
- * マクロ等の定義
- ******************************************************************************/
-
-typedef enum
-{
-  auto_frameskip,
-  manual_frameskip,
-  no_frameskip
-} FRAMESKIP_TYPE;
-
-/******************************************************************************
- * グローバル変数の宣言
- ******************************************************************************/
 extern uint32_t execute_cycles;
 extern uint32_t to_skip;
-extern uint32_t global_cycles_per_instruction;
-extern uint32_t synchronize_flag;
 extern uint32_t skip_next_frame_flag;
 extern uint32_t prescale_table[];
-extern volatile uint32_t real_frame_count;
-extern uint32_t virtual_frame_count;
-extern int date_format;
 extern uint32_t frame_ticks;
 extern uint32_t frame_interval; // For in-memory saved states used in rewinding
 
 extern uint32_t fast_backward;
-/******************************************************************************
- * グローバル関数の宣言
- ******************************************************************************/
-void set_cpu_clock(uint32_t clock);
+
 uint32_t update_gba();
 void reset_gba();
-void synchronize();
 void quit();
-void game_name_ext(uint8_t *src, uint8_t *buffer, uint8_t *extension);
 void main_read_mem_savestate();
 void main_write_mem_savestate();
-void error_msg(char *text);
-void change_ext(char *src, char *buffer, char *extension);
 extern int gpsp_main(int argc, char **argv);
-extern char* FS_FGets(char *buffer, int num, FILE_TAG_TYPE stream);
 
 #endif /* MAIN_H */
 

@@ -26,7 +26,6 @@ TIMER_TYPE timer[4];
 frameskip_type current_frameskip_type = auto_frameskip;
 u32 frameskip_value = 4;
 u32 random_skip = 0;
-u32 global_cycles_per_instruction = 3;
 u32 skip_next_frame = 0;
 
 u32 frameskip_counter = 0;
@@ -40,7 +39,6 @@ u32 ticks;
 
 u32 arm_frame = 0;
 u32 thumb_frame = 0;
-u32 last_frame = 0;
 
 u32 synchronize_flag = 1;
 
@@ -275,10 +273,6 @@ int main(int argc, char *argv[])
 #endif
   }
 
-#if 0
-  last_frame = 0;
-#endif
-
   // We'll never actually return from here.
 
   SetGameResolution();
@@ -378,25 +372,10 @@ u32 update_gba()
           dispstat &= ~0x01;
           frame_ticks++;
 
-  #if 0
-        printf("frame update (%x), %d instructions total, %d RAM flushes\n",
-           reg[REG_PC], instruction_count - last_frame, flush_ram_count);
-          last_frame = instruction_count;
-
-/*          printf("%d gbc audio updates\n", gbc_update_count);
-          printf("%d oam updates\n", oam_update_count); */
-          gbc_update_count = 0;
-          oam_update_count = 0;
-          flush_ram_count = 0;
-  #endif
-
           if(update_input())
             continue;
 
           update_gbc_sound(cpu_ticks);
-#if 0
-          synchronize();
-#endif
 
 		Stats.EmulatedFrames++;
 		Stats.TotalEmulatedFrames++;
@@ -603,24 +582,6 @@ void delay_us(u32 us_count)
 void get_ticks_us(u64 *ticks_return)
 {
   *ticks_return = (SDL_GetTicks() * 1000);
-}
-
-void change_ext(const char *src, char *buffer, char *extension)
-{
-  char *position;
-
-  strcpy(buffer, main_path);
-  strcat(buffer, "/");
-
-  position = strrchr(src, '/');
-  if (position)
-	src = position+1;
-
-  strcat(buffer, src);
-  position = strrchr(buffer, '.');
-
-  if(position)
-    strcpy(position, extension);
 }
 
 // type = READ / WRITE_MEM

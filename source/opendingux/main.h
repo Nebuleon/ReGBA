@@ -35,7 +35,6 @@ extern u32 execute_cycles;
 extern frameskip_type current_frameskip_type;
 extern u32 frameskip_value;
 extern u32 random_skip;
-extern u32 global_cycles_per_instruction;
 extern u32 synchronize_flag;
 extern u32 skip_next_frame;
 
@@ -52,7 +51,6 @@ void quit();
 void error_quit();
 void delay_us(u32 us_count);
 void get_ticks_us(u64 *tick_return);
-void change_ext(const char *src, char *buffer, char *extension);
 void main_write_mem_savestate();
 void main_read_mem_savestate();
 

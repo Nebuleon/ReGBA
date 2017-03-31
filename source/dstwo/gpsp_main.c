@@ -24,52 +24,16 @@
  ******************************************************************************/
 #include "common.h"
 
-//PSP_MODULE_INFO("gpSP", PSP_MODULE_USER, VERSION_MAJOR, VERSION_MINOR);
-//PSP_MAIN_THREAD_ATTR(PSP_THREAD_ATTR_USER|PSP_THREAD_ATTR_VFPU);
-//PSP_MAIN_THREAD_PRIORITY(0x11);
-//PSP_MAIN_THREAD_STACK_SIZE_KB(640);
-//PSP_HEAP_SIZE_MAX();
-
-/******************************************************************************
- * 全局变量定义
- ******************************************************************************/
-
-uint32_t global_cycles_per_instruction = 1;
-//u64 frame_count_initial_timestamp = 0;
-//u64 last_frame_interval_timestamp;
-uint32_t psp_fps_debug = 0;
 uint32_t skip_next_frame_flag = 0;
-uint32_t frameskip_0_hack_flag = 0;
-//uint32_t frameskip_counter = 0;
 
 uint32_t cpu_ticks = 0;
 uint32_t frame_ticks = 0;
 
 uint32_t execute_cycles = 960;
 int32_t video_count = 960;
-//uint32_t ticks;
-
-//uint32_t arm_frame = 0;
-//uint32_t thumb_frame = 0;
-uint32_t last_frame = 0;
-
-uint32_t synchronize_flag = 1;
-
-//volatile uint32_t quit_flag;
-volatile uint32_t power_flag;
-
-volatile uint32_t real_frame_count = 0;
-uint32_t virtual_frame_count = 0;
-volatile uint32_t vblank_count = 0;
-uint32_t num_skipped_frames = 0;
-uint32_t frames;
 
 unsigned int pen = 0;
 uint32_t frame_interval = 60; // For in-memory saved states used in rewinding
-
-int date_format= 2;
-
-char *file_ext[] = { ".gba", ".bin", ".zip", NULL };
 
 /******************************************************************************
  * 宏定义
@@ -136,20 +100,14 @@ char *file_ext[] = { ".gba", ".bin", ".zip", NULL };
   }                                                                           \
 
 // 局部函数声明
-void vblank_interrupt_handler(uint32_t sub, uint32_t *parg);
-void init_main();
-int main(int argc, char *argv[]);
-void print_memory_stats(uint32_t *counter, uint32_t *region_stats, uint8_t *stats_str);
-uint32_t into_suspend();
 
-static uint8_t caches_inited = 0;
+static bool caches_inited = false;
 
 void init_main()
 {
   uint32_t i;
 
   skip_next_frame_flag = 0;
-  frameskip_0_hack_flag = 0;
 
   for(i = 0; i < 4; i++)
   {
@@ -183,38 +141,19 @@ void init_main()
     clear_metadata_area(METADATA_AREA_VRAM, CLEAR_REASON_LOADING_ROM);
   }
 
-  caches_inited = 1;
+  caches_inited = true;
 
   StatsInitGame();
 }
 
 void quit(void)
 {
-/*
-  uint32_t reg_ra;
-
-  __asm__ __volatile__("or %0, $0, $ra"
-                        : "=r" (reg_ra)
-                        :);
-
-  dbg_printf("return address= %08x\n", reg_ra);
-*/
-
 #ifdef USE_DEBUG
 	fclose(g_dbg_file);
 #endif
 
 	exit(EXIT_SUCCESS);
 }
-
-/*
-void sceKernelRegisterSubIntrHandler(void* func, void* para)
-{
-
-}
-*/
-
-int plug_valid= 0;
 
 int gpsp_main(int argc, char *argv[])
 {
@@ -225,8 +164,7 @@ int gpsp_main(int argc, char *argv[])
 	// Initialidse paths
 	initial_gpsp_config();
 
-    init_video();
-	power_flag = 0;
+	init_video();
 
 	// 初始化
 	init_game_config();
@@ -250,37 +188,16 @@ int gpsp_main(int argc, char *argv[])
 
 	ReGBA_Menu(REGBA_MENU_ENTRY_REASON_NO_ROM);
 
-	last_frame = 0;
-
-	real_frame_count = 0;
-	virtual_frame_count = 0;
-
-#ifdef USE_C_CORE
-	if(gpsp_config.emulate_core == ASM_CORE)
-	{
-		execute_arm_translate(execute_cycles);
-	}
-	else
-	{
-		execute_arm(execute_cycles);
-	}
-#else
 	execute_arm_translate(execute_cycles);
-#endif
 
 	return 0;
 }
-
-uint32_t sync_flag = 0;
 
 #define V_BLANK   (0x01)
 #define H_BLANK   (0x02)
 #define V_COUNTER (0x04)
 
-// video_count的初始值是960(行显示时钟周期)
-//#define SKIP_RATE 2
-//uint32_t SKIP_RATE= 2;
-uint32_t to_skip= 0;
+uint32_t to_skip = 0;
 
 uint32_t update_gba()
 {
@@ -295,7 +212,6 @@ uint32_t update_gba()
 
       if(gbc_sound_update)
         {
-//printf("update sound\n");
           update_gbc_sound(cpu_ticks);
           gbc_sound_update = 0;
         }
@@ -375,8 +291,6 @@ uint32_t update_gba()
 			if(frame_ticks >= frame_interval)
 				frame_ticks = 0;
 
-//          sceKernelDelayThread(10);
-
           if(update_input() != 0)
             continue;
 
@@ -410,10 +324,6 @@ uint32_t update_gba()
 					savestate_rewind();
 				}
 			}
-#if 0
-          if((power_flag == 1) && (into_suspend() != 0))
-            continue;
-#endif
 
           update_backup();
 
@@ -425,21 +335,9 @@ uint32_t update_gba()
 
           vcount = 0; // TODO vcountを0にするタイミングを検討
 
-          //TODO 調整必要
-//          if((video_out_mode == 0) || (gpsp_config.screen_interlace == PROGRESSIVE))
-//            synchronize();
-//          else
-//          {
-//            if(sync_flag == 0)
-//              synchronize();
-//            sync_flag ^= 1;
-//         }
-
             Stats.EmulatedFrames++;
             Stats.TotalEmulatedFrames++;
             ReGBA_RenderScreen();
-
-//printf("SKIP_RATE %d %d\n", SKIP_RATE, to_skip);
         } //(vcount == 228)
 
         // vcountによる割込
@@ -471,18 +369,8 @@ uint32_t update_gba()
     CHECK_TIMER(1);
     CHECK_TIMER(2);
     CHECK_TIMER(3);
-
-//        synchronize_sound();
-    // 画面のシンクロ・フリップ・ウェイト処理はここで行うべきでは？
-
   } while(reg[CPU_HALT_STATE] != CPU_ACTIVE);
   return execute_cycles;
-}
-
-void vblank_interrupt_handler(uint32_t sub, uint32_t *parg)
-{
-  real_frame_count++;
-  vblank_count++;
 }
 
 void reset_gba()
@@ -491,16 +379,6 @@ void reset_gba()
   init_memory();
   init_cpu(gpsp_persistent_config.BootFromBIOS);
   reset_sound();
-}
-
-void change_ext(char *src, char *buffer, char *extension)
-{
-  char *dot_position;
-  strcpy(buffer, src);
-  dot_position = strrchr(buffer, '.');
-
-  if(dot_position)
-    strcpy(dot_position, extension);
 }
 
 // type = READ / WRITE_MEM
@@ -517,79 +395,3 @@ MAIN_SAVESTATE_BODY(READ_MEM)
 
 void main_write_mem_savestate()
 MAIN_SAVESTATE_BODY(WRITE_MEM)
-
-void error_msg(char *text)
-{
-    gui_action_type gui_action = CURSOR_NONE;
-
-    printf(text);
-
-    while(gui_action == CURSOR_NONE)
-    {
-      gui_action = get_gui_input();
-//      sceKernelDelayThread(15000); /* 0.0015s */
-    }
-}
-
-#if 0
-MODEL_TYPE get_model()
-{
-  if((kuKernelGetModel() <= 0 /* original PSP */) || ( gpsp_config.fake_fat == YES))
-  {
-    return PSP_1000;
-  }
-  else
-    if(sceKernelDevkitVersion() < 0x03070110 || sctrlSEGetVersion() < 0x00001012)
-    {
-      return PSP_1000;
-    }
-    else
-    {
-      return PSP_2000;
-    }
-}
-#endif
-
-char* FS_FGets(char *buffer, int num, FILE_TAG_TYPE stream)
-{
-	int m;
-	char *s;
-
-//    printf("In fgets\n");
-
-	if(num <= 0)
-		return (NULL);
-
-	num--;
-	m= fread(buffer, 1, num, stream);
-	*(buffer +m) = '\0';
-
-//    printf("fread= %s\n", buffer);
-
-    if(m == 0)
-      return (NULL);
-
-	s = strchr(buffer, '\n');
-
-	if(m < num)						//at the end of file
-	{
-		if(s == NULL)
-			return (buffer);
-
-		*(++s)= '\0';				//string include '\n'
-		m -= s - buffer;
-		fseek(stream, -m, SEEK_CUR);//fix fread pointer
-		return (buffer);
-	}
-	else
-	{
-		if(s)
-		{
-			*(++s)= '\0';				//string include '\n'
-			m -= s - buffer;
-			fseek(stream, -m, SEEK_CUR);//fix fread pointer
-		}
-
-		return (buffer);
-	}
-}
