@@ -2152,54 +2152,6 @@ uint32_t execute_store_cpsr_body(uint32_t _cpsr, uint32_t store_mask, uint32_t a
   mips_emit_addiu(arm_to_mips_reg[rn], reg_a2,                                \
    -((word_bit_count(reg_list)) * 4))                                         \
 
-#define sprint_no(access_type, pre_op, post_op, wb)                           \
-
-#define sprint_yes(access_type, pre_op, post_op, wb)                          \
-  printf("sbit on %s %s %s %s\n", #access_type, #pre_op, #post_op, #wb)       \
-
-#define arm_block_memory_load()                                               \
-  generate_function_call_swap_delay(execute_aligned_load32);                  \
-  generate_store_reg(reg_rv, i)                                               \
-
-#define arm_block_memory_store()                                              \
-  generate_load_reg_pc(reg_a1, i, 8);                                         \
-  generate_function_call_swap_delay(execute_aligned_store32)                  \
-
-#define arm_block_memory_final_load()                                         \
-  arm_block_memory_load()                                                     \
-
-#define arm_block_memory_final_store()                                        \
-  generate_load_pc(reg_a2, (pc + 4));                                         \
-  mips_emit_jal(mips_absolute_offset(execute_store_u32));                     \
-  generate_load_reg(reg_a1, i)                                                \
-
-#define arm_block_memory_adjust_pc_store()                                    \
-
-#define arm_block_memory_adjust_pc_load()                                     \
-  if(reg_list & 0x8000)                                                       \
-  {                                                                           \
-    generate_mov(reg_a0, reg_rv);                                             \
-    generate_indirect_branch_arm();                                           \
-  }                                                                           \
-
-#define arm_block_memory_sp_load()                                            \
-  mips_emit_lw(arm_to_mips_reg[i], reg_a1, offset);                           \
-
-#define arm_block_memory_sp_store()                                           \
-{                                                                             \
-  uint32_t store_reg = i;                                                     \
-  check_load_reg_pc(arm_reg_a0, store_reg, 8);                                \
-  mips_emit_sw(arm_to_mips_reg[store_reg], reg_a1, offset);                   \
-}                                                                             \
-
-#define arm_block_memory_sp_adjust_pc_store()                                 \
-
-#define arm_block_memory_sp_adjust_pc_load()                                  \
-  if(reg_list & 0x8000)                                                       \
-  {                                                                           \
-    generate_indirect_branch_arm();                                           \
-  }                                                                           \
-
 // This isn't really a correct implementation, may have to fix later.
 
 #define arm_swap(type)                                                        \
