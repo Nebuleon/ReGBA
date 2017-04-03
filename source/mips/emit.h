@@ -1103,7 +1103,6 @@ uint32_t generate_load_rm_sh_##flags_op(uint32_t rm)                          \
 {                                                                             \
   uint32_t _address = (uint32_t)(address);                                    \
   uint32_t _address_hi = (_address + 0x8000) >> 16;                           \
-  generate_load_imm(ireg, address);                                           \
   mips_emit_lui(ireg, _address_hi >> 16);                                     \
   generate_load_memory_##type(ireg, _address - (_address_hi << 16));          \
 }                                                                             \
