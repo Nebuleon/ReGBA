@@ -505,18 +505,6 @@ const uint8_t arm_to_mips_reg[] =
 #define generate_store_reg(ireg, reg_index)                                   \
   mips_emit_addu(arm_to_mips_reg[reg_index], ireg, reg_zero)                  \
 
-#define generate_shift_left(ireg, imm)                                        \
-  mips_emit_sll(ireg, ireg, imm)                                              \
-
-#define generate_shift_right(ireg, imm)                                       \
-  mips_emit_srl(ireg, ireg, imm)                                              \
-
-#define generate_shift_right_arithmetic(ireg, imm)                            \
-  mips_emit_sra(ireg, ireg, imm)                                              \
-
-#define generate_rotate_right(ireg, imm)                                      \
-  mips_emit_rotr(ireg, ireg, imm)                                             \
-
 #define generate_add(ireg_dest, ireg_src)                                     \
   mips_emit_addu(ireg_dest, ireg_dest, ireg_src)                              \
 
@@ -550,21 +538,6 @@ const uint8_t arm_to_mips_reg[] =
     generate_load_imm(reg_temp, imm);                                         \
     mips_emit_##reg_type(ireg_dest, ireg_src, reg_temp);                      \
   }                                                                           \
-
-#define generate_add_imm(ireg, imm)                                           \
-  generate_alu_imm(addiu, add, ireg, ireg, imm)                               \
-
-#define generate_sub_imm(ireg, imm)                                           \
-  generate_alu_imm(addiu, add, ireg, ireg, -imm)                              \
-
-#define generate_xor_imm(ireg, imm)                                           \
-  generate_alu_immu(xori, xor, ireg, ireg, imm)                               \
-
-#define generate_add_reg_reg_imm(ireg_dest, ireg_src, imm)                    \
-  generate_alu_imm(addiu, add, ireg_dest, ireg_src, imm)                      \
-
-#define generate_and_imm(ireg, imm)                                           \
-  generate_alu_immu(andi, and, ireg, ireg, imm)                               \
 
 #define generate_mov(ireg_dest, ireg_src)                                     \
   mips_emit_addu(ireg_dest, ireg_src, reg_zero)                               \
