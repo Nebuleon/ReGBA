@@ -26,6 +26,8 @@
 /******************************************************************************
  * 头文件
  ******************************************************************************/
+#include <ds2/pm.h>
+
 #include "common.h"
 #include "gui.h"
 #include "input.h"
@@ -170,19 +172,7 @@ enum ReGBA_Buttons ReGBA_GetPressedButtons()
 	if (buttons & DS_BUTTON_LID)
 	{
 		LowFrequencyCPU();
-		// ds2_setSupend();  // TODO Make the Nintendo DS actually sleep
-		DS2_AwaitNoButtonsIn(DS_BUTTON_LID);
-		// ds2_wakeup();  // TODO Make the Nintendo DS actually wake up
-		// Before starting to emulate again, turn off the game
-		// screen's backlight.
-		if (gpsp_persistent_config.BottomScreenGame)
-		{
-			DS2_SetScreenBacklights(DS_SCREEN_LOWER);
-		}
-		else
-		{
-			DS2_SetScreenBacklights(DS_SCREEN_UPPER);
-		}
+		DS2_SystemSleep();
 		GameFrequencyCPU();
 	}
 
@@ -289,9 +279,7 @@ gui_action_type get_gui_input(void)
 	DS2_GetInputState(&inputdata);
 
 	if (inputdata.buttons & DS_BUTTON_LID) {
-		// ds2_setSupend();  // TODO Make the Nintendo DS actually sleep
-		DS2_AwaitNoButtonsIn(DS_BUTTON_LID);
-		// ds2_wakeup();  // TODO Make the Nintendo DS actually wake up
+		DS2_SystemSleep();
 	}
 
 	if ((inputdata.buttons & (DS_BUTTON_L | DS_BUTTON_R)) == (DS_BUTTON_L | DS_BUTTON_R)) {
