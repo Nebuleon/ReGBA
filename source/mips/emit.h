@@ -467,40 +467,38 @@ const uint8_t arm_to_mips_reg[] =
 #define generate_load_reg(ireg, reg_index)                                    \
   mips_emit_addu(ireg, arm_to_mips_reg[reg_index], reg_zero)                  \
 
+static uint8_t* generate_load_imm_fn(uint8_t* translation_ptr, unsigned int rt, uint32_t imm)
+{
+	if ((uint32_t) (uint16_t) imm == imm) {
+		mips_emit_ori(rt, reg_zero, imm);
+	} else if ((int32_t) (int16_t) imm == (int32_t) imm) {
+		mips_emit_addiu(rt, reg_zero, imm);
+	} else {
+		mips_emit_lui(rt, imm >> 16);
+		if ((uint16_t) imm != 0) {
+			mips_emit_ori(rt, rt, imm);
+		}
+	}
+	return translation_ptr;
+}
+
 #define generate_load_imm(ireg, imm)                                          \
-  if(((int32_t)imm >= -32768) && ((int32_t)imm <= 32767))                     \
-  {                                                                           \
-    mips_emit_addiu(ireg, reg_zero, imm);                                     \
-  }                                                                           \
-  else                                                                        \
-  {                                                                           \
-    if(((uint32_t)imm >> 16) == 0x0000)                                       \
-    {                                                                         \
-      mips_emit_ori(ireg, reg_zero, imm);                                     \
-    }                                                                         \
-    else                                                                      \
-    {                                                                         \
-      mips_emit_lui(ireg, imm >> 16);                                         \
-                                                                              \
-      if(((uint32_t)imm & 0x0000FFFF) != 0x00000000)                          \
-      {                                                                       \
-        mips_emit_ori(ireg, ireg, imm & 0xFFFF);                              \
-      }                                                                       \
-    }                                                                         \
-  }                                                                           \
+  translation_ptr = generate_load_imm_fn(translation_ptr, ireg, imm)          \
+
+static uint8_t* generate_load_pc_fn(uint8_t* translation_ptr, unsigned int rt, uint32_t known, uint32_t pc)
+{
+	int32_t delta = pc - known;
+	if ((int32_t) (int16_t) delta == delta) {
+		mips_emit_addiu(rt, reg_pc, delta);
+		return translation_ptr;
+	} else {
+		return generate_load_imm_fn(translation_ptr, rt, pc);
+	}
+}
 
 #define generate_load_pc(ireg, new_pc)                                        \
-{                                                                             \
-  int32_t pc_delta = new_pc - stored_pc;                                      \
-  if((pc_delta >= -32768) && (pc_delta <= 32767))                             \
-  {                                                                           \
-    mips_emit_addiu(ireg, reg_pc, pc_delta);                                  \
-  }                                                                           \
-  else                                                                        \
-  {                                                                           \
-    generate_load_imm(ireg, new_pc);                                          \
-  }                                                                           \
-}                                                                             \
+  translation_ptr = generate_load_pc_fn(translation_ptr, ireg, stored_pc,     \
+    new_pc)                                                                   \
 
 #define generate_store_reg(ireg, reg_index)                                   \
   mips_emit_addu(arm_to_mips_reg[reg_index], ireg, reg_zero)                  \
