@@ -324,7 +324,7 @@ bool draw_yesno_dialog(enum DS_Engine engine, const char* yes, const char* no)
 					gui_action = CURSOR_BACK;
 			}
 		}
-		usleep(16667);  // TODO Replace this with waiting for interrupts
+		DS2_AwaitVBlank();
 	}
 
 	return gui_action == CURSOR_SELECT;
