@@ -36,40 +36,40 @@
 uint16_t gui_picture[GUI_PIC_BUFSIZE] __attribute__((section(".noinit")));
 
 struct gui_icon gui_icons[] = {
+	/* 00 */ { "smaybgo", 256, 192, NULL },
+	/* 01 */ { "ssubbg", 256, 192, NULL },
+	/* 02 */ { "subsela", 245, 22, NULL },
 	/* File type icons. */
-	/* 00 */ { "zipfile", 16, 16, NULL },
-	/* 01 */ { "directory", 16, 16, NULL },
-	/* 02 */ { "gbafile", 16, 16, NULL },
+	/* 03 */ { "zipfile", 16, 16, NULL },
+	/* 04 */ { "directory", 16, 16, NULL },
+	/* 05 */ { "gbafile", 16, 16, NULL },
 
 	/* Title background. */
-	/* 03 */ { "stitle", 256, 33, NULL },
+	/* 06 */ { "stitle", 256, 33, NULL },
 	/* Main menu icons. */
-	/* 04 */ { "savo", 52, 52, NULL },
-	/* 05 */ { "ssaveo", 52, 52, NULL },
-	/* 06 */ { "stoolo", 52, 52, NULL },
-	/* 07 */ { "scheato", 52, 52, NULL },
-	/* 08 */ { "sother", 52, 52, NULL },
-	/* 09 */ { "sexito", 52, 52, NULL },
-	/* 10 */ { "smsel", 79, 15, NULL },
-	/* 11 */ { "smnsel", 79, 15, NULL },
+	/* 07 */ { "savo", 52, 52, NULL },
+	/* 08 */ { "ssaveo", 52, 52, NULL },
+	/* 09 */ { "stoolo", 52, 52, NULL },
+	/* 10 */ { "scheato", 52, 52, NULL },
+	/* 11 */ { "sother", 52, 52, NULL },
+	/* 12 */ { "sexito", 52, 52, NULL },
+	/* 13 */ { "smsel", 79, 15, NULL },
+	/* 14 */ { "smnsel", 79, 15, NULL },
 
-	/* 12 */ { "snavo", 52, 52, NULL },
-	/* 13 */ { "snsaveo", 52, 52, NULL },
-	/* 14 */ { "sntoolo", 52, 52, NULL },
-	/* 15 */ { "sncheato", 52, 52, NULL },
-	/* 16 */ { "snother", 52, 52, NULL },
-	/* 17 */ { "snexito", 52, 52, NULL },
+	/* 15 */ { "snavo", 52, 52, NULL },
+	/* 16 */ { "snsaveo", 52, 52, NULL },
+	/* 17 */ { "sntoolo", 52, 52, NULL },
+	/* 18 */ { "sncheato", 52, 52, NULL },
+	/* 19 */ { "snother", 52, 52, NULL },
+	/* 20 */ { "snexito", 52, 52, NULL },
 
 	/* Other things. */
-	/* 18 */ { "sunnof", 16, 16, NULL },
-	/* 19 */ { "smaini", 85, 38, NULL },
-	/* 20 */ { "snmaini", 85, 38, NULL },
-	/* 21 */ { "smaybgo", 256, 192, NULL },
+	/* 21 */ { "sunnof", 16, 16, NULL },
+	/* 22 */ { "smaini", 85, 38, NULL },
+	/* 23 */ { "snmaini", 85, 38, NULL },
 
-	/* 22 */ { "sticon", 29, 13, NULL },
-	/* 23 */ { "ssubbg", 256, 192, NULL },
+	/* 24 */ { "sticon", 29, 13, NULL },
 
-	/* 24 */ { "subsela", 245, 22, NULL },
 	/* 25 */ { "sfullo", 12, 12, NULL },
 	/* 26 */ { "snfullo", 12, 12, NULL },
 	/* 27 */ { "semptyo", 12, 12, NULL },
