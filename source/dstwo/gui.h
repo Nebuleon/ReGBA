@@ -122,7 +122,9 @@ typedef struct
   uint32_t DisplayFPS;
   uint32_t BottomScreenGame;
   uint32_t BootFromBIOS;
-  uint32_t Reserved2[111];
+  uint32_t cpu_hz;
+  uint32_t mem_hz;
+  uint32_t Reserved2[109];
 } GPSP_CONFIG_FILE;
 
 // Runtime settings for the current game. Not persistent and reset between
@@ -147,7 +149,15 @@ typedef struct
    * split into two for the runtime settings in GAME_CONFIG.
    */
   uint32_t frameskip_value;
-  uint32_t clock_speed_number;
+  /*
+   * This value was 'clock_speed_number', from 0 to 5. It designated an
+   * overclock to be used per game. Older configuration files will have
+   * non-zero values for this option, so it cannot be reused for options
+   * having a different meaning.
+   *
+   * For the current meaning, see cpu_hz and mem_hz in GPSP_CONFIG_FILE.
+   */
+  uint32_t Unused_20170410_1;
   /*
    * This value differs from the backward and backward_time values in
    * GAME_CONFIG in that this one is just one value, for the GUI, and it's

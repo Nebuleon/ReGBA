@@ -1032,7 +1032,6 @@ void init_game_config()
 	game_fast_forward = 0;
 	game_persistent_config.frameskip_value = 0; // default: keep up/automatic
 	game_persistent_config.rewind_value = 6; // default: 10 seconds
-	game_persistent_config.clock_speed_number = 3;
 	game_config.audio_buffer_size_number = 15;
 	for (i = 0; i < MAX_CHEATS; i++) {
 		game_config.cheats_flag[i].cheat_active = NO;
@@ -1076,6 +1075,8 @@ void init_default_gpsp_config()
 	gpsp_config.rom_file[0] = 0;
 	gpsp_config.rom_path[0] = 0;
 	memset(gpsp_persistent_config.latest_file, 0, sizeof(gpsp_persistent_config.latest_file));
+	gpsp_persistent_config.cpu_hz = UINT32_C(360000000);
+	gpsp_persistent_config.mem_hz = UINT32_C(120000000);
 }
 
 /*--------------------------------------------------------
@@ -1132,6 +1133,12 @@ int32_t load_config_file()
 		if (strcmp(pt, GPSP_CONFIG_HEADER) == 0) {
 			FILE_READ_VARIABLE(gpsp_config_file, gpsp_persistent_config);
 			FILE_CLOSE(gpsp_config_file);
+
+			if (gpsp_persistent_config.cpu_hz == 0)
+				gpsp_persistent_config.cpu_hz = UINT32_C(360000000);
+			if (gpsp_persistent_config.mem_hz == 0)
+				gpsp_persistent_config.mem_hz = UINT32_C(120000000);
+
 			return 0;
 		} else
 			FILE_CLOSE(gpsp_config_file);
@@ -3029,6 +3036,70 @@ void PostChangeLanguage()
 	LowFrequencyCPU(); // and back down
 }
 
+static void DisplayFrequencyValue(struct Entry* DrawnEntry, struct Entry* ActiveEntry, uint32_t Position)
+{
+	char Value[15];
+
+	sprintf(Value, "%" PRIu32 " MHz", *(uint32_t*) DrawnEntry->Target / 1000000);
+
+	bool IsActive = (DrawnEntry == ActiveEntry);
+	uint16_t TextColor = IsActive ? COLOR_ACTIVE_ITEM : COLOR_INACTIVE_ITEM;
+	uint32_t TextWidth = BDF_WidthUTF8s(Value);
+	PRINT_STRING_BG(DS2_GetSubScreen(), Value, TextColor, COLOR_TRANS, DS_SCREEN_WIDTH - OPTION_TEXT_X - TextWidth, GUI_ROW1_Y + (Position - 1) * GUI_ROW_SY + TEXT_OFFSET_Y);
+}
+
+static void LeftCPUFrequency(struct Menu* ActiveMenu, struct Entry* ActiveEntry)
+{
+	uint32_t* Target = (uint32_t*) ActiveEntry->Target;
+	if (*Target <= UINT32_C(252000000))
+		*Target = UINT32_C(240000000);
+	else
+		*Target = (*Target - 1) / UINT32_C(12000000) * UINT32_C(12000000);
+
+	ActionFunction Action = ActiveEntry->Action;
+	if (Action != NULL)
+		Action();
+}
+
+static void RightCPUFrequency(struct Menu* ActiveMenu, struct Entry* ActiveEntry)
+{
+	uint32_t* Target = (uint32_t*) ActiveEntry->Target;
+	if (*Target >= UINT32_C(468000000))
+		*Target = UINT32_C(480000000);
+	else
+		*Target = (*Target + UINT32_C(12000000)) / UINT32_C(12000000) * UINT32_C(12000000);
+
+	ActionFunction Action = ActiveEntry->Action;
+	if (Action != NULL)
+		Action();
+}
+
+static void LeftRAMFrequency(struct Menu* ActiveMenu, struct Entry* ActiveEntry)
+{
+	uint32_t* Target = (uint32_t*) ActiveEntry->Target;
+	if (*Target <= UINT32_C(64000000))
+		*Target = UINT32_C(60000000);
+	else
+		*Target = (*Target - 1) / UINT32_C(4000000) * UINT32_C(4000000);
+
+	ActionFunction Action = ActiveEntry->Action;
+	if (Action != NULL)
+		Action();
+}
+
+static void RightRAMFrequency(struct Menu* ActiveMenu, struct Entry* ActiveEntry)
+{
+	uint32_t* Target = (uint32_t*) ActiveEntry->Target;
+	if (*Target >= UINT32_C(236000000))
+		*Target = UINT32_C(240000000);
+	else
+		*Target = (*Target + UINT32_C(4000000)) / UINT32_C(4000000) * UINT32_C(4000000);
+
+	ActionFunction Action = ActiveEntry->Action;
+	if (Action != NULL)
+		Action();
+}
+
 void LoadDefaults()
 {
 	draw_message_box(DS2_GetSubScreen());
@@ -3079,6 +3150,18 @@ static struct Entry Options_Language = {
 	.Action = PostChangeLanguage
 };
 
+static struct Entry Options_CPUFrequency = {
+	ENTRY_OPTION(&msg[MSG_OPTIONS_CPU_FREQUENCY], &gpsp_persistent_config.cpu_hz, 0),
+	.DisplayValue = DisplayFrequencyValue,
+	.Left = LeftCPUFrequency, .Right = RightCPUFrequency
+};
+
+static struct Entry Options_RAMFrequency = {
+	ENTRY_OPTION(&msg[MSG_OPTIONS_RAM_FREQUENCY], &gpsp_persistent_config.mem_hz, 0),
+	.DisplayValue = DisplayFrequencyValue,
+	.Left = LeftRAMFrequency, .Right = RightRAMFrequency
+};
+
 static struct Entry Options_Reset = {
 	.Kind = KIND_CUSTOM, .Name = &msg[MSG_OPTIONS_RESET],
 	.Enter = LoadDefaults, .Touch = TouchEnter
@@ -3091,7 +3174,7 @@ static struct Entry Options_Version = {
 
 struct Menu Options = {
 	.Parent = &MainMenu, .Title = &msg[MSG_MAIN_MENU_OPTIONS],
-	.Entries = { &Back, &Options_Language, &Options_Reset, &Options_Version, NULL },
+	.Entries = { &Back, &Options_Language, &Options_CPUFrequency, &Options_RAMFrequency, &Options_Reset, &Options_Version, NULL },
 	.ActiveEntryIndex = 1  /* Start out after Back */
 };
 
@@ -3947,17 +4030,18 @@ void QuickSaveState(void)
 
 void LowFrequencyCPU()
 {
-	// TODO Drop to a safe CPU frequency
+	DS2_LowClockSpeed();
 }
 
 void HighFrequencyCPU()
 {
-	// TODO Raise to a safe CPU frequency
+	DS2_HighClockSpeed();
 }
 
 void GameFrequencyCPU()
 {
-	// TODO Allow changing the CPU frequency during a game
+	uint32_t cpu_hz = gpsp_persistent_config.cpu_hz, mem_hz = gpsp_persistent_config.mem_hz;
+	DS2_SetClockSpeed(&cpu_hz, &mem_hz);
 }
 
 static uint32_t save_ss_bmp(const uint16_t *image)
