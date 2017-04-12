@@ -31,7 +31,7 @@
 
 /* This was calculated from the size of all icons below. If any icons are
  * added, update this value. */
-#define GUI_PIC_BUFSIZE 179026
+#define GUI_PIC_BUFSIZE 179042
 
 uint16_t gui_picture[GUI_PIC_BUFSIZE] __attribute__((section(".noinit")));
 
@@ -77,7 +77,7 @@ struct gui_icon gui_icons[] = {
 	/* 29 */ { "fdoto", 16, 16, NULL },
 	/* 30 */ { "backo", 19, 13, NULL },
 	/* 31 */ { "nbacko", 19, 13, NULL },
-	/* 32 */ { "chtfile", 16, 15, NULL },
+	/* 32 */ { "chtfile", 16, 16, NULL },
 	/* 33 */ { "smsgfr", 193, 111, NULL },
 	/* 34 */ { "sbutto", 76, 16, NULL }
 };
