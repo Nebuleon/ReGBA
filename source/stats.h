@@ -60,6 +60,9 @@ struct ReGBA_Stats {
 	 * scratch since the current game started running? */
 	uint64_t        ARMOpcodesDecoded;
 	uint64_t        ThumbOpcodesDecoded;
+	/* How many times have we met a Thumb PC-relative LDR instruction that
+	 * loads from the ROM? */
+	uint64_t        ThumbROMConstants;
 	/* How many times have we recompiled a block anew since the current
 	 * game started running? */
 	uint64_t        BlockRecompilationCount;

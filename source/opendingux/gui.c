@@ -1066,6 +1066,10 @@ static struct MenuEntry ExecutionMenu_ThumbOps = {
 	ENTRY_DISPLAY("Thumb opcodes decoded", &Stats.ThumbOpcodesDecoded, TYPE_UINT64)
 };
 
+static struct MenuEntry ExecutionMenu_ThumbROMConsts = {
+	ENTRY_DISPLAY("Thumb ROM constants", &Stats.ThumbROMConstants, TYPE_UINT64)
+};
+
 static struct MenuEntry ExecutionMenu_MemAccessors = {
 	ENTRY_DISPLAY("Memory accessors patched", &Stats.WrongAddressLineCount, TYPE_UINT32)
 };
@@ -1075,7 +1079,7 @@ static struct Menu ExecutionMenu = {
 	.Parent = &DebugMenu, .Title = "Execution statistics",
 	.Entries = { &ExecutionMenu_SoundUnderruns, &ExecutionMenu_FramesEmulated, &ExecutionMenu_FramesRendered
 #ifdef PERFORMANCE_IMPACTING_STATISTICS
-	, &ExecutionMenu_ARMOps, &ExecutionMenu_ThumbOps, &ExecutionMenu_MemAccessors
+	, &ExecutionMenu_ARMOps, &ExecutionMenu_ThumbOps, &ExecutionMenu_ThumbROMConsts, &ExecutionMenu_MemAccessors
 #endif
 	, NULL }
 };

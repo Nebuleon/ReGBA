@@ -262,7 +262,7 @@ typedef struct
 extern void call_bios_hle(void* func);
 
 #define check_pc_region(pc)                                                   \
-  new_pc_region = (pc >> 15);                                                 \
+  new_pc_region = (pc) >> 15;                                                 \
   if(new_pc_region != pc_region)                                              \
   {                                                                           \
     pc_region = new_pc_region;                                                \
@@ -1892,8 +1892,10 @@ static void arm_flag_status(block_data_arm_type* block_data, uint32_t opcode)
                                                                               \
     case 0x48 ... 0x4F:                                                       \
       /* LDR r0..r7, [pc + imm] */                                            \
-      thumb_access_memory(load, imm, (((opcode >> 8) & 0xFF) - 0x48), 0, 0,   \
-       pc_relative, ((pc & ~2) + (imm << 2) + 4), u32);                       \
+      thumb_ldr_from_pc(((opcode >> 8) & 0xFF) - 0x48,                        \
+        ((pc & ~2) + (imm << 2) + 4), u32);                                   \
+      /*thumb_access_memory(load, imm, (((opcode >> 8) & 0xFF) - 0x48), 0, 0, \
+       pc_relative, ((pc & ~2) + (imm << 2) + 4), u32);*/                     \
       break;                                                                  \
                                                                               \
     case 0x50 ... 0x51:                                                       \

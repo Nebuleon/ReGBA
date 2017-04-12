@@ -2306,6 +2306,37 @@ uint32_t execute_store_cpsr_body(uint32_t _cpsr, uint32_t store_mask, uint32_t a
   thumb_access_memory_##access_type(mem_type, reg_rd);                        \
 }                                                                             \
 
+#ifdef PERFORMANCE_IMPACTING_STATISTICS
+
+static inline void StatsAddThumbROMConstant(void)
+{
+	Stats.ThumbROMConstants++;
+}
+
+#else
+
+static inline void StatsAddThumbROMConstant(void) {}
+
+#endif /* PERFORMANCE_IMPACTING_STATISTICS */
+
+#define thumb_ldr_from_pc(reg_rd, offset, mem_type)                           \
+{                                                                             \
+  thumb_decode_imm();                                                         \
+  if ((offset) >= 0x08000000 && (offset) < 0x0E000000)                        \
+  {                                                                           \
+    StatsAddThumbROMConstant();                                               \
+    cycle_count += 2;                                                         \
+    check_pc_region(offset);                                                  \
+    generate_load_imm(arm_to_mips_reg[reg_rd],                                \
+      ADDRESS32(memory_map_read[pc_region], (offset) & 0x7FFF));              \
+  }                                                                           \
+  else                                                                        \
+  {                                                                           \
+    thumb_access_memory_generate_address_pc_relative(offset, 0,               \
+     0);                                                                      \
+    thumb_access_memory_load(mem_type, reg_rd);                               \
+  }                                                                           \
+}                                                                             \
 
 #define thumb_block_address_preadjust_no(base_reg)                            \
   mips_emit_addu(reg_a2, arm_to_mips_reg[base_reg], reg_zero)                 \

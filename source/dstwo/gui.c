@@ -2938,6 +2938,7 @@ const char* TextFramesRendered = "Frames rendered";
 #ifdef PERFORMANCE_IMPACTING_STATISTICS
 const char* TextARMOpcodes = "ARM opcodes decoded";
 const char* TextThumbOpcodes = "Thumb opcodes decoded";
+const char* TextThumbROMConstants = "Thumb ROM constants";
 const char* TextWrongAddressLines = "Memory accessors patched";
 #endif
 
@@ -2962,6 +2963,10 @@ static struct Entry ExecutionStats_ThumbOpcodes = {
 	ENTRY_DISPLAY(&TextThumbOpcodes, &Stats.ThumbOpcodesDecoded, TYPE_UINT64)
 };
 
+static struct Entry ExecutionStats_ThumbROMConstants = {
+	ENTRY_DISPLAY(&TextThumbROMConstants, &Stats.ThumbROMConstants, TYPE_UINT64)
+};
+
 static struct Entry ExecutionStats_WrongAddressLines = {
 	ENTRY_DISPLAY(&TextWrongAddressLines, &Stats.WrongAddressLineCount, TYPE_UINT32)
 };
@@ -2971,7 +2976,7 @@ struct Menu ExecutionStats = {
 	.Parent = &Debugging, .Title = &TextExecutionStats,
 	.Entries = { &Back, &ExecutionStats_BufferUnderruns, &ExecutionStats_FramesEmulated, &ExecutionStats_FramesRendered,
 #ifdef PERFORMANCE_IMPACTING_STATISTICS
-		&ExecutionStats_ARMOpcodes, &ExecutionStats_ThumbOpcodes, &ExecutionStats_WrongAddressLines,
+		&ExecutionStats_ARMOpcodes, &ExecutionStats_ThumbOpcodes, &ExecutionStats_ThumbROMConstants, &ExecutionStats_WrongAddressLines,
 #endif
 		NULL }
 };
