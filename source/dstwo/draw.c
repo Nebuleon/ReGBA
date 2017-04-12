@@ -98,28 +98,28 @@ void draw_string_vcenter(uint16_t* screen, uint32_t sx, uint32_t sy, uint32_t wi
 {
 	uint32_t num = 0, i = 0;
 	uint16_t *screenp = VRAM_POS(screen, sx, sy);
-	uint16_t unicode[strlen(string)];
+	uint16_t ucs2s[strlen(string)];
 
 	num = 0;
 	while (*string) {
-		string = utf8decode(string, unicode + num);
+		string = utf8decode(string, &ucs2s[num]);
 		num++;
 	}
 
 	i = 0;
 	while (i < num) {
 		uint32_t m, x;
-		m = BDF_CutUCS2s(&unicode[i], num - i, width);
-		x = (width - BDF_WidthUCS2s(&unicode[i], m)) / 2;
+		m = BDF_CutUCS2s(&ucs2s[i], num - i, width);
+		x = (width - BDF_WidthUCS2s(&ucs2s[i], m)) / 2;
 		while (m--) {
 			x += BDF_RenderUCS2(screenp + x, DS_SCREEN_WIDTH, COLOR_TRANS,
-				color, unicode[i++]);
+				color, ucs2s[i++]);
 		}
-		if (i < num && (unicode[i] == 0x0D || unicode[i] == 0x0A))
+
+		while (i < num && (ucs2s[i] == ' ')) i++;
+		if (i < num && (ucs2s[i] == 0x0D || ucs2s[i] == 0x0A))
 			i++;
-		else {
-			while (i < num && (unicode[i] == ' ')) i++;
-		}
+
 		screenp += BDF_GetFontHeight() * DS_SCREEN_WIDTH;
 	}
 }

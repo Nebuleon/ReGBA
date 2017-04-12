@@ -784,27 +784,26 @@ uint32_t BDF_WidthUTF8s(const char* utf8)
 
 size_t BDF_CutUCS2s(const uint16_t* ucs2s, size_t len, uint32_t width)
 {
-	size_t saved_len = len, last_space = len;
+	size_t i = 0, last_space = 0;
 	uint32_t cut_width = 0;
 
-	while (len > 0) {
-		if (*ucs2s == 0x0A)
-			return saved_len - len;
-		else if (*ucs2s == ' ')
-			last_space = len;
+	while (i < len) {
+		if (ucs2s[i] == 0x0A)
+			return i;
+		else if (ucs2s[i] == ' ')
+			last_space = i;
 
-		cut_width += BDF_WidthUCS2(*ucs2s);
+		cut_width += BDF_WidthUCS2(ucs2s[i]);
 
 		if (cut_width > width) {
 			/* If there's no last space (e.g. in Chinese), cut here. */
-			return (last_space == len)
-			     ? saved_len - len - 1
-			     : saved_len - last_space;
+			return (last_space == 0)
+			     ? i
+			     : last_space;
 		}
 
-		ucs2s++;
-		len--;
+		i++;
 	}
 
-	return saved_len;
+	return len;
 }
