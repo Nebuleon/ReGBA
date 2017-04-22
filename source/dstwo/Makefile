@@ -45,7 +45,7 @@ LDFLAGS     +=
 TARGET      := $(NAME).elf
 
 DATA_TO_CLEAN := $(OUTPUT_DIR)/$(NAME).plg $(NAME).plg $(NAME).dat            \
-               $(PLUGIN_DIR)/game_config.txt $(NAME).zip
+               $(NAME).pak $(PLUGIN_DIR)/game_config.txt $(NAME).zip
 
 .PHONY: all release clean
 
@@ -63,7 +63,7 @@ release: all
 	zip -r $(NAME).zip $(PLUGIN_DIR) $(OUTPUT_DIR)
 	zip -j -r $(NAME).zip ../../doc ../../README.md
 
-$(NAME).plg: $(NAME).dat
+$(NAME).plg: $(NAME).pak
 
 $(NAME).elf: $(OBJS)
 

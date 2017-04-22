@@ -2,6 +2,7 @@
 *.plg
 *.elf
 *.dat
+*.pak
 *.zip
 *~
 *.bak
