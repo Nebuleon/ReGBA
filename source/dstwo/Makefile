@@ -34,11 +34,11 @@ HEADERS     := bdf_font.h bitmap.h ../sha1.h                                  \
 # - - - Compilation and linking flags - - -
 DEFS        := -DMIPS_XBURST -DGIT_VERSION=$(shell git describe --always)
 
-CFLAGS      += -fno-builtin -ffunction-sections -O3                           \
+CFLAGS      += -fno-builtin -ffunction-sections -O3 -G 0                      \
                -fno-inline -fno-early-inlining                                \
                $(DEFS) $(INCLUDE)
 
-ASFLAGS     += $(DEFS) $(INCLUDE)
+ASFLAGS     += -G 0 $(DEFS) $(INCLUDE)
 
 LDFLAGS     +=
 
