@@ -26,6 +26,7 @@
 /******************************************************************************
  * 头文件
  ******************************************************************************/
+#include <ds2/ioext.h>
 #include <ds2/pm.h>
 
 #include "common.h"
@@ -432,15 +433,21 @@ int32_t load_file(const char **exts, char *result_name, char *dir)
 		struct dirent* cur_entry_handle;
 		struct stat    st;
 
+#ifdef SCDS2
+		while ((cur_entry_handle = readdir_stat(cur_dir_handle, &st)) != NULL)
+#else
 		while ((cur_entry_handle = readdir(cur_dir_handle)) != NULL)
+#endif
 		{
 			clock_t now = clock();
 			bool add = false;
 			char* name = cur_entry_handle->d_name;
+#ifndef SCDS2
 			char path[PATH_MAX];
 
 			snprintf(path, PATH_MAX, "%s/%s", cur_dir, name);
 			stat(path, &st);
+#endif
 
 			if (now >= last_display + CLOCKS_PER_SEC / 4) {
 				last_display = now;
