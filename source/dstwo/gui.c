@@ -404,8 +404,10 @@ int32_t load_file(const char **exts, char *result_name, char *dir)
 		clock_t last_display = clock();
 
 		struct selector_entry* entries;
+		char* names;
 		DIR* cur_dir_handle = NULL;
 		size_t count = 1, capacity = 4 /* initially */;
+		size_t name_count = 3, name_capacity = 256 /* initially */;
 
 		entries = malloc(capacity * sizeof(struct selector_entry));
 		if (entries == NULL) {
@@ -414,12 +416,15 @@ int32_t load_file(const char **exts, char *result_name, char *dir)
 			goto cleanup;
 		}
 
-		entries[0].name = strdup("..");
-		if (entries[0].name == NULL) {
-			ret = -1;
-			continue_dir = 0;
+		names = malloc(name_capacity);
+		if (names == NULL) {
+			ret = -2;
+			continue_dir = false;
 			goto cleanup;
 		}
+
+		memcpy(names, "..", 3);
+		entries[0].name = (char*) 0;
 		entries[0].is_dir = true;
 
 		cur_dir_handle = opendir(cur_dir);
@@ -498,17 +503,32 @@ int32_t load_file(const char **exts, char *result_name, char *dir)
 					}
 				}
 
-				// Then add the entry.
-				entries[count].name = strdup(name);
-				if (entries[count].name == NULL) {
-					ret = -2;
-					continue_dir = 0;
-					goto cleanup;
+				// Ensure we have enough capacity in the names array.
+				size_t name_len = strlen(name);
+				if (name_count + name_len + 1 > name_capacity) {
+					size_t new_capacity = name_capacity * 2;
+					if (name_count + name_len + 1 > new_capacity) {
+						new_capacity = name_count + name_len + 1;
+					}
+					char* new_names = realloc(names, new_capacity);
+					if (new_names == NULL) {
+						ret = -2;
+						continue_dir = false;
+						goto cleanup;
+					} else {
+						names = new_names;
+						name_capacity = new_capacity;
+					}
 				}
 
+				// Then add the entry.
+				memcpy(names + name_count, name, name_len + 1);
+
+				entries[count].name = (char*) name_count;
 				entries[count].is_dir = S_ISDIR(st.st_mode) ? true : false;
 
 				count++;
+				name_count += name_len + 1;
 			}
 		}
 
@@ -517,6 +537,13 @@ int32_t load_file(const char **exts, char *result_name, char *dir)
 		show_icon(DS2_GetSubScreen(), &ICON_TITLEICON, TITLE_ICON_X, TITLE_ICON_Y);
 		PRINT_STRING_BG(DS2_GetSubScreen(), msg[MSG_FILE_MENU_SORTING_LIST], COLOR_WHITE, COLOR_TRANS, 49, 10);
 		DS2_UpdateScreenPart(DS_ENGINE_SUB, 10, 10 + BDF_GetFontHeight());
+
+		/* Fix up pointers to names, which have thus far been written as
+		 * offsets to our 'names' pointer, to allow us to use realloc on
+		 * 'names'. */
+		for (i = 0; i < count; i++) {
+			entries[i].name += (uintptr_t) names;
+		}
 
 		/* skip the first entry when sorting, which is always ".." */
 		qsort(&entries[1], count - 1, sizeof(struct selector_entry), name_sort);
@@ -768,11 +795,8 @@ cleanup:
 		if (cur_dir_handle != NULL)
 			closedir(cur_dir_handle);
 
-		if (entries != NULL) {
-			for (; count > 0; count--)
-				free(entries[count - 1].name);
-			free(entries);
-		}
+		free(entries);
+		free(names);
 	} // end while
 
 	return ret;
