@@ -400,7 +400,6 @@ int32_t load_file(const char **exts, char *result_name, char *dir)
 		show_icon(DS2_GetSubScreen(), &ICON_TITLEICON, TITLE_ICON_X, TITLE_ICON_Y);
 		PRINT_STRING_BG(DS2_GetSubScreen(), msg[MSG_FILE_MENU_LOADING_LIST], COLOR_WHITE, COLOR_TRANS, 49, 10);
 		DS2_UpdateScreen(DS_ENGINE_SUB);
-		DS2_AwaitScreenUpdate(DS_ENGINE_SUB);
 
 		clock_t last_display = clock();
 
@@ -449,18 +448,16 @@ int32_t load_file(const char **exts, char *result_name, char *dir)
 			stat(path, &st);
 #endif
 
-			if (now >= last_display + CLOCKS_PER_SEC / 4) {
+			if (now >= last_display + CLOCKS_PER_SEC / 20) {
 				last_display = now;
 
+				DS2_AwaitScreenUpdate(DS_ENGINE_SUB);
 				show_icon(DS2_GetSubScreen(), &ICON_TITLE, 0, 0);
 				show_icon(DS2_GetSubScreen(), &ICON_TITLEICON, TITLE_ICON_X, TITLE_ICON_Y);
-				char line[384], element[16];
-				strcpy(line, msg[MSG_FILE_MENU_LOADING_LIST]);
-				sprintf(element, " (%" PRIu32 ")", count);
-				strcat(line, element);
+				char line[384];
+				sprintf(line, "%s (%" PRIu32 ")", msg[MSG_FILE_MENU_LOADING_LIST], count);
 				PRINT_STRING_BG(DS2_GetSubScreen(), line, COLOR_WHITE, COLOR_TRANS, 49, 10);
-				DS2_UpdateScreenPart(DS_ENGINE_SUB, 0, ICON_TITLEICON.y);
-				DS2_AwaitScreenUpdate(DS_ENGINE_SUB);
+				DS2_UpdateScreenPart(DS_ENGINE_SUB, 10, 10 + BDF_GetFontHeight());
 			}
 
 			if (S_ISDIR(st.st_mode)) {
@@ -515,14 +512,15 @@ int32_t load_file(const char **exts, char *result_name, char *dir)
 			}
 		}
 
+		DS2_AwaitScreenUpdate(DS_ENGINE_SUB);
 		show_icon(DS2_GetSubScreen(), &ICON_TITLE, 0, 0);
 		show_icon(DS2_GetSubScreen(), &ICON_TITLEICON, TITLE_ICON_X, TITLE_ICON_Y);
 		PRINT_STRING_BG(DS2_GetSubScreen(), msg[MSG_FILE_MENU_SORTING_LIST], COLOR_WHITE, COLOR_TRANS, 49, 10);
-		DS2_UpdateScreenPart(DS_ENGINE_SUB, 0, ICON_TITLEICON.y);
-		DS2_AwaitScreenUpdate(DS_ENGINE_SUB);
+		DS2_UpdateScreenPart(DS_ENGINE_SUB, 10, 10 + BDF_GetFontHeight());
 
 		/* skip the first entry when sorting, which is always ".." */
 		qsort(&entries[1], count - 1, sizeof(struct selector_entry), name_sort);
+		DS2_AwaitScreenUpdate(DS_ENGINE_SUB);
 		LowFrequencyCPU();
 
 		bool continue_input = true;
