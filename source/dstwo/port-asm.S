@@ -10,7 +10,7 @@
 # Clobbered: $1, $4, $5
 ReGBA_MakeCodeVisible:
   beq   $5, $0, 2f
-  add   $5, $4, $5        # $5 is now End, derived from CodeLength (delay)
+  addu  $5, $4, $5        # $5 is now End, derived from CodeLength (delay)
   srl   $4, $4, 5         # Round $4 down to the cache line containing it
   sll   $4, $4, 5         #   continue
 

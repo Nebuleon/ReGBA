@@ -1216,11 +1216,11 @@ mips_indirect_branch_dual:
 # See smc_write for its register assignment.
 .macro post_write_metadata_core base, metabase, gba_addr_line
   la $1, \base                    # load the Data Area's starting address
-  sub $4, $2, $1                  # regenerate the offset after base -> $4
+  subu $4, $2, $1                 # regenerate the offset after base -> $4
   srl $2, $4, 2                   # $2 = (address & ~3) [>> 2]
   sll $2, $2, 3                   # byte offset into a 16-bit array: * 2
   la $1, \metabase                # load the Metadata Area's address
-  add $1, $1, $2                  # $1 = &metabase[offset] (u16)
+  addu $1, $1, $2                 # $1 = &metabase[offset] (u16)
 
   lhu $5, 6($1)                   # load the code modification status
 #ifndef MIPS_XBURST
@@ -3658,11 +3658,11 @@ lsl_shift_high:
   bne $1, $0, lsl_shift_done      # jump if shift == 32
   andi $22, $4, 1                 # c flag = value & 0x01 (delay)
 
-  add $22, $0, $0                 # c flag = 0 otherwise
+  addu $22, $0, $0                # c flag = 0 otherwise
 
 lsl_shift_done:
   jr $ra                          # return
-  add $4, $0, $0                  # value = 0 no matter what (delay)
+  addu $4, $0, $0                 # value = 0 no matter what (delay)
 
 
 execute_lsr_flags_reg:
@@ -3683,11 +3683,11 @@ lsr_shift_high:
   bne $1, $0, lsr_shift_done      # jump if shift == 32
   srl $22, $4, 31                 # c flag = value >> 31 (delay)
 
-  add $22, $0, $0                 # c flag = 0 otherwise
+  addu $22, $0, $0                # c flag = 0 otherwise
 
 lsr_shift_done:
   jr $ra                          # return
-  add $4, $0, $0                  # value = 0 no matter what
+  addu $4, $0, $0                 # value = 0 no matter what
 
 
 execute_asr_flags_reg:
