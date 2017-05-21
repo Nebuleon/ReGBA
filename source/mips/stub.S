@@ -3766,14 +3766,17 @@ execute_ror_flags_reg:
   andi $22, $1, 1                 # c flag = $1 & 1
 
 ror_zero_shift:
-# TODO [Neb] Optimise with ROTRV instruction
+#ifdef MIPS_32R2
+  jr $ra                          # return
+  rotrv $4, $4, $5                # return (value ror shift) delay
+#else
   subu $1, $0, $5
   addiu $1, $1, 32
   sllv $1, $4, $1
   srlv $4, $4, $5
   jr $ra                          # return
-#  rotrv $4, $4, $5                # return (value ror shift) delay
   or   $4, $4, $1                 # emulate ROTRV instruction
+#endif
 
 # エミュレートの開始
 # 入力 $4: cycle counter
