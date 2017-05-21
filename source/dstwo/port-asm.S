@@ -1,6 +1,7 @@
 .global ReGBA_MakeCodeVisible
 
 .set noat
+.set noreorder
 
 .ent ReGBA_MakeCodeVisible
 
@@ -28,12 +29,14 @@ ReGBA_MakeCodeVisible:
   # Now git 'er done.
 1:
   cache 0x19, ($4)        # Data Writeback (needs to be 0x15, WB/Invalidate,
-  sync                    #  on general MIPS processors)
+                          #  on general MIPS processors)
   cache 0x10, ($4)        # Instruction Invalidate
   addiu $4, $4, 32        # go to the next cache line
   sltu  $1, $4, $5        # if Code < End
   bne   $1, $0, 1b        #   goto 1
   nop                     # cannot delay usefully here
+
+  sync                    # guard against memory hazards
 
 2:
   jr    $ra               # return to caller
