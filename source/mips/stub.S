@@ -1350,6 +1350,7 @@ execute_load_open_u8:
   open_load8 patch_load_u8
 
 .data
+.align 2
 
 load_u8_ftable:
   .long execute_load_bios_u8      # 0x00 BIOS
@@ -1461,6 +1462,7 @@ execute_load_open_s8:
   open_load8 patch_load_s8
 
 .data
+.align 2
 
 load_s8_ftable:
   .long execute_load_bios_s8      # 0x00 BIOS
@@ -1656,6 +1658,7 @@ execute_load_open_u16u:
   open_load16_align16 1, 1, patch_load_u16
 
 .data
+.align 2
 
 load_u16_ftable:
 #  .long execute_load_full_u16
@@ -1900,6 +1903,7 @@ execute_load_open_s16u:
   open_load16_align 1, 1, patch_load_s16
 
 .data
+.align 2
 
 load_s16_ftable:
   .long execute_load_bios_s16     # 0x00 BIOS
@@ -2245,6 +2249,7 @@ execute_load_open_u32u3:
   open_load32_align32 2, 3, patch_load_u32
 
 .data
+.align 2
 
 load_u32_ftable:
   .long execute_load_bios_u32     # 0x00 BIOS
@@ -2396,6 +2401,7 @@ execute_load_open_u32a:
   open_load32_a patch_load_u32a
 
 .data
+.align 2
 
 load_u32a_ftable:
   .long execute_load_bios_u32a      # 0x00 BIOS unaligned (3b)
@@ -2503,6 +2509,7 @@ execute_store_ignoreF_u8:
   ignore_high patch_store_u8
 
 .data
+.align 2
 
 store_u8_ftable:
   .long execute_store_ignore0_u8  # 0x00 BIOS
@@ -2602,6 +2609,7 @@ execute_store_ignoreF_u16:
   ignore_high patch_store_u16
 
 .data
+.align 2
 
 store_u16_ftable:
   .long execute_store_ignore0_u16 # 0x00 BIOS
@@ -2703,6 +2711,7 @@ execute_store_ignoreF_u32:
   ignore_high patch_store_u32
 
 .data
+.align 2
 
 store_u32_ftable:
   .long execute_store_ignore0_u32 # 0x00 BIOS
@@ -2813,6 +2822,7 @@ execute_store_ignoreF_u32a:
   ignore_high patch_store_u32a
 
 .data
+.align 2
 
 store_u32a_ftable:
   .long execute_store_ignore0_u32a # 0x00 BIOS
@@ -3205,6 +3215,7 @@ ext_store_backup:
   addiu $sp, $sp, 4               # fix the stack (delay)
 
 .data
+.align 2
 
 ext_store_u8_jtable:
   .long ext_store_ignore    # 0x00 BIOS
@@ -3309,6 +3320,7 @@ ext_store_rtc:
   addiu $sp, $sp, 4               # fix the stack (delay)
 
 .data
+.align 2
 
 ext_store_u16_jtable:
   .long ext_store_ignore          # 0x00 BIOS, ignore
@@ -3398,6 +3410,7 @@ ext_store_oam32:
   sw $5, %lo(oam_ram)($1)         # oam_ram[address] = value (delay)
 
 .data
+.align 2
 
 ext_store_u32_jtable:
   .long ext_store_ignore          # 0x00 BIOS, ignore
@@ -3469,6 +3482,7 @@ ext_store_palette32a:
 #endif
 
 .data
+.align 2
 
 ext_store_u32a_jtable:
   .long ext_store_ignore          # 0x00 BIOS, ignore
@@ -3833,6 +3847,7 @@ call_bios_hle:
   addiu $sp, $sp, 4               # branch delay
 
 .bss
+.align 2
 
 memory_map_read:
   .space 0x8000
