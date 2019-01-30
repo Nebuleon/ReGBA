@@ -2698,6 +2698,10 @@ ssize_t load_gamepak(const char* file_path)
 
 		gamepak_size = (file_size + 0x7FFF) & ~0x7FFF;
 
+		sram_size = SRAM_SIZE_32KB;
+		flash_size = FLASH_SIZE_64KB;
+		eeprom_size = EEPROM_512_BYTE;
+
 		load_backup();
 
 		memcpy(gamepak_title, gamepak_rom + 0xA0, 12);
@@ -3741,14 +3745,8 @@ void init_memory()
   io_registers[REG_RCNT] = 0x0000;
   io_registers[REG_SIOCNT] = 0x0004;
 
-
-
-  sram_size = SRAM_SIZE_32KB;
-  flash_size = FLASH_SIZE_64KB;
-
   flash_bank_offset = 0;
   flash_command_position = 0;
-  eeprom_size = EEPROM_512_BYTE;
   eeprom_mode = EEPROM_BASE_MODE;
   eeprom_address = 0;
   eeprom_counter = 0;
