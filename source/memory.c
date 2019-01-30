@@ -2297,7 +2297,8 @@ uint32_t load_backup()
       // Could be either flash or SRAM, go with flash
       case 0x10000:
         backup_type = BACKUP_FLASH;
-        sram_size = FLASH_SIZE_64KB;
+        flash_size = FLASH_SIZE_64KB;
+        sram_size = SRAM_SIZE_64KB;
         break;
 
       case 0x20000:
