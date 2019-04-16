@@ -65,7 +65,7 @@ void init_video()
 	}
 
 	SDL_ShowCursor(SDL_DISABLE);
-	OutputSurface = SDL_SetVideoMode(GCW0_SCREEN_WIDTH, GCW0_SCREEN_HEIGHT, 16, SDL_HWSURFACE |
+	OutputSurface = SDL_SetVideoMode(SCREEN_WIDTH, SCREEN_HEIGHT, 16, SDL_HWSURFACE |
 #ifdef SDL_TRIPLEBUF
 		SDL_TRIPLEBUF
 #else
@@ -86,7 +86,7 @@ void SetMenuResolution()
 #ifdef GCW_ZERO
 	if (SDL_MUSTLOCK(OutputSurface))
 		SDL_UnlockSurface(OutputSurface);
-	OutputSurface = SDL_SetVideoMode(GCW0_SCREEN_WIDTH, GCW0_SCREEN_HEIGHT, 16, SDL_HWSURFACE | SDL_DOUBLEBUF);
+	OutputSurface = SDL_SetVideoMode(SCREEN_WIDTH, SCREEN_HEIGHT, 16, SDL_HWSURFACE | SDL_DOUBLEBUF);
 	if (SDL_MUSTLOCK(OutputSurface))
 		SDL_LockSurface(OutputSurface);
 #endif
@@ -99,8 +99,8 @@ void SetGameResolution()
 	unsigned int Width = GBA_SCREEN_WIDTH, Height = GBA_SCREEN_HEIGHT;
 	if (ResolvedScaleMode != hardware)
 	{
-		Width = GCW0_SCREEN_WIDTH;
-		Height = GCW0_SCREEN_HEIGHT;
+		Width = SCREEN_WIDTH;
+		Height = SCREEN_HEIGHT;
 	}
 	if (SDL_MUSTLOCK(OutputSurface))
 		SDL_UnlockSurface(OutputSurface);
@@ -118,18 +118,18 @@ void SetGameResolution()
 
 bool ApplyBorder(const char* Filename)
 {
-	SDL_Surface* JustLoaded = loadPNG(Filename, GCW0_SCREEN_WIDTH, GCW0_SCREEN_HEIGHT);
+	SDL_Surface* JustLoaded = loadPNG(Filename, SCREEN_WIDTH, SCREEN_HEIGHT);
 	bool Result = false;
 	if (JustLoaded != NULL)
 	{
-		if (JustLoaded->w == GCW0_SCREEN_WIDTH && JustLoaded->h == GCW0_SCREEN_HEIGHT)
+		if (JustLoaded->w == SCREEN_WIDTH && JustLoaded->h == SCREEN_HEIGHT)
 		{
 			if (BorderSurface != NULL)
 			{
 				SDL_FreeSurface(BorderSurface);
 				BorderSurface = NULL;
 			}
-			BorderSurface = SDL_CreateRGBSurface(SDL_SWSURFACE, GCW0_SCREEN_WIDTH, GCW0_SCREEN_HEIGHT, 16,
+			BorderSurface = SDL_CreateRGBSurface(SDL_SWSURFACE, SCREEN_WIDTH, SCREEN_HEIGHT, 16,
 			  OutputSurface->format->Rmask,
 			  OutputSurface->format->Gmask,
 			  OutputSurface->format->Bmask,
@@ -1350,8 +1350,8 @@ static inline void gba_render(uint16_t* Dest, uint16_t* Src,
 	uint32_t SrcPitch, uint32_t DestPitch)
 {
 	Dest = (uint16_t*) ((uint8_t*) Dest
-		+ ((GCW0_SCREEN_HEIGHT - GBA_SCREEN_HEIGHT) / 2 * DestPitch)
-		+ ((GCW0_SCREEN_WIDTH - GBA_SCREEN_WIDTH) / 2 * sizeof(uint16_t))
+		+ ((SCREEN_HEIGHT - GBA_SCREEN_HEIGHT) / 2 * DestPitch)
+		+ ((SCREEN_WIDTH - GBA_SCREEN_WIDTH) / 2 * sizeof(uint16_t))
 	);
 	uint32_t SrcSkip = SrcPitch - GBA_SCREEN_WIDTH * sizeof(uint16_t);
 	uint32_t DestSkip = DestPitch - GBA_SCREEN_WIDTH * sizeof(uint16_t);
@@ -1465,13 +1465,13 @@ void ApplyScaleMode(video_scale_type NewMode)
 			}
 			// or clear the rest of the screen to prevent image remanence.
 			else
-				memset(OutputSurface->pixels, 0, OutputSurface->pitch * GCW0_SCREEN_HEIGHT);
+				memset(OutputSurface->pixels, 0, OutputSurface->pitch * SCREEN_HEIGHT);
 			break;
 
 		case scaled_aspect:
 		case scaled_aspect_subpixel:
 		case scaled_aspect_bilinear:
-			memset(OutputSurface->pixels, 0, OutputSurface->pitch * GCW0_SCREEN_HEIGHT);
+			memset(OutputSurface->pixels, 0, OutputSurface->pitch * SCREEN_HEIGHT);
 			break;
 
 		case fullscreen:
@@ -1524,21 +1524,21 @@ void ReGBA_RenderScreen(void)
 			case scaled_aspect:
 				gba_upscale_aspect((uint16_t*) ((uint8_t*)
 					OutputSurface->pixels +
-					(((GCW0_SCREEN_HEIGHT - (GBA_SCREEN_HEIGHT) * 4 / 3) / 2) * OutputSurface->pitch)) /* center vertically */,
+					(((SCREEN_HEIGHT - (GBA_SCREEN_HEIGHT) * 4 / 3) / 2) * OutputSurface->pitch)) /* center vertically */,
 					GBAScreen, GBA_SCREEN_WIDTH, GBA_SCREEN_HEIGHT, GBAScreenSurface->pitch, OutputSurface->pitch);
 				break;
 
 			case scaled_aspect_bilinear:
 				gba_upscale_aspect_bilinear((uint16_t*) ((uint8_t*)
 					OutputSurface->pixels +
-					(((GCW0_SCREEN_HEIGHT - (GBA_SCREEN_HEIGHT) * 4 / 3) / 2) * OutputSurface->pitch)) /* center vertically */,
+					(((SCREEN_HEIGHT - (GBA_SCREEN_HEIGHT) * 4 / 3) / 2) * OutputSurface->pitch)) /* center vertically */,
 					GBAScreen, GBA_SCREEN_WIDTH, GBA_SCREEN_HEIGHT, GBAScreenSurface->pitch, OutputSurface->pitch);
 				break;
 
 			case scaled_aspect_subpixel:
 				gba_upscale_aspect_subpixel((uint16_t*) ((uint8_t*)
 					OutputSurface->pixels +
-					(((GCW0_SCREEN_HEIGHT - (GBA_SCREEN_HEIGHT) * 4 / 3) / 2) * OutputSurface->pitch)) /* center vertically */,
+					(((SCREEN_HEIGHT - (GBA_SCREEN_HEIGHT) * 4 / 3) / 2) * OutputSurface->pitch)) /* center vertically */,
 					GBAScreen, GBA_SCREEN_WIDTH, GBA_SCREEN_HEIGHT, GBAScreenSurface->pitch, OutputSurface->pitch);
 				break;
 
@@ -1864,22 +1864,22 @@ static void ProgressUpdateInternal(uint32_t Current, uint32_t Total)
 	}
 	SDL_FillRect(OutputSurface, NULL, COLOR_PROGRESS_BACKGROUND);
 
-	SDL_Rect TopLine = { (GCW0_SCREEN_WIDTH - PROGRESS_WIDTH) / 2, (GCW0_SCREEN_HEIGHT - PROGRESS_HEIGHT) / 2, PROGRESS_WIDTH, 1 };
+	SDL_Rect TopLine = { (SCREEN_WIDTH - PROGRESS_WIDTH) / 2, (SCREEN_HEIGHT - PROGRESS_HEIGHT) / 2, PROGRESS_WIDTH, 1 };
 	SDL_FillRect(OutputSurface, &TopLine, COLOR_PROGRESS_OUTLINE);
 
-	SDL_Rect BottomLine = { (GCW0_SCREEN_WIDTH - PROGRESS_WIDTH) / 2, (GCW0_SCREEN_HEIGHT - PROGRESS_HEIGHT) / 2 + PROGRESS_HEIGHT - 1, PROGRESS_WIDTH, 1 };
+	SDL_Rect BottomLine = { (SCREEN_WIDTH - PROGRESS_WIDTH) / 2, (SCREEN_HEIGHT - PROGRESS_HEIGHT) / 2 + PROGRESS_HEIGHT - 1, PROGRESS_WIDTH, 1 };
 	SDL_FillRect(OutputSurface, &BottomLine, COLOR_PROGRESS_OUTLINE);
 
-	SDL_Rect LeftLine = { (GCW0_SCREEN_WIDTH - PROGRESS_WIDTH) / 2, (GCW0_SCREEN_HEIGHT - PROGRESS_HEIGHT) / 2, 1, PROGRESS_HEIGHT };
+	SDL_Rect LeftLine = { (SCREEN_WIDTH - PROGRESS_WIDTH) / 2, (SCREEN_HEIGHT - PROGRESS_HEIGHT) / 2, 1, PROGRESS_HEIGHT };
 	SDL_FillRect(OutputSurface, &LeftLine, COLOR_PROGRESS_OUTLINE);
 
-	SDL_Rect RightLine = { (GCW0_SCREEN_WIDTH + PROGRESS_WIDTH) / 2 - 1, (GCW0_SCREEN_HEIGHT - PROGRESS_HEIGHT) / 2, 1, PROGRESS_HEIGHT };
+	SDL_Rect RightLine = { (SCREEN_WIDTH + PROGRESS_WIDTH) / 2 - 1, (SCREEN_HEIGHT - PROGRESS_HEIGHT) / 2, 1, PROGRESS_HEIGHT };
 	SDL_FillRect(OutputSurface, &RightLine, COLOR_PROGRESS_OUTLINE);
 
-	SDL_Rect Content = { (GCW0_SCREEN_WIDTH - PROGRESS_WIDTH) / 2 + 1, (GCW0_SCREEN_HEIGHT - PROGRESS_HEIGHT) / 2 + 1, (uint32_t) ((uint64_t) Current * (PROGRESS_WIDTH - 2) / Total), PROGRESS_HEIGHT - 2 };
+	SDL_Rect Content = { (SCREEN_WIDTH - PROGRESS_WIDTH) / 2 + 1, (SCREEN_HEIGHT - PROGRESS_HEIGHT) / 2 + 1, (uint32_t) ((uint64_t) Current * (PROGRESS_WIDTH - 2) / Total), PROGRESS_HEIGHT - 2 };
 	SDL_FillRect(OutputSurface, &Content, COLOR_PROGRESS_CONTENT);
 
-	PrintStringOutline(Line, COLOR_PROGRESS_TEXT_CONTENT, COLOR_PROGRESS_TEXT_OUTLINE, OutputSurface->pixels, OutputSurface->pitch, 0, 0, GCW0_SCREEN_WIDTH, GCW0_SCREEN_HEIGHT, CENTER, MIDDLE);
+	PrintStringOutline(Line, COLOR_PROGRESS_TEXT_CONTENT, COLOR_PROGRESS_TEXT_OUTLINE, OutputSurface->pixels, OutputSurface->pitch, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, CENTER, MIDDLE);
 
 	ReGBA_VideoFlip();
 }
