@@ -1472,12 +1472,20 @@ static struct Menu PerGameMainMenu = {
 	.Parent = NULL, .Title = "ReGBA Main Menu",
 	MENU_PER_GAME,
 	.AlternateVersion = &MainMenu,
+#if SCREEN_HEIGHT >= 240
 	.Entries = { &PerGameMainMenu_Display, &PerGameMainMenu_Input, &PerGameMainMenu_Hotkey, &Strut, &Strut, &Strut, &Strut, &Strut, &Strut, &MainMenu_Reset, &MainMenu_Return, &MainMenu_Exit, NULL }
+#else
+	.Entries = { &PerGameMainMenu_Display, &PerGameMainMenu_Input, &PerGameMainMenu_Hotkey, &Strut, &Strut, &MainMenu_Reset, &MainMenu_Return, &MainMenu_Exit, NULL }
+#endif
 };
 struct Menu MainMenu = {
 	.Parent = NULL, .Title = "ReGBA Main Menu",
 	.AlternateVersion = &PerGameMainMenu,
+#if SCREEN_HEIGHT >= 240
 	.Entries = { &MainMenu_Display, &MainMenu_Input, &MainMenu_Hotkey, &Strut, &MainMenu_SavedStates, &Strut, &Strut, &MainMenu_Debug, &Strut, &MainMenu_Reset, &MainMenu_Return, &MainMenu_Exit, NULL }
+#else
+	.Entries = { &MainMenu_Display, &MainMenu_Input, &MainMenu_Hotkey, &MainMenu_SavedStates, &MainMenu_Debug, &MainMenu_Reset, &MainMenu_Return, &MainMenu_Exit, NULL }
+#endif
 };
 
 /* Do not make this the active menu */
