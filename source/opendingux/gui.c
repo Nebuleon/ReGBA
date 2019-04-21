@@ -30,6 +30,9 @@
 #define COLOR_ERROR_TEXT       RGB888_TO_RGB565(255,  64,  64)
 #define COLOR_ERROR_OUTLINE    RGB888_TO_RGB565( 80,   0,   0)
 
+#define NO_SCALING ((SCREEN_WIDTH == GBA_SCREEN_WIDTH) \
+		&& (SCREEN_HEIGHT == GBA_SCREEN_HEIGHT))
+
 // -- Shorthand for creating menu entries --
 
 #define MENU_PER_GAME \
@@ -1174,6 +1177,7 @@ static struct MenuEntry DisplayMenu_FPSCounter = {
 	.ChoiceCount = 2, .Choices = { { "Hide", "hide" }, { "Show", "show" } }
 };
 
+#ifndef NO_SCALING
 static struct MenuEntry PerGameDisplayMenu_ScaleMode = {
 	ENTRY_OPTION("image_size", "Image scaling", &PerGameScaleMode),
 	.ChoiceCount = 9, .Choices = { { "No override", "" }, { "Aspect, fast", "aspect" }, { "Full, fast", "fullscreen" }, { "Aspect, bilinear", "aspect_bilinear" }, { "Full, bilinear", "fullscreen_bilinear" }, { "Aspect, sub-pixel", "aspect_subpixel" }, { "Full, sub-pixel", "fullscreen_subpixel" }, { "None", "original" }, { "Hardware", "hardware" } }
@@ -1182,6 +1186,7 @@ static struct MenuEntry DisplayMenu_ScaleMode = {
 	ENTRY_OPTION("image_size", "Image scaling", &ScaleMode),
 	.ChoiceCount = 8, .Choices = { { "Aspect, fast", "aspect" }, { "Full, fast", "fullscreen" }, { "Aspect, bilinear", "aspect_bilinear" }, { "Full, bilinear", "fullscreen_bilinear" }, { "Aspect, sub-pixel", "aspect_subpixel" }, { "Full, sub-pixel", "fullscreen_subpixel" }, { "None", "original" }, { "Hardware", "hardware" } }
 };
+#endif
 
 static struct MenuEntry PerGameDisplayMenu_Frameskip = {
 	ENTRY_OPTION("frameskip", "Frame skipping", &PerGameUserFrameskip),
@@ -1205,12 +1210,20 @@ static struct Menu PerGameDisplayMenu = {
 	.Parent = &PerGameMainMenu, .Title = "Display settings",
 	MENU_PER_GAME,
 	.AlternateVersion = &DisplayMenu,
-	.Entries = { &PerGameDisplayMenu_BootSource, &PerGameDisplayMenu_FPSCounter, &PerGameDisplayMenu_ScaleMode, &PerGameDisplayMenu_Frameskip, &PerGameDisplayMenu_FastForwardTarget, NULL }
+	.Entries = { &PerGameDisplayMenu_BootSource, &PerGameDisplayMenu_FPSCounter,
+#ifndef NO_SCALING
+		&PerGameDisplayMenu_ScaleMode,
+#endif
+		&PerGameDisplayMenu_Frameskip, &PerGameDisplayMenu_FastForwardTarget, NULL }
 };
 static struct Menu DisplayMenu = {
 	.Parent = &MainMenu, .Title = "Display settings",
 	.AlternateVersion = &PerGameDisplayMenu,
-	.Entries = { &DisplayMenu_BootSource, &DisplayMenu_FPSCounter, &DisplayMenu_ScaleMode, &DisplayMenu_Frameskip, &DisplayMenu_FastForwardTarget, NULL }
+	.Entries = { &DisplayMenu_BootSource, &DisplayMenu_FPSCounter,
+#ifndef NO_SCALING
+		&DisplayMenu_ScaleMode,
+#endif
+		&DisplayMenu_Frameskip, &DisplayMenu_FastForwardTarget, NULL }
 };
 
 // -- Input Settings --

@@ -51,6 +51,9 @@ video_scale_type ScaleMode = scaled_aspect;
 #define PROGRESS_WIDTH 240
 #define PROGRESS_HEIGHT 18
 
+#define NO_SCALING ((SCREEN_WIDTH == GBA_SCREEN_WIDTH) \
+		&& (SCREEN_HEIGHT == GBA_SCREEN_HEIGHT))
+
 static bool InFileAction = false;
 static enum ReGBA_FileAction CurrentFileAction;
 static struct timespec LastProgressUpdate;
@@ -79,6 +82,10 @@ void init_video()
 	  0 /* alpha: none */);
 
 	GBAScreen = (uint16_t*) GBAScreenSurface->pixels;
+
+#ifdef NO_SCALING
+	ScaleMode = unscaled;
+#endif
 }
 
 void SetMenuResolution()
@@ -1509,6 +1516,10 @@ void ReGBA_RenderScreen(void)
 				gba_render(OutputSurface->pixels, GBAScreen, GBAScreenSurface->pitch, OutputSurface->pitch);
 				break;
 
+#ifdef NO_SCALING
+			default:
+				break;
+#else /* NO_SCALING */
 			case fullscreen:
 				gba_upscale(OutputSurface->pixels, GBAScreen, GBA_SCREEN_WIDTH, GBA_SCREEN_HEIGHT, GBAScreenSurface->pitch, OutputSurface->pitch);
 				break;
@@ -1546,6 +1557,7 @@ void ReGBA_RenderScreen(void)
 			case hardware:
 				gba_convert(OutputSurface->pixels, GBAScreen, GBAScreenSurface->pitch, OutputSurface->pitch);
 #endif
+#endif /* NO_SCALING */
 		}
 		ReGBA_DisplayFPS();
 
