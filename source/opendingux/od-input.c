@@ -298,7 +298,7 @@ enum ReGBA_Buttons ReGBA_GetPressedButtons()
 		Result &= ~REGBA_BUTTON_UP;
 
 	if (
-#if defined GCW_ZERO
+#if defined(GCW_ZERO) || defined(RS90)
 	// Unified emulator menu buttons: Start+Select
 		((LastButtons & (OPENDINGUX_BUTTON_START | OPENDINGUX_BUTTON_SELECT)) == (OPENDINGUX_BUTTON_START | OPENDINGUX_BUTTON_SELECT))
 #else
