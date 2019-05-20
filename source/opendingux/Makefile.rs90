@@ -1,6 +1,6 @@
 TARGET      := regba
 
-CROSS_COMPILE ?= /opt/opendingux-toolchain/usr/bin/mipsel-linux-
+CROSS_COMPILE ?= /opt/rs90-toolchain/usr/bin/mipsel-rs90-linux-musl-
 CC          := $(CROSS_COMPILE)gcc
 STRIP       := $(CROSS_COMPILE)strip
 
@@ -12,35 +12,47 @@ OBJS        := main.o draw.o port.o port-asm.o od-input.o ../video.o          \
               ../input.o ../bios.o ../zip.o ../sound.o ../mips/stub.o         \
               ../stats.o ../memory.o ../cpu_common.o ../cpu_asm.o od-sound.o  \
               ../sha1.o imageio.o ../unifont.o gui.o od-memory.o settings.o
-              
+
 HEADERS     := cheats.h ../common.h ../cpu_common.h ../cpu.h draw.h main.h    \
                ../input.h ../memory.h message.h ../mips/emit.h ../sound.h     \
                ../stats.h ../video.h ../zip.h port.h od-sound.h ../sha1.h     \
-               imageio.h ../unifont.h od-sound.h od-input.h settings.h
+               imageio.h ../unifont.h od-input.h settings.h
 
 INCLUDE     := -I. -I.. -I../mips
-DEFS        := -DDINGOO_A320 -DMIPS_XBURST -DUSE_MMAP                         \
-               -DSCREEN_WIDTH=320 -DSCREEN_HEIGHT=240                         \
+DEFS        := -DRS90 -DMIPS_XBURST -DUSE_MMAP                                \
+               -DSCREEN_WIDTH=240 -DSCREEN_HEIGHT=160                         \
                -DGIT_VERSION=$(shell git describe --always)
 HAS_MIPS32R2 := $(shell echo | $(CC) -dM -E - |grep _MIPS_ARCH_MIPS32R2)
 ifneq ($(HAS_MIPS32R2),)
 	DEFS += -DMIPS_32R2
 endif
 
-CFLAGS      := $(SDL_CFLAGS) -mno-abicalls -Wall -Wno-unused-variable \
-               -O2 -fomit-frame-pointer $(DEFS) $(INCLUDE)
+CFLAGS      := $(SDL_CFLAGS) -mplt -Wall -Wno-unused-variable \
+               -fdata-sections -ffunction-sections \
+               -O2 -fomit-frame-pointer -flto $(DEFS) $(INCLUDE)
 ASFLAGS     := $(CFLAGS) -D__ASSEMBLY__
-LDFLAGS     := $(SDL_LIBS) -lpthread -lz -lm -lpng
+LDFLAGS     := $(SDL_LIBS) -lpthread -lz -lm -lpng -Wl,-gc-sections \
+               -Wl,-zcommon-page-size=16384 -Wl,-zmax-page-size=16384 #-lhugetlbfs
 
-DATA_TO_CLEAN := $(TARGET).dge
+DATA_TO_CLEAN := .opk_data $(TARGET).opk
 
 include ../Makefile.rules
 
-.PHONY: all dge
+.PHONY: all opk
 
 all: $(TARGET)
 
-dge: $(TARGET).dge
+opk: $(TARGET).opk
+
+$(TARGET).opk: $(TARGET)
+	$(SUM) "  OPK     $@"
+	$(CMD)rm -rf .opk_data
+	$(CMD)cp -r data .opk_data
+	$(CMD)cp ../../game_config.txt .opk_data
+	$(CMD)cp ../../bios/gba_bios.bin .opk_data
+	$(CMD)cp $< .opk_data/regba
+	$(CMD)$(STRIP) .opk_data/regba
+	$(CMD)mksquashfs .opk_data $@ -all-root -noappend -no-exports -no-xattrs -no-progress >/dev/null
 
 # The two below declarations ensure that editing a .c file recompiles only that
 # file, but editing a .h file recompiles everything.

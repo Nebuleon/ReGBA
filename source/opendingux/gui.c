@@ -30,6 +30,9 @@
 #define COLOR_ERROR_TEXT       RGB888_TO_RGB565(255,  64,  64)
 #define COLOR_ERROR_OUTLINE    RGB888_TO_RGB565( 80,   0,   0)
 
+#define NO_SCALING ((SCREEN_WIDTH == GBA_SCREEN_WIDTH) \
+		&& (SCREEN_HEIGHT == GBA_SCREEN_HEIGHT))
+
 // -- Shorthand for creating menu entries --
 
 #define MENU_PER_GAME \
@@ -224,7 +227,7 @@ static void DefaultDisplayNameFunction(struct MenuEntry* DrawnMenuEntry, struct 
 	bool IsActive = (DrawnMenuEntry == ActiveMenuEntry);
 	uint16_t TextColor = IsActive ? COLOR_ACTIVE_TEXT : COLOR_INACTIVE_TEXT;
 	uint16_t OutlineColor = IsActive ? COLOR_ACTIVE_OUTLINE : COLOR_INACTIVE_OUTLINE;
-	PrintStringOutline(DrawnMenuEntry->Name, TextColor, OutlineColor, OutputSurface->pixels, OutputSurface->pitch, 0, GetRenderedHeight(" ") * (Position + 2), GCW0_SCREEN_WIDTH, GetRenderedHeight(" ") + 2, LEFT, TOP);
+	PrintStringOutline(DrawnMenuEntry->Name, TextColor, OutlineColor, OutputSurface->pixels, OutputSurface->pitch, 0, GetRenderedHeight(" ") * (Position + 2), SCREEN_WIDTH, GetRenderedHeight(" ") + 2, LEFT, TOP);
 }
 
 static void print_u64(char* Result, uint64_t Value)
@@ -309,7 +312,7 @@ static void DefaultDisplayValueFunction(struct MenuEntry* DrawnMenuEntry, struct
 		bool IsActive = (DrawnMenuEntry == ActiveMenuEntry);
 		uint16_t TextColor = Error ? COLOR_ERROR_TEXT : (IsActive ? COLOR_ACTIVE_TEXT : COLOR_INACTIVE_TEXT);
 		uint16_t OutlineColor = Error ? COLOR_ERROR_OUTLINE : (IsActive ? COLOR_ACTIVE_OUTLINE : COLOR_INACTIVE_OUTLINE);
-		PrintStringOutline(Value, TextColor, OutlineColor, OutputSurface->pixels, OutputSurface->pitch, 0, GetRenderedHeight(" ") * (Position + 2), GCW0_SCREEN_WIDTH, GetRenderedHeight(" ") + 2, RIGHT, TOP);
+		PrintStringOutline(Value, TextColor, OutlineColor, OutputSurface->pixels, OutputSurface->pitch, 0, GetRenderedHeight(" ") * (Position + 2), SCREEN_WIDTH, GetRenderedHeight(" ") + 2, RIGHT, TOP);
 	}
 }
 
@@ -342,17 +345,17 @@ static void DefaultDisplayDataFunction(struct Menu* ActiveMenu, struct MenuEntry
 
 static void DefaultDisplayTitleFunction(struct Menu* ActiveMenu)
 {
-	PrintStringOutline(ActiveMenu->Title, COLOR_TITLE_TEXT, COLOR_TITLE_OUTLINE, OutputSurface->pixels, OutputSurface->pitch, 0, 0, GCW0_SCREEN_WIDTH, GCW0_SCREEN_HEIGHT, CENTER, TOP);
+	PrintStringOutline(ActiveMenu->Title, COLOR_TITLE_TEXT, COLOR_TITLE_OUTLINE, OutputSurface->pixels, OutputSurface->pitch, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, CENTER, TOP);
 }
 
 static void DisplayPerGameTitleFunction(struct Menu* ActiveMenu)
 {
-	PrintStringOutline(ActiveMenu->Title, COLOR_TITLE_TEXT, COLOR_TITLE_OUTLINE, OutputSurface->pixels, OutputSurface->pitch, 0, 0, GCW0_SCREEN_WIDTH, GCW0_SCREEN_HEIGHT, CENTER, TOP);
+	PrintStringOutline(ActiveMenu->Title, COLOR_TITLE_TEXT, COLOR_TITLE_OUTLINE, OutputSurface->pixels, OutputSurface->pitch, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, CENTER, TOP);
 	char ForGame[MAX_PATH * 2];
 	char FileNameNoExt[MAX_PATH + 1];
 	GetFileNameNoExtension(FileNameNoExt, CurrentGamePath);
 	sprintf(ForGame, "for %s", FileNameNoExt);
-	PrintStringOutline(ForGame, COLOR_TITLE_TEXT, COLOR_TITLE_OUTLINE, OutputSurface->pixels, OutputSurface->pitch, 0, GetRenderedHeight(" "), GCW0_SCREEN_WIDTH, GetRenderedHeight(" ") + 2, CENTER, TOP);
+	PrintStringOutline(ForGame, COLOR_TITLE_TEXT, COLOR_TITLE_OUTLINE, OutputSurface->pixels, OutputSurface->pitch, 0, GetRenderedHeight(" "), SCREEN_WIDTH, GetRenderedHeight(" ") + 2, CENTER, TOP);
 }
 
 void DefaultLoadFunction(struct MenuEntry* ActiveMenuEntry, char* Value)
@@ -497,7 +500,7 @@ static void DisplayButtonMappingValue(struct MenuEntry* DrawnMenuEntry, struct M
 	bool IsActive = (DrawnMenuEntry == ActiveMenuEntry);
 	uint16_t TextColor = Valid ? (IsActive ? COLOR_ACTIVE_TEXT : COLOR_INACTIVE_TEXT) : COLOR_ERROR_TEXT;
 	uint16_t OutlineColor = Valid ? (IsActive ? COLOR_ACTIVE_OUTLINE : COLOR_INACTIVE_OUTLINE) : COLOR_ERROR_OUTLINE;
-	PrintStringOutline(Value, TextColor, OutlineColor, OutputSurface->pixels, OutputSurface->pitch, 0, GetRenderedHeight(" ") * (Position + 2), GCW0_SCREEN_WIDTH, GetRenderedHeight(" ") + 2, RIGHT, TOP);
+	PrintStringOutline(Value, TextColor, OutlineColor, OutputSurface->pixels, OutputSurface->pitch, 0, GetRenderedHeight(" ") * (Position + 2), SCREEN_WIDTH, GetRenderedHeight(" ") + 2, RIGHT, TOP);
 }
 
 static void DisplayHotkeyValue(struct MenuEntry* DrawnMenuEntry, struct MenuEntry* ActiveMenuEntry, uint32_t Position)
@@ -508,7 +511,7 @@ static void DisplayHotkeyValue(struct MenuEntry* DrawnMenuEntry, struct MenuEntr
 	bool IsActive = (DrawnMenuEntry == ActiveMenuEntry);
 	uint16_t TextColor = IsActive ? COLOR_ACTIVE_TEXT : COLOR_INACTIVE_TEXT;
 	uint16_t OutlineColor = IsActive ? COLOR_ACTIVE_OUTLINE : COLOR_INACTIVE_OUTLINE;
-	PrintStringOutline(Value, TextColor, OutlineColor, OutputSurface->pixels, OutputSurface->pitch, 0, GetRenderedHeight(" ") * (Position + 2), GCW0_SCREEN_WIDTH, GetRenderedHeight(" ") + 2, RIGHT, TOP);
+	PrintStringOutline(Value, TextColor, OutlineColor, OutputSurface->pixels, OutputSurface->pitch, 0, GetRenderedHeight(" ") * (Position + 2), SCREEN_WIDTH, GetRenderedHeight(" ") + 2, RIGHT, TOP);
 }
 
 static void DisplayErrorBackgroundFunction(struct Menu* ActiveMenu)
@@ -522,10 +525,10 @@ static void DisplayErrorBackgroundFunction(struct Menu* ActiveMenu)
 
 static void SavedStateMenuDisplayData(struct Menu* ActiveMenu, struct MenuEntry* ActiveMenuEntry)
 {
-	PrintStringOutline("Preview", COLOR_INACTIVE_TEXT, COLOR_INACTIVE_OUTLINE, OutputSurface->pixels, OutputSurface->pitch, GCW0_SCREEN_WIDTH - GBA_SCREEN_WIDTH / 2, GetRenderedHeight(" ") * 2, GBA_SCREEN_WIDTH / 2, GetRenderedHeight(" ") + 2, LEFT, TOP);
+	PrintStringOutline("Preview", COLOR_INACTIVE_TEXT, COLOR_INACTIVE_OUTLINE, OutputSurface->pixels, OutputSurface->pitch, SCREEN_WIDTH - GBA_SCREEN_WIDTH / 2, GetRenderedHeight(" ") * 2, GBA_SCREEN_WIDTH / 2, GetRenderedHeight(" ") + 2, LEFT, TOP);
 
 	gba_render_half((uint16_t*) OutputSurface->pixels, (uint16_t*) ActiveMenu->UserData,
-		GCW0_SCREEN_WIDTH - GBA_SCREEN_WIDTH / 2,
+		SCREEN_WIDTH - GBA_SCREEN_WIDTH / 2,
 		GetRenderedHeight(" ") * 3 + 1,
 		GBA_SCREEN_WIDTH * sizeof(uint16_t),
 		OutputSurface->pitch);
@@ -541,7 +544,7 @@ static void SavedStateSelectionDisplayValue(struct MenuEntry* DrawnMenuEntry, st
 	bool IsActive = (DrawnMenuEntry == ActiveMenuEntry);
 	uint16_t TextColor = IsActive ? COLOR_ACTIVE_TEXT : COLOR_INACTIVE_TEXT;
 	uint16_t OutlineColor = IsActive ? COLOR_ACTIVE_OUTLINE : COLOR_INACTIVE_OUTLINE;
-	PrintStringOutline(Value, TextColor, OutlineColor, OutputSurface->pixels, OutputSurface->pitch, 0, GetRenderedHeight(" ") * (Position + 2), GCW0_SCREEN_WIDTH - GBA_SCREEN_WIDTH / 2 - 16, GetRenderedHeight(" ") + 2, RIGHT, TOP);
+	PrintStringOutline(Value, TextColor, OutlineColor, OutputSurface->pixels, OutputSurface->pitch, 0, GetRenderedHeight(" ") * (Position + 2), SCREEN_WIDTH - GBA_SCREEN_WIDTH / 2 - 16, GetRenderedHeight(" ") + 2, RIGHT, TOP);
 }
 
 static void SavedStateUpdatePreview(struct Menu* ActiveMenu)
@@ -709,7 +712,7 @@ static enum OpenDingux_Buttons GrabButton(struct Menu* ActiveMenu, char* Text)
 	while ((Buttons = GetPressedOpenDinguxButtons()) == 0)
 	{
 		(*DisplayBackgroundFunction)(ActiveMenu);
-		PrintStringOutline(Text, COLOR_ACTIVE_TEXT, COLOR_ACTIVE_OUTLINE, OutputSurface->pixels, OutputSurface->pitch, 0, 0, GCW0_SCREEN_WIDTH, GCW0_SCREEN_HEIGHT, CENTER, MIDDLE);
+		PrintStringOutline(Text, COLOR_ACTIVE_TEXT, COLOR_ACTIVE_OUTLINE, OutputSurface->pixels, OutputSurface->pitch, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, CENTER, MIDDLE);
 		ReGBA_VideoFlip();
 		usleep(5000); // for platforms that don't sync their flips
 	}
@@ -719,7 +722,7 @@ static enum OpenDingux_Buttons GrabButton(struct Menu* ActiveMenu, char* Text)
 	{
 		ButtonTotal |= Buttons;
 		(*DisplayBackgroundFunction)(ActiveMenu);
-		PrintStringOutline(Text, COLOR_ACTIVE_TEXT, COLOR_ACTIVE_OUTLINE, OutputSurface->pixels, OutputSurface->pitch, 0, 0, GCW0_SCREEN_WIDTH, GCW0_SCREEN_HEIGHT, CENTER, MIDDLE);
+		PrintStringOutline(Text, COLOR_ACTIVE_TEXT, COLOR_ACTIVE_OUTLINE, OutputSurface->pixels, OutputSurface->pitch, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, CENTER, MIDDLE);
 		ReGBA_VideoFlip();
 		usleep(5000); // for platforms that don't sync their flips
 	}
@@ -742,7 +745,7 @@ static enum OpenDingux_Buttons GrabButtons(struct Menu* ActiveMenu, char* Text)
 	while ((Buttons = GetPressedOpenDinguxButtons()) == 0)
 	{
 		(*DisplayBackgroundFunction)(ActiveMenu);
-		PrintStringOutline(Text, COLOR_ACTIVE_TEXT, COLOR_ACTIVE_OUTLINE, OutputSurface->pixels, OutputSurface->pitch, 0, 0, GCW0_SCREEN_WIDTH, GCW0_SCREEN_HEIGHT, CENTER, MIDDLE);
+		PrintStringOutline(Text, COLOR_ACTIVE_TEXT, COLOR_ACTIVE_OUTLINE, OutputSurface->pixels, OutputSurface->pitch, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, CENTER, MIDDLE);
 		ReGBA_VideoFlip();
 		usleep(5000); // for platforms that don't sync their flips
 	}
@@ -763,7 +766,7 @@ static enum OpenDingux_Buttons GrabButtons(struct Menu* ActiveMenu, char* Text)
 		else
 			ButtonTotal = Buttons;
 		(*DisplayBackgroundFunction)(ActiveMenu);
-		PrintStringOutline(Text, COLOR_ACTIVE_TEXT, COLOR_ACTIVE_OUTLINE, OutputSurface->pixels, OutputSurface->pitch, 0, 0, GCW0_SCREEN_WIDTH, GCW0_SCREEN_HEIGHT, CENTER, MIDDLE);
+		PrintStringOutline(Text, COLOR_ACTIVE_TEXT, COLOR_ACTIVE_OUTLINE, OutputSurface->pixels, OutputSurface->pitch, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, CENTER, MIDDLE);
 		ReGBA_VideoFlip();
 		usleep(5000); // for platforms that don't sync their flips
 	}
@@ -1174,6 +1177,7 @@ static struct MenuEntry DisplayMenu_FPSCounter = {
 	.ChoiceCount = 2, .Choices = { { "Hide", "hide" }, { "Show", "show" } }
 };
 
+#ifndef NO_SCALING
 static struct MenuEntry PerGameDisplayMenu_ScaleMode = {
 	ENTRY_OPTION("image_size", "Image scaling", &PerGameScaleMode),
 	.ChoiceCount = 9, .Choices = { { "No override", "" }, { "Aspect, fast", "aspect" }, { "Full, fast", "fullscreen" }, { "Aspect, bilinear", "aspect_bilinear" }, { "Full, bilinear", "fullscreen_bilinear" }, { "Aspect, sub-pixel", "aspect_subpixel" }, { "Full, sub-pixel", "fullscreen_subpixel" }, { "None", "original" }, { "Hardware", "hardware" } }
@@ -1182,6 +1186,7 @@ static struct MenuEntry DisplayMenu_ScaleMode = {
 	ENTRY_OPTION("image_size", "Image scaling", &ScaleMode),
 	.ChoiceCount = 8, .Choices = { { "Aspect, fast", "aspect" }, { "Full, fast", "fullscreen" }, { "Aspect, bilinear", "aspect_bilinear" }, { "Full, bilinear", "fullscreen_bilinear" }, { "Aspect, sub-pixel", "aspect_subpixel" }, { "Full, sub-pixel", "fullscreen_subpixel" }, { "None", "original" }, { "Hardware", "hardware" } }
 };
+#endif
 
 static struct MenuEntry PerGameDisplayMenu_Frameskip = {
 	ENTRY_OPTION("frameskip", "Frame skipping", &PerGameUserFrameskip),
@@ -1205,12 +1210,20 @@ static struct Menu PerGameDisplayMenu = {
 	.Parent = &PerGameMainMenu, .Title = "Display settings",
 	MENU_PER_GAME,
 	.AlternateVersion = &DisplayMenu,
-	.Entries = { &PerGameDisplayMenu_BootSource, &PerGameDisplayMenu_FPSCounter, &PerGameDisplayMenu_ScaleMode, &PerGameDisplayMenu_Frameskip, &PerGameDisplayMenu_FastForwardTarget, NULL }
+	.Entries = { &PerGameDisplayMenu_BootSource, &PerGameDisplayMenu_FPSCounter,
+#ifndef NO_SCALING
+		&PerGameDisplayMenu_ScaleMode,
+#endif
+		&PerGameDisplayMenu_Frameskip, &PerGameDisplayMenu_FastForwardTarget, NULL }
 };
 static struct Menu DisplayMenu = {
 	.Parent = &MainMenu, .Title = "Display settings",
 	.AlternateVersion = &PerGameDisplayMenu,
-	.Entries = { &DisplayMenu_BootSource, &DisplayMenu_FPSCounter, &DisplayMenu_ScaleMode, &DisplayMenu_Frameskip, &DisplayMenu_FastForwardTarget, NULL }
+	.Entries = { &DisplayMenu_BootSource, &DisplayMenu_FPSCounter,
+#ifndef NO_SCALING
+		&DisplayMenu_ScaleMode,
+#endif
+		&DisplayMenu_Frameskip, &DisplayMenu_FastForwardTarget, NULL }
 };
 
 // -- Input Settings --
@@ -1472,12 +1485,20 @@ static struct Menu PerGameMainMenu = {
 	.Parent = NULL, .Title = "ReGBA Main Menu",
 	MENU_PER_GAME,
 	.AlternateVersion = &MainMenu,
+#if SCREEN_HEIGHT >= 240
 	.Entries = { &PerGameMainMenu_Display, &PerGameMainMenu_Input, &PerGameMainMenu_Hotkey, &Strut, &Strut, &Strut, &Strut, &Strut, &Strut, &MainMenu_Reset, &MainMenu_Return, &MainMenu_Exit, NULL }
+#else
+	.Entries = { &PerGameMainMenu_Display, &PerGameMainMenu_Input, &PerGameMainMenu_Hotkey, &Strut, &Strut, &MainMenu_Reset, &MainMenu_Return, &MainMenu_Exit, NULL }
+#endif
 };
 struct Menu MainMenu = {
 	.Parent = NULL, .Title = "ReGBA Main Menu",
 	.AlternateVersion = &PerGameMainMenu,
+#if SCREEN_HEIGHT >= 240
 	.Entries = { &MainMenu_Display, &MainMenu_Input, &MainMenu_Hotkey, &Strut, &MainMenu_SavedStates, &Strut, &Strut, &MainMenu_Debug, &Strut, &MainMenu_Reset, &MainMenu_Return, &MainMenu_Exit, NULL }
+#else
+	.Entries = { &MainMenu_Display, &MainMenu_Input, &MainMenu_Hotkey, &MainMenu_SavedStates, &MainMenu_Debug, &MainMenu_Reset, &MainMenu_Return, &MainMenu_Exit, NULL }
+#endif
 };
 
 /* Do not make this the active menu */
