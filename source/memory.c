@@ -2297,7 +2297,8 @@ uint32_t load_backup()
       // Could be either flash or SRAM, go with flash
       case 0x10000:
         backup_type = BACKUP_FLASH;
-        sram_size = FLASH_SIZE_64KB;
+        flash_size = FLASH_SIZE_64KB;
+        sram_size = SRAM_SIZE_64KB;
         break;
 
       case 0x20000:
@@ -2696,6 +2697,10 @@ ssize_t load_gamepak(const char* file_path)
 		init_rewind(); // Initialise rewinds for this game
 
 		gamepak_size = (file_size + 0x7FFF) & ~0x7FFF;
+
+		sram_size = SRAM_SIZE_32KB;
+		flash_size = FLASH_SIZE_64KB;
+		eeprom_size = EEPROM_512_BYTE;
 
 		load_backup();
 
@@ -3740,14 +3745,8 @@ void init_memory()
   io_registers[REG_RCNT] = 0x0000;
   io_registers[REG_SIOCNT] = 0x0004;
 
-
-
-  sram_size = SRAM_SIZE_32KB;
-  flash_size = FLASH_SIZE_64KB;
-
   flash_bank_offset = 0;
   flash_command_position = 0;
-  eeprom_size = EEPROM_512_BYTE;
   eeprom_mode = EEPROM_BASE_MODE;
   eeprom_address = 0;
   eeprom_counter = 0;
